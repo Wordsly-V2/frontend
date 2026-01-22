@@ -17,22 +17,6 @@ export default function Home() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Demo Trang đăng nhập</CardTitle>
-            <CardDescription>
-              Xem trang đăng nhập với màu sắc mới
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <Link href="/login">
-              <Button className="w-full" size="lg">
-                Xem trang đăng nhập
-              </Button>
-            </Link>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
             <CardTitle>🎨 Bảng màu chủ đạo</CardTitle>
             <CardDescription>
               Các màu brand được sử dụng trong ứng dụng
