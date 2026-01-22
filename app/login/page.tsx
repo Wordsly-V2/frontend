@@ -25,7 +25,7 @@ export default function LoginPage() {
             Wordsly
           </h1>
           <p className="text-muted-foreground">
-            Chào mừng bạn quay trở lại
+            Chào mừng bạn đến với Wordsly
           </p>
         </div>
 
@@ -62,7 +62,7 @@ export default function LoginPage() {
               Đăng nhập với Google
             </Button>
 
-            <div className="relative">
+            {/* <div className="relative">
               <div className="absolute inset-0 flex items-center">
                 <span className="w-full border-t border-border" />
               </div>
@@ -71,9 +71,9 @@ export default function LoginPage() {
                   Hoặc
                 </span>
               </div>
-            </div>
+            </div> */}
 
-            <div className="text-center text-sm text-muted-foreground">
+            {/* <div className="text-center text-sm text-muted-foreground">
               Chưa có tài khoản?{" "}
               <a
                 href="#"
@@ -81,11 +81,11 @@ export default function LoginPage() {
               >
                 Đăng ký ngay
               </a>
-            </div>
+            </div> */}
           </CardContent>
         </Card>
 
-        <div className="mt-8 text-center">
+        {/* <div className="mt-8 text-center">
           <p className="text-xs text-muted-foreground">
             Bằng việc đăng nhập, bạn đồng ý với{" "}
             <a href="#" className="underline hover:text-purple-600 dark:hover:text-purple-400 transition-colors">
@@ -97,7 +97,7 @@ export default function LoginPage() {
             </a>{" "}
             của chúng tôi.
           </p>
-        </div>
+        </div> */}
       </div>
     </div>
   );
