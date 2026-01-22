@@ -1,8 +1,26 @@
+'use client'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import Image from "next/image";
 
 export default function ProfilePage() {
+
+  const access_token = localStorage.getItem('access_token')
+  if(access_token) {
+    fetch('http://localhost:3000/auth/users/profile', {
+      headers: {
+        'Authorization': `Bearer ${access_token}`
+      }
+    })
+    .then(response => response.json())
+    .then(data => {
+      console.log('data: ', data);
+    })
+    .catch(error => {
+      console.error('Error: ', error);
+    })
+  }
+  
   // Mock data - sẽ được thay bằng real data từ auth session
   const user = {
     gmail: "user@example.com",
