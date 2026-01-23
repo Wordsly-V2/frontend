@@ -1,8 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import Link from "next/link";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,24 +10,18 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Button } from "@/components/ui/button";
+import { useUserProfile } from "@/hooks/useUser";
+import Link from "next/link";
+import { LoadingSpinner } from "./ui/loading-spinner";
+import { useRouter } from "next/navigation";
 
 export function Navbar() {
-//   const [mounted, setMounted] = useState(false);
-  
-  // Mock user data - sẽ thay bằng real auth data
-  const user = {
-    isLoggedIn: true,
-    displayName: "Nguyễn Văn A",
-    gmail: "user@example.com",
-    pictureUrl: "https://static.vecteezy.com/system/resources/previews/009/292/244/original/default-avatar-icon-of-social-media-user-vector.jpg",
-  };
+  const { data: userProfile, isLoading } = useUserProfile();
+  const router = useRouter();
 
-//   useEffect(() => {
-//     setTimeout(() => {
-//       setMounted(true);
-//     }, 0);
-//   }, []);
+  const handleLogin = () => {
+    router.push("/auth/login");
+  }
 
   const toggleTheme = () => {
     if (document.documentElement.classList.contains("dark")) {
@@ -40,10 +33,6 @@ export function Navbar() {
     }
   };
 
-  // Prevent hydration mismatch
-//   if (!mounted) {
-//     return null;
-//   }
 
   return (
     <nav className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -100,31 +89,31 @@ export function Navbar() {
 
         {/* User Menu - Góc phải */}
         <div className="flex items-center gap-4">
-          {user.isLoggedIn ? (
+          {userProfile ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button className="relative group">
                   <div className="absolute inset-0 bg-gradient-to-br from-purple-600 to-blue-600 rounded-full blur opacity-0 group-hover:opacity-40 transition-opacity" />
                   <Avatar className="w-10 h-10 border-2 border-border group-hover:border-primary transition-colors cursor-pointer">
-                    <AvatarImage src={user.pictureUrl} alt={user.displayName} />
+                    <AvatarImage src={userProfile.pictureUrl} alt={userProfile.displayName} />
                     <AvatarFallback className="bg-gradient-to-br from-purple-600 to-blue-600 text-white">
-                      {user.displayName.charAt(0)}
+                      {userProfile.displayName.charAt(0)}
                     </AvatarFallback>
                   </Avatar>
-                  
+
                   {/* Tooltip on hover */}
                   <div className="absolute right-0 top-full mt-2 px-3 py-2 bg-popover border border-border rounded-lg shadow-lg opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap z-50">
-                    <p className="text-sm font-medium">{user.displayName}</p>
-                    <p className="text-xs text-muted-foreground">{user.gmail}</p>
+                    <p className="text-sm font-medium">{userProfile.displayName}</p>
+                    <p className="text-xs text-muted-foreground">{userProfile.gmail}</p>
                   </div>
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
                 <DropdownMenuLabel>
                   <div className="flex flex-col space-y-1">
-                    <p className="text-sm font-medium leading-none">{user.displayName}</p>
+                    <p className="text-sm font-medium leading-none">{userProfile.displayName}</p>
                     <p className="text-xs leading-none text-muted-foreground">
-                      {user.gmail}
+                      {userProfile.gmail}
                     </p>
                   </div>
                 </DropdownMenuLabel>
@@ -207,9 +196,9 @@ export function Navbar() {
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (
-            <Link href="/login">
-              <Button>Đăng nhập</Button>
-            </Link>
+            <Button disabled={isLoading} onClick={handleLogin}>
+              {isLoading ? <LoadingSpinner size="sm" label="Đang tải…" /> : "Đăng nhập"}
+            </Button>
           )}
         </div>
       </div>

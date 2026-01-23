@@ -1,32 +1,28 @@
 'use client'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { useUserProfile } from "@/hooks/useUser";
 import Image from "next/image";
 
 export default function ProfilePage() {
+  const { data: userProfile, isLoading, error: fetchUserError } = useUserProfile();
 
-  const access_token = localStorage.getItem('access_token')
-  if(access_token) {
-    fetch('http://localhost:3000/auth/users/profile', {
-      headers: {
-        'Authorization': `Bearer ${access_token}`
-      }
-    })
-    .then(response => response.json())
-    .then(data => {
-      console.log('data: ', data);
-    })
-    .catch(error => {
-      console.error('Error: ', error);
-    })
+  if (isLoading) {
+    return (
+      <main className="min-h-screen bg-slate-50 flex items-center justify-center px-4">
+        <LoadingSpinner size="lg" label="Đang tải thông tin tài khoản…" />
+      </main>
+    );
   }
-  
-  // Mock data - sẽ được thay bằng real data từ auth session
-  const user = {
-    gmail: "user@example.com",
-    displayName: "Nguyễn Văn A",
-    pictureUrl: "https://static.vecteezy.com/system/resources/previews/009/292/244/original/default-avatar-icon-of-social-media-user-vector.jpg",
-  };
+
+  if (fetchUserError) {
+    return (
+      <main className="min-h-screen bg-slate-50 flex items-center justify-center px-4">
+        <div>{fetchUserError.toString()}</div>
+      </main>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-pink-50 dark:from-purple-950/20 dark:via-blue-950/20 dark:to-pink-950/20 pt-8 p-4 md:p-8">
@@ -49,18 +45,18 @@ export default function ProfilePage() {
                 <div className="absolute inset-0 bg-gradient-to-br from-purple-600 to-blue-600 rounded-full blur-md opacity-50" />
                 <div className="relative w-32 h-32 rounded-full overflow-hidden border-4 border-background shadow-2xl">
                   <Image
-                    src={user.pictureUrl}
-                    alt={user.displayName}
+                    src={userProfile?.pictureUrl ?? ''}
+                    alt={userProfile?.displayName ?? ''}
                     width={128}
                     height={128}
                     className="w-full h-full object-cover"
-                    priority
+                    loading='lazy'
                   />
                 </div>
               </div>
               <div className="text-center">
-                <h2 className="text-2xl font-semibold">{user.displayName}</h2>
-                <p className="text-sm text-muted-foreground mt-1">{user.gmail}</p>
+                <h2 className="text-2xl font-semibold">{userProfile?.displayName ?? ''}</h2>
+                <p className="text-sm text-muted-foreground mt-1">{userProfile?.gmail ?? ''}</p>
               </div>
             </div>
           </CardContent>
@@ -94,7 +90,7 @@ export default function ProfilePage() {
                 Tên hiển thị
               </Label>
               <div className="p-3 rounded-lg bg-muted/50 border border-border">
-                <p className="text-foreground font-medium">{user.displayName}</p>
+                <p className="text-foreground font-medium">{userProfile?.displayName ?? ''}</p>
               </div>
             </div>
 
@@ -117,7 +113,7 @@ export default function ProfilePage() {
                 Email
               </Label>
               <div className="p-3 rounded-lg bg-muted/50 border border-border">
-                <p className="text-foreground font-medium">{user.gmail}</p>
+                <p className="text-foreground font-medium">{userProfile?.gmail ?? ''}</p>
               </div>
             </div>
 
