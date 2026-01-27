@@ -1,4 +1,3 @@
-
 import Link from "next/link";
 import { Suspense } from "react";
 import dynamic from "next/dynamic";
@@ -6,8 +5,20 @@ const UserMenu = dynamic(() => import('./user-menu').then(mod => mod.UserMenu));
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 
 export function Navbar() {
+  const menuItems = [
+    { label: "Trang chủ", href: "/" },
+    { label: "Học từ vựng", href: "/learn" },
+    { label: "Từ điển của tôi", href: "/vocabulary" },
+    { label: "Thống kê", href: "/stats" },
+  ];
+
   return (
     <nav className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <input
+        id="mobile-menu-toggle"
+        type="checkbox"
+        className="peer sr-only"
+      />
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
         {/* Logo - Góc trái */}
         <Link href="/" className="flex items-center gap-2 group">
@@ -33,64 +44,62 @@ export function Navbar() {
 
         {/* Menu - Giữa */}
         <div className="hidden md:flex items-center gap-6">
-          <Link
-            href="/"
-            className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
-          >
-            Trang chủ
-          </Link>
-          <Link
-            href="/learn"
-            className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
-          >
-            Học từ vựng
-          </Link>
-          <Link
-            href="/vocabulary"
-            className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
-          >
-            Từ điển của tôi
-          </Link>
-          <Link
-            href="/stats"
-            className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
-          >
-            Thống kê
-          </Link>
+          {menuItems.map((item) => (
+            <Link
+              key={item.label}
+              href={item.href}
+              className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
+            >
+              {item.label}
+            </Link>
+          ))}
         </div>
 
         {/* User Menu - Góc phải */}
-        <Suspense fallback={<LoadingSpinner />}>
-          <UserMenu />
-        </Suspense>
+        <div className="flex items-center gap-2">
+          <label
+            htmlFor="mobile-menu-toggle"
+            className="md:hidden inline-flex items-center justify-center rounded-md border border-border p-2 text-muted-foreground hover:text-primary hover:border-primary transition-colors cursor-pointer"
+            aria-label="Mở menu"
+          >
+            <svg
+              className="h-5 w-5"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={2}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <line x1="3" y1="6" x2="21" y2="6" />
+              <line x1="3" y1="12" x2="21" y2="12" />
+              <line x1="3" y1="18" x2="21" y2="18" />
+            </svg>
+          </label>
+
+          <Suspense fallback={<LoadingSpinner />}>
+            <UserMenu />
+          </Suspense>
+        </div>
       </div>
 
       {/* Mobile Menu - Optional */}
-      <div className="md:hidden border-t border-border px-4 py-2 flex gap-4 overflow-x-auto">
-        <Link
-          href="/"
-          className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors whitespace-nowrap"
-        >
-          Trang chủ
-        </Link>
-        <Link
-          href="/learn"
-          className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors whitespace-nowrap"
-        >
-          Học từ vựng
-        </Link>
-        <Link
-          href="/vocabulary"
-          className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors whitespace-nowrap"
-        >
-          Từ điển
-        </Link>
-        <Link
-          href="/stats"
-          className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors whitespace-nowrap"
-        >
-          Thống kê
-        </Link>
+      <div
+        className="md:hidden overflow-hidden transition-[max-height,opacity] duration-500 ease-out max-h-0 opacity-0 pointer-events-none peer-checked:max-h-60 peer-checked:opacity-100 peer-checked:pointer-events-auto"
+      >
+        <div className="border-t border-border px-4 py-3 flex flex-col gap-2">
+          {
+            menuItems.map((item) => (
+              <Link
+                key={item.label}
+                href={item.href}
+                className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
+              >
+                {item.label}
+              </Link>
+            ))
+          }
+        </div>
       </div>
     </nav>
   );
