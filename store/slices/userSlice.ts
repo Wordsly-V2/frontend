@@ -1,5 +1,5 @@
 import axios from '@/lib/axios';
-import { createAsyncThunk, createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
 
 export type UserProfile = {
     id: string;
@@ -42,9 +42,13 @@ const userSlice = createSlice({
     name: 'user',
     initialState,
     reducers: {
-        setProfile: (state, action: PayloadAction<UserProfile>) => {
-            state.profile = action.payload
+        initProfileFromLocalStorage: (state) => {
+            const userProfile = localStorage.getItem('userProfile');
+            if (userProfile) {
+                state.profile = JSON.parse(userProfile);
+            }
             state.error = undefined;
+            state.isLoading = false;
         },
     },
     extraReducers: (builder) => {
@@ -56,6 +60,7 @@ const userSlice = createSlice({
         builder.addCase(fetchProfile.fulfilled, (state, action) => {
             state.profile = action.payload;
             state.isLoading = false;
+            localStorage.setItem('userProfile', JSON.stringify(action.payload));
         });
         builder.addCase(fetchProfile.rejected, (state, action) => {
             state.error = action.error.message;
@@ -71,6 +76,7 @@ const userSlice = createSlice({
         builder.addCase(logout.fulfilled, (state, action) => {
             state.profile = null;
             state.isLoading = false;
+            localStorage.removeItem('userProfile');
         });
         builder.addCase(logout.rejected, (state, action) => {
             state.error = action.error.message;
@@ -80,7 +86,7 @@ const userSlice = createSlice({
     },
 })
 
-export const { setProfile } =
+export const { initProfileFromLocalStorage } =
     userSlice.actions
 
 export default userSlice.reducer

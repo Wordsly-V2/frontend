@@ -1,22 +1,15 @@
 'use client';
 
-import { useUser } from "@/hooks/useUser";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { useUser } from "@/hooks/useUser";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
 
 export function UserMenu() {
     const router = useRouter();
-    const { profile: userProfile, isLoading: isLoadingUser, fetchProfile, logout } = useUser();
-
-    useEffect(() => {
-        if (!userProfile) {
-            fetchProfile();
-        }
-    }, []);
+    const { profile: userProfile, isLoading: isLoadingUser, logout } = useUser();
 
     const handleLogin = () => {
         router.push("/auth/login");

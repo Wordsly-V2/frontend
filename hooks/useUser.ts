@@ -1,6 +1,7 @@
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
-import { fetchProfile as fetchProfileAction, setProfile as setProfileAction, UserProfile, logout as logoutAction } from '@/store/slices/userSlice';
+import { fetchProfile as fetchProfileAction, logout as logoutAction, initProfileFromLocalStorage as initProfileFromLocalStorageAction } from '@/store/slices/userSlice';
 import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
 
 export const useUser = () => {
     const router = useRouter();
@@ -9,8 +10,8 @@ export const useUser = () => {
     const isLoading = useAppSelector((state) => state.user.isLoading);
     const error = useAppSelector((state) => state.user.error);
 
-    function setProfile(profile: UserProfile) {
-        return dispatch(setProfileAction(profile));
+    function initProfileFromLocalStorage() {
+        return dispatch(initProfileFromLocalStorageAction());
     }
 
     function fetchProfile() {
@@ -25,5 +26,12 @@ export const useUser = () => {
         });
     }
 
-    return { profile, setProfile, fetchProfile, logout, isLoading, error };
+    useEffect(() => {
+        initProfileFromLocalStorage();
+        if (!profile) {
+            fetchProfile();
+        }
+    }, []);
+
+    return { profile, fetchProfile, logout, isLoading, error };
 }
