@@ -7,6 +7,7 @@ import { LoadingSpinner } from "@/components/ui/loading-spinner";
 export function Navbar() {
   const menuItems = [
     { label: "Trang chủ", href: "/" },
+    { label: "Khóa học của tôi", href: "/courses" },
     { label: "Học từ vựng", href: "/learn" },
     { label: "Từ điển của tôi", href: "/vocabulary" },
     { label: "Thống kê", href: "/stats" },
