@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { redirect } from 'next/navigation';
 
 const axiosInstance = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL,
@@ -65,11 +66,11 @@ axiosInstance.interceptors.response.use(
       isRefreshing = true;
 
       try {
-        const res = await axiosInstance.get('/auth/refresh-token', {
+        const res = await axios.get('/auth/refresh-token', {
           baseURL: axiosInstance.defaults.baseURL,
           withCredentials: true,
         });
-        const newToken = res.data.token;
+        const newToken = res.data.accessToken;
 
         localStorage.setItem('access_token', newToken);
 
@@ -85,6 +86,7 @@ axiosInstance.interceptors.response.use(
           null,
         );
         localStorage.removeItem('access_token');
+
         return Promise.reject(
           refreshError instanceof Error
             ? refreshError

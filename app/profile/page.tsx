@@ -1,12 +1,12 @@
 'use client'
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
-import { useUserProfile } from "@/hooks/useUser";
-import Image from "next/image";
+import { useUser } from "@/hooks/useUser";
 
 export default function ProfilePage() {
-  const { data: userProfile, isLoading, error: fetchUserError } = useUserProfile();
+  const { profile: userProfile, isLoading, error: fetchUserError } = useUser();
 
   if (isLoading) {
     return (
@@ -43,15 +43,15 @@ export default function ProfilePage() {
             <div className="flex flex-col items-center space-y-4">
               <div className="relative">
                 <div className="absolute inset-0 bg-gradient-to-br from-purple-600 to-blue-600 rounded-full blur-md opacity-50" />
-                <div className="relative w-32 h-32 rounded-full overflow-hidden border-4 border-background shadow-2xl">
-                  <Image
-                    src={userProfile?.pictureUrl ?? ''}
-                    alt={userProfile?.displayName ?? ''}
-                    width={128}
-                    height={128}
-                    className="w-full h-full object-cover"
-                    loading='lazy'
-                  />
+                <div className="relative rounded-full overflow-hidden border-4 border-background shadow-2xl">
+                  <Avatar className="w-32 h-32">
+                    <AvatarImage src={userProfile?.pictureUrl ?? ''} alt={userProfile?.displayName ?? ''}
+                      loading='lazy'
+                      crossOrigin='anonymous'
+                      referrerPolicy='no-referrer'
+                    />
+                    <AvatarFallback>{userProfile?.displayName?.charAt(0) ?? ''}</AvatarFallback>
+                  </Avatar>
                 </div>
               </div>
               <div className="text-center">

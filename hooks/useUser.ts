@@ -1,26 +1,19 @@
-'use client';
-import axios from '@/lib/axios';
-import { useQuery } from '@tanstack/react-query';
+import { useAppDispatch, useAppSelector } from '@/store/hooks';
+import { fetchProfile as fetchProfileAction, setProfile as setProfileAction, UserProfile } from '@/store/slices/userSlice';
 
-interface UserProfile {
-    id: string;
-    gmail: string;
-    displayName: string;
-    pictureUrl: string;
-}
+export const useUser = () => {
+    const dispatch = useAppDispatch();
+    const profile = useAppSelector((state) => state.user.profile);
+    const isLoading = useAppSelector((state) => state.user.isLoading);
+    const error = useAppSelector((state) => state.user.error);
 
-async function fetchUserProfile(): Promise<UserProfile> {
-    try {
-        const response = await axios.get<UserProfile>(`/auth/users/profile`);
-        return response.data;
-    } catch (error) {
-        throw new Error((error as Error).toString());
+    function setProfile(profile: UserProfile) {
+        return dispatch(setProfileAction(profile));
     }
-}
 
-export const useUserProfile = () => {
-    return useQuery<UserProfile, Error>({
-        queryKey: ['user.profile'],
-        queryFn: fetchUserProfile,
-    });
-};
+    function fetchProfile() {
+        return dispatch(fetchProfileAction());
+    }
+
+    return { profile, setProfile, fetchProfile, isLoading, error };
+}

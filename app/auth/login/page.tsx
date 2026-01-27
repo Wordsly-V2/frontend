@@ -1,4 +1,3 @@
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function LoginPage() {
@@ -39,10 +38,9 @@ export default function LoginPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <Button
-              variant="outline"
-              className="w-full h-11 text-base font-medium border-2 hover:border-purple-300 dark:hover:border-purple-700 hover:bg-purple-50 dark:hover:bg-purple-950/30 transition-all duration-200 group"
-              type="button"
+            <a
+              href={`${process.env.NEXT_PUBLIC_API_URL}/auth/google`}
+              className="w-full h-11 text-base font-medium border-2 hover:border-purple-300 dark:hover:border-purple-700 hover:bg-purple-50 dark:hover:bg-purple-950/30 transition-all duration-200 group inline-flex items-center justify-center"
             >
               <svg
                 className="mr-2 h-5 w-5 transition-transform group-hover:scale-110"
@@ -60,7 +58,7 @@ export default function LoginPage() {
                 ></path>
               </svg>
               Đăng nhập với Google
-            </Button>
+            </a>
 
             {/* <div className="relative">
               <div className="absolute inset-0 flex items-center">

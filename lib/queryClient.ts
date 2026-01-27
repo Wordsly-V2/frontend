@@ -5,12 +5,12 @@ export const queryClient = new QueryClient({
     queries: {
       refetchOnWindowFocus: true,
       refetchOnMount: true,
-      retry: 2,
+      retry: false,
       retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
       refetchOnReconnect: true,
     },
     mutations: {
-      retry: 1,
+      retry: false,
     },
   },
 });
