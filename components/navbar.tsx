@@ -196,8 +196,8 @@ export function Navbar() {
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (
-            <Button disabled={isLoading} onClick={handleLogin}>
-              {isLoading ? <LoadingSpinner size="sm" label="Đang tải…" /> : "Đăng nhập"}
+            <Button onClick={handleLogin}>
+              Đăng nhập
             </Button>
           )}
         </div>
