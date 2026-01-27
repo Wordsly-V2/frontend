@@ -1,5 +1,5 @@
 import axios from '@/lib/axios';
-import { createAsyncThunk, createSlice, PayloadAction } from '@reduxjs/toolkit'
+import { createAsyncThunk, createSlice, PayloadAction } from '@reduxjs/toolkit';
 
 export type UserProfile = {
     id: string;
@@ -29,6 +29,15 @@ export const fetchProfile = createAsyncThunk('user/fetchProfile', async (_, { re
     }
 });
 
+export const logout = createAsyncThunk('user/logout', async (_, { rejectWithValue }) => {
+    try {
+        await axios.post('/auth/logout');
+        return { success: true };
+    } catch (error) {
+        return rejectWithValue(error);
+    }
+});
+
 const userSlice = createSlice({
     name: 'user',
     initialState,
@@ -39,6 +48,7 @@ const userSlice = createSlice({
         },
     },
     extraReducers: (builder) => {
+        // Fetch profile
         builder.addCase(fetchProfile.pending, (state) => {
             state.error = undefined;
             state.isLoading = true;
@@ -48,6 +58,21 @@ const userSlice = createSlice({
             state.isLoading = false;
         });
         builder.addCase(fetchProfile.rejected, (state, action) => {
+            state.error = action.error.message;
+            state.profile = null;
+            state.isLoading = false;
+        });
+
+        // Logout
+        builder.addCase(logout.pending, (state) => {
+            state.error = undefined;
+            state.isLoading = true;
+        });
+        builder.addCase(logout.fulfilled, (state, action) => {
+            state.profile = null;
+            state.isLoading = false;
+        });
+        builder.addCase(logout.rejected, (state, action) => {
             state.error = action.error.message;
             state.profile = null;
             state.isLoading = false;

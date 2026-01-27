@@ -10,7 +10,7 @@ import { useEffect } from "react";
 
 export function UserMenu() {
     const router = useRouter();
-    const { profile: userProfile, isLoading: isLoadingUser, fetchProfile } = useUser();
+    const { profile: userProfile, isLoading: isLoadingUser, fetchProfile, logout } = useUser();
 
     useEffect(() => {
         if (!userProfile) {
@@ -125,7 +125,7 @@ export function UserMenu() {
                             Đổi theme
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem className="cursor-pointer text-red-600 dark:text-red-400">
+                        <DropdownMenuItem onClick={logout} className="cursor-pointer text-red-600 dark:text-red-400">
                             <svg
                                 className="mr-2 h-4 w-4"
                                 fill="none"

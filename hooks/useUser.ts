@@ -1,7 +1,9 @@
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
-import { fetchProfile as fetchProfileAction, setProfile as setProfileAction, UserProfile } from '@/store/slices/userSlice';
+import { fetchProfile as fetchProfileAction, setProfile as setProfileAction, UserProfile, logout as logoutAction } from '@/store/slices/userSlice';
+import { useRouter } from 'next/navigation';
 
 export const useUser = () => {
+    const router = useRouter();
     const dispatch = useAppDispatch();
     const profile = useAppSelector((state) => state.user.profile);
     const isLoading = useAppSelector((state) => state.user.isLoading);
@@ -15,5 +17,13 @@ export const useUser = () => {
         return dispatch(fetchProfileAction());
     }
 
-    return { profile, setProfile, fetchProfile, isLoading, error };
+    function logout() {
+        return dispatch(logoutAction()).then(() => {
+            localStorage.removeItem('access_token');
+            router.replace('/');
+            router.refresh();
+        });
+    }
+
+    return { profile, setProfile, fetchProfile, logout, isLoading, error };
 }
