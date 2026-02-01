@@ -66,6 +66,7 @@ const userSlice = createSlice({
             state.error = action.error.message;
             state.profile = null;
             state.isLoading = false;
+            localStorage.removeItem('userProfile');
         });
 
         // Logout
