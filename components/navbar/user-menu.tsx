@@ -6,24 +6,48 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 import { useUser } from "@/hooks/useUser";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
+import { ChangeThemeToggle } from "../common/change-theme-toggle/change-theme-toggle";
 
 export function UserMenu() {
     const router = useRouter();
     const { profile: userProfile, isLoading: isLoadingUser, logout } = useUser();
+    const [mounted, setMounted] = useState(false);
+    const [isDark, setIsDark] = useState(false);
+
+    // Prevent hydration mismatch by only rendering theme-dependent UI after mount
+    useEffect(() => {
+        setTimeout(() => {
+            setMounted(true);
+            setIsDark(document.documentElement.classList.contains("dark"));
+        });
+    }, []);
 
     const handleLogin = () => {
         router.push("/auth/login");
     }
 
     const toggleTheme = () => {
-        if (document.documentElement.classList.contains("dark")) {
-            document.documentElement.classList.remove("dark");
-            localStorage.setItem("theme", "light");
-        } else {
+        const newIsDark = !isDark;
+        setIsDark(newIsDark);
+
+        if (newIsDark) {
             document.documentElement.classList.add("dark");
             localStorage.setItem("theme", "dark");
+        } else {
+            document.documentElement.classList.remove("dark");
+            localStorage.setItem("theme", "light");
         }
     };
+
+    // Prevent hydration errors by not rendering until mounted
+    if (!mounted) {
+        return (
+            <div className="flex items-center gap-4">
+                <div className="w-10 h-10" />
+            </div>
+        );
+    }
 
     return (
         <div className="flex items-center gap-4">
@@ -102,20 +126,7 @@ export function UserMenu() {
                             </Link>
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={toggleTheme} className="cursor-pointer">
-                            <svg
-                                className="mr-2 h-4 w-4"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                            >
-                                <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2}
-                                    d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"
-                                />
-                            </svg>
-                            Đổi theme
+                            <ChangeThemeToggle />
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem onClick={logout} className="cursor-pointer text-red-600 dark:text-red-400">
@@ -137,9 +148,52 @@ export function UserMenu() {
                     </DropdownMenuContent>
                 </DropdownMenu>
             ) : (
-                <Button onClick={handleLogin} disabled={isLoadingUser}>
-                    Đăng nhập
-                </Button>
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="relative group"
+                            disabled={isLoadingUser}
+                        >
+                            <svg
+                                className="h-6 w-6"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                            >
+                                <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M4 6h16M4 12h16M4 18h16"
+                                />
+                            </svg>
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-56">
+                        <DropdownMenuItem onClick={toggleTheme} className="cursor-pointer">
+                            <ChangeThemeToggle />
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={handleLogin} className="cursor-pointer">
+                            <svg
+                                className="mr-2 h-4 w-4"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                            >
+                                <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"
+                                />
+                            </svg>
+                            Đăng nhập
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
             )}
         </div>
     );
