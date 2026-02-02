@@ -1,16 +1,11 @@
+import { ICourse } from "@/types/courses/courses.type";
 import Image from "next/image";
 
 export default function CourseCard({
     course,
     onCourseClick,
 }: {
-    course: {
-        id: string;
-        title: string;
-        cover: string;
-        vocabCount: number;
-        partsCount: number;
-    };
+    course: ICourse;
     onCourseClick?: () => void;
 }) {
     return (
@@ -20,8 +15,8 @@ export default function CourseCard({
         >
             <div className='relative h-40 w-full overflow-hidden'>
                 <Image
-                    src={course.cover}
-                    alt={`Cover ${course.title}`}
+                    src={course.coverImageUrl ?? ""}
+                    alt={`Cover ${course.name}`}
                     className='h-full w-full object-cover transition-transform duration-300 group-hover:scale-105'
                     loading='lazy'
                     width={100}
@@ -30,12 +25,12 @@ export default function CourseCard({
             </div>
             <div className='p-4 space-y-3'>
                 <h2 className='text-base font-semibold leading-snug line-clamp-2'>
-                    {course.title}
+                    {course.name}
                 </h2>
-                <div className='flex items-center justify-between text-sm text-muted-foreground'>
+                {/* <div className='flex items-center justify-between text-sm text-muted-foreground'>
                     <span>{course.vocabCount} từ vựng</span>
                     <span>{course.partsCount} phần</span>
-                </div>
+                </div> */}
                 <button
                     type='button'
                     className='w-full rounded-lg bg-primary text-primary-foreground text-sm font-medium py-2 hover:opacity-90 transition-opacity'

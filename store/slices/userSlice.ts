@@ -1,15 +1,10 @@
-import axios from '@/lib/axios';
+import { getUserProfile } from '@/apis/users.api';
+import { logout as logoutApi } from '@/apis/auth.api';
+import { IUserProfile } from '@/types/users/users.type';
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
 
-export type UserProfile = {
-    id: string;
-    gmail: string;
-    displayName: string;
-    pictureUrl: string;
-}
-
 interface UserState {
-    profile: UserProfile | null
+    profile: IUserProfile | null
     error: string | undefined
     isLoading: boolean
 }
@@ -22,8 +17,7 @@ const initialState: UserState = {
 
 export const fetchProfile = createAsyncThunk('user/fetchProfile', async (_, { rejectWithValue }) => {
     try {
-        const response = await axios.get<UserProfile>('/auth/users/profile');
-        return response.data;
+        return getUserProfile();
     } catch (error) {
         return rejectWithValue(error);
     }
@@ -31,8 +25,7 @@ export const fetchProfile = createAsyncThunk('user/fetchProfile', async (_, { re
 
 export const logout = createAsyncThunk('user/logout', async (_, { rejectWithValue }) => {
     try {
-        await axios.post('/auth/logout');
-        return { success: true };
+        return  logoutApi();
     } catch (error) {
         return rejectWithValue(error);
     }

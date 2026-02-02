@@ -1,12 +1,13 @@
 'use client'
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { useUser } from "@/hooks/useUser";
 
 export default function ProfilePage() {
-  const { profile: userProfile, isLoading, error: fetchUserError } = useUser();
+  const { profile: userProfile, isLoading, error, fetchProfile } = useUser();
 
   if (isLoading) {
     return (
@@ -16,12 +17,15 @@ export default function ProfilePage() {
     );
   }
 
-  if (fetchUserError) {
-    return (
-      <main className="min-h-screen bg-slate-50 flex items-center justify-center px-4">
-        <div>{fetchUserError.toString()}</div>
-      </main>
-    )
+  if (error) {
+      return (
+          <main className="min-h-screen bg-slate-50 flex items-center justify-center px-4">
+              <div>Error: {error}</div>
+              <Button onClick={() => {
+                  fetchProfile();
+              }}>Thử lại</Button>
+          </main>
+      );
   }
 
   return (
