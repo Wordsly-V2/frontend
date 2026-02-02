@@ -1,6 +1,6 @@
 import axiosInstance from "@/lib/axios";
 
-export const logout = async () => {
+export const logout = async (): Promise<{ success: boolean }> => {
     try {
         await axiosInstance.post('/auth/logout');
         return { success: true };

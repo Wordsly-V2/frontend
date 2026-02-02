@@ -9,8 +9,10 @@ import { createMyCourses, getMyCourses } from "@/apis/courses.api";
 import { useQuery } from "@tanstack/react-query";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { NoCourses } from "@/components/common/no-courses/no-courses";
+import { useRouter } from "next/navigation";
 
 export default function CoursesPage() {
+    const router = useRouter();
     const { data: courses, isLoading, error, refetch } = useQuery({
         queryKey: ['courses'],
         queryFn: () => getMyCourses(),
@@ -64,10 +66,13 @@ export default function CoursesPage() {
                         </div>
                         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                             {courses?.map((course: ICourse) => (
-                                <CourseCard key={course.id} course={course} onCourseClick={() => {
-                                    setSelectedCourse(course);
-                                    setIsCourseDialogOpen(true);
-                                }} />
+                                <CourseCard 
+                                    key={course.id} 
+                                    course={course} 
+                                    onCourseClick={() => {
+                                        router.push(`/courses/${course.id}`);
+                                    }} 
+                                />
                             ))}
                         </div>
                     </div>
@@ -76,8 +81,9 @@ export default function CoursesPage() {
 
             <CourseDialog
                 isOpen={isCourseDialogOpen}
-                onSubmit={(course) => {
-                    createMyCourses({ courses: [{ name: course.title, coverImageUrl: course.cover }] }).then(() => {
+                onSubmit={(courses) => {
+                    const payload = courses.map(c => ({ name: c.title, coverImageUrl: c.cover }));
+                    createMyCourses({ courses: payload }).then(() => {
                         refetch();
                         setIsCourseDialogOpen(false);
                     }).catch((error) => {
