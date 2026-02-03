@@ -12,7 +12,11 @@ export default function ManagePage() {
     const [courses, setCourses] = useState<ICourse[]>([]);
 
     useEffect(() => {
-        setCourses(getAllCourses());
+        const _loadCourses = () => {
+            setCourses(getAllCourses());
+        };
+
+        _loadCourses();
     }, []);
 
     const totalLessons = courses.reduce((sum, c) => sum + (c.lessons?.length || 0), 0);

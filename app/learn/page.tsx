@@ -12,9 +12,13 @@ export default function LearnPage() {
 
     // Load courses on mount
     useEffect(() => {
-        const loadedCourses = getAllCourses();
-        setCourses(loadedCourses);
-        setFilteredCourses(loadedCourses);
+        const _loadCourses = async () => {
+            const loadedCourses = getAllCourses();
+            setCourses(loadedCourses);
+            setFilteredCourses(loadedCourses);
+        }
+
+        _loadCourses();
     }, []);
 
     const handleSearch = (query: string) => {
@@ -32,23 +36,10 @@ export default function LearnPage() {
     return (
         <main className="min-h-screen bg-background">
             <div className="container mx-auto px-4 py-8 max-w-7xl">
-                <div className="mb-6">
-                    <h1 className="text-3xl font-bold tracking-tight mb-2">Learn Mode</h1>
-                    <p className="text-muted-foreground">Choose a course to start practicing vocabulary</p>
-                </div>
-
-                <CoursesHeader
-                    totalCourses={courses.length}
-                    onSearch={handleSearch}
-                />
-
-                <div className="mt-8">
-                    <CourseGrid courses={filteredCourses} />
-                </div>
 
                 {/* Stats Section */}
                 {courses.length > 0 && (
-                    <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="mb-6 grid grid-cols-1 md:grid-cols-3 gap-6">
                         <div className="bg-card border border-border rounded-lg p-6">
                             <div className="flex items-center gap-3">
                                 <div className="w-12 h-12 rounded-lg gradient-brand flex items-center justify-center">
@@ -131,6 +122,15 @@ export default function LearnPage() {
                         </div>
                     </div>
                 )}
+
+                <CoursesHeader
+                    totalCourses={courses.length}
+                    onSearch={handleSearch}
+                />
+
+                <div className="mt-8">
+                    <CourseGrid courses={filteredCourses} />
+                </div>
             </div>
         </main>
     );

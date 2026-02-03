@@ -12,7 +12,7 @@ interface UserState {
 const initialState: UserState = {
     profile: null,
     error: undefined,
-    isLoading: false,
+    isLoading: true,
 }
 
 export const fetchProfile = createAsyncThunk('user/fetchProfile', async (_, { rejectWithValue }) => {

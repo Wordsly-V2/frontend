@@ -30,7 +30,7 @@ export default function AuthGuard({ children }: Readonly<AuthGuardProps>) {
 
             // If no profile and not loading, redirect to login
             if (!profile && !isLoading) {
-                const loginUrl = `/auth/login)}`;
+                const loginUrl = `/auth/login`;
                 router.push(loginUrl);
                 return;
             }
@@ -49,10 +49,7 @@ export default function AuthGuard({ children }: Readonly<AuthGuardProps>) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/5 via-secondary/5 to-accent/5">
                 <div className="text-center space-y-4">
-                    <LoadingSpinner size="lg" />
-                    <p className="text-sm text-muted-foreground animate-pulse">
-                        Checking authentication...
-                    </p>
+                    <LoadingSpinner size="lg" label="Checking authentication..." />
                 </div>
             </div>
         );
