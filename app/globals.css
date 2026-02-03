@@ -49,36 +49,38 @@
 :root {
   --radius: 0.75rem;
   
-  /* Wordsly Brand Colors - Modern, Educational Theme */
-  --brand-primary: oklch(0.55 0.20 220); /* Friendly blue for learning */
-  --brand-secondary: oklch(0.60 0.18 180); /* Teal accent */
-  --brand-accent: oklch(0.65 0.16 280); /* Purple highlight */
-  --brand-success: oklch(0.60 0.18 150); /* Green for success */
-  --brand-warning: oklch(0.70 0.18 80); /* Warm yellow for attention */
+  /* Wordsly Brand Colors - Vibrant, Educational Theme */
+  --brand-primary: oklch(0.60 0.25 250); /* Vibrant blue-purple for learning */
+  --brand-secondary: oklch(0.65 0.22 180); /* Bright teal accent */
+  --brand-accent: oklch(0.68 0.20 290); /* Vivid purple highlight */
+  --brand-success: oklch(0.65 0.22 145); /* Energetic green for success */
+  --brand-warning: oklch(0.75 0.20 75); /* Bright yellow-orange for attention */
+  --brand-pink: oklch(0.70 0.22 340); /* Fun pink accent */
+  --brand-orange: oklch(0.70 0.22 45); /* Warm orange */
   
-  --background: oklch(0.98 0.005 220);
-  --foreground: oklch(0.15 0.01 220);
+  --background: oklch(0.99 0.005 250);
+  --foreground: oklch(0.12 0.01 250);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
+  --card-foreground: oklch(0.12 0 0);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
+  --popover-foreground: oklch(0.12 0 0);
   
   /* Primary uses brand color */
   --primary: var(--brand-primary);
   --primary-foreground: oklch(0.99 0 0);
   
-  --secondary: oklch(0.95 0.01 220);
-  --secondary-foreground: oklch(0.3 0.05 220);
-  --muted: oklch(0.96 0.005 220);
-  --muted-foreground: oklch(0.48 0.01 220);
+  --secondary: oklch(0.95 0.02 250);
+  --secondary-foreground: oklch(0.25 0.08 250);
+  --muted: oklch(0.97 0.008 250);
+  --muted-foreground: oklch(0.45 0.02 250);
   
   /* Accent uses brand accent color */
-  --accent: oklch(0.94 0.02 280);
+  --accent: oklch(0.95 0.03 290);
   --accent-foreground: var(--brand-accent);
   
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.88 0.01 220);
-  --input: oklch(0.95 0.01 220);
+  --destructive: oklch(0.60 0.27 25);
+  --border: oklch(0.90 0.02 250);
+  --input: oklch(0.96 0.02 250);
   --ring: var(--brand-primary);
   
   --chart-1: var(--brand-primary);
@@ -98,36 +100,38 @@
 }
 
 .dark {
-  /* Wordsly Brand Colors - Dark Mode */
-  --brand-primary: oklch(0.65 0.18 220);
-  --brand-secondary: oklch(0.65 0.16 180);
-  --brand-accent: oklch(0.70 0.15 280);
-  --brand-success: oklch(0.65 0.16 150);
-  --brand-warning: oklch(0.75 0.16 80);
+  /* Wordsly Brand Colors - Vibrant Dark Mode */
+  --brand-primary: oklch(0.70 0.22 250);
+  --brand-secondary: oklch(0.70 0.20 180);
+  --brand-accent: oklch(0.75 0.18 290);
+  --brand-success: oklch(0.70 0.20 145);
+  --brand-warning: oklch(0.78 0.18 75);
+  --brand-pink: oklch(0.75 0.20 340);
+  --brand-orange: oklch(0.75 0.20 45);
   
-  --background: oklch(0.12 0.01 220);
-  --foreground: oklch(0.98 0.005 220);
-  --card: oklch(0.17 0.015 220);
-  --card-foreground: oklch(0.98 0.005 220);
-  --popover: oklch(0.17 0.015 220);
-  --popover-foreground: oklch(0.98 0.005 220);
+  --background: oklch(0.12 0.02 250);
+  --foreground: oklch(0.98 0.008 250);
+  --card: oklch(0.17 0.025 250);
+  --card-foreground: oklch(0.98 0.008 250);
+  --popover: oklch(0.17 0.025 250);
+  --popover-foreground: oklch(0.98 0.008 250);
   
   /* Primary uses brand color */
   --primary: var(--brand-primary);
-  --primary-foreground: oklch(0.98 0 0);
+  --primary-foreground: oklch(0.10 0 0);
   
-  --secondary: oklch(0.22 0.02 220);
-  --secondary-foreground: oklch(0.9 0.01 220);
-  --muted: oklch(0.22 0.02 220);
-  --muted-foreground: oklch(0.62 0.01 220);
+  --secondary: oklch(0.22 0.03 250);
+  --secondary-foreground: oklch(0.92 0.02 250);
+  --muted: oklch(0.22 0.03 250);
+  --muted-foreground: oklch(0.65 0.02 250);
   
   /* Accent uses brand accent color */
-  --accent: oklch(0.25 0.03 280);
+  --accent: oklch(0.25 0.05 290);
   --accent-foreground: var(--brand-accent);
   
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(0.28 0.02 220);
-  --input: oklch(0.25 0.02 220);
+  --destructive: oklch(0.70 0.22 25);
+  --border: oklch(0.30 0.03 250);
+  --input: oklch(0.25 0.03 250);
   --ring: var(--brand-primary);
   
   --chart-1: var(--brand-primary);
@@ -158,11 +162,33 @@
 @layer utilities {
   /* Learning App Specific Utilities */
   .gradient-brand {
-    background: linear-gradient(135deg, var(--brand-primary) 0%, var(--brand-secondary) 100%);
+    background: linear-gradient(135deg, var(--brand-primary) 0%, var(--brand-accent) 100%);
   }
   
   .gradient-accent {
     background: linear-gradient(135deg, var(--brand-secondary) 0%, var(--brand-accent) 100%);
+  }
+  
+  .gradient-success {
+    background: linear-gradient(135deg, var(--brand-success) 0%, var(--brand-secondary) 100%);
+  }
+  
+  .gradient-warm {
+    background: linear-gradient(135deg, var(--brand-warning) 0%, var(--brand-orange) 100%);
+  }
+  
+  .gradient-fun {
+    background: linear-gradient(135deg, var(--brand-pink) 0%, var(--brand-accent) 100%);
+  }
+  
+  .gradient-rainbow {
+    background: linear-gradient(135deg, 
+      var(--brand-primary) 0%, 
+      var(--brand-secondary) 25%, 
+      var(--brand-success) 50%,
+      var(--brand-warning) 75%,
+      var(--brand-pink) 100%
+    );
   }
   
   .text-balance {
@@ -171,28 +197,104 @@
   
   /* Badge variants for CEFR levels */
   .badge-a2 {
-    @apply bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400;
+    @apply bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 font-semibold;
   }
   
   .badge-b1 {
-    @apply bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400;
+    @apply bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-400 font-semibold;
   }
   
   .badge-b2 {
-    @apply bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400;
+    @apply bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400 font-semibold;
   }
   
   .badge-c1 {
-    @apply bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400;
+    @apply bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 font-semibold;
   }
   
   /* Card hover effects */
   .card-hover {
-    @apply transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5;
+    @apply transition-all duration-300 hover:shadow-xl hover:shadow-primary/10 hover:-translate-y-1 hover:scale-[1.02];
   }
   
   /* Focus visible for accessibility */
   .focus-visible-ring {
     @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2;
+  }
+  
+  /* Animate on scroll */
+  .animate-fade-up {
+    animation: fadeUp 0.6s ease-out forwards;
+  }
+  
+  @keyframes fadeUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  .animate-slide-in {
+    animation: slideIn 0.5s ease-out forwards;
+  }
+  
+  @keyframes slideIn {
+    from {
+      opacity: 0;
+      transform: translateX(-30px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+  
+  /* Shimmer effect */
+  .shimmer {
+    position: relative;
+    overflow: hidden;
+  }
+  
+  .shimmer::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0.3) 50%,
+      transparent 100%
+    );
+    animation: shimmer 2s infinite;
+  }
+  
+  @keyframes shimmer {
+    0% {
+      transform: translateX(-100%);
+    }
+    100% {
+      transform: translateX(100%);
+    }
+  }
+  
+  /* Pulse glow */
+  .pulse-glow {
+    animation: pulseGlow 2s ease-in-out infinite;
+  }
+  
+  @keyframes pulseGlow {
+    0%, 100% {
+      box-shadow: 0 0 20px rgba(var(--brand-primary), 0.3);
+    }
+    50% {
+      box-shadow: 0 0 40px rgba(var(--brand-primary), 0.6);
+    }
   }
 }

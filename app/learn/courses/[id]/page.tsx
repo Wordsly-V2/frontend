@@ -3,16 +3,21 @@
 import { use, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Play } from "lucide-react";
+import { ArrowLeft, Play, ChevronDown, ChevronRight, Volume2 } from "lucide-react";
 import Image from "next/image";
-import LessonList from "@/components/features/lessons/lesson-list";
 import { getCourseById } from "@/lib/data-store";
-import { ILesson } from "@/types/courses/courses.type";
+import { ILesson, IWord } from "@/types/courses/courses.type";
+import { Checkbox } from "@/components/ui/checkbox";
+import VocabularyPractice from "@/components/features/vocabulary/vocabulary-practice";
 
 export default function LearnCourseDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = use(params);
     const router = useRouter();
     const [course, setCourse] = useState(getCourseById(id));
+    const [expandedLessons, setExpandedLessons] = useState<Set<string>>(new Set());
+    const [selectedWords, setSelectedWords] = useState<Set<string>>(new Set());
+    const [isPracticing, setIsPracticing] = useState(false);
+    
     const lessons = course?.lessons || [];
 
     useEffect(() => {
@@ -34,10 +39,107 @@ export default function LearnCourseDetailPage({ params }: { params: Promise<{ id
     }
 
     const totalWords = lessons.reduce((sum, l) => sum + (l.words?.length || 0), 0);
+    const allWords: IWord[] = [];
+    lessons.forEach((lesson) => {
+        if (lesson.words) {
+            allWords.push(...lesson.words);
+        }
+    });
 
-    const handleLessonClick = (lessonId: string) => {
-        router.push(`/learn/courses/${id}/lessons/${lessonId}/practice`);
+    const selectedWordsArray = allWords.filter((word) => selectedWords.has(word.id));
+
+    const toggleLesson = (lessonId: string) => {
+        const newExpanded = new Set(expandedLessons);
+        if (newExpanded.has(lessonId)) {
+            newExpanded.delete(lessonId);
+        } else {
+            newExpanded.add(lessonId);
+        }
+        setExpandedLessons(newExpanded);
     };
+
+    const toggleWord = (wordId: string) => {
+        const newSelected = new Set(selectedWords);
+        if (newSelected.has(wordId)) {
+            newSelected.delete(wordId);
+        } else {
+            newSelected.add(wordId);
+        }
+        setSelectedWords(newSelected);
+    };
+
+    const toggleAllWordsInLesson = (lesson: ILesson) => {
+        if (!lesson.words) {
+            return;
+        }
+        
+        const lessonWordIds = lesson.words.map((w) => w.id);
+        const allSelected = lessonWordIds.every((id) => selectedWords.has(id));
+        
+        const newSelected = new Set(selectedWords);
+        if (allSelected) {
+            lessonWordIds.forEach((id) => newSelected.delete(id));
+        } else {
+            lessonWordIds.forEach((id) => newSelected.add(id));
+        }
+        setSelectedWords(newSelected);
+    };
+
+    const selectAllWords = () => {
+        const allWordIds = new Set(allWords.map((w) => w.id));
+        setSelectedWords(allWordIds);
+    };
+
+    const deselectAllWords = () => {
+        setSelectedWords(new Set());
+    };
+
+    const handlePlayAudio = (audioUrl: string | undefined, e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (audioUrl) {
+            const audio = new Audio(audioUrl);
+            audio.play().catch(console.error);
+        }
+    };
+
+    const handleStartPractice = () => {
+        if (selectedWords.size > 0) {
+            setIsPracticing(true);
+        }
+    };
+
+    const handlePracticeComplete = (score: number) => {
+        console.log("Practice complete! Score:", score);
+        setIsPracticing(false);
+        setSelectedWords(new Set());
+    };
+
+    if (isPracticing) {
+        return (
+            <main className="min-h-screen bg-background">
+                <div className="container mx-auto px-4 py-8 max-w-4xl">
+                    <Button
+                        variant="ghost"
+                        onClick={() => setIsPracticing(false)}
+                        className="mb-6"
+                    >
+                        <ArrowLeft className="h-4 w-4 mr-2" />
+                        Back to Course
+                    </Button>
+                    <div className="text-center mb-8">
+                        <h1 className="text-2xl sm:text-3xl font-bold mb-2">Practice Vocabulary</h1>
+                        <p className="text-muted-foreground">
+                            {course.name} • {selectedWordsArray.length} words
+                        </p>
+                    </div>
+                    <VocabularyPractice 
+                        words={selectedWordsArray} 
+                        onComplete={handlePracticeComplete} 
+                    />
+                </div>
+            </main>
+        );
+    }
 
     return (
         <main className="min-h-screen bg-background">
@@ -86,51 +188,178 @@ export default function LearnCourseDetailPage({ params }: { params: Promise<{ id
                     )}
                 </div>
 
-                {/* Actions & Stats */}
-                <div className="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center mb-8">
-                    <div>
-                        <h2 className="text-2xl font-semibold mb-1">Lessons</h2>
-                        <p className="text-muted-foreground text-sm">
-                            {lessons.length === 0
-                                ? "No lessons yet"
-                                : "Select a lesson to begin practicing"}
-                        </p>
-                    </div>
-                    {totalWords > 0 && (
-                        <Button onClick={() => router.push(`/learn/courses/${id}/practice`)}>
-                            <Play className="h-4 w-4 mr-2" />
-                            Practice All
-                        </Button>
-                    )}
-                </div>
-
-                {/* Lessons List */}
-                <LessonList
-                    lessons={lessons}
-                    onLessonClick={handleLessonClick}
-                    sortable={false}
-                />
-
-                {/* Progress Overview */}
-                {lessons.length > 0 && (
-                    <div className="mt-8 p-6 bg-card border border-border rounded-lg">
-                        <h3 className="font-semibold mb-4">Your Progress</h3>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <div>
-                                <p className="text-sm text-muted-foreground mb-1">Words Learned</p>
-                                <p className="text-2xl font-bold">0 / {totalWords}</p>
-                            </div>
-                            <div>
-                                <p className="text-sm text-muted-foreground mb-1">Study Streak</p>
-                                <p className="text-2xl font-bold">0 days</p>
-                            </div>
-                            <div>
-                                <p className="text-sm text-muted-foreground mb-1">Completion</p>
-                                <p className="text-2xl font-bold">0%</p>
-                            </div>
+                {/* Selection Actions */}
+                {totalWords > 0 && (
+                    <div className="flex flex-wrap gap-3 items-center justify-between mb-6">
+                        <div className="flex flex-wrap gap-2">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={selectAllWords}
+                            >
+                                Select All
+                            </Button>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={deselectAllWords}
+                                disabled={selectedWords.size === 0}
+                            >
+                                Clear Selection
+                            </Button>
+                            {selectedWords.size > 0 && (
+                                <span className="inline-flex items-center px-3 py-1 rounded-full bg-primary/10 text-primary text-sm font-semibold">
+                                    {selectedWords.size} selected
+                                </span>
+                            )}
                         </div>
+                        <Button
+                            onClick={handleStartPractice}
+                            disabled={selectedWords.size === 0}
+                        >
+                            <Play className="h-4 w-4 mr-2" />
+                            Practice Selected
+                        </Button>
                     </div>
                 )}
+
+                {/* Expandable Lessons List */}
+                <div className="space-y-3">
+                    {lessons.length === 0 ? (
+                        <div className="text-center py-12 border-2 border-dashed border-border rounded-xl bg-muted/30">
+                            <p className="text-muted-foreground">No lessons yet</p>
+                        </div>
+                    ) : (
+                        lessons.map((lesson, index) => {
+                            const isExpanded = expandedLessons.has(lesson.id);
+                            const lessonWords = lesson.words || [];
+                            const lessonWordIds = lessonWords.map((w) => w.id);
+                            const allLessonWordsSelected = lessonWordIds.length > 0 && lessonWordIds.every((id) => selectedWords.has(id));
+                            const someLessonWordsSelected = lessonWordIds.some((id) => selectedWords.has(id)) && !allLessonWordsSelected;
+
+                            return (
+                                <div
+                                    key={lesson.id}
+                                    className="bg-card border-2 border-border rounded-xl overflow-hidden transition-all hover:border-primary/50"
+                                >
+                                    {/* Lesson Header */}
+                                    <div
+                                        role="button"
+                                        tabIndex={0}
+                                        className="flex items-center gap-3 p-4 cursor-pointer"
+                                        onClick={() => toggleLesson(lesson.id)}
+                                        onKeyDown={(e) => {
+                                            if (e.key === "Enter" || e.key === " ") {
+                                                e.preventDefault();
+                                                toggleLesson(lesson.id);
+                                            }
+                                        }}
+                                    >
+                                        <button
+                                            className="text-muted-foreground hover:text-foreground transition-colors"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                toggleLesson(lesson.id);
+                                            }}
+                                        >
+                                            {isExpanded ? (
+                                                <ChevronDown className="h-5 w-5" />
+                                            ) : (
+                                                <ChevronRight className="h-5 w-5" />
+                                            )}
+                                        </button>
+                                        
+                                        <div className="flex items-center gap-3 flex-1">
+                                            <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-gradient-to-br from-primary/20 to-purple-500/20 text-primary font-semibold">
+                                                {index + 1}
+                                            </div>
+                                            <div className="flex-1">
+                                                <h3 className="font-semibold text-lg">{lesson.name}</h3>
+                                                <p className="text-sm text-muted-foreground">
+                                                    {lessonWords.length} words
+                                                </p>
+                                            </div>
+                                        </div>
+
+                                        {lessonWords.length > 0 && (
+                                            <Checkbox
+                                                checked={allLessonWordsSelected}
+                                                onCheckedChange={() => toggleAllWordsInLesson(lesson)}
+                                                onClick={(e) => e.stopPropagation()}
+                                                className={someLessonWordsSelected ? "data-[state=checked]:bg-primary/50" : ""}
+                                            />
+                                        )}
+                                    </div>
+
+                                    {/* Words List */}
+                                    {isExpanded && lessonWords.length > 0 && (
+                                        <div className="border-t border-border bg-muted/30 p-4 space-y-2">
+                                            {lessonWords.map((word) => (
+                                                <div
+                                                    key={word.id}
+                                                    role="button"
+                                                    tabIndex={0}
+                                                    className="flex items-center gap-3 p-3 bg-background rounded-lg border border-border hover:border-primary/50 transition-colors cursor-pointer"
+                                                    onClick={() => toggleWord(word.id)}
+                                                    onKeyDown={(e) => {
+                                                        if (e.key === "Enter" || e.key === " ") {
+                                                            e.preventDefault();
+                                                            toggleWord(word.id);
+                                                        }
+                                                    }}
+                                                >
+                                                    <Checkbox
+                                                        checked={selectedWords.has(word.id)}
+                                                        onCheckedChange={() => toggleWord(word.id)}
+                                                        onClick={(e) => e.stopPropagation()}
+                                                    />
+                                                    
+                                                    <div className="flex-1">
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="font-semibold">{word.word}</span>
+                                                            {word.partOfSpeech && (
+                                                                <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary">
+                                                                    {word.partOfSpeech}
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                        <p className="text-sm text-muted-foreground">
+                                                            {word.meaning}
+                                                        </p>
+                                                        {word.pronunciation && (
+                                                            <p className="text-xs text-muted-foreground mt-1">
+                                                                /{word.pronunciation}/
+                                                            </p>
+                                                        )}
+                                                    </div>
+
+                                                    {word.audioUrl && (
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            onClick={(e) => handlePlayAudio(word.audioUrl, e)}
+                                                            className="h-8 w-8"
+                                                        >
+                                                            <Volume2 className="h-4 w-4" />
+                                                        </Button>
+                                                    )}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+
+                                    {isExpanded && lessonWords.length === 0 && (
+                                        <div className="border-t border-border bg-muted/30 p-6 text-center">
+                                            <p className="text-sm text-muted-foreground">
+                                                No words in this lesson yet
+                                            </p>
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                        })
+                    )}
+                </div>
             </div>
         </main>
     );
