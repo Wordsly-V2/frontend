@@ -1,264 +1,150 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
-import { useParams, useRouter } from "next/navigation";
-import { useQuery, useMutation } from "@tanstack/react-query";
-import {
-    getCourseById,
-    createLessons,
-    updateLessonOrder,
-    createWords,
-    deleteCourse,
-    deleteLesson,
-    deleteWord,
-} from "@/apis/courses.api";
+import { use, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { LoadingSpinner } from "@/components/ui/loading-spinner";
-import { ArrowLeft, Plus } from "lucide-react";
-import LessonItem from "@/components/common/lesson-item/lesson-item";
-import EntityHeader from "@/components/common/entity-header/entity-header";
-import CreationLessonDialog, { LessonFormData } from "@/components/common/creation-lesson-dialog/creation-lesson-dialog";
-import ConfirmDialog from "@/components/common/confirm-dialog/confirm-dialog";
-import {
-    DndContext,
-    closestCenter,
-    KeyboardSensor,
-    PointerSensor,
-    useSensor,
-    useSensors,
-    DragEndEvent,
-} from "@dnd-kit/core";
-import {
-    arrayMove,
-    SortableContext,
-    sortableKeyboardCoordinates,
-    verticalListSortingStrategy,
-} from "@dnd-kit/sortable";
+import { ArrowLeft, Play, Plus } from "lucide-react";
+import Image from "next/image";
+import LessonList from "@/components/features/lessons/lesson-list";
+import { getCourseById } from "@/lib/dummy-data";
 import { ILesson } from "@/types/courses/courses.type";
 
-export default function CourseDetailPage() {
-    const params = useParams();
+export default function CourseDetailPage({ params }: { params: Promise<{ id: string }> }) {
+    const { id } = use(params);
     const router = useRouter();
-    const courseId = params.id as string;
+    const course = getCourseById(id);
+    const [lessons, setLessons] = useState<ILesson[]>(course?.lessons || []);
 
-    const { data: course, isLoading, error, refetch } = useQuery({
-        queryKey: ['course', courseId],
-        queryFn: () => getCourseById(courseId),
-    });
-
-    const [isLessonDialogOpen, setIsLessonDialogOpen] = useState(false);
-    const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
-
-    // Compute sorted lessons from course data
-    const sortedLessons = useMemo(() => {
-        if (!course?.lessons) return [];
-        return [...course.lessons].sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0));
-    }, [course?.lessons]);
-
-    // Track local lesson state for drag and drop
-    const [localLessons, setLocalLessons] = useState<ILesson[]>([]);
-
-    // Update local lessons when course data changes
-    useEffect(() => {
-        setLocalLessons(sortedLessons);
-    }, [sortedLessons]);
-
-    const sensors = useSensors(
-        useSensor(PointerSensor),
-        useSensor(KeyboardSensor, {
-            coordinateGetter: sortableKeyboardCoordinates,
-        })
-    );
-
-    const updateOrderMutation = useMutation({
-        mutationFn: ({ lessonId, orderIndex }: { lessonId: string; orderIndex: number }) =>
-            updateLessonOrder(courseId, lessonId, orderIndex),
-    });
-
-    const createLessonsMutation = useMutation({
-        mutationFn: (payload: { lessons: Array<{ name: string; coverImageUrl?: string; maxWords?: number }> }) =>
-            createLessons(courseId, payload),
-        onSuccess: () => {
-            refetch();
-            setIsLessonDialogOpen(false);
-        },
-    });
-
-    const createWordsMutation = useMutation({
-        mutationFn: ({ lessonId, words }: { lessonId: string; words: Array<{ word: string; meaning: string; pronunciation?: string; partOfSpeech?: string; audioUrl?: string }> }) =>
-            createWords(lessonId, { words }),
-        onSuccess: () => {
-            refetch();
-        },
-    });
-
-    const deleteCourseMutation = useMutation({
-        mutationFn: () => deleteCourse(courseId),
-        onSuccess: () => {
-            router.push('/courses');
-        },
-    });
-
-    const deleteLessonMutation = useMutation({
-        mutationFn: (lessonId: string) => deleteLesson(courseId, lessonId),
-        onSuccess: () => {
-            refetch();
-        },
-    });
-
-    const deleteWordMutation = useMutation({
-        mutationFn: ({ lessonId, wordId }: { lessonId: string; wordId: string }) =>
-            deleteWord(lessonId, wordId),
-        onSuccess: () => {
-            refetch();
-        },
-    });
-
-    const handleDragEnd = (event: DragEndEvent) => {
-        const { active, over } = event;
-
-        if (over && active.id !== over.id) {
-            setLocalLessons((items) => {
-                const oldIndex = items.findIndex((item) => item.id === active.id);
-                const newIndex = items.findIndex((item) => item.id === over.id);
-                const newItems = arrayMove(items, oldIndex, newIndex);
-
-                // Update order index for the moved lesson
-                updateOrderMutation.mutate({
-                    lessonId: active.id as string,
-                    orderIndex: newIndex,
-                });
-
-                return newItems;
-            });
-        }
-    };
-
-    const handleAddLessons = (lessons: LessonFormData[]) => {
-        const validLessons = lessons
-            .filter(l => l.name.trim())
-            .map(l => ({
-                name: l.name,
-                coverImageUrl: l.coverImageUrl || undefined,
-                maxWords: l.maxWords ? Number.parseInt(l.maxWords) : undefined,
-            }));
-
-        if (validLessons.length > 0) {
-            createLessonsMutation.mutate({ lessons: validLessons });
-        }
-    };
-
-    const handleDeleteCourse = () => {
-        deleteCourseMutation.mutate();
-    };
-
-    const handleDeleteLesson = (lessonId: string) => {
-        deleteLessonMutation.mutate(lessonId);
-    };
-
-    const handleDeleteWord = (lessonId: string, wordId: string) => {
-        deleteWordMutation.mutate({ lessonId, wordId });
-    };
-
-    if (isLoading) {
+    if (!course) {
         return (
-            <main className="min-h-screen bg-slate-50 flex items-center justify-center px-4">
-                <LoadingSpinner size="lg" label="Đang tải khóa học…" />
-            </main>
-        );
-    }
-
-    if (error || !course) {
-        return (
-            <main className="min-h-screen bg-slate-50 flex flex-col items-center justify-center px-4 gap-4">
-                <div>Error: {error?.message || "Không tìm thấy khóa học"}</div>
-                <Button onClick={() => router.push('/courses')}>Quay lại</Button>
-            </main>
-        );
-    }
-
-    return (
-        <>
-            <main className="min-h-screen bg-slate-50">
-                <div className="container mx-auto px-4 py-8">
-                    <Button
-                        variant="ghost"
-                        onClick={() => router.push('/courses')}
-                        className="mb-6"
-                    >
+            <main className="min-h-screen bg-background flex items-center justify-center">
+                <div className="text-center">
+                    <h2 className="text-2xl font-bold mb-4">Course not found</h2>
+                    <Button onClick={() => router.push('/courses')}>
                         <ArrowLeft className="h-4 w-4 mr-2" />
-                        Quay lại
+                        Back to Courses
                     </Button>
-
-                    <div className="mb-8">
-                        <EntityHeader
-                            title={course.name}
-                            subtitle={`${localLessons.length} bài học`}
-                            coverImageUrl={course.coverImageUrl}
-                            onDelete={() => setDeleteConfirmOpen(true)}
-                        />
-                    </div>
-
-                    <div className="flex items-center justify-between mb-6">
-                        <h2 className="text-2xl font-semibold">Bài học</h2>
-                        <Button onClick={() => setIsLessonDialogOpen(true)}>
-                            <Plus className="h-4 w-4 mr-2" />
-                            Tạo bài học
-                        </Button>
-                    </div>
-
-                    {localLessons.length === 0 ? (
-                        <div className="text-center py-12 bg-card rounded-lg border border-border">
-                            <p className="text-muted-foreground mb-4">
-                                Chưa có bài học nào. Tạo bài học đầu tiên để bắt đầu.
-                            </p>
-                        </div>
-                    ) : (
-                        <DndContext
-                            sensors={sensors}
-                            collisionDetection={closestCenter}
-                            onDragEnd={handleDragEnd}
-                        >
-                            <SortableContext
-                                items={localLessons.map(l => l.id)}
-                                strategy={verticalListSortingStrategy}
-                            >
-                                <div className="space-y-4">
-                                    {localLessons.map((lesson) => (
-                                        <LessonItem
-                                            key={lesson.id}
-                                            lesson={lesson}
-                                            onAddWords={(lessonId, words) => {
-                                                createWordsMutation.mutate({ lessonId, words });
-                                            }}
-                                            onDeleteLesson={handleDeleteLesson}
-                                            onDeleteWord={handleDeleteWord}
-                                        />
-                                    ))}
-                                </div>
-                            </SortableContext>
-                        </DndContext>
-                    )}
                 </div>
             </main>
+        );
+    }
 
-            <CreationLessonDialog
-                isOpen={isLessonDialogOpen}
-                onSubmit={handleAddLessons}
-                onClose={() => setIsLessonDialogOpen(false)}
-                isSubmitting={createLessonsMutation.isPending}
-            />
+    const totalWords = lessons.reduce((sum, l) => sum + (l.words?.length || 0), 0);
 
-            <ConfirmDialog
-                isOpen={deleteConfirmOpen}
-                onClose={() => setDeleteConfirmOpen(false)}
-                onConfirm={handleDeleteCourse}
-                title="Xóa khóa học"
-                description={`Bạn có chắc chắn muốn xóa khóa học &ldquo;${course.name}&rdquo;? Tất cả bài học và từ vựng trong khóa học này cũng sẽ bị xóa. Hành động này không thể hoàn tác.`}
-                confirmText="Xóa khóa học"
-                variant="destructive"
-                isLoading={deleteCourseMutation.isPending}
-            />
-        </>
+    const handleReorderLessons = (reorderedLessons: ILesson[]) => {
+        setLessons(reorderedLessons);
+        // TODO: Save to backend
+    };
+
+    const handleLessonClick = (lessonId: string) => {
+        router.push(`/courses/${id}/lessons/${lessonId}/practice`);
+    };
+
+    const handleCreateLesson = () => {
+        // TODO: Open create lesson dialog
+        console.log("Create lesson");
+    };
+
+    return (
+        <main className="min-h-screen bg-background">
+            <div className="container mx-auto px-4 py-8 max-w-5xl">
+                {/* Back Button */}
+                <Button
+                    variant="ghost"
+                    onClick={() => router.push('/courses')}
+                    className="mb-6"
+                >
+                    <ArrowLeft className="h-4 w-4 mr-2" />
+                    All Courses
+                </Button>
+
+                {/* Course Header */}
+                <div className="bg-card rounded-2xl shadow-sm overflow-hidden border border-border mb-8">
+                    {course.coverImageUrl && (
+                        <div className="relative h-64 w-full">
+                            <Image
+                                src={course.coverImageUrl}
+                                alt={course.name}
+                                fill
+                                className="object-cover"
+                            />
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
+                            <div className="absolute bottom-6 left-6 right-6">
+                                <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">
+                                    {course.name}
+                                </h1>
+                                <div className="flex items-center gap-4 text-white/90">
+                                    <span className="flex items-center gap-1.5">
+                                        <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                                        </svg>
+                                        {lessons.length} lessons
+                                    </span>
+                                    <span className="flex items-center gap-1.5">
+                                        <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
+                                        </svg>
+                                        {totalWords} words
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+
+                {/* Actions & Stats */}
+                <div className="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center mb-8">
+                    <div>
+                        <h2 className="text-2xl font-semibold mb-1">Lessons</h2>
+                        <p className="text-muted-foreground text-sm">
+                            {lessons.length === 0
+                                ? "Create your first lesson to start learning"
+                                : "Select a lesson to begin practicing"}
+                        </p>
+                    </div>
+                    <div className="flex gap-3">
+                        <Button onClick={handleCreateLesson} variant="outline">
+                            <Plus className="h-4 w-4 mr-2" />
+                            Add Lesson
+                        </Button>
+                        {totalWords > 0 && (
+                            <Button onClick={() => router.push(`/courses/${id}/practice`)}>
+                                <Play className="h-4 w-4 mr-2" />
+                                Practice All
+                            </Button>
+                        )}
+                    </div>
+                </div>
+
+                {/* Lessons List */}
+                <LessonList
+                    lessons={lessons}
+                    onLessonClick={handleLessonClick}
+                    onReorder={handleReorderLessons}
+                    sortable
+                />
+
+                {/* Progress Overview (Future Feature) */}
+                {lessons.length > 0 && (
+                    <div className="mt-8 p-6 bg-card border border-border rounded-lg">
+                        <h3 className="font-semibold mb-4">Your Progress</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div>
+                                <p className="text-sm text-muted-foreground mb-1">Words Learned</p>
+                                <p className="text-2xl font-bold">0 / {totalWords}</p>
+                            </div>
+                            <div>
+                                <p className="text-sm text-muted-foreground mb-1">Study Streak</p>
+                                <p className="text-2xl font-bold">0 days</p>
+                            </div>
+                            <div>
+                                <p className="text-sm text-muted-foreground mb-1">Completion</p>
+                                <p className="text-2xl font-bold">0%</p>
+                            </div>
+                        </div>
+                    </div>
+                )}
+            </div>
+        </main>
     );
 }

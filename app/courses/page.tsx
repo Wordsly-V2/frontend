@@ -1,101 +1,131 @@
 "use client";
 
 import { useState } from "react";
-import CourseCard from "@/components/common/course-card/course-card";
-import CourseDialog, { CoursePayload } from "@/components/common/course-dialog/course-dialog";
-import { Button } from "@/components/ui/button";
+import CoursesHeader from "@/components/features/courses/courses-header";
+import CourseGrid from "@/components/features/courses/course-grid";
+import { getAllCourses } from "@/lib/dummy-data";
 import { ICourse } from "@/types/courses/courses.type";
-import { createMyCourses, getMyCourses } from "@/apis/courses.api";
-import { useQuery } from "@tanstack/react-query";
-import { LoadingSpinner } from "@/components/ui/loading-spinner";
-import { NoCourses } from "@/components/common/no-courses/no-courses";
-import { useRouter } from "next/navigation";
 
 export default function CoursesPage() {
-    const router = useRouter();
-    const { data: courses, isLoading, error, refetch } = useQuery({
-        queryKey: ['courses'],
-        queryFn: () => getMyCourses(),
-    });
+    const [courses] = useState<ICourse[]>(getAllCourses());
+    const [filteredCourses, setFilteredCourses] = useState<ICourse[]>(courses);
 
-    const [selectedCourse, setSelectedCourse] = useState<CoursePayload | undefined>(undefined);
-    const [isCourseDialogOpen, setIsCourseDialogOpen] = useState(false);
-
-    if (isLoading) {
-        return (
-            <main className="min-h-screen bg-slate-50 flex items-center justify-center px-4">
-                <LoadingSpinner size="lg" label="Đang tải khóa học…" />
-            </main>
+    const handleSearch = (query: string) => {
+        if (!query.trim()) {
+            setFilteredCourses(courses);
+            return;
+        }
+        
+        const filtered = courses.filter((course) =>
+            course.name.toLowerCase().includes(query.toLowerCase())
         );
-    }
+        setFilteredCourses(filtered);
+    };
 
-    if (error) {
-        return (
-            <main className="min-h-screen bg-slate-50 flex flex-col items-center justify-center px-4 gap-4">
-                <div>Error: {error.message}</div>
-                <Button onClick={() => {
-                    refetch();
-                }}>Thử lại</Button>
-            </main>
-        );
-    }
+    const handleCreateCourse = () => {
+        // TODO: Open create course dialog
+        console.log("Create course");
+    };
 
     return (
-        <>
-            {
-                !courses?.length && (
-                    <NoCourses onCreateCourse={() => {
-                        console.log("onCreateCourse", isCourseDialogOpen);
-                        setIsCourseDialogOpen(true)
-                    }} />
-                )
-            }
-            {
-                courses?.length && (
-                    <div className="container mx-auto px-4 py-8">
-                        <div className="flex items-center justify-between gap-4 mb-6">
-                            <div>
-                                <h1 className="text-2xl md:text-3xl font-semibold text-foreground">
-                                    Khóa học của tôi
-                                </h1>
-                                <p className="text-sm text-muted-foreground mt-1">
-                                    Chọn khóa học để bắt đầu học từ vựng.
-                                </p>
+        <main className="min-h-screen bg-background">
+            <div className="container mx-auto px-4 py-8 max-w-7xl">
+                <CoursesHeader
+                    totalCourses={courses.length}
+                    onCreateCourse={handleCreateCourse}
+                    onSearch={handleSearch}
+                />
+
+                <div className="mt-8">
+                    <CourseGrid courses={filteredCourses} />
+                </div>
+
+                {/* Stats Section */}
+                {courses.length > 0 && (
+                    <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div className="bg-card border border-border rounded-lg p-6">
+                            <div className="flex items-center gap-3">
+                                <div className="w-12 h-12 rounded-lg gradient-brand flex items-center justify-center">
+                                    <svg
+                                        className="h-6 w-6 text-white"
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                        stroke="currentColor"
+                                    >
+                                        <path
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            strokeWidth={2}
+                                            d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
+                                        />
+                                    </svg>
+                                </div>
+                                <div>
+                                    <p className="text-2xl font-bold">{courses.length}</p>
+                                    <p className="text-sm text-muted-foreground">Courses</p>
+                                </div>
                             </div>
-                            <Button onClick={() => setIsCourseDialogOpen(true)}>Tạo khóa học</Button>
                         </div>
-                        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                            {courses?.map((course: ICourse) => (
-                                <CourseCard 
-                                    key={course.id} 
-                                    course={course} 
-                                    onCourseClick={() => {
-                                        router.push(`/courses/${course.id}`);
-                                    }} 
-                                />
-                            ))}
+
+                        <div className="bg-card border border-border rounded-lg p-6">
+                            <div className="flex items-center gap-3">
+                                <div className="w-12 h-12 rounded-lg gradient-accent flex items-center justify-center">
+                                    <svg
+                                        className="h-6 w-6 text-white"
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                        stroke="currentColor"
+                                    >
+                                        <path
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            strokeWidth={2}
+                                            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                                        />
+                                    </svg>
+                                </div>
+                                <div>
+                                    <p className="text-2xl font-bold">
+                                        {courses.reduce((sum, c) => sum + (c.lessons?.length || 0), 0)}
+                                    </p>
+                                    <p className="text-sm text-muted-foreground">Lessons</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="bg-card border border-border rounded-lg p-6">
+                            <div className="flex items-center gap-3">
+                                <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center">
+                                    <svg
+                                        className="h-6 w-6 text-white"
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                        stroke="currentColor"
+                                    >
+                                        <path
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            strokeWidth={2}
+                                            d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"
+                                        />
+                                    </svg>
+                                </div>
+                                <div>
+                                    <p className="text-2xl font-bold">
+                                        {courses.reduce(
+                                            (sum, c) =>
+                                                sum +
+                                                (c.lessons?.reduce((lsum, l) => lsum + (l.words?.length || 0), 0) || 0),
+                                            0
+                                        )}
+                                    </p>
+                                    <p className="text-sm text-muted-foreground">Words</p>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                )
-            }
-
-            <CourseDialog
-                isOpen={isCourseDialogOpen}
-                onSubmit={(courses) => {
-                    const payload = courses.map(c => ({ name: c.title, coverImageUrl: c.cover }));
-                    createMyCourses({ courses: payload }).then(() => {
-                        refetch();
-                        setIsCourseDialogOpen(false);
-                    }).catch((error) => {
-                        console.error("Error creating course", error);
-                    });
-                }}
-                onClose={() => setIsCourseDialogOpen(false)}
-                mode="create"
-                dialogTitle={selectedCourse ? "Chỉnh sửa khóa học" : "Tạo khóa học"}
-                course={selectedCourse}
-            />
-        </>
-
+                )}
+            </div>
+        </main>
     );
 }

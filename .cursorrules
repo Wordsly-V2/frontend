@@ -1,0 +1,128 @@
+You are an expert in:
+- English language education (ESL / EFL)
+- Language learning pedagogy (CEFR, spaced repetition, comprehensible input)
+- Building modern learning apps with clean UX and maintainable code
+
+PROJECT CONTEXT:
+This project is an English learning application.
+The target learners are non-native English speakers (A2–C1).
+The app focuses on:
+- Vocabulary
+- Grammar
+- Reading & listening comprehension
+- Speaking & pronunciation practice
+- Short, practical daily lessons
+
+GENERAL RULES:
+- Always prioritize clarity over complexity
+- Assume learners are NOT fluent English speakers
+- Use simple, natural English in explanations
+- Avoid academic or overly technical language unless explicitly requested
+- Prefer examples over long explanations
+- Never shame or judge learner mistakes
+
+CONTENT RULES (VERY IMPORTANT):
+- Always specify the CEFR level when creating learning content (A2, B1, B2, C1)
+- Use real-life, modern English (daily conversation, work, travel)
+- Avoid rare words unless teaching advanced learners
+- Prefer American English unless otherwise stated
+- Grammar explanations should be short and example-driven
+
+EXERCISE DESIGN RULES:
+- Exercises should be interactive and practical
+- Prefer:
+  - Fill-in-the-blank
+  - Multiple choice
+  - Sentence reordering
+  - Short speaking prompts
+- Provide correct answers and short explanations
+- Keep feedback encouraging and clear
+
+UX & COPY RULES:
+- UI text should be:
+  - Short
+  - Friendly
+  - Motivating
+- Avoid long paragraphs in the UI
+- Buttons and labels should use simple verbs (e.g. "Practice", "Try again", "Check answer")
+
+CODE STYLE RULES:
+- Write clean, readable, and well-structured code
+- Avoid overengineering
+- Prefer simple, scalable solutions
+- Use meaningful variable and function names
+- Comment only when it adds learning or clarity value
+
+AI BEHAVIOR RULES:
+- If requirements are unclear, ask clarifying questions
+- When generating lessons, always include:
+  - Objective
+  - Examples
+  - Practice
+- When generating explanations, think like a teacher, not a textbook
+
+DO NOT:
+- Generate long theoretical explanations
+- Use slang without explanation
+- Mix multiple English levels in one lesson
+- Assume the learner already knows grammar terminology
+
+REUSABILITY IS A TOP PRIORITY:
+- Always look for opportunities to extract reusable components
+- If UI or logic appears more than once, refactor it into a shared component or hook
+- Default to reusable, composable components over page-specific implementations
+
+NEXT.JS COMPONENT ARCHITECTURE RULES:
+- Prefer components in /components over inline JSX in pages or app routes
+- Pages and route files should mostly compose components, not contain business logic
+- Components should be:
+  - Small
+  - Focused
+  - Single-responsibility
+
+COMMON COMPONENT STRATEGY:
+- Create base UI components such as:
+  - Button
+  - Input
+  - Select
+  - Modal
+  - Card
+  - Typography
+- Build feature components on top of base components
+- Never duplicate base UI styles across pages
+
+HOOKS & LOGIC REUSE:
+- Extract shared logic into custom hooks under /hooks
+- Avoid duplicating state management or side effects
+- Hooks should be reusable and independent of UI
+
+UTILITY FUNCTIONS:
+- Extract repeated logic into utility functions under /lib or /utils
+- Avoid inline helper functions inside components when reusable
+
+STYLING RULES:
+- Centralize styles using shared components or variants
+- Avoid hardcoded spacing, colors, and font styles in pages
+- Prefer reusable variants (size, intent, state) over new components
+
+FILE STRUCTURE CONVENTIONS:
+- /components/ui → base reusable UI components
+- /components/common → shared app-level components
+- /components/features → feature-specific components
+- /hooks → reusable hooks
+- /lib → utilities, helpers, constants
+
+CODE REVIEW MINDSET:
+- Before writing new code, check if a similar component already exists
+- If a new component is created, consider whether it belongs in shared components
+- Avoid “one-off” components unless explicitly justified
+
+DO NOT:
+- Copy-paste JSX between pages
+- Create multiple similar components with different names
+- Embed complex logic directly inside page files
+
+DESIGN SYSTEM AWARENESS:
+- Treat the project as a design-system-driven application
+- Prefer extending existing components via props and variants
+- New UI patterns should be implemented as reusable components first

@@ -47,98 +47,102 @@
 }
 
 :root {
-  --radius: 0.625rem;
+  --radius: 0.75rem;
   
-  /* Wordsly Brand Colors - Dễ dàng thay đổi màu chủ đạo ở đây */
-  --brand-primary: oklch(0.6 0.25 270); /* Màu tím chính */
-  --brand-secondary: oklch(0.65 0.22 250); /* Màu xanh tím phụ */
-  --brand-accent: oklch(0.7 0.2 320); /* Màu hồng nhấn */
+  /* Wordsly Brand Colors - Modern, Educational Theme */
+  --brand-primary: oklch(0.55 0.20 220); /* Friendly blue for learning */
+  --brand-secondary: oklch(0.60 0.18 180); /* Teal accent */
+  --brand-accent: oklch(0.65 0.16 280); /* Purple highlight */
+  --brand-success: oklch(0.60 0.18 150); /* Green for success */
+  --brand-warning: oklch(0.70 0.18 80); /* Warm yellow for attention */
   
-  --background: oklch(0.99 0.005 270);
-  --foreground: oklch(0.15 0.01 270);
+  --background: oklch(0.98 0.005 220);
+  --foreground: oklch(0.15 0.01 220);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);
   
-  /* Primary sử dụng brand color */
+  /* Primary uses brand color */
   --primary: var(--brand-primary);
   --primary-foreground: oklch(0.99 0 0);
   
-  --secondary: oklch(0.96 0.01 270);
-  --secondary-foreground: oklch(0.3 0.05 270);
-  --muted: oklch(0.97 0.005 270);
-  --muted-foreground: oklch(0.5 0.01 270);
+  --secondary: oklch(0.95 0.01 220);
+  --secondary-foreground: oklch(0.3 0.05 220);
+  --muted: oklch(0.96 0.005 220);
+  --muted-foreground: oklch(0.48 0.01 220);
   
-  /* Accent sử dụng brand accent color */
-  --accent: oklch(0.96 0.02 320);
+  /* Accent uses brand accent color */
+  --accent: oklch(0.94 0.02 280);
   --accent-foreground: var(--brand-accent);
   
   --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.9 0.01 270);
-  --input: oklch(0.95 0.01 270);
+  --border: oklch(0.88 0.01 220);
+  --input: oklch(0.95 0.01 220);
   --ring: var(--brand-primary);
   
   --chart-1: var(--brand-primary);
   --chart-2: var(--brand-secondary);
   --chart-3: var(--brand-accent);
-  --chart-4: oklch(0.75 0.18 180);
-  --chart-5: oklch(0.7 0.2 60);
+  --chart-4: var(--brand-success);
+  --chart-5: var(--brand-warning);
   
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.145 0 0);
   --sidebar-primary: var(--brand-primary);
   --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.96 0.02 270);
-  --sidebar-accent-foreground: oklch(0.3 0.05 270);
-  --sidebar-border: oklch(0.9 0.01 270);
+  --sidebar-accent: oklch(0.95 0.02 220);
+  --sidebar-accent-foreground: oklch(0.3 0.05 220);
+  --sidebar-border: oklch(0.88 0.01 220);
   --sidebar-ring: var(--brand-primary);
 }
 
 .dark {
   /* Wordsly Brand Colors - Dark Mode */
-  --brand-primary: oklch(0.7 0.22 270);
-  --brand-secondary: oklch(0.65 0.2 250);
-  --brand-accent: oklch(0.75 0.18 320);
+  --brand-primary: oklch(0.65 0.18 220);
+  --brand-secondary: oklch(0.65 0.16 180);
+  --brand-accent: oklch(0.70 0.15 280);
+  --brand-success: oklch(0.65 0.16 150);
+  --brand-warning: oklch(0.75 0.16 80);
   
-  --background: oklch(0.12 0.01 270);
-  --foreground: oklch(0.98 0.005 270);
-  --card: oklch(0.18 0.015 270);
-  --card-foreground: oklch(0.98 0.005 270);
-  --popover: oklch(0.18 0.015 270);
-  --popover-foreground: oklch(0.98 0.005 270);
+  --background: oklch(0.12 0.01 220);
+  --foreground: oklch(0.98 0.005 220);
+  --card: oklch(0.17 0.015 220);
+  --card-foreground: oklch(0.98 0.005 220);
+  --popover: oklch(0.17 0.015 220);
+  --popover-foreground: oklch(0.98 0.005 220);
   
-  /* Primary sử dụng brand color */
+  /* Primary uses brand color */
   --primary: var(--brand-primary);
   --primary-foreground: oklch(0.98 0 0);
   
-  --secondary: oklch(0.22 0.02 270);
-  --secondary-foreground: oklch(0.9 0.01 270);
-  --muted: oklch(0.22 0.02 270);
-  --muted-foreground: oklch(0.65 0.01 270);
+  --secondary: oklch(0.22 0.02 220);
+  --secondary-foreground: oklch(0.9 0.01 220);
+  --muted: oklch(0.22 0.02 220);
+  --muted-foreground: oklch(0.62 0.01 220);
   
-  /* Accent sử dụng brand accent color */
-  --accent: oklch(0.25 0.03 320);
+  /* Accent uses brand accent color */
+  --accent: oklch(0.25 0.03 280);
   --accent-foreground: var(--brand-accent);
   
   --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(0.3 0.02 270);
-  --input: oklch(0.25 0.02 270);
+  --border: oklch(0.28 0.02 220);
+  --input: oklch(0.25 0.02 220);
   --ring: var(--brand-primary);
   
   --chart-1: var(--brand-primary);
   --chart-2: var(--brand-secondary);
   --chart-3: var(--brand-accent);
-  --chart-4: oklch(0.7 0.18 180);
-  --chart-5: oklch(0.75 0.2 60);
+  --chart-4: var(--brand-success);
+  --chart-5: var(--brand-warning);
   
-  --sidebar: oklch(0.18 0.015 270);
-  --sidebar-foreground: oklch(0.98 0.005 270);
+  --sidebar: oklch(0.17 0.015 220);
+  --sidebar-foreground: oklch(0.98 0.005 220);
   --sidebar-primary: var(--brand-primary);
   --sidebar-primary-foreground: oklch(0.98 0 0);
-  --sidebar-accent: oklch(0.22 0.02 270);
-  --sidebar-accent-foreground: oklch(0.9 0.01 270);
-  --sidebar-border: oklch(0.3 0.02 270);
+  --sidebar-accent: oklch(0.22 0.02 220);
+  --sidebar-accent-foreground: oklch(0.9 0.01 220);
+  --sidebar-border: oklch(0.28 0.02 220);
   --sidebar-ring: var(--brand-primary);
 }
 
@@ -148,5 +152,47 @@
   }
   body {
     @apply bg-background text-foreground;
+  }
+}
+
+@layer utilities {
+  /* Learning App Specific Utilities */
+  .gradient-brand {
+    background: linear-gradient(135deg, var(--brand-primary) 0%, var(--brand-secondary) 100%);
+  }
+  
+  .gradient-accent {
+    background: linear-gradient(135deg, var(--brand-secondary) 0%, var(--brand-accent) 100%);
+  }
+  
+  .text-balance {
+    text-wrap: balance;
+  }
+  
+  /* Badge variants for CEFR levels */
+  .badge-a2 {
+    @apply bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400;
+  }
+  
+  .badge-b1 {
+    @apply bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400;
+  }
+  
+  .badge-b2 {
+    @apply bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400;
+  }
+  
+  .badge-c1 {
+    @apply bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400;
+  }
+  
+  /* Card hover effects */
+  .card-hover {
+    @apply transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5;
+  }
+  
+  /* Focus visible for accessibility */
+  .focus-visible-ring {
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2;
   }
 }
