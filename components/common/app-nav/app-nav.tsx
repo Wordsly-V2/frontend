@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useUser } from "@/hooks/useUser";
+import { ChangeThemeToggle } from "@/components/common/change-theme-toggle/change-theme-toggle";
 
 export default function AppNav() {
     const pathname = usePathname();
@@ -74,6 +75,12 @@ export default function AppNav() {
                         >
                             <User className="mr-2 h-4 w-4" />
                             <span>Profile</span>
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                            className="cursor-pointer rounded-lg"
+                        >
+                            <ChangeThemeToggle />
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem
