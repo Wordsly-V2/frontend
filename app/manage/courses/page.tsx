@@ -4,31 +4,41 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Plus, ArrowLeft, Edit, Trash2, Eye } from "lucide-react";
-import { getAllCourses, createCourse, updateCourse, deleteCourse } from "@/lib/data-store";
+import { getPaginatedCourses, createCourse, updateCourse, deleteCourse } from "@/lib/data-store";
 import { ICourse } from "@/types/courses/courses.type";
+import { IPaginatedResponse } from "@/types/common/pagination.type";
 import DataTable from "@/components/common/data-table/data-table";
+import { Pagination } from "@/components/ui/pagination";
 import CourseFormDialog from "@/components/features/manage/course-form-dialog";
 import ConfirmDialog from "@/components/common/confirm-dialog/confirm-dialog";
 import Image from "next/image";
 
 export default function ManageCoursesPage() {
     const router = useRouter();
-    const [courses, setCourses] = useState<ICourse[]>([]);
+    const [paginatedData, setPaginatedData] = useState<IPaginatedResponse<ICourse>>({
+        totalItems: 0,
+        totalPages: 0,
+        currentPage: 1,
+        data: [],
+    });
+    const [currentPage, setCurrentPage] = useState(1);
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [editingCourse, setEditingCourse] = useState<ICourse | undefined>();
     const [deleteConfirm, setDeleteConfirm] = useState<ICourse | null>(null);
 
-    const loadCourses = () => {
-        setCourses(getAllCourses());
-    };
-
+    // Load courses when page changes
     useEffect(() => {
-        loadCourses();
-    }, []);
+        setPaginatedData(getPaginatedCourses({ page: currentPage, limit: 5 }));
+    }, [currentPage]);
+
+    const loadCourses = (page: number = currentPage) => {
+        setPaginatedData(getPaginatedCourses({ page, limit: 5 }));
+    };
 
     const handleCreate = (courseData: Omit<ICourse, 'id' | 'createdAt' | 'updatedAt' | 'lessons'>) => {
         createCourse(courseData);
-        loadCourses();
+        setCurrentPage(1);
+        loadCourses(1);
         setIsFormOpen(false);
     };
 
@@ -43,13 +53,17 @@ export default function ManageCoursesPage() {
 
     const handleDelete = (course: ICourse) => {
         deleteCourse(course.id);
-        loadCourses();
+        // If we deleted the last item on the page and it's not page 1, go to previous page
+        if (paginatedData.data.length === 1 && currentPage > 1) {
+            setCurrentPage(currentPage - 1);
+        } else {
+            loadCourses();
+        }
         setDeleteConfirm(null);
     };
 
-    const openEditDialog = (course: ICourse) => {
-        setEditingCourse(course);
-        setIsFormOpen(true);
+    const handlePageChange = (page: number) => {
+        setCurrentPage(page);
     };
 
     const openCreateDialog = () => {
@@ -114,7 +128,8 @@ export default function ManageCoursesPage() {
                         variant="outline"
                         onClick={(e) => {
                             e.stopPropagation();
-                            router.push(`/manage/courses/${course.id}`);
+                            setEditingCourse(course);
+                            setIsFormOpen(true);
                         }}
                     >
                         <Edit className="h-4 w-4 mr-1" />
@@ -152,7 +167,7 @@ export default function ManageCoursesPage() {
                     <div>
                         <h1 className="text-3xl font-bold tracking-tight mb-2">Manage Courses</h1>
                         <p className="text-muted-foreground">
-                            {courses.length} {courses.length === 1 ? 'course' : 'courses'} in your library
+                            {paginatedData.totalItems} {paginatedData.totalItems === 1 ? 'course' : 'courses'} in your library
                         </p>
                     </div>
                     <Button onClick={openCreateDialog} size="lg">
@@ -162,9 +177,15 @@ export default function ManageCoursesPage() {
                 </div>
 
                 <DataTable
-                    data={courses}
+                    data={paginatedData.data}
                     columns={columns}
                     emptyMessage="No courses yet. Create your first course to get started!"
+                />
+
+                <Pagination
+                    currentPage={paginatedData.currentPage}
+                    totalPages={paginatedData.totalPages}
+                    onPageChange={handlePageChange}
                 />
             </div>
 

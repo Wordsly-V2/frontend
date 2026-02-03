@@ -1,4 +1,5 @@
 import { ICourse, ILesson, IWord } from "@/types/courses/courses.type";
+import { IPaginatedResponse, IPaginationParams } from "@/types/common/pagination.type";
 
 /**
  * Dummy data service for development and testing
@@ -415,6 +416,27 @@ export function mockDelay(ms: number = 500): Promise<void> {
 export async function mockGetCourses(): Promise<ICourse[]> {
     await mockDelay();
     return getAllCourses();
+}
+
+/**
+ * Simulate API call to get paginated courses
+ */
+export async function mockGetPaginatedCourses(params: IPaginationParams): Promise<IPaginatedResponse<ICourse>> {
+    await mockDelay();
+    const page = params.page || 1;
+    const limit = params.limit || 10;
+    const startIndex = (page - 1) * limit;
+    const endIndex = startIndex + limit;
+
+    const allCourses = getAllCourses();
+    const paginatedData = allCourses.slice(startIndex, endIndex);
+
+    return {
+        totalItems: allCourses.length,
+        totalPages: Math.ceil(allCourses.length / limit),
+        currentPage: page,
+        data: paginatedData,
+    };
 }
 
 /**

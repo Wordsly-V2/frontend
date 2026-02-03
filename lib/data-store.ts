@@ -1,4 +1,5 @@
 import { ICourse, ILesson, IWord } from "@/types/courses/courses.type";
+import { IPaginatedResponse, IPaginationParams } from "@/types/common/pagination.type";
 import { dummyCourses } from "./dummy-data";
 
 /**
@@ -20,6 +21,23 @@ class DataStore {
 
     getAllCourses(): ICourse[] {
         return [...this.courses];
+    }
+
+    getPaginatedCourses(params: IPaginationParams): IPaginatedResponse<ICourse> {
+        const page = params.page || 1;
+        const limit = params.limit || 10;
+        const startIndex = (page - 1) * limit;
+        const endIndex = startIndex + limit;
+
+        const allCourses = [...this.courses];
+        const paginatedData = allCourses.slice(startIndex, endIndex);
+
+        return {
+            totalItems: allCourses.length,
+            totalPages: Math.ceil(allCourses.length / limit),
+            currentPage: page,
+            data: paginatedData,
+        };
     }
 
     getCourseById(id: string): ICourse | undefined {
@@ -209,6 +227,10 @@ const dataStore = new DataStore();
 // Export functions that use the store
 export function getAllCourses(): ICourse[] {
     return dataStore.getAllCourses();
+}
+
+export function getPaginatedCourses(params: IPaginationParams): IPaginatedResponse<ICourse> {
+    return dataStore.getPaginatedCourses(params);
 }
 
 export function getCourseById(id: string): ICourse | undefined {
