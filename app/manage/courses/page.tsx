@@ -117,7 +117,7 @@ export default function ManageCoursesPage() {
                         variant="outline"
                         onClick={(e) => {
                             e.stopPropagation();
-                            router.push(`/learn/courses/${course.id}`);
+                            router.push(`/manage/courses/${course.id}`);
                         }}
                     >
                         <Eye className="h-4 w-4 mr-1" />
