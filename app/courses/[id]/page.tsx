@@ -3,12 +3,22 @@
 import { useState, useEffect, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { getCourseById, createLessons, updateLessonOrder, createWords } from "@/apis/courses.api";
+import {
+    getCourseById,
+    createLessons,
+    updateLessonOrder,
+    createWords,
+    deleteCourse,
+    deleteLesson,
+    deleteWord,
+} from "@/apis/courses.api";
 import { Button } from "@/components/ui/button";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { ArrowLeft, Plus } from "lucide-react";
-import Image from "next/image";
 import LessonItem from "@/components/common/lesson-item/lesson-item";
+import EntityHeader from "@/components/common/entity-header/entity-header";
+import CreationLessonDialog, { LessonFormData } from "@/components/common/creation-lesson-dialog/creation-lesson-dialog";
+import ConfirmDialog from "@/components/common/confirm-dialog/confirm-dialog";
 import {
     DndContext,
     closestCenter,
@@ -24,14 +34,6 @@ import {
     sortableKeyboardCoordinates,
     verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
-import {
-    Dialog,
-    DialogContent,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
 import { ILesson } from "@/types/courses/courses.type";
 
 export default function CourseDetailPage() {
@@ -45,9 +47,7 @@ export default function CourseDetailPage() {
     });
 
     const [isLessonDialogOpen, setIsLessonDialogOpen] = useState(false);
-    const [newLessons, setNewLessons] = useState<Array<{ tempId: string; name: string; coverImageUrl: string; maxWords: string }>>([
-        { tempId: crypto.randomUUID(), name: "", coverImageUrl: "", maxWords: "" }
-    ]);
+    const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
 
     // Compute sorted lessons from course data
     const sortedLessons = useMemo(() => {
@@ -81,13 +81,34 @@ export default function CourseDetailPage() {
         onSuccess: () => {
             refetch();
             setIsLessonDialogOpen(false);
-            setNewLessons([{ tempId: crypto.randomUUID(), name: "", coverImageUrl: "", maxWords: "" }]);
         },
     });
 
     const createWordsMutation = useMutation({
         mutationFn: ({ lessonId, words }: { lessonId: string; words: Array<{ word: string; meaning: string; pronunciation?: string; partOfSpeech?: string; audioUrl?: string }> }) =>
             createWords(lessonId, { words }),
+        onSuccess: () => {
+            refetch();
+        },
+    });
+
+    const deleteCourseMutation = useMutation({
+        mutationFn: () => deleteCourse(courseId),
+        onSuccess: () => {
+            router.push('/courses');
+        },
+    });
+
+    const deleteLessonMutation = useMutation({
+        mutationFn: (lessonId: string) => deleteLesson(courseId, lessonId),
+        onSuccess: () => {
+            refetch();
+        },
+    });
+
+    const deleteWordMutation = useMutation({
+        mutationFn: ({ lessonId, wordId }: { lessonId: string; wordId: string }) =>
+            deleteWord(lessonId, wordId),
         onSuccess: () => {
             refetch();
         },
@@ -113,8 +134,8 @@ export default function CourseDetailPage() {
         }
     };
 
-    const handleAddLessons = () => {
-        const validLessons = newLessons
+    const handleAddLessons = (lessons: LessonFormData[]) => {
+        const validLessons = lessons
             .filter(l => l.name.trim())
             .map(l => ({
                 name: l.name,
@@ -127,20 +148,16 @@ export default function CourseDetailPage() {
         }
     };
 
-    const addLessonField = () => {
-        setNewLessons([...newLessons, { tempId: crypto.randomUUID(), name: "", coverImageUrl: "", maxWords: "" }]);
+    const handleDeleteCourse = () => {
+        deleteCourseMutation.mutate();
     };
 
-    const removeLessonField = (index: number) => {
-        if (newLessons.length > 1) {
-            setNewLessons(newLessons.filter((_, i) => i !== index));
-        }
+    const handleDeleteLesson = (lessonId: string) => {
+        deleteLessonMutation.mutate(lessonId);
     };
 
-    const updateLessonField = (index: number, field: keyof typeof newLessons[0], value: string) => {
-        const updated = [...newLessons];
-        updated[index] = { ...updated[index], [field]: value };
-        setNewLessons(updated);
+    const handleDeleteWord = (lessonId: string, wordId: string) => {
+        deleteWordMutation.mutate({ lessonId, wordId });
     };
 
     if (isLoading) {
@@ -173,23 +190,13 @@ export default function CourseDetailPage() {
                         Quay lại
                     </Button>
 
-                    <div className="bg-card rounded-2xl shadow-sm overflow-hidden mb-8">
-                        <div className="relative h-64 w-full">
-                            {course.coverImageUrl && (
-                                <Image
-                                    src={course.coverImageUrl}
-                                    alt={course.name}
-                                    fill
-                                    className="object-cover"
-                                />
-                            )}
-                        </div>
-                        <div className="p-6">
-                            <h1 className="text-3xl font-semibold mb-2">{course.name}</h1>
-                            <p className="text-muted-foreground">
-                                {localLessons.length} bài học
-                            </p>
-                        </div>
+                    <div className="mb-8">
+                        <EntityHeader
+                            title={course.name}
+                            subtitle={`${localLessons.length} bài học`}
+                            coverImageUrl={course.coverImageUrl}
+                            onDelete={() => setDeleteConfirmOpen(true)}
+                        />
                     </div>
 
                     <div className="flex items-center justify-between mb-6">
@@ -205,10 +212,6 @@ export default function CourseDetailPage() {
                             <p className="text-muted-foreground mb-4">
                                 Chưa có bài học nào. Tạo bài học đầu tiên để bắt đầu.
                             </p>
-                            <Button onClick={() => setIsLessonDialogOpen(true)}>
-                                <Plus className="h-4 w-4 mr-2" />
-                                Tạo bài học
-                            </Button>
                         </div>
                     ) : (
                         <DndContext
@@ -228,6 +231,8 @@ export default function CourseDetailPage() {
                                             onAddWords={(lessonId, words) => {
                                                 createWordsMutation.mutate({ lessonId, words });
                                             }}
+                                            onDeleteLesson={handleDeleteLesson}
+                                            onDeleteWord={handleDeleteWord}
                                         />
                                     ))}
                                 </div>
@@ -237,71 +242,23 @@ export default function CourseDetailPage() {
                 </div>
             </main>
 
-            <Dialog open={isLessonDialogOpen} onOpenChange={setIsLessonDialogOpen}>
-                <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-                    <DialogHeader>
-                        <DialogTitle>Tạo bài học mới</DialogTitle>
-                    </DialogHeader>
-                    <div className="space-y-4">
-                        {newLessons.map((lesson, index) => (
-                            <div key={lesson.tempId} className="space-y-2 p-4 border border-border rounded-lg relative">
-                                {newLessons.length > 1 && (
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        className="absolute -top-2 -right-2 h-6 w-6 p-0 rounded-full"
-                                        onClick={() => removeLessonField(index)}
-                                    >
-                                        ×
-                                    </Button>
-                                )}
-                                <div className="space-y-1.5">
-                                    <label htmlFor={`lesson-name-${index}`} className="text-sm font-medium">
-                                        Tên bài học {newLessons.length > 1 && `#${index + 1}`}
-                                    </label>
-                                    <Input
-                                        id={`lesson-name-${index}`}
-                                        placeholder="Nhập tên bài học"
-                                        value={lesson.name}
-                                        onChange={(e) => updateLessonField(index, 'name', e.target.value)}
-                                    />
-                                </div>
-                                <div className="space-y-1.5">
-                                    <label htmlFor={`lesson-cover-${index}`} className="text-sm font-medium">Cover image URL (optional)</label>
-                                    <Input
-                                        id={`lesson-cover-${index}`}
-                                        placeholder="https://..."
-                                        value={lesson.coverImageUrl}
-                                        onChange={(e) => updateLessonField(index, 'coverImageUrl', e.target.value)}
-                                    />
-                                </div>
-                                <div className="space-y-1.5">
-                                    <label htmlFor={`lesson-maxwords-${index}`} className="text-sm font-medium">Số từ tối đa (optional)</label>
-                                    <Input
-                                        id={`lesson-maxwords-${index}`}
-                                        type="number"
-                                        placeholder="Ví dụ: 50"
-                                        value={lesson.maxWords}
-                                        onChange={(e) => updateLessonField(index, 'maxWords', e.target.value)}
-                                    />
-                                </div>
-                            </div>
-                        ))}
-                        <Button variant="outline" onClick={addLessonField} className="w-full">
-                            <Plus className="h-4 w-4 mr-2" />
-                            Thêm bài học
-                        </Button>
-                    </div>
-                    <DialogFooter>
-                        <Button variant="outline" onClick={() => setIsLessonDialogOpen(false)}>
-                            Hủy
-                        </Button>
-                        <Button onClick={handleAddLessons} disabled={createLessonsMutation.isPending}>
-                            {createLessonsMutation.isPending ? "Đang tạo..." : `Tạo ${newLessons.filter(l => l.name.trim()).length} bài học`}
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
+            <CreationLessonDialog
+                isOpen={isLessonDialogOpen}
+                onSubmit={handleAddLessons}
+                onClose={() => setIsLessonDialogOpen(false)}
+                isSubmitting={createLessonsMutation.isPending}
+            />
+
+            <ConfirmDialog
+                isOpen={deleteConfirmOpen}
+                onClose={() => setDeleteConfirmOpen(false)}
+                onConfirm={handleDeleteCourse}
+                title="Xóa khóa học"
+                description={`Bạn có chắc chắn muốn xóa khóa học &ldquo;${course.name}&rdquo;? Tất cả bài học và từ vựng trong khóa học này cũng sẽ bị xóa. Hành động này không thể hoàn tác.`}
+                confirmText="Xóa khóa học"
+                variant="destructive"
+                isLoading={deleteCourseMutation.isPending}
+            />
         </>
     );
 }

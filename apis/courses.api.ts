@@ -86,7 +86,7 @@ export const getMyCourses = async (): Promise<ICourse[]> => {
     if (Array.isArray(response.data)) {
         return response.data;
     }
-    return (response.data as GetMyCoursesResponse).courses || [];
+    return response.data.courses || [];
 }
 
 export const createMyCourses = async (payload: CreateMyCoursesRequest): Promise<CreateMyCoursesResponse> => {
@@ -143,5 +143,20 @@ export const getWordsInLesson = async (lessonId: string): Promise<IWord[]> => {
     if (Array.isArray(response.data)) {
         return response.data;
     }
-    return (response.data as GetWordsInLessonResponse).words || [];
+    return response.data.words || [];
+}
+
+export const deleteCourse = async (courseId: string): Promise<ApiResponse> => {
+    const response = await axiosInstance.delete<ApiResponse>(`/courses/${courseId}`);
+    return response.data;
+}
+
+export const deleteLesson = async (courseId: string, lessonId: string): Promise<ApiResponse> => {
+    const response = await axiosInstance.delete<ApiResponse>(`/courses/${courseId}/lessons/${lessonId}`);
+    return response.data;
+}
+
+export const deleteWord = async (lessonId: string, wordId: string): Promise<ApiResponse> => {
+    const response = await axiosInstance.delete<ApiResponse>(`/lessons/${lessonId}/words/${wordId}`);
+    return response.data;
 }
