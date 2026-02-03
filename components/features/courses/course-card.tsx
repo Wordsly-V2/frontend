@@ -14,7 +14,7 @@ export default function CourseCard({ course }: Readonly<CourseCardProps>) {
     const wordCount = course.lessons?.reduce((sum, lesson) => sum + (lesson.words?.length || 0), 0) || 0;
 
     return (
-        <Link href={`/courses/${course.id}`} className="block group">
+        <Link href={`/learn/courses/${course.id}`} className="block group">
             <div className="bg-card rounded-xl shadow-sm overflow-hidden border border-border card-hover">
                 {/* Image */}
                 <div className="relative h-48 w-full overflow-hidden bg-muted">

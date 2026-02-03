@@ -1,11 +1,11 @@
 "use client";
 
-import { use } from "react";
+import { use, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import VocabularyPractice from "@/components/features/vocabulary/vocabulary-practice";
-import { getLessonById } from "@/lib/dummy-data";
+import { getLessonById } from "@/lib/data-store";
 
 export default function LessonPracticeStartPage({
     params,
@@ -14,14 +14,18 @@ export default function LessonPracticeStartPage({
 }) {
     const { id, lessonId } = use(params);
     const router = useRouter();
-    const lesson = getLessonById(lessonId);
+    const [lesson, setLesson] = useState(getLessonById(lessonId));
+
+    useEffect(() => {
+        setLesson(getLessonById(lessonId));
+    }, [lessonId]);
 
     if (!lesson || !lesson.words || lesson.words.length === 0) {
         return (
             <main className="min-h-screen bg-background flex items-center justify-center">
                 <div className="text-center">
                     <h2 className="text-2xl font-bold mb-4">No words to practice</h2>
-                    <Button onClick={() => router.push(`/courses/${id}`)}>
+                    <Button onClick={() => router.push(`/learn/courses/${id}`)}>
                         <ArrowLeft className="h-4 w-4 mr-2" />
                         Back to Course
                     </Button>
@@ -35,7 +39,7 @@ export default function LessonPracticeStartPage({
 
     const handleComplete = (score: number) => {
         console.log("Lesson practice complete! Score:", score);
-        router.push(`/courses/${id}/lessons/${lessonId}/practice`);
+        router.push(`/learn/courses/${id}/lessons/${lessonId}/practice`);
     };
 
     return (
@@ -44,7 +48,7 @@ export default function LessonPracticeStartPage({
                 <div className="mb-8">
                     <Button
                         variant="ghost"
-                        onClick={() => router.push(`/courses/${id}/lessons/${lessonId}/practice`)}
+                        onClick={() => router.push(`/learn/courses/${id}/lessons/${lessonId}/practice`)}
                         className="mb-4"
                     >
                         <ArrowLeft className="h-4 w-4 mr-2" />

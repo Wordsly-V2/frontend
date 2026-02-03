@@ -1,26 +1,30 @@
 "use client";
 
-import { use, useState } from "react";
+import { use, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Play, Plus } from "lucide-react";
+import { ArrowLeft, Play } from "lucide-react";
 import Image from "next/image";
 import LessonList from "@/components/features/lessons/lesson-list";
-import { getCourseById } from "@/lib/dummy-data";
+import { getCourseById } from "@/lib/data-store";
 import { ILesson } from "@/types/courses/courses.type";
 
-export default function CourseDetailPage({ params }: { params: Promise<{ id: string }> }) {
+export default function LearnCourseDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = use(params);
     const router = useRouter();
-    const course = getCourseById(id);
-    const [lessons, setLessons] = useState<ILesson[]>(course?.lessons || []);
+    const [course, setCourse] = useState(getCourseById(id));
+    const lessons = course?.lessons || [];
+
+    useEffect(() => {
+        setCourse(getCourseById(id));
+    }, [id]);
 
     if (!course) {
         return (
             <main className="min-h-screen bg-background flex items-center justify-center">
                 <div className="text-center">
                     <h2 className="text-2xl font-bold mb-4">Course not found</h2>
-                    <Button onClick={() => router.push('/courses')}>
+                    <Button onClick={() => router.push('/learn')}>
                         <ArrowLeft className="h-4 w-4 mr-2" />
                         Back to Courses
                     </Button>
@@ -31,18 +35,8 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
 
     const totalWords = lessons.reduce((sum, l) => sum + (l.words?.length || 0), 0);
 
-    const handleReorderLessons = (reorderedLessons: ILesson[]) => {
-        setLessons(reorderedLessons);
-        // TODO: Save to backend
-    };
-
     const handleLessonClick = (lessonId: string) => {
-        router.push(`/courses/${id}/lessons/${lessonId}/practice`);
-    };
-
-    const handleCreateLesson = () => {
-        // TODO: Open create lesson dialog
-        console.log("Create lesson");
+        router.push(`/learn/courses/${id}/lessons/${lessonId}/practice`);
     };
 
     return (
@@ -51,7 +45,7 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
                 {/* Back Button */}
                 <Button
                     variant="ghost"
-                    onClick={() => router.push('/courses')}
+                    onClick={() => router.push('/learn')}
                     className="mb-6"
                 >
                     <ArrowLeft className="h-4 w-4 mr-2" />
@@ -98,33 +92,26 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
                         <h2 className="text-2xl font-semibold mb-1">Lessons</h2>
                         <p className="text-muted-foreground text-sm">
                             {lessons.length === 0
-                                ? "Create your first lesson to start learning"
+                                ? "No lessons yet"
                                 : "Select a lesson to begin practicing"}
                         </p>
                     </div>
-                    <div className="flex gap-3">
-                        <Button onClick={handleCreateLesson} variant="outline">
-                            <Plus className="h-4 w-4 mr-2" />
-                            Add Lesson
+                    {totalWords > 0 && (
+                        <Button onClick={() => router.push(`/learn/courses/${id}/practice`)}>
+                            <Play className="h-4 w-4 mr-2" />
+                            Practice All
                         </Button>
-                        {totalWords > 0 && (
-                            <Button onClick={() => router.push(`/courses/${id}/practice`)}>
-                                <Play className="h-4 w-4 mr-2" />
-                                Practice All
-                            </Button>
-                        )}
-                    </div>
+                    )}
                 </div>
 
                 {/* Lessons List */}
                 <LessonList
                     lessons={lessons}
                     onLessonClick={handleLessonClick}
-                    onReorder={handleReorderLessons}
-                    sortable
+                    sortable={false}
                 />
 
-                {/* Progress Overview (Future Feature) */}
+                {/* Progress Overview */}
                 {lessons.length > 0 && (
                     <div className="mt-8 p-6 bg-card border border-border rounded-lg">
                         <h3 className="font-semibold mb-4">Your Progress</h3>

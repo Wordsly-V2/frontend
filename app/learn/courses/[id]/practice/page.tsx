@@ -1,24 +1,28 @@
 "use client";
 
-import { use, useState } from "react";
+import { use, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import VocabularyPractice from "@/components/features/vocabulary/vocabulary-practice";
-import { getCourseById } from "@/lib/dummy-data";
+import { getCourseById } from "@/lib/data-store";
 import { IWord } from "@/types/courses/courses.type";
 
 export default function CoursePracticePage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = use(params);
     const router = useRouter();
-    const course = getCourseById(id);
+    const [course, setCourse] = useState(getCourseById(id));
+
+    useEffect(() => {
+        setCourse(getCourseById(id));
+    }, [id]);
 
     if (!course) {
         return (
             <main className="min-h-screen bg-background flex items-center justify-center">
                 <div className="text-center">
                     <h2 className="text-2xl font-bold mb-4">Course not found</h2>
-                    <Button onClick={() => router.push('/courses')}>
+                    <Button onClick={() => router.push('/learn')}>
                         <ArrowLeft className="h-4 w-4 mr-2" />
                         Back to Courses
                     </Button>
@@ -39,9 +43,8 @@ export default function CoursePracticePage({ params }: { params: Promise<{ id: s
     const shuffledWords = [...allWords].sort(() => Math.random() - 0.5);
 
     const handleComplete = (score: number) => {
-        // TODO: Save progress to backend
         console.log("Practice complete! Score:", score);
-        router.push(`/courses/${id}`);
+        router.push(`/learn/courses/${id}`);
     };
 
     if (allWords.length === 0) {
@@ -50,9 +53,9 @@ export default function CoursePracticePage({ params }: { params: Promise<{ id: s
                 <div className="text-center">
                     <h2 className="text-2xl font-bold mb-4">No words to practice</h2>
                     <p className="text-muted-foreground mb-6">
-                        Add some words to your lessons first
+                        This course doesn&apos;t have any words yet
                     </p>
-                    <Button onClick={() => router.push(`/courses/${id}`)}>
+                    <Button onClick={() => router.push(`/learn/courses/${id}`)}>
                         <ArrowLeft className="h-4 w-4 mr-2" />
                         Back to Course
                     </Button>
@@ -68,7 +71,7 @@ export default function CoursePracticePage({ params }: { params: Promise<{ id: s
                 <div className="mb-8">
                     <Button
                         variant="ghost"
-                        onClick={() => router.push(`/courses/${id}`)}
+                        onClick={() => router.push(`/learn/courses/${id}`)}
                         className="mb-4"
                     >
                         <ArrowLeft className="h-4 w-4 mr-2" />

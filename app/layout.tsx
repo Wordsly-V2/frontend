@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Script from "next/script";
-import { Navbar } from "@/components/navbar/navbar";
+import AppNav from "@/components/common/app-nav/app-nav";
 import { Providers } from "./Providers";
 
 const geistSans = Geist({
@@ -16,8 +16,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Wordsly - Ứng dụng học từ vựng",
-  description: "Học từ vựng hiệu quả với Wordsly",
+  title: "Wordsly - English Learning App",
+  description: "Learn English vocabulary effectively with Wordsly",
 };
 
 export default function RootLayout({
@@ -26,7 +26,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="vi" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning>
       <head>
         <Script
           id="theme-script"
@@ -48,7 +48,7 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <Providers>
-          <Navbar />
+          <AppNav />
           {children}
         </Providers>  
       </body>

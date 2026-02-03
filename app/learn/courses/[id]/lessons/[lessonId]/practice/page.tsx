@@ -1,11 +1,11 @@
 "use client";
 
-import { use } from "react";
+import { use, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Play } from "lucide-react";
 import VocabularyList from "@/components/features/vocabulary/vocabulary-list";
-import { getLessonById } from "@/lib/dummy-data";
+import { getLessonById } from "@/lib/data-store";
 
 export default function LessonPracticePage({
     params,
@@ -14,14 +14,18 @@ export default function LessonPracticePage({
 }) {
     const { id, lessonId } = use(params);
     const router = useRouter();
-    const lesson = getLessonById(lessonId);
+    const [lesson, setLesson] = useState(getLessonById(lessonId));
+
+    useEffect(() => {
+        setLesson(getLessonById(lessonId));
+    }, [lessonId]);
 
     if (!lesson) {
         return (
             <main className="min-h-screen bg-background flex items-center justify-center">
                 <div className="text-center">
                     <h2 className="text-2xl font-bold mb-4">Lesson not found</h2>
-                    <Button onClick={() => router.push(`/courses/${id}`)}>
+                    <Button onClick={() => router.push(`/learn/courses/${id}`)}>
                         <ArrowLeft className="h-4 w-4 mr-2" />
                         Back to Course
                     </Button>
@@ -38,7 +42,7 @@ export default function LessonPracticePage({
                 {/* Header */}
                 <Button
                     variant="ghost"
-                    onClick={() => router.push(`/courses/${id}`)}
+                    onClick={() => router.push(`/learn/courses/${id}`)}
                     className="mb-6"
                 >
                     <ArrowLeft className="h-4 w-4 mr-2" />
@@ -56,7 +60,7 @@ export default function LessonPracticePage({
                         <Button
                             size="lg"
                             onClick={() =>
-                                router.push(`/courses/${id}/lessons/${lessonId}/practice/start`)
+                                router.push(`/learn/courses/${id}/lessons/${lessonId}/practice/start`)
                             }
                         >
                             <Play className="h-4 w-4 mr-2" />

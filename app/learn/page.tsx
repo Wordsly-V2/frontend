@@ -1,14 +1,21 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import CoursesHeader from "@/components/features/courses/courses-header";
 import CourseGrid from "@/components/features/courses/course-grid";
-import { getAllCourses } from "@/lib/dummy-data";
+import { getAllCourses } from "@/lib/data-store";
 import { ICourse } from "@/types/courses/courses.type";
 
-export default function CoursesPage() {
-    const [courses] = useState<ICourse[]>(getAllCourses());
-    const [filteredCourses, setFilteredCourses] = useState<ICourse[]>(courses);
+export default function LearnPage() {
+    const [courses, setCourses] = useState<ICourse[]>([]);
+    const [filteredCourses, setFilteredCourses] = useState<ICourse[]>([]);
+
+    // Load courses on mount
+    useEffect(() => {
+        const loadedCourses = getAllCourses();
+        setCourses(loadedCourses);
+        setFilteredCourses(loadedCourses);
+    }, []);
 
     const handleSearch = (query: string) => {
         if (!query.trim()) {
@@ -22,17 +29,16 @@ export default function CoursesPage() {
         setFilteredCourses(filtered);
     };
 
-    const handleCreateCourse = () => {
-        // TODO: Open create course dialog
-        console.log("Create course");
-    };
-
     return (
         <main className="min-h-screen bg-background">
             <div className="container mx-auto px-4 py-8 max-w-7xl">
+                <div className="mb-6">
+                    <h1 className="text-3xl font-bold tracking-tight mb-2">Learn Mode</h1>
+                    <p className="text-muted-foreground">Choose a course to start practicing vocabulary</p>
+                </div>
+
                 <CoursesHeader
                     totalCourses={courses.length}
-                    onCreateCourse={handleCreateCourse}
                     onSearch={handleSearch}
                 />
 
