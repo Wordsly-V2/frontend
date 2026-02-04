@@ -6,7 +6,7 @@ export interface IPaginatedResponse<T> {
   totalItems: number;
   totalPages: number;
   currentPage: number;
-  data: T[];
+  items: T[];
 }
 
 /**

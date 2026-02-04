@@ -3,9 +3,11 @@ export interface ICourse {
     name: string;
     coverImageUrl?: string;
     userLoginId?: string;
-    createdAt: Date;
-    updatedAt: Date;
+    createdAt?: Date;
+    updatedAt?: Date;
     lessons?: ILesson[];
+    totalLessonsCount?: number;
+    totalWordsCount?: number;
   }
 
 export interface ILesson {

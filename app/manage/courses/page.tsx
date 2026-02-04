@@ -12,34 +12,27 @@ import { Pagination } from "@/components/ui/pagination";
 import CourseFormDialog from "@/components/features/manage/course-form-dialog";
 import ConfirmDialog from "@/components/common/confirm-dialog/confirm-dialog";
 import Image from "next/image";
+import { createMyCourse, getMyCourses } from "@/apis/courses.api";
+import { useGetMyCoursesQuery } from "@/queries/courses.query";
+import LoadingSection from "@/components/common/loading-section/loading-section";
 
 export default function ManageCoursesPage() {
     const router = useRouter();
-    const [paginatedData, setPaginatedData] = useState<IPaginatedResponse<ICourse>>({
-        totalItems: 0,
-        totalPages: 0,
-        currentPage: 1,
-        data: [],
-    });
     const [currentPage, setCurrentPage] = useState(1);
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [editingCourse, setEditingCourse] = useState<ICourse | undefined>();
     const [deleteConfirm, setDeleteConfirm] = useState<ICourse | null>(null);
+    const itemsPerPage = 10;
 
-    // Load courses when page changes
-    useEffect(() => {
-        setPaginatedData(getPaginatedCourses({ page: currentPage, limit: 5 }));
-    }, [currentPage]);
+    const { data: paginatedData, isLoading, isError, refetch: loadCourses } = useGetMyCoursesQuery(itemsPerPage, currentPage);
 
-    const loadCourses = (page: number = currentPage) => {
-        setPaginatedData(getPaginatedCourses({ page, limit: 5 }));
-    };
-
-    const handleCreate = (courseData: Omit<ICourse, 'id' | 'createdAt' | 'updatedAt' | 'lessons'>) => {
-        createCourse(courseData);
-        setCurrentPage(1);
-        loadCourses(1);
-        setIsFormOpen(false);
+    const handleCreate = (courseData: Pick<ICourse, 'name' | 'coverImageUrl'>) => {
+        createMyCourse(courseData).then((res) => {
+            console.log('createMyCourse: ', res);
+            setCurrentPage(1);
+            loadCourses();
+            setIsFormOpen(false);
+        });
     };
 
     const handleUpdate = (courseData: Omit<ICourse, 'id' | 'createdAt' | 'updatedAt' | 'lessons'>) => {
@@ -52,14 +45,14 @@ export default function ManageCoursesPage() {
     };
 
     const handleDelete = (course: ICourse) => {
-        deleteCourse(course.id);
-        // If we deleted the last item on the page and it's not page 1, go to previous page
-        if (paginatedData.data.length === 1 && currentPage > 1) {
-            setCurrentPage(currentPage - 1);
-        } else {
-            loadCourses();
-        }
-        setDeleteConfirm(null);
+        // deleteCourse(course.id);
+        // // If we deleted the last item on the page and it's not page 1, go to previous page
+        // if (paginatedData.items.length === 1 && currentPage > 1) {
+        //     setCurrentPage(currentPage - 1);
+        // } else {
+        //     loadCourses();
+        // }
+        // setDeleteConfirm(null);
     };
 
     const handlePageChange = (page: number) => {
@@ -151,6 +144,10 @@ export default function ManageCoursesPage() {
         },
     ];
 
+    if (isLoading || isError || !paginatedData) {
+        return <LoadingSection isLoading={isLoading} error={isError ? 'Error loading courses' : null} refetch={loadCourses} />;
+    }
+
     return (
         <main className="min-h-screen bg-background">
             <div className="container mx-auto px-4 py-8 max-w-7xl">
@@ -177,7 +174,7 @@ export default function ManageCoursesPage() {
                 </div>
 
                 <DataTable
-                    data={paginatedData.data}
+                    data={paginatedData.items}
                     columns={columns}
                     emptyMessage="No courses yet. Create your first course to get started!"
                 />

@@ -4,17 +4,16 @@ import { useState, useEffect } from "react";
 import CoursesHeader from "@/components/features/courses/courses-header";
 import CourseGrid from "@/components/features/courses/course-grid";
 import { Pagination } from "@/components/ui/pagination";
-import { getAllCourses, getPaginatedCourses } from "@/lib/data-store";
 import { ICourse } from "@/types/courses/courses.type";
 import { IPaginatedResponse } from "@/types/common/pagination.type";
+import { getMyCourses } from "@/apis/courses.api";
 
 export default function LearnPage() {
-    const [allCourses, setAllCourses] = useState<ICourse[]>([]);
     const [paginatedData, setPaginatedData] = useState<IPaginatedResponse<ICourse>>({
         totalItems: 0,
         totalPages: 0,
         currentPage: 1,
-        data: [],
+        items: [],
     });
     const [currentPage, setCurrentPage] = useState(1);
     const [searchQuery, setSearchQuery] = useState("");
@@ -22,34 +21,43 @@ export default function LearnPage() {
 
     // Load all courses for stats and search
     useEffect(() => {
-        const loadedCourses = getAllCourses();
-        setAllCourses(loadedCourses);
+        // const loadedCourses = getAllCourses();
+        // setAllCourses(loadedCourses);
+
+        getMyCourses(itemsPerPage, currentPage).then((res) => {
+            setPaginatedData({
+                totalItems: res.totalItems,
+                totalPages: res.totalPages,
+                currentPage: res.currentPage,
+                items: res.items,
+            });
+        });
     }, []);
 
-    // Load paginated courses when page or search changes
-    useEffect(() => {
-        if (searchQuery.trim()) {
-            // Client-side search with pagination
-            const filtered = allCourses.filter((course) =>
-                course.name.toLowerCase().includes(searchQuery.toLowerCase())
-            );
+    // // Load paginated courses when page or search changes
+    // useEffect(() => {
+    //     if (searchQuery.trim()) {
+    //         // Client-side search with pagination
+    //         const filtered = allCourses.filter((course) =>
+    //             course.name.toLowerCase().includes(searchQuery.toLowerCase())
+    //         );
             
-            const startIndex = (currentPage - 1) * itemsPerPage;
-            const endIndex = startIndex + itemsPerPage;
-            const paginatedFiltered = filtered.slice(startIndex, endIndex);
+    //         const startIndex = (currentPage - 1) * itemsPerPage;
+    //         const endIndex = startIndex + itemsPerPage;
+    //         const paginatedFiltered = filtered.slice(startIndex, endIndex);
 
-            setPaginatedData({
-                totalItems: filtered.length,
-                totalPages: Math.ceil(filtered.length / itemsPerPage),
-                currentPage: currentPage,
-                data: paginatedFiltered,
-            });
-        } else {
-            // Normal pagination
-            const result = getPaginatedCourses({ page: currentPage, limit: itemsPerPage });
-            setPaginatedData(result);
-        }
-    }, [currentPage, searchQuery, allCourses]);
+    //         setPaginatedData({
+    //             totalItems: filtered.length,
+    //             totalPages: Math.ceil(filtered.length / itemsPerPage),
+    //             currentPage: currentPage,
+    //             data: paginatedFiltered,
+    //         });
+    //     } else {
+    //         // Normal pagination
+    //         const result = getPaginatedCourses({ page: currentPage, limit: itemsPerPage });
+    //         setPaginatedData(result);
+    //     }
+    // }, [currentPage, searchQuery, allCourses]);
 
     const handleSearch = (query: string) => {
         setSearchQuery(query);
@@ -65,7 +73,7 @@ export default function LearnPage() {
             <div className="container mx-auto px-4 py-8 max-w-7xl">
 
                 {/* Stats Section */}
-                {allCourses.length > 0 && (
+                {/* {allCourses.length > 0 && ( */}
                     <div className="mb-6 grid grid-cols-1 md:grid-cols-3 gap-6">
                         <div className="bg-card border border-border rounded-lg p-6">
                             <div className="flex items-center gap-3">
@@ -85,7 +93,7 @@ export default function LearnPage() {
                                     </svg>
                                 </div>
                                 <div>
-                                    <p className="text-2xl font-bold">{allCourses.length}</p>
+                                    <p className="text-2xl font-bold">{paginatedData.totalItems}</p>
                                     <p className="text-sm text-muted-foreground">Courses</p>
                                 </div>
                             </div>
@@ -110,7 +118,7 @@ export default function LearnPage() {
                                 </div>
                                 <div>
                                     <p className="text-2xl font-bold">
-                                        {allCourses.reduce((sum, c) => sum + (c.lessons?.length || 0), 0)}
+                                        {paginatedData.items.reduce((sum, c) => sum + (c.totalLessonsCount || 0), 0)}
                                     </p>
                                     <p className="text-sm text-muted-foreground">Lessons</p>
                                 </div>
@@ -136,19 +144,14 @@ export default function LearnPage() {
                                 </div>
                                 <div>
                                     <p className="text-2xl font-bold">
-                                        {allCourses.reduce(
-                                            (sum, c) =>
-                                                sum +
-                                                (c.lessons?.reduce((lsum, l) => lsum + (l.words?.length || 0), 0) || 0),
-                                            0
-                                        )}
+                                        {paginatedData.items.reduce((sum, c) => sum + (c.totalWordsCount || 0), 0)}
                                     </p>
                                     <p className="text-sm text-muted-foreground">Words</p>
                                 </div>
                             </div>
                         </div>
                     </div>
-                )}
+                {/* )} */}
 
                 <CoursesHeader
                     totalCourses={paginatedData.totalItems}
@@ -156,7 +159,7 @@ export default function LearnPage() {
                 />
 
                 <div className="mt-8">
-                    <CourseGrid courses={paginatedData.data} />
+                    <CourseGrid courses={paginatedData.items} />
                 </div>
 
                 <Pagination
