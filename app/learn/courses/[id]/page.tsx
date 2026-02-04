@@ -8,7 +8,6 @@ import Image from "next/image";
 import { getCourseById } from "@/lib/data-store";
 import { ILesson, IWord } from "@/types/courses/courses.type";
 import { Checkbox } from "@/components/ui/checkbox";
-import VocabularyPractice from "@/components/features/vocabulary/vocabulary-practice";
 
 export default function LearnCourseDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = use(params);
@@ -16,7 +15,6 @@ export default function LearnCourseDetailPage({ params }: { params: Promise<{ id
     const [course, setCourse] = useState(getCourseById(id));
     const [expandedLessons, setExpandedLessons] = useState<Set<string>>(new Set());
     const [selectedWords, setSelectedWords] = useState<Set<string>>(new Set());
-    const [isPracticing, setIsPracticing] = useState(false);
     
     const lessons = course?.lessons || [];
 
@@ -45,8 +43,6 @@ export default function LearnCourseDetailPage({ params }: { params: Promise<{ id
             allWords.push(...lesson.words);
         }
     });
-
-    const selectedWordsArray = allWords.filter((word) => selectedWords.has(word.id));
 
     const toggleLesson = (lessonId: string) => {
         const newExpanded = new Set(expandedLessons);
@@ -104,42 +100,10 @@ export default function LearnCourseDetailPage({ params }: { params: Promise<{ id
 
     const handleStartPractice = () => {
         if (selectedWords.size > 0) {
-            setIsPracticing(true);
+            const wordIds = Array.from(selectedWords).join(",");
+            router.push(`/learn/practice?courseId=${id}&wordIds=${wordIds}`);
         }
     };
-
-    const handlePracticeComplete = (score: number) => {
-        console.log("Practice complete! Score:", score);
-        setIsPracticing(false);
-        setSelectedWords(new Set());
-    };
-
-    if (isPracticing) {
-        return (
-            <main className="min-h-screen bg-background">
-                <div className="container mx-auto px-4 py-8 max-w-4xl">
-                    <Button
-                        variant="ghost"
-                        onClick={() => setIsPracticing(false)}
-                        className="mb-6"
-                    >
-                        <ArrowLeft className="h-4 w-4 mr-2" />
-                        Back to Course
-                    </Button>
-                    <div className="text-center mb-8">
-                        <h1 className="text-2xl sm:text-3xl font-bold mb-2">Practice Vocabulary</h1>
-                        <p className="text-muted-foreground">
-                            {course.name} • {selectedWordsArray.length} words
-                        </p>
-                    </div>
-                    <VocabularyPractice 
-                        words={selectedWordsArray} 
-                        onComplete={handlePracticeComplete} 
-                    />
-                </div>
-            </main>
-        );
-    }
 
     return (
         <main className="min-h-screen bg-background">

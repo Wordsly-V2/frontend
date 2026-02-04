@@ -3,16 +3,28 @@
 import { useState, useEffect, useRef } from "react";
 import { IWord } from "@/types/courses/courses.type";
 import { Button } from "@/components/ui/button";
-import { Volume2, ChevronRight, CheckCircle2, XCircle, Sparkles, Keyboard } from "lucide-react";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
+import { Volume2, ChevronRight, CheckCircle2, XCircle, Settings2, Sparkles } from "lucide-react";
+import PracticeSettingsDialog, { PracticeMode, PracticeSettings } from "./practice-settings-dialog";
 
 interface VocabularyPracticeProps {
     words: IWord[];
     onComplete?: (score: number) => void;
 }
 
-type PracticeMode = "flashcard" | "typing";
+const SETTINGS_STORAGE_KEY = "vocabulary-practice-settings";
+
+// Helper function to load settings from localStorage
+const loadSettings = (): PracticeSettings => {
+    try {
+        const savedSettings = localStorage.getItem(SETTINGS_STORAGE_KEY);
+        if (savedSettings) {
+            return JSON.parse(savedSettings);
+        }
+    } catch (error) {
+        console.error("Failed to load practice settings:", error);
+    }
+    return { mode: "flashcard", autoCheck: true };
+};
 
 export default function VocabularyPractice({
     words,
@@ -22,9 +34,10 @@ export default function VocabularyPractice({
     const [showAnswer, setShowAnswer] = useState(false);
     const [userAnswer, setUserAnswer] = useState("");
     const [correctCount, setCorrectCount] = useState(0);
-    const [mode, setMode] = useState<PracticeMode>("flashcard");
-    const [autoCheck, setAutoCheck] = useState(true);
+    const [mode, setMode] = useState<PracticeMode>(() => loadSettings().mode);
+    const [autoCheck, setAutoCheck] = useState(() => loadSettings().autoCheck);
     const [typingResult, setTypingResult] = useState<"correct" | "incorrect" | null>(null);
+    const [showSettings, setShowSettings] = useState(false);
     const inputRef = useRef<HTMLInputElement>(null);
 
     const currentWord = words[currentIndex];
@@ -36,6 +49,25 @@ export default function VocabularyPractice({
     const score = Math.round((correctCount / words.length) * 100);
     const isFlashcard = mode === "flashcard";
     const isTyping = mode === "typing";
+
+    // Get current settings
+    const currentSettings: PracticeSettings = {
+        mode,
+        autoCheck,
+    };
+
+    // Handle settings save
+    const handleSaveSettings = (newSettings: PracticeSettings) => {
+        setMode(newSettings.mode);
+        setAutoCheck(newSettings.autoCheck);
+        
+        // Save to localStorage
+        try {
+            localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(newSettings));
+        } catch (error) {
+            console.error("Failed to save practice settings:", error);
+        }
+    };
 
     useEffect(() => {
         if (isTyping && !typingResult && inputRef.current) {
@@ -122,47 +154,6 @@ export default function VocabularyPractice({
                     {score}%
                 </p>
             </div>
-        </div>
-    );
-
-    const renderModeSwitch = () => (
-        <div className="mb-8">
-            <div className="flex justify-center gap-3 mb-6">
-                <Button
-                    size="lg"
-                    variant={isFlashcard ? "default" : "outline"}
-                    onClick={() => setMode("flashcard")}
-                    className="gap-2 px-6 rounded-xl transition-all hover:scale-105"
-                >
-                    <Sparkles className="h-4 w-4" />
-                    Flashcard Mode
-                </Button>
-                <Button
-                    size="lg"
-                    variant={isTyping ? "default" : "outline"}
-                    onClick={() => setMode("typing")}
-                    className="gap-2 px-6 rounded-xl transition-all hover:scale-105"
-                >
-                    <Keyboard className="h-4 w-4" />
-                    Typing Mode
-                </Button>
-            </div>
-            {isTyping && (
-                <div className="flex items-center justify-center gap-4 p-4 rounded-xl bg-muted/50 border border-border">
-                    <Switch
-                        id="auto-check"
-                        checked={autoCheck}
-                        onCheckedChange={setAutoCheck}
-                        className="data-[state=checked]:bg-green-500"
-                    />
-                    <Label htmlFor="auto-check" className="cursor-pointer text-sm font-medium">
-                        Auto-check enabled
-                    </Label>
-                    <span className="text-xs text-muted-foreground ml-2 hidden sm:inline">
-                        Correct answers auto-validate as you type
-                    </span>
-                </div>
-            )}
         </div>
     );
 
@@ -364,14 +355,14 @@ export default function VocabularyPractice({
     return (
         <div className="max-w-3xl mx-auto">
             {/* Progress Bar */}
-            <div className="mb-10">
-                <div className="flex items-center justify-between text-sm font-medium text-muted-foreground mb-3">
-                    <span>Your Progress</span>
-                    <span className="px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-semibold">
-                        {currentIndex + 1} of {words.length}
+            <div className="mb-6">
+                <div className="flex items-center justify-between text-sm font-medium text-muted-foreground mb-2">
+                    <span>Progress</span>
+                    <span className="px-2.5 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-semibold">
+                        {currentIndex + 1} / {words.length}
                     </span>
                 </div>
-                <div className="h-3 bg-muted rounded-full overflow-hidden shadow-inner">
+                <div className="h-2.5 bg-muted rounded-full overflow-hidden shadow-inner">
                     <div
                         className="h-full bg-gradient-to-r from-primary to-purple-500 transition-all duration-500 ease-out relative"
                         style={{ width: `${progress}%` }}
@@ -381,10 +372,29 @@ export default function VocabularyPractice({
                 </div>
             </div>
 
-            {renderModeSwitch()}
+            {/* Settings Button */}
+            <div className="flex justify-center mb-6">
+                <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowSettings(true)}
+                    className="gap-2 rounded-full"
+                >
+                    <Settings2 className="h-4 w-4" />
+                    Practice Settings
+                </Button>
+            </div>
+
+            {/* Settings Dialog */}
+            <PracticeSettingsDialog
+                isOpen={showSettings}
+                onClose={() => setShowSettings(false)}
+                currentSettings={currentSettings}
+                onSave={handleSaveSettings}
+            />
 
             {/* Practice Card */}
-            <div className="bg-gradient-to-br from-card to-card/50 border-2 border-border rounded-3xl p-10 mb-8 min-h-[420px] flex flex-col justify-between shadow-xl shadow-primary/5 backdrop-blur-sm">
+            <div className="bg-gradient-to-br from-card to-card/50 border-2 border-border rounded-3xl p-8 md:p-10 mb-6 min-h-[400px] flex flex-col justify-between shadow-xl shadow-primary/5 backdrop-blur-sm">
                 {isFlashcard ? renderFlashcardCard() : renderTypingCard()}
             </div>
 
