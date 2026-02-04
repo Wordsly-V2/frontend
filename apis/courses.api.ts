@@ -14,12 +14,22 @@ export const getMyCourses = async (limit: number = 10, page: number = 1, orderBy
     return response.data;
 }
 
-export const createMyCourse = async (course: Pick<ICourse, 'name' | 'coverImageUrl'>): Promise<ICourse> => {
-    const response = await axiosInstance.post<ICourse>('/courses/me/my-courses', course);
+export const createMyCourse = async (course: Pick<ICourse, 'name' | 'coverImageUrl'>): Promise<{ success: boolean }> => {
+    const response = await axiosInstance.post<{ success: boolean }>('/courses/me/my-courses', course);
     return response.data;
 }
 
 export const getMyCoursesTotalStats = async (): Promise<ICourseTotalStats> => {
     const response = await axiosInstance.get<ICourseTotalStats>('/courses/me/my-courses/total-stats');
+    return response.data;
+}
+
+export const deleteMyCourse = async (courseId: string): Promise<{ success: boolean }> => {
+    const response = await axiosInstance.delete<{ success: boolean }>(`/courses/me/my-courses/${courseId}`);
+    return response.data;
+}
+
+export const updateMyCourse = async (courseId: string, course: Pick<ICourse, 'name' | 'coverImageUrl'>): Promise<{ success: boolean }> => {
+    const response = await axiosInstance.put<{ success: boolean }>(`/courses/me/my-courses/${courseId}`, course);
     return response.data;
 }

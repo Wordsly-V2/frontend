@@ -1,13 +1,15 @@
 "use client";
 
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogOverlay, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useState, useEffect } from "react";
 import { ICourse } from "@/types/courses/courses.type";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
 
 interface CourseFormDialogProps {
+    isLoading?: boolean;
     isOpen: boolean;
     onClose: () => void;
     onSubmit: (course: Omit<ICourse, 'id' | 'createdAt' | 'updatedAt' | 'lessons'>) => void;
@@ -16,6 +18,7 @@ interface CourseFormDialogProps {
 }
 
 export default function CourseFormDialog({
+    isLoading,
     isOpen,
     onClose,
     onSubmit,
@@ -29,19 +32,23 @@ export default function CourseFormDialog({
     });
 
     useEffect(() => {
-        if (course) {
-            setFormData({
-                name: course.name,
-                coverImageUrl: course.coverImageUrl || "",
-                userLoginId: course.userLoginId || "user-1",
-            });
-        } else {
-            setFormData({
-                name: "",
-                coverImageUrl: "",
-                userLoginId: "user-1",
-            });
+        const _setFormData = () => {
+            if (course) {
+                setFormData({
+                    name: course.name,
+                    coverImageUrl: course.coverImageUrl || "",
+                    userLoginId: course.userLoginId || "user-1",
+                });
+            } else {
+                setFormData({
+                    name: "",
+                    coverImageUrl: "",
+                    userLoginId: "user-1",
+                });
+            }
         }
+
+        _setFormData();
     }, [course, isOpen]);
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -52,7 +59,6 @@ export default function CourseFormDialog({
                 coverImageUrl: formData.coverImageUrl.trim() || undefined,
                 userLoginId: formData.userLoginId,
             });
-            handleClose();
         }
     };
 
@@ -123,11 +129,17 @@ export default function CourseFormDialog({
                     </div>
 
                     <DialogFooter>
-                        <Button type="button" variant="outline" onClick={handleClose}>
+                        <Button type="button" variant="outline" onClick={handleClose} disabled={isLoading}>
                             Cancel
                         </Button>
-                        <Button type="submit">
-                            {course ? 'Update' : 'Create'} Course
+                        <Button type="submit" disabled={isLoading}>
+                            {
+                                isLoading ? (
+                                    <LoadingSpinner size="sm" />
+                                ) : (
+                                    course ? 'Update' : 'Create'
+                                )
+                            } Course
                         </Button>
                     </DialogFooter>
                 </form>

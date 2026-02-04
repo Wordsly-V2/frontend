@@ -1,20 +1,20 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
-import { Plus, ArrowLeft, Edit, Trash2, Eye } from "lucide-react";
-import { getPaginatedCourses, createCourse, updateCourse, deleteCourse } from "@/lib/data-store";
-import { ICourse } from "@/types/courses/courses.type";
-import { IPaginatedResponse } from "@/types/common/pagination.type";
-import DataTable from "@/components/common/data-table/data-table";
-import { Pagination } from "@/components/ui/pagination";
-import CourseFormDialog from "@/components/features/manage/course-form-dialog";
+import { createMyCourse, deleteMyCourse, updateMyCourse } from "@/apis/courses.api";
 import ConfirmDialog from "@/components/common/confirm-dialog/confirm-dialog";
-import Image from "next/image";
-import { createMyCourse, getMyCourses } from "@/apis/courses.api";
-import { useGetMyCoursesQuery } from "@/queries/courses.query";
+import DataTable from "@/components/common/data-table/data-table";
 import LoadingSection from "@/components/common/loading-section/loading-section";
+import CourseFormDialog from "@/components/features/manage/course-form-dialog";
+import { Button } from "@/components/ui/button";
+import { Pagination } from "@/components/ui/pagination";
+import { useGetMyCoursesQuery } from "@/queries/courses.query";
+import { ICourse } from "@/types/courses/courses.type";
+import { useMutation } from "@tanstack/react-query";
+import { ArrowLeft, Edit, Eye, Plus, Trash2 } from "lucide-react";
+import Image from "next/image";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { toast } from "sonner";
 
 export default function ManageCoursesPage() {
     const router = useRouter();
@@ -24,36 +24,39 @@ export default function ManageCoursesPage() {
     const [deleteConfirm, setDeleteConfirm] = useState<ICourse | null>(null);
     const itemsPerPage = 10;
 
-    const { data: paginatedData, isLoading, isError, refetch: loadCourses } = useGetMyCoursesQuery(itemsPerPage, currentPage);
+    const { data: paginatedData, isLoading, isError, refetch: loadCourses } = useGetMyCoursesQuery(itemsPerPage, currentPage, );
 
-    const handleCreate = (courseData: Pick<ICourse, 'name' | 'coverImageUrl'>) => {
-        createMyCourse(courseData).then((res) => {
-            console.log('createMyCourse: ', res);
+    const mutationCourse = useMutation({
+        mutationFn: (courseData: Pick<ICourse, 'name' | 'coverImageUrl'>) => {
+            if (editingCourse) {
+                return updateMyCourse(editingCourse.id, courseData);
+            } else {
+                return createMyCourse(courseData);
+            }
+        },
+        onSuccess: () => {
+            loadCourses();
             setCurrentPage(1);
-            loadCourses();
             setIsFormOpen(false);
-        });
-    };
-
-    const handleUpdate = (courseData: Omit<ICourse, 'id' | 'createdAt' | 'updatedAt' | 'lessons'>) => {
-        if (editingCourse) {
-            updateCourse(editingCourse.id, courseData);
-            loadCourses();
+            toast.success(editingCourse ? 'Course updated successfully' : 'Course created successfully');
             setEditingCourse(undefined);
-            setIsFormOpen(false);
-        }
-    };
+        },
+        onError: (err) => {
+            toast.error('Failed to ' + (editingCourse ? 'update' : 'create') + ' course: ' + err.message);
+        },
+    });
 
-    const handleDelete = (course: ICourse) => {
-        // deleteCourse(course.id);
-        // // If we deleted the last item on the page and it's not page 1, go to previous page
-        // if (paginatedData.items.length === 1 && currentPage > 1) {
-        //     setCurrentPage(currentPage - 1);
-        // } else {
-        //     loadCourses();
-        // }
-        // setDeleteConfirm(null);
-    };
+    const mutationDeleteCourse = useMutation({
+        mutationFn: (courseId: string) => deleteMyCourse(courseId),
+        onSuccess: () => {
+            loadCourses();
+            toast.success('Course deleted successfully');
+            setDeleteConfirm(null);
+        },
+        onError: (err) => {
+            toast.error('Failed to delete course: ' + err.message);
+        },
+    });
 
     const handlePageChange = (page: number) => {
         setCurrentPage(page);
@@ -187,12 +190,13 @@ export default function ManageCoursesPage() {
             </div>
 
             <CourseFormDialog
+                isLoading={mutationCourse.isPending}
                 isOpen={isFormOpen}
                 onClose={() => {
                     setIsFormOpen(false);
                     setEditingCourse(undefined);
                 }}
-                onSubmit={editingCourse ? handleUpdate : handleCreate}
+                onSubmit={mutationCourse.mutate}
                 course={editingCourse}
                 title={editingCourse ? 'Edit Course' : 'Create New Course'}
             />
@@ -201,11 +205,12 @@ export default function ManageCoursesPage() {
                 <ConfirmDialog
                     isOpen={!!deleteConfirm}
                     onClose={() => setDeleteConfirm(null)}
-                    onConfirm={() => handleDelete(deleteConfirm)}
+                    onConfirm={() => mutationDeleteCourse.mutate(deleteConfirm.id)}
                     title="Delete Course"
                     description={`Are you sure you want to delete "${deleteConfirm.name}"? This will also delete all lessons and words in this course. This action cannot be undone.`}
                     confirmText="Delete Course"
                     variant="destructive"
+                    isLoading={mutationDeleteCourse.isPending}
                 />
             )}
         </main>
