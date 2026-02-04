@@ -10,6 +10,7 @@ interface TypingResultDialogProps {
     isCorrect: boolean;
     userAnswer: string;
     correctAnswer: string;
+    meaning: string;
     pronunciation?: string;
     audioUrl?: string;
     onTryAgain: () => void;
@@ -22,6 +23,7 @@ export default function TypingResultDialog({
     isCorrect,
     userAnswer,
     correctAnswer,
+    meaning,
     pronunciation,
     audioUrl,
     onTryAgain,
@@ -39,6 +41,21 @@ export default function TypingResultDialog({
             return () => clearTimeout(timer);
         }
     }, [isOpen, audioUrl]);
+
+    // Handle Enter key to proceed to next word
+    useEffect(() => {
+        if (!isOpen) return;
+
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === "Enter") {
+                e.preventDefault();
+                onNext();
+            }
+        };
+
+        window.addEventListener("keydown", handleKeyDown);
+        return () => window.removeEventListener("keydown", handleKeyDown);
+    }, [isOpen, onNext]);
 
     const handlePlayAudio = () => {
         if (audioUrl) {
@@ -58,12 +75,15 @@ export default function TypingResultDialog({
                             <h3 className="text-2xl font-bold text-green-600">Perfect!</h3>
                             <div className="inline-block px-6 py-3 rounded-xl bg-green-50 border-2 border-green-200">
                                 <div className="flex items-center gap-3">
-                                    <div>
+                                    <div className="text-left">
                                         <p className="text-lg font-semibold text-green-900">
                                             {correctAnswer}
                                         </p>
+                                        <p className="text-sm text-green-700 mt-0.5">
+                                            {meaning}
+                                        </p>
                                         {pronunciation && (
-                                            <p className="text-sm text-green-700 mt-1">
+                                            <p className="text-xs text-green-600 mt-1">
                                                 /{pronunciation}/
                                             </p>
                                         )}
@@ -103,10 +123,13 @@ export default function TypingResultDialog({
                                     <p className="text-xs text-muted-foreground mb-1">Correct answer:</p>
                                     <div className="inline-block px-6 py-3 rounded-xl bg-red-50 border-2 border-red-200">
                                         <div className="flex items-center gap-3">
-                                            <div>
+                                            <div className="text-left">
                                                 <p className="text-lg font-bold text-red-900">{correctAnswer}</p>
+                                                <p className="text-sm text-red-700 mt-0.5">
+                                                    {meaning}
+                                                </p>
                                                 {pronunciation && (
-                                                    <p className="text-sm text-red-700 mt-1">
+                                                    <p className="text-xs text-red-600 mt-1">
                                                         /{pronunciation}/
                                                     </p>
                                                 )}

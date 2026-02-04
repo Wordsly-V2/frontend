@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { IWord } from "@/types/courses/courses.type";
 import { Button } from "@/components/ui/button";
-import { Volume2, ChevronRight, CheckCircle2, XCircle, Settings2, Sparkles } from "lucide-react";
+import { Volume2, ChevronRight, CheckCircle2, XCircle, Settings2, Sparkles, Lightbulb } from "lucide-react";
 import PracticeSettingsDialog, { PracticeMode, PracticeSettings } from "./practice-settings-dialog";
 import TypingResultDialog from "./typing-result-dialog";
 
@@ -40,6 +40,7 @@ export default function VocabularyPractice({
     const [typingResult, setTypingResult] = useState<"correct" | "incorrect" | null>(null);
     const [showSettings, setShowSettings] = useState(false);
     const [showResultDialog, setShowResultDialog] = useState(false);
+    const [hintsUsed, setHintsUsed] = useState(0);
     const inputRef = useRef<HTMLInputElement>(null);
 
     const currentWord = words[currentIndex];
@@ -57,6 +58,43 @@ export default function VocabularyPractice({
     const currentSettings: PracticeSettings = {
         mode,
         autoCheck,
+    };
+
+    // Calculate next hint
+    const getNextHint = (): string => {
+        const correctWord = normalize(currentWord.word);
+        const currentInput = normalize(userAnswer);
+        
+        // Find the longest correct prefix
+        let correctPrefixLength = 0;
+        for (let i = 0; i < Math.min(currentInput.length, correctWord.length); i++) {
+            if (currentInput[i] === correctWord[i]) {
+                correctPrefixLength = i + 1;
+            } else {
+                break;
+            }
+        }
+        
+        // Return hint up to the next correct letter
+        if (correctPrefixLength < correctWord.length) {
+            return correctWord.substring(0, correctPrefixLength + 1);
+        }
+        
+        return correctWord;
+    };
+
+    const handleGetHint = () => {
+        const hint = getNextHint();
+        setUserAnswer(hint);
+        setHintsUsed(hintsUsed + 1);
+        // Position cursor at the end of the hint
+        setTimeout(() => {
+            if (inputRef.current) {
+                inputRef.current.focus();
+                const length = hint.length;
+                inputRef.current.setSelectionRange(length, length);
+            }
+        }, 0);
     };
 
     // Handle settings save
@@ -84,6 +122,7 @@ export default function VocabularyPractice({
             setShowAnswer(false);
             setUserAnswer("");
             setTypingResult(null);
+            setHintsUsed(0);
         } else {
             onComplete?.(score);
         }
@@ -286,19 +325,36 @@ export default function VocabularyPractice({
                     />
                     <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-primary/5 to-purple/5 -z-10 blur-xl opacity-0 transition-opacity group-focus-within:opacity-100"></div>
                 </div>
-                {!autoCheck && (
-                    <div className="flex justify-center">
+                
+                <div className="flex flex-wrap justify-center gap-3">
+                    {/* Hint Button */}
+                    <Button
+                        variant="outline"
+                        size="lg"
+                        onClick={handleGetHint}
+                        disabled={normalize(userAnswer) === normalize(currentWord.word)}
+                        className="gap-2 rounded-xl hover:scale-105 transition-transform"
+                    >
+                        <Lightbulb className="h-5 w-5" />
+                        Get Hint
+                        {hintsUsed > 0 && (
+                            <span className="text-xs opacity-70">({hintsUsed})</span>
+                        )}
+                    </Button>
+                    
+                    {/* Check Answer Button (only if auto-check is off) */}
+                    {!autoCheck && (
                         <Button
                             size="lg"
-                            className="min-w-[240px] h-14 text-lg rounded-xl gap-2 hover:scale-105 transition-transform"
+                            className="min-w-[200px] h-12 text-lg rounded-xl gap-2 hover:scale-105 transition-transform"
                             onClick={handleCheckTypingAnswer}
                             disabled={userAnswer.trim().length === 0}
                         >
                             <CheckCircle2 className="h-5 w-5" />
                             Check Answer
                         </Button>
-                    </div>
-                )}
+                    )}
+                </div>
             </div>
         </div>
     );
@@ -387,6 +443,7 @@ export default function VocabularyPractice({
                     isCorrect={typingResult === "correct"}
                     userAnswer={userAnswer}
                     correctAnswer={currentWord.word}
+                    meaning={currentWord.meaning}
                     pronunciation={currentWord.pronunciation}
                     audioUrl={currentWord.audioUrl}
                     onTryAgain={handleTryAgain}
