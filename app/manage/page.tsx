@@ -1,18 +1,30 @@
 "use client";
 
-import LoadingSection from "@/components/common/loading-section/loading-section";
 import { Button } from "@/components/ui/button";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { useGetMyCoursesTotalStatsQuery } from "@/queries/courses.query";
 import { BookOpen, FileText, MessageSquare, Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import { useEffect } from "react";
 
 export default function ManagePage() {
     const router = useRouter();
 
-    const { data: courseTotalStats, isLoading, isError, refetch: refetchCourseTotalStats } = useGetMyCoursesTotalStatsQuery();
+    const { data: courseTotalStats, isLoading, isError, refetch: refetchCourseTotalStats, error } = useGetMyCoursesTotalStatsQuery();
 
-    if (isLoading || isError || !courseTotalStats) {
-        return <LoadingSection isLoading={isLoading} error={isError ? 'Error loading course total stats' : null} refetch={refetchCourseTotalStats} />;
+    useEffect(() => {
+        if (isError) {
+            toast.error('Failed to load course total stats: ' + error?.message);
+        }
+    }, [isError, error]);
+
+    const handleClickTotalStats = () => {
+        if (isLoading || isError) {
+            refetchCourseTotalStats();
+        } else {
+            router.push('/manage/courses');
+        }
     }
 
     return (
@@ -28,37 +40,61 @@ export default function ManagePage() {
 
                 {/* Stats Cards */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                    <div className="bg-card border-2 border-border rounded-2xl p-6 hover:border-primary/50 transition-all cursor-pointer card-hover" onClick={() => router.push('/manage/courses')}>
+                    <div className="bg-card border-2 border-border rounded-2xl p-6 hover:border-primary/50 transition-all cursor-pointer card-hover" onClick={handleClickTotalStats}>
                         <div className="flex items-center gap-4">
                             <div className="w-14 h-14 rounded-2xl gradient-brand flex items-center justify-center">
                                 <BookOpen className="h-7 w-7 text-white" />
                             </div>
                             <div>
-                                <p className="text-3xl font-bold">{courseTotalStats.totalCourses}</p>
+                                {
+                                    isLoading ? (
+                                        <LoadingSpinner size="sm" />
+                                    ) : isError ? (
+                                        <p className="text-3xl font-bold">--</p>
+                                    ) : (
+                                        <p className="text-3xl font-bold">{courseTotalStats?.totalCourses || 0}</p>
+                                    )
+                                }
                                 <p className="text-sm text-muted-foreground">Courses</p>
                             </div>
                         </div>
                     </div>
 
-                    <div className="bg-card border-2 border-border rounded-2xl p-6 hover:border-primary/50 transition-all cursor-pointer card-hover" onClick={() => router.push('/manage/courses')}>
+                    <div className="bg-card border-2 border-border rounded-2xl p-6 hover:border-primary/50 transition-all cursor-pointer card-hover" onClick={handleClickTotalStats}>
                         <div className="flex items-center gap-4">
                             <div className="w-14 h-14 rounded-2xl gradient-accent flex items-center justify-center">
                                 <FileText className="h-7 w-7 text-white" />
                             </div>
                             <div>
-                                <p className="text-3xl font-bold">{courseTotalStats.totalLessons}</p>
+                                {
+                                    isLoading ? (
+                                        <LoadingSpinner size="sm" />
+                                    ) : isError ? (
+                                        <p className="text-3xl font-bold">--</p>
+                                    ) : (
+                                        <p className="text-3xl font-bold">{courseTotalStats?.totalLessons || 0}</p>
+                                    )
+                                }
                                 <p className="text-sm text-muted-foreground">Lessons</p>
                             </div>
                         </div>
                     </div>
 
-                    <div className="bg-card border-2 border-border rounded-2xl p-6 hover:border-primary/50 transition-all cursor-pointer card-hover" onClick={() => router.push('/manage/courses')}>
+                    <div className="bg-card border-2 border-border rounded-2xl p-6 hover:border-primary/50 transition-all cursor-pointer card-hover" onClick={handleClickTotalStats}>
                         <div className="flex items-center gap-4">
                             <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center">
                                 <MessageSquare className="h-7 w-7 text-white" />
                             </div>
                             <div>
-                                <p className="text-3xl font-bold">{courseTotalStats.totalWords}</p>
+                                {
+                                    isLoading ? (
+                                        <LoadingSpinner size="sm" />
+                                    ) : isError ? (
+                                        <p className="text-3xl font-bold">--</p>
+                                    ) : (
+                                        <p className="text-3xl font-bold">{courseTotalStats?.totalWords || 0}</p>
+                                    )
+                                }
                                 <p className="text-sm text-muted-foreground">Words</p>
                             </div>
                         </div>

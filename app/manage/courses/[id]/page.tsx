@@ -41,6 +41,8 @@ import {
     useSortable,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { useQuery } from "@tanstack/react-query";
+import { getCourseDetailById } from "@/apis/courses.api";
 
 function SortableLesson({
     lesson,
@@ -212,6 +214,11 @@ export default function ManageCourseDetailPage({ params }: { params: Promise<{ i
     const [activeLesson, setActiveLesson] = useState<ILesson | undefined>();
     const [deleteConfirm, setDeleteConfirm] = useState<{ type: 'lesson' | 'word'; item: ILesson | IWord } | null>(null);
     const [moveWordDialog, setMoveWordDialog] = useState<{ word: IWord; sourceLesson: ILesson } | null>(null);
+
+    const { data: courseDetail, isLoading, isError, refetch: loadCourseDetail } = useQuery({
+        queryKey: ['courses', 'get', 'course-detail', id],
+        queryFn: () => getCourseDetailById(id),
+    });
 
     const sensors = useSensors(
         useSensor(PointerSensor),
