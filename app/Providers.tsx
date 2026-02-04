@@ -17,11 +17,6 @@ export function Providers({ children }: { children: React.ReactNode }) {
                             description: service.message,
                         });
                     }
-                    else {
-                        toast.success(`${service.name} is healthy`, {
-                            description: service.message,
-                        });
-                    }
                 }
             }).catch(() => {
                 toast.error("System Status", {
