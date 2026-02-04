@@ -5,6 +5,7 @@ import { IWord } from "@/types/courses/courses.type";
 import { Button } from "@/components/ui/button";
 import { Volume2, ChevronRight, CheckCircle2, XCircle, Settings2, Sparkles } from "lucide-react";
 import PracticeSettingsDialog, { PracticeMode, PracticeSettings } from "./practice-settings-dialog";
+import TypingResultDialog from "./typing-result-dialog";
 
 interface VocabularyPracticeProps {
     words: IWord[];
@@ -38,6 +39,7 @@ export default function VocabularyPractice({
     const [autoCheck, setAutoCheck] = useState(() => loadSettings().autoCheck);
     const [typingResult, setTypingResult] = useState<"correct" | "incorrect" | null>(null);
     const [showSettings, setShowSettings] = useState(false);
+    const [showResultDialog, setShowResultDialog] = useState(false);
     const inputRef = useRef<HTMLInputElement>(null);
 
     const currentWord = words[currentIndex];
@@ -49,6 +51,7 @@ export default function VocabularyPractice({
     const score = Math.round((correctCount / words.length) * 100);
     const isFlashcard = mode === "flashcard";
     const isTyping = mode === "typing";
+    const isLastWord = currentIndex === words.length - 1;
 
     // Get current settings
     const currentSettings: PracticeSettings = {
@@ -110,6 +113,19 @@ export default function VocabularyPractice({
         } else {
             setTypingResult("incorrect");
         }
+        setShowResultDialog(true);
+    };
+
+    const handleTryAgain = () => {
+        setShowResultDialog(false);
+        setTypingResult(null);
+        setUserAnswer("");
+        setTimeout(() => inputRef.current?.focus(), 100);
+    };
+
+    const handleNextFromDialog = () => {
+        setShowResultDialog(false);
+        handleNext();
     };
 
     useEffect(() => {
@@ -121,6 +137,7 @@ export default function VocabularyPractice({
             if (normalize(userAnswer) === normalize(currentWord.word)) {
                 setTypingResult("correct");
                 setCorrectCount((prev) => prev + 1);
+                setShowResultDialog(true);
             }
         };
         
@@ -223,129 +240,60 @@ export default function VocabularyPractice({
     );
 
     const renderTypingCard = () => (
-        <>
-            <div className="space-y-8">
-                <div className="text-center">
-                    <p className="text-xs uppercase tracking-widest font-semibold text-muted-foreground mb-4 flex items-center justify-center gap-2">
-                        <span className="h-px w-8 bg-border"></span>
-                        Translation
-                        <span className="h-px w-8 bg-border"></span>
-                    </p>
-                    <p className="text-3xl font-bold mb-4">{currentWord.meaning}</p>
-                    {currentWord.partOfSpeech && (
-                        <span className="inline-block px-4 py-1.5 rounded-full bg-gradient-to-r from-primary/10 to-primary/5 text-primary text-sm font-semibold border border-primary/20">
-                            {currentWord.partOfSpeech}
-                        </span>
-                    )}
-                </div>
-
-                {typingResult ? (
-                    <div className="text-center py-8 animate-in fade-in zoom-in duration-500">
-                        {typingResult === "correct" ? (
-                            <div className="space-y-4">
-                                <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-br from-green-400 to-emerald-500 animate-in zoom-in duration-500">
-                                    <CheckCircle2 className="h-11 w-11 text-white" />
-                                </div>
-                                <p className="text-2xl font-bold text-green-600">Perfect!</p>
-                                <div className="inline-block px-6 py-3 rounded-xl bg-green-50 border-2 border-green-200">
-                                    <p className="text-lg font-semibold text-green-900">
-                                        {currentWord.word}
-                                    </p>
-                                    {currentWord.pronunciation && (
-                                        <p className="text-sm text-green-700 mt-1">
-                                            /{currentWord.pronunciation}/
-                                        </p>
-                                    )}
-                                </div>
-                            </div>
-                        ) : (
-                            <div className="space-y-4">
-                                <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-br from-red-400 to-rose-500 animate-in zoom-in duration-500">
-                                    <XCircle className="h-11 w-11 text-white" />
-                                </div>
-                                <p className="text-2xl font-bold text-red-600">Not Quite</p>
-                                <div className="space-y-2">
-                                    <p className="text-sm text-muted-foreground">Correct answer:</p>
-                                    <div className="inline-block px-6 py-3 rounded-xl bg-red-50 border-2 border-red-200">
-                                        <p className="text-lg font-bold text-red-900">{currentWord.word}</p>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                ) : (
-                    <div className="space-y-6">
-                        <div className="relative">
-                            <input
-                                ref={inputRef}
-                                type="text"
-                                placeholder="Type your answer..."
-                                value={userAnswer}
-                                onChange={(e) => setUserAnswer(e.target.value)}
-                                onKeyDown={(e) => {
-                                    if (e.key !== "Enter") {
-                                        return;
-                                    }
-                                    if (autoCheck) {
-                                        return;
-                                    }
-                                    handleCheckTypingAnswer();
-                                }}
-                                disabled={typingResult === "correct"}
-                                className="w-full px-6 py-5 text-2xl font-medium text-center rounded-2xl border-2 border-border bg-background focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all outline-none disabled:opacity-50 disabled:cursor-not-allowed placeholder:text-muted-foreground/40"
-                            />
-                            <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-primary/5 to-purple/5 -z-10 blur-xl opacity-0 transition-opacity group-focus-within:opacity-100"></div>
-                        </div>
-                        {!autoCheck && (
-                            <div className="flex justify-center">
-                                <Button
-                                    size="lg"
-                                    className="min-w-[240px] h-14 text-lg rounded-xl gap-2 hover:scale-105 transition-transform"
-                                    onClick={handleCheckTypingAnswer}
-                                    disabled={userAnswer.trim().length === 0}
-                                >
-                                    <CheckCircle2 className="h-5 w-5" />
-                                    Check Answer
-                                </Button>
-                            </div>
-                        )}
-                    </div>
+        <div className="space-y-8">
+            <div className="text-center">
+                <p className="text-xs uppercase tracking-widest font-semibold text-muted-foreground mb-4 flex items-center justify-center gap-2">
+                    <span className="h-px w-8 bg-border"></span>
+                    Translation
+                    <span className="h-px w-8 bg-border"></span>
+                </p>
+                <p className="text-3xl font-bold mb-4">{currentWord.meaning}</p>
+                {currentWord.partOfSpeech && (
+                    <span className="inline-block px-4 py-1.5 rounded-full bg-gradient-to-r from-primary/10 to-primary/5 text-primary text-sm font-semibold border border-primary/20">
+                        {currentWord.partOfSpeech}
+                    </span>
                 )}
             </div>
 
-            {typingResult && (
-                <div className="flex flex-wrap justify-center gap-3 mt-10">
-                    {typingResult === "incorrect" && (
-                        <Button
-                            variant="outline"
-                            size="lg"
-                            onClick={() => {
-                                setTypingResult(null);
-                                setUserAnswer("");
-                                setTimeout(() => inputRef.current?.focus(), 100);
-                            }}
-                            className="rounded-xl hover:scale-105 transition-transform"
-                        >
-                            Try Again
-                        </Button>
-                    )}
-                    <Button 
-                        onClick={handleNext} 
-                        size="lg" 
-                        className="min-w-[240px] h-14 text-lg rounded-xl gap-2 hover:scale-105 transition-transform"
-                    >
-                        {currentIndex < words.length - 1 ? (
-                            <>
-                                Next Word
-                                <ChevronRight className="h-5 w-5" />
-                            </>
-                        ) : (
-                            "Finish Practice"
-                        )}
-                    </Button>
+            <div className="space-y-6">
+                <div className="relative">
+                    <input
+                        ref={inputRef}
+                        type="text"
+                        placeholder="Type your answer..."
+                        value={userAnswer}
+                        onChange={(e) => setUserAnswer(e.target.value)}
+                        onKeyDown={(e) => {
+                            if (e.key !== "Enter") {
+                                return;
+                            }
+                            if (autoCheck) {
+                                return;
+                            }
+                            if (userAnswer.trim().length === 0) {
+                                return;
+                            }
+                            handleCheckTypingAnswer();
+                        }}
+                        className="w-full px-6 py-5 text-2xl font-medium text-center rounded-2xl border-2 border-border bg-background focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all outline-none placeholder:text-muted-foreground/40"
+                    />
+                    <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-primary/5 to-purple/5 -z-10 blur-xl opacity-0 transition-opacity group-focus-within:opacity-100"></div>
                 </div>
-            )}
-        </>
+                {!autoCheck && (
+                    <div className="flex justify-center">
+                        <Button
+                            size="lg"
+                            className="min-w-[240px] h-14 text-lg rounded-xl gap-2 hover:scale-105 transition-transform"
+                            onClick={handleCheckTypingAnswer}
+                            disabled={userAnswer.trim().length === 0}
+                        >
+                            <CheckCircle2 className="h-5 w-5" />
+                            Check Answer
+                        </Button>
+                    </div>
+                )}
+            </div>
+        </div>
     );
 
     if (!currentWord) {
@@ -423,6 +371,20 @@ export default function VocabularyPractice({
                         Still Learning
                     </Button>
                 </div>
+            )}
+
+            {/* Typing Result Dialog */}
+            {isTyping && (
+                <TypingResultDialog
+                    isOpen={showResultDialog}
+                    isCorrect={typingResult === "correct"}
+                    userAnswer={userAnswer}
+                    correctAnswer={currentWord.word}
+                    pronunciation={currentWord.pronunciation}
+                    onTryAgain={handleTryAgain}
+                    onNext={handleNextFromDialog}
+                    isLastWord={isLastWord}
+                />
             )}
         </div>
     );
