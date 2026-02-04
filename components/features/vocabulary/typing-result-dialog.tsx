@@ -2,7 +2,8 @@
 
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogFooter } from "@/components/ui/dialog";
-import { CheckCircle2, XCircle } from "lucide-react";
+import { CheckCircle2, XCircle, Volume2 } from "lucide-react";
+import { useEffect } from "react";
 
 interface TypingResultDialogProps {
     isOpen: boolean;
@@ -10,6 +11,7 @@ interface TypingResultDialogProps {
     userAnswer: string;
     correctAnswer: string;
     pronunciation?: string;
+    audioUrl?: string;
     onTryAgain: () => void;
     onNext: () => void;
     isLastWord: boolean;
@@ -21,10 +23,29 @@ export default function TypingResultDialog({
     userAnswer,
     correctAnswer,
     pronunciation,
+    audioUrl,
     onTryAgain,
     onNext,
     isLastWord,
 }: Readonly<TypingResultDialogProps>) {
+    // Auto-play audio when dialog opens
+    useEffect(() => {
+        if (isOpen && audioUrl) {
+            const timer = setTimeout(() => {
+                const audio = new Audio(audioUrl);
+                audio.play().catch(console.error);
+            }, 300); // Small delay for better UX
+            
+            return () => clearTimeout(timer);
+        }
+    }, [isOpen, audioUrl]);
+
+    const handlePlayAudio = () => {
+        if (audioUrl) {
+            const audio = new Audio(audioUrl);
+            audio.play().catch(console.error);
+        }
+    };
     return (
         <Dialog open={isOpen} onOpenChange={() => {}}>
             <DialogContent className="max-w-md" showCloseButton={false}>
@@ -36,14 +57,29 @@ export default function TypingResultDialog({
                             </div>
                             <h3 className="text-2xl font-bold text-green-600">Perfect!</h3>
                             <div className="inline-block px-6 py-3 rounded-xl bg-green-50 border-2 border-green-200">
-                                <p className="text-lg font-semibold text-green-900">
-                                    {correctAnswer}
-                                </p>
-                                {pronunciation && (
-                                    <p className="text-sm text-green-700 mt-1">
-                                        /{pronunciation}/
-                                    </p>
-                                )}
+                                <div className="flex items-center gap-3">
+                                    <div>
+                                        <p className="text-lg font-semibold text-green-900">
+                                            {correctAnswer}
+                                        </p>
+                                        {pronunciation && (
+                                            <p className="text-sm text-green-700 mt-1">
+                                                /{pronunciation}/
+                                            </p>
+                                        )}
+                                    </div>
+                                    {audioUrl && (
+                                        <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="icon"
+                                            onClick={handlePlayAudio}
+                                            className="h-10 w-10 rounded-full hover:bg-green-100 text-green-700 hover:text-green-900"
+                                        >
+                                            <Volume2 className="h-5 w-5" />
+                                        </Button>
+                                    )}
+                                </div>
                             </div>
                         </div>
                     ) : (
@@ -66,12 +102,27 @@ export default function TypingResultDialog({
                                 <div>
                                     <p className="text-xs text-muted-foreground mb-1">Correct answer:</p>
                                     <div className="inline-block px-6 py-3 rounded-xl bg-red-50 border-2 border-red-200">
-                                        <p className="text-lg font-bold text-red-900">{correctAnswer}</p>
-                                        {pronunciation && (
-                                            <p className="text-sm text-red-700 mt-1">
-                                                /{pronunciation}/
-                                            </p>
-                                        )}
+                                        <div className="flex items-center gap-3">
+                                            <div>
+                                                <p className="text-lg font-bold text-red-900">{correctAnswer}</p>
+                                                {pronunciation && (
+                                                    <p className="text-sm text-red-700 mt-1">
+                                                        /{pronunciation}/
+                                                    </p>
+                                                )}
+                                            </div>
+                                            {audioUrl && (
+                                                <Button
+                                                    type="button"
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    onClick={handlePlayAudio}
+                                                    className="h-10 w-10 rounded-full hover:bg-red-100 text-red-700 hover:text-red-900"
+                                                >
+                                                    <Volume2 className="h-5 w-5" />
+                                                </Button>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
                             </div>

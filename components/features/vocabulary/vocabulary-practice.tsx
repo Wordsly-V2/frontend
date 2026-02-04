@@ -91,6 +91,13 @@ export default function VocabularyPractice({
 
     const handleReveal = () => {
         setShowAnswer(true);
+        // Auto-play audio when revealing answer in flashcard mode
+        if (currentWord.audioUrl) {
+            setTimeout(() => {
+                const audio = new Audio(currentWord.audioUrl);
+                audio.play().catch(console.error);
+            }, 300);
+        }
     };
 
     const handlePlayAudio = () => {
@@ -381,6 +388,7 @@ export default function VocabularyPractice({
                     userAnswer={userAnswer}
                     correctAnswer={currentWord.word}
                     pronunciation={currentWord.pronunciation}
+                    audioUrl={currentWord.audioUrl}
                     onTryAgain={handleTryAgain}
                     onNext={handleNextFromDialog}
                     isLastWord={isLastWord}
