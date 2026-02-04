@@ -1,29 +1,19 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import LoadingSection from "@/components/common/loading-section/loading-section";
 import { Button } from "@/components/ui/button";
-import { Plus, BookOpen, FileText, MessageSquare } from "lucide-react";
-import { getAllCourses } from "@/lib/data-store";
-import { ICourse } from "@/types/courses/courses.type";
+import { useGetMyCoursesTotalStatsQuery } from "@/queries/courses.query";
+import { BookOpen, FileText, MessageSquare, Plus } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 export default function ManagePage() {
     const router = useRouter();
-    const [courses, setCourses] = useState<ICourse[]>([]);
 
-    useEffect(() => {
-        const _loadCourses = () => {
-            setCourses(getAllCourses());
-        };
+    const { data: courseTotalStats, isLoading, isError, refetch: refetchCourseTotalStats } = useGetMyCoursesTotalStatsQuery();
 
-        _loadCourses();
-    }, []);
-
-    const totalLessons = courses.reduce((sum, c) => sum + (c.lessons?.length || 0), 0);
-    const totalWords = courses.reduce(
-        (sum, c) => sum + (c.lessons?.reduce((lsum, l) => lsum + (l.words?.length || 0), 0) || 0),
-        0
-    );
+    if (isLoading || isError || !courseTotalStats) {
+        return <LoadingSection isLoading={isLoading} error={isError ? 'Error loading course total stats' : null} refetch={refetchCourseTotalStats} />;
+    }
 
     return (
         <main className="min-h-screen bg-background">
@@ -44,7 +34,7 @@ export default function ManagePage() {
                                 <BookOpen className="h-7 w-7 text-white" />
                             </div>
                             <div>
-                                <p className="text-3xl font-bold">{courses.length}</p>
+                                <p className="text-3xl font-bold">{courseTotalStats.totalCourses}</p>
                                 <p className="text-sm text-muted-foreground">Courses</p>
                             </div>
                         </div>
@@ -56,7 +46,7 @@ export default function ManagePage() {
                                 <FileText className="h-7 w-7 text-white" />
                             </div>
                             <div>
-                                <p className="text-3xl font-bold">{totalLessons}</p>
+                                <p className="text-3xl font-bold">{courseTotalStats.totalLessons}</p>
                                 <p className="text-sm text-muted-foreground">Lessons</p>
                             </div>
                         </div>
@@ -68,7 +58,7 @@ export default function ManagePage() {
                                 <MessageSquare className="h-7 w-7 text-white" />
                             </div>
                             <div>
-                                <p className="text-3xl font-bold">{totalWords}</p>
+                                <p className="text-3xl font-bold">{courseTotalStats.totalWords}</p>
                                 <p className="text-sm text-muted-foreground">Words</p>
                             </div>
                         </div>
@@ -100,7 +90,7 @@ export default function ManagePage() {
                 </div>
 
                 {/* Getting Started */}
-                {courses.length === 0 && (
+                {courseTotalStats?.totalCourses === 0 && (
                     <div className="mt-8 bg-primary/5 border-2 border-primary/20 rounded-2xl p-8 text-center">
                         <div className="max-w-md mx-auto">
                             <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-4">

@@ -33,4 +33,9 @@ export interface IWord {
     createdAt: Date;
     updatedAt: Date;
   }
-  
+
+export interface ICourseTotalStats {
+    totalCourses: number;
+    totalLessons: number;
+    totalWords: number;
+}
