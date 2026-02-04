@@ -150,7 +150,7 @@ export default function VocabularyPractice({
         if (!currentWord) {
             return;
         }
-        const isCorrect = normalize(userAnswer) === normalize(currentWord.word);
+        const isCorrect = normalize(userAnswer.trim()) === normalize(currentWord.word.trim());
         if (isCorrect) {
             if (typingResult !== "correct") {
                 setCorrectCount((prev) => prev + 1);
@@ -319,7 +319,9 @@ export default function VocabularyPractice({
                             if (userAnswer.trim().length === 0) {
                                 return;
                             }
-                            handleCheckTypingAnswer();
+                            setTimeout(() => {
+                                handleCheckTypingAnswer();
+                            }, 100);
                         }}
                         className="w-full px-6 py-5 text-2xl font-medium text-center rounded-2xl border-2 border-border bg-background focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all outline-none placeholder:text-muted-foreground/40"
                     />
@@ -332,7 +334,6 @@ export default function VocabularyPractice({
                         variant="outline"
                         size="lg"
                         onClick={handleGetHint}
-                        disabled={normalize(userAnswer) === normalize(currentWord.word)}
                         className="gap-2 rounded-xl hover:scale-105 transition-transform"
                     >
                         <Lightbulb className="h-5 w-5" />
