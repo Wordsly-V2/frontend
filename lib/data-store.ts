@@ -198,6 +198,29 @@ class DataStore {
         return true;
     }
 
+    moveWord(sourceLessonId: string, targetLessonId: string, wordId: string): boolean {
+        const sourceLesson = this.getLessonById(sourceLessonId);
+        const targetLesson = this.getLessonById(targetLessonId);
+        
+        if (!sourceLesson || !targetLesson || !sourceLesson.words) return false;
+        if (sourceLessonId === targetLessonId) return false;
+
+        const wordIndex = sourceLesson.words.findIndex(w => w.id === wordId);
+        if (wordIndex === -1) return false;
+
+        // Remove word from source lesson
+        const [word] = sourceLesson.words.splice(wordIndex, 1);
+        
+        // Update word's lessonId and add to target lesson
+        word.lessonId = targetLessonId;
+        word.updatedAt = new Date();
+        
+        if (!targetLesson.words) targetLesson.words = [];
+        targetLesson.words.push(word);
+
+        return true;
+    }
+
     // ============================================
     // BATCH OPERATIONS
     // ============================================
@@ -279,6 +302,10 @@ export function updateWord(lessonId: string, wordId: string, updates: Partial<Om
 
 export function deleteWord(lessonId: string, wordId: string): boolean {
     return dataStore.deleteWord(lessonId, wordId);
+}
+
+export function moveWord(sourceLessonId: string, targetLessonId: string, wordId: string): boolean {
+    return dataStore.moveWord(sourceLessonId, targetLessonId, wordId);
 }
 
 export function createMultipleLessons(courseId: string, lessons: Array<Omit<ILesson, 'id' | 'courseId' | 'createdAt' | 'updatedAt' | 'words'>>): ILesson[] {
