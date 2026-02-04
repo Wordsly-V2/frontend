@@ -3,9 +3,10 @@
 import { useState, useEffect, useRef } from "react";
 import { IWord } from "@/types/courses/courses.type";
 import { Button } from "@/components/ui/button";
-import { Volume2, ChevronRight, CheckCircle2, XCircle, Settings2, Sparkles, Lightbulb } from "lucide-react";
+import { Volume2, ChevronRight, CheckCircle2, XCircle, Settings2, Sparkles, Lightbulb, List } from "lucide-react";
 import PracticeSettingsDialog, { PracticeMode, PracticeSettings } from "./practice-settings-dialog";
 import TypingResultDialog from "./typing-result-dialog";
+import WordsSummaryDialog from "./words-summary-dialog";
 
 interface VocabularyPracticeProps {
     words: IWord[];
@@ -51,6 +52,7 @@ export default function VocabularyPractice({
     const [typingResult, setTypingResult] = useState<"correct" | "incorrect" | null>(null);
     const [showSettings, setShowSettings] = useState(false);
     const [showResultDialog, setShowResultDialog] = useState(false);
+    const [showSummary, setShowSummary] = useState(false);
     const [hintsUsed, setHintsUsed] = useState(0);
     const inputRef = useRef<HTMLInputElement>(null);
 
@@ -395,8 +397,8 @@ export default function VocabularyPractice({
                 </div>
             </div>
 
-            {/* Settings Button */}
-            <div className="flex justify-center mb-6">
+            {/* Settings and Summary Buttons */}
+            <div className="flex justify-center gap-3 mb-6">
                 <Button
                     variant="outline"
                     size="sm"
@@ -404,7 +406,16 @@ export default function VocabularyPractice({
                     className="gap-2 rounded-full"
                 >
                     <Settings2 className="h-4 w-4" />
-                    Practice Settings
+                    Settings
+                </Button>
+                <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowSummary(true)}
+                    className="gap-2 rounded-full"
+                >
+                    <List className="h-4 w-4" />
+                    View All Words
                 </Button>
             </div>
 
@@ -414,6 +425,14 @@ export default function VocabularyPractice({
                 onClose={() => setShowSettings(false)}
                 currentSettings={currentSettings}
                 onSave={handleSaveSettings}
+            />
+
+            {/* Words Summary Dialog */}
+            <WordsSummaryDialog
+                isOpen={showSummary}
+                onClose={() => setShowSummary(false)}
+                words={shuffledWords}
+                currentIndex={currentIndex}
             />
 
             {/* Practice Card */}
