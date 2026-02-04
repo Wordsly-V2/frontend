@@ -234,9 +234,25 @@ export default function LearnCourseDetailPage({ params }: { params: Promise<{ id
                                         </button>
                                         
                                         <div className="flex items-center gap-3 flex-1">
-                                            <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-gradient-to-br from-primary/20 to-purple-500/20 text-primary font-semibold">
-                                                {index + 1}
-                                            </div>
+                                            {lesson.coverImageUrl ? (
+                                                <div className="relative w-12 h-12 rounded-lg overflow-hidden bg-muted flex-shrink-0">
+                                                    <Image
+                                                        src={lesson.coverImageUrl}
+                                                        alt={lesson.name}
+                                                        width={48}
+                                                        height={48}
+                                                        className="object-cover w-full h-full"
+                                                        onError={(e) => {
+                                                            const target = e.target as HTMLImageElement;
+                                                            target.style.display = 'none';
+                                                        }}
+                                                    />
+                                                </div>
+                                            ) : (
+                                                <div className="flex items-center justify-center w-12 h-12 rounded-lg bg-gradient-to-br from-primary/20 to-purple-500/20 text-primary font-semibold flex-shrink-0">
+                                                    {index + 1}
+                                                </div>
+                                            )}
                                             <div className="flex-1">
                                                 <h3 className="font-semibold text-lg">{lesson.name}</h3>
                                                 <p className="text-sm text-muted-foreground">

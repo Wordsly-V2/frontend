@@ -92,6 +92,19 @@ function SortableLesson({
                         <ChevronRight className="h-5 w-5" />
                     )}
                 </button>
+                {lesson.coverImageUrl && (
+                    <div className="relative w-16 h-16 rounded-lg overflow-hidden bg-muted flex-shrink-0">
+                        <img
+                            src={lesson.coverImageUrl}
+                            alt={lesson.name}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                target.style.display = 'none';
+                            }}
+                        />
+                    </div>
+                )}
                 <div className="flex-1">
                     <h3 className="font-semibold text-lg">{lesson.name}</h3>
                     <p className="text-sm text-muted-foreground">
@@ -333,39 +346,54 @@ export default function ManageCourseDetailPage({ params }: { params: Promise<{ i
                 </Button>
 
                 {/* Course Header */}
-                <div className="bg-card border-2 border-border rounded-2xl p-6 mb-8">
-                    <div className="flex justify-between items-start">
-                        <div>
-                            <h1 className="text-3xl font-bold mb-2">{course.name}</h1>
-                            <p className="text-muted-foreground">
-                                {lessons.length} lessons • {lessons.reduce((sum, l) => sum + (l.words?.length || 0), 0)} words
-                            </p>
-                        </div>
-                        <div className="flex gap-2">
-                            <Button
-                                variant="outline"
-                                onClick={() => setCourseFormOpen(true)}
-                            >
-                                <Edit className="h-4 w-4 mr-2" />
-                                Edit Course
-                            </Button>
-                            <Button
-                                variant="outline"
-                                onClick={() => setDeleteCourseConfirm(true)}
-                                className="text-destructive hover:text-destructive"
-                            >
-                                <Trash2 className="h-4 w-4 mr-2" />
-                                Delete Course
-                            </Button>
-                            <Button
-                                onClick={() => {
-                                    setEditingLesson(undefined);
-                                    setLessonFormOpen(true);
+                <div className="bg-card border-2 border-border rounded-2xl overflow-hidden mb-8">
+                    {course.coverImageUrl && (
+                        <div className="relative w-full h-48 bg-muted">
+                            <img
+                                src={course.coverImageUrl}
+                                alt={course.name}
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                    const target = e.target as HTMLImageElement;
+                                    target.style.display = 'none';
                                 }}
-                            >
-                                <Plus className="h-4 w-4 mr-2" />
-                                Add Lesson
-                            </Button>
+                            />
+                        </div>
+                    )}
+                    <div className="p-6">
+                        <div className="flex justify-between items-start">
+                            <div>
+                                <h1 className="text-3xl font-bold mb-2">{course.name}</h1>
+                                <p className="text-muted-foreground">
+                                    {lessons.length} lessons • {lessons.reduce((sum, l) => sum + (l.words?.length || 0), 0)} words
+                                </p>
+                            </div>
+                            <div className="flex gap-2">
+                                <Button
+                                    variant="outline"
+                                    onClick={() => setCourseFormOpen(true)}
+                                >
+                                    <Edit className="h-4 w-4 mr-2" />
+                                    Edit Course
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    onClick={() => setDeleteCourseConfirm(true)}
+                                    className="text-destructive hover:text-destructive"
+                                >
+                                    <Trash2 className="h-4 w-4 mr-2" />
+                                    Delete Course
+                                </Button>
+                                <Button
+                                    onClick={() => {
+                                        setEditingLesson(undefined);
+                                        setLessonFormOpen(true);
+                                    }}
+                                >
+                                    <Plus className="h-4 w-4 mr-2" />
+                                    Add Lesson
+                                </Button>
+                            </div>
                         </div>
                     </div>
                 </div>
