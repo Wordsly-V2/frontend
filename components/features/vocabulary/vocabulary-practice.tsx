@@ -14,6 +14,16 @@ interface VocabularyPracticeProps {
 
 const SETTINGS_STORAGE_KEY = "vocabulary-practice-settings";
 
+// Helper function to shuffle array
+const shuffleArray = <T,>(array: T[]): T[] => {
+    const shuffled = [...array];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    return shuffled;
+};
+
 // Helper function to load settings from localStorage
 const loadSettings = (): PracticeSettings => {
     try {
@@ -31,6 +41,7 @@ export default function VocabularyPractice({
     words,
     onComplete,
 }: Readonly<VocabularyPracticeProps>) {
+    const [shuffledWords] = useState(() => shuffleArray(words));
     const [currentIndex, setCurrentIndex] = useState(0);
     const [showAnswer, setShowAnswer] = useState(false);
     const [userAnswer, setUserAnswer] = useState("");
@@ -43,16 +54,16 @@ export default function VocabularyPractice({
     const [hintsUsed, setHintsUsed] = useState(0);
     const inputRef = useRef<HTMLInputElement>(null);
 
-    const currentWord = words[currentIndex];
-    const progress = ((currentIndex + 1) / words.length) * 100;
+    const currentWord = shuffledWords[currentIndex];
+    const progress = ((currentIndex + 1) / shuffledWords.length) * 100;
 
     const normalize = (value: string) =>
         value.trim().toLowerCase().replaceAll(/\s+/g, " ");
 
-    const score = Math.round((correctCount / words.length) * 100);
+    const score = Math.round((correctCount / shuffledWords.length) * 100);
     const isFlashcard = mode === "flashcard";
     const isTyping = mode === "typing";
-    const isLastWord = currentIndex === words.length - 1;
+    const isLastWord = currentIndex === shuffledWords.length - 1;
 
     // Get current settings
     const currentSettings: PracticeSettings = {
@@ -117,7 +128,7 @@ export default function VocabularyPractice({
     }, [isTyping, typingResult, currentIndex]);
 
     const handleNext = () => {
-        if (currentIndex < words.length - 1) {
+        if (currentIndex < shuffledWords.length - 1) {
             setCurrentIndex(currentIndex + 1);
             setShowAnswer(false);
             setUserAnswer("");
@@ -209,7 +220,7 @@ export default function VocabularyPractice({
                 Excellent Work!
             </h2>
             <p className="text-muted-foreground mb-8 text-lg">
-                You&apos;ve completed all <span className="font-semibold text-foreground">{words.length}</span> words
+                You&apos;ve completed all <span className="font-semibold text-foreground">{shuffledWords.length}</span> words
             </p>
             <div className="inline-flex items-center justify-center gap-3 px-8 py-4 rounded-2xl bg-primary/10 border-2 border-primary/20">
                 <Sparkles className="h-6 w-6 text-primary" />
@@ -263,7 +274,7 @@ export default function VocabularyPractice({
                         size="lg"
                         className="min-w-[240px] h-14 text-lg rounded-xl gap-2 hover:scale-105 transition-transform"
                     >
-                        {currentIndex < words.length - 1 ? (
+                        {currentIndex < shuffledWords.length - 1 ? (
                             <>
                                 Next Word
                                 <ChevronRight className="h-5 w-5" />
@@ -371,7 +382,7 @@ export default function VocabularyPractice({
                 <div className="flex items-center justify-between text-sm font-medium text-muted-foreground mb-2">
                     <span>Progress</span>
                     <span className="px-2.5 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-semibold">
-                        {currentIndex + 1} / {words.length}
+                        {currentIndex + 1} / {shuffledWords.length}
                     </span>
                 </div>
                 <div className="h-2.5 bg-muted rounded-full overflow-hidden shadow-inner">
