@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useState, useEffect } from "react";
+import { use, useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Plus, Edit, Trash2, GripVertical } from "lucide-react";
@@ -13,11 +13,14 @@ import {
     updateWord,
     deleteWord,
     reorderLessons,
+    updateCourse,
+    deleteCourse,
 } from "@/lib/data-store";
 import { ICourse, ILesson, IWord } from "@/types/courses/courses.type";
 import LessonFormDialog from "@/components/features/manage/lesson-form-dialog";
 import WordFormDialog from "@/components/features/manage/word-form-dialog";
 import ConfirmDialog from "@/components/common/confirm-dialog/confirm-dialog";
+import CourseFormDialog from "@/components/features/manage/course-form-dialog";
 import {
     DndContext,
     closestCenter,
@@ -140,6 +143,8 @@ export default function ManageCourseDetailPage({ params }: { params: Promise<{ i
     const [lessons, setLessons] = useState<ILesson[]>([]);
     
     // Dialog states
+    const [courseFormOpen, setCourseFormOpen] = useState(false);
+    const [deleteCourseConfirm, setDeleteCourseConfirm] = useState(false);
     const [lessonFormOpen, setLessonFormOpen] = useState(false);
     const [editingLesson, setEditingLesson] = useState<ILesson | undefined>();
     const [wordFormOpen, setWordFormOpen] = useState(false);
@@ -154,15 +159,15 @@ export default function ManageCourseDetailPage({ params }: { params: Promise<{ i
         })
     );
 
-    const loadCourse = () => {
+    const loadCourse = useCallback(() => {
         const loaded = getCourseById(id);
         setCourse(loaded);
         setLessons(loaded?.lessons || []);
-    };
+    }, [id]);
 
     useEffect(() => {
         loadCourse();
-    }, [id]);
+    }, [loadCourse]);
 
     const handleDragEnd = (event: DragEndEvent) => {
         const { active, over } = event;
@@ -173,6 +178,18 @@ export default function ManageCourseDetailPage({ params }: { params: Promise<{ i
             setLessons(newLessons);
             reorderLessons(id, newLessons.map((l) => l.id));
         }
+    };
+
+    const handleUpdateCourse = (courseData: Omit<ICourse, 'id' | 'createdAt' | 'updatedAt' | 'lessons'>) => {
+        updateCourse(id, courseData);
+        loadCourse();
+        setCourseFormOpen(false);
+    };
+
+    const handleDeleteCourse = () => {
+        deleteCourse(id);
+        setDeleteCourseConfirm(false);
+        router.push('/manage/courses');
     };
 
     const handleCreateLesson = (lessonData: Omit<ILesson, 'id' | 'courseId' | 'createdAt' | 'updatedAt' | 'words' | 'orderIndex'>) => {
@@ -257,15 +274,32 @@ export default function ManageCourseDetailPage({ params }: { params: Promise<{ i
                                 {lessons.length} lessons • {lessons.reduce((sum, l) => sum + (l.words?.length || 0), 0)} words
                             </p>
                         </div>
-                        <Button
-                            onClick={() => {
-                                setEditingLesson(undefined);
-                                setLessonFormOpen(true);
-                            }}
-                        >
-                            <Plus className="h-4 w-4 mr-2" />
-                            Add Lesson
-                        </Button>
+                        <div className="flex gap-2">
+                            <Button
+                                variant="outline"
+                                onClick={() => setCourseFormOpen(true)}
+                            >
+                                <Edit className="h-4 w-4 mr-2" />
+                                Edit Course
+                            </Button>
+                            <Button
+                                variant="outline"
+                                onClick={() => setDeleteCourseConfirm(true)}
+                                className="text-destructive hover:text-destructive"
+                            >
+                                <Trash2 className="h-4 w-4 mr-2" />
+                                Delete Course
+                            </Button>
+                            <Button
+                                onClick={() => {
+                                    setEditingLesson(undefined);
+                                    setLessonFormOpen(true);
+                                }}
+                            >
+                                <Plus className="h-4 w-4 mr-2" />
+                                Add Lesson
+                            </Button>
+                        </div>
                     </div>
                 </div>
 
@@ -318,6 +352,14 @@ export default function ManageCourseDetailPage({ params }: { params: Promise<{ i
             </div>
 
             {/* Dialogs */}
+            <CourseFormDialog
+                isOpen={courseFormOpen}
+                onClose={() => setCourseFormOpen(false)}
+                onSubmit={handleUpdateCourse}
+                course={course}
+                title="Edit Course"
+            />
+
             <LessonFormDialog
                 isOpen={lessonFormOpen}
                 onClose={() => {
@@ -359,6 +401,16 @@ export default function ManageCourseDetailPage({ params }: { params: Promise<{ i
                     variant="destructive"
                 />
             )}
+
+            <ConfirmDialog
+                isOpen={deleteCourseConfirm}
+                onClose={() => setDeleteCourseConfirm(false)}
+                onConfirm={handleDeleteCourse}
+                title="Delete Course"
+                description={`Are you sure you want to delete "${course.name}"? This will permanently delete the course and all its lessons and words. This action cannot be undone.`}
+                confirmText="Delete Course"
+                variant="destructive"
+            />
         </main>
     );
 }

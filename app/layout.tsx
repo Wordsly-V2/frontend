@@ -4,6 +4,7 @@ import "./globals.css";
 import Script from "next/script";
 import AppNav from "@/components/common/app-nav/app-nav";
 import { Providers } from "./Providers";
+import { Toaster } from "@/components/ui/sonner";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -50,6 +51,7 @@ export default function RootLayout({
         <Providers>
           <AppNav />
           {children}
+          <Toaster />
         </Providers>  
       </body>
     </html>
