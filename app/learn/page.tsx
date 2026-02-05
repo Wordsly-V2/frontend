@@ -23,7 +23,7 @@ export default function LearnPage() {
     });
     const [currentPage, setCurrentPage] = useState(1);
     const [searchQuery, setSearchQuery] = useState("");
-    const itemsPerPage = 2;
+    const itemsPerPage = 10;
 
     // Load all courses for stats and search
     useEffect(() => {

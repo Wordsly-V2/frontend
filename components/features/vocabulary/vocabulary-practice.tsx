@@ -252,7 +252,7 @@ export default function VocabularyPractice({
                     </div>
                     {currentWord.pronunciation && (
                         <p className="text-muted-foreground text-xl font-light mb-3">
-                            /{currentWord.pronunciation}/
+                            {currentWord.pronunciation}
                         </p>
                     )}
                     {currentWord.partOfSpeech && (

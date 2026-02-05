@@ -84,7 +84,7 @@ export default function TypingResultDialog({
                                         </p>
                                         {pronunciation && (
                                             <p className="text-xs text-green-600 mt-1">
-                                                /{pronunciation}/
+                                                {pronunciation}
                                             </p>
                                         )}
                                     </div>
@@ -130,7 +130,7 @@ export default function TypingResultDialog({
                                                 </p>
                                                 {pronunciation && (
                                                     <p className="text-xs text-red-600 mt-1">
-                                                        /{pronunciation}/
+                                                        {pronunciation}
                                                     </p>
                                                 )}
                                             </div>

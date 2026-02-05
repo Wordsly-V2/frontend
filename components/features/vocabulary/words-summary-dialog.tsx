@@ -90,7 +90,7 @@ export default function WordsSummaryDialog({
                                     <p className="text-sm text-foreground mb-1">{word.meaning}</p>
                                     {word.pronunciation && (
                                         <p className="text-xs text-muted-foreground">
-                                            /{word.pronunciation}/
+                                            {word.pronunciation}
                                         </p>
                                     )}
                                 </div>

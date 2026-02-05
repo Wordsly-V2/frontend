@@ -10,8 +10,8 @@ interface CourseCardProps {
 }
 
 export default function CourseCard({ course }: Readonly<CourseCardProps>) {
-    const lessonCount = course.lessons?.length || 0;
-    const wordCount = course.lessons?.reduce((sum, lesson) => sum + (lesson.words?.length || 0), 0) || 0;
+    const lessonCount = course.totalLessonsCount || 0;
+    const wordCount = course.totalWordsCount || 0;
 
     return (
         <Link href={`/learn/courses/${course.id}`} className="block group">

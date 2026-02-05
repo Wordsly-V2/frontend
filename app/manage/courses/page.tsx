@@ -118,7 +118,7 @@ export default function ManageCoursesPage() {
                 <div>
                     <p className="font-semibold">{course.name}</p>
                     <p className="text-xs text-muted-foreground">
-                        {course.lessons?.length || 0} lessons • {course.lessons?.reduce((sum, l) => sum + (l.words?.length || 0), 0) || 0} words
+                        {course.totalLessonsCount || 0} lessons • {course.totalWordsCount || 0} words
                     </p>
                 </div>
             ),

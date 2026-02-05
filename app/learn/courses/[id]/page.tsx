@@ -308,7 +308,7 @@ export default function LearnCourseDetailPage({ params }: { params: Promise<{ id
                                                         </p>
                                                         {word.pronunciation && (
                                                             <p className="text-xs text-muted-foreground mt-1">
-                                                                /{word.pronunciation}/
+                                                                {word.pronunciation}
                                                             </p>
                                                         )}
                                                     </div>
