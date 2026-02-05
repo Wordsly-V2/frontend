@@ -7,6 +7,8 @@ import { Label } from "@/components/ui/label";
 import { useState, useEffect } from "react";
 import { IWord } from "@/types/courses/courses.type";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { Volume2, VolumeX } from "lucide-react";
+import { useAudio } from "@/hooks/useAudio.hook";
 
 interface WordFormDialogProps {
     isLoading: boolean;
@@ -32,6 +34,7 @@ export default function WordFormDialog({
         partOfSpeech: "",
         audioUrl: "",
     });
+    const { isPlaying, error: audioError, play, stop, clearError } = useAudio();
 
     useEffect(() => {
         const _setFormData = () => {
@@ -71,6 +74,8 @@ export default function WordFormDialog({
     };
 
     const handleClose = () => {
+        stop();
+        clearError();
         setFormData({
             word: "",
             meaning: "",
@@ -79,6 +84,10 @@ export default function WordFormDialog({
             audioUrl: "",
         });
         onClose();
+    };
+
+    const handlePlayAudio = () => {
+        play(formData.audioUrl);
     };
 
     return (
@@ -142,16 +151,40 @@ export default function WordFormDialog({
 
                         <div className="space-y-2">
                             <Label htmlFor="audioUrl">Audio URL</Label>
-                            <Input
-                                id="audioUrl"
-                                type="url"
-                                placeholder="https://..."
-                                value={formData.audioUrl}
-                                onChange={(e) => setFormData({ ...formData, audioUrl: e.target.value })}
-                            />
-                            <p className="text-xs text-muted-foreground">
-                                URL to pronunciation audio file
-                            </p>
+                            <div className="flex gap-2">
+                                <Input
+                                    id="audioUrl"
+                                    type="url"
+                                    placeholder="https://..."
+                                    value={formData.audioUrl}
+                                    onChange={(e) => {
+                                        setFormData({ ...formData, audioUrl: e.target.value });
+                                        clearError();
+                                    }}
+                                    className={audioError ? 'border-destructive' : ''}
+                                />
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="icon"
+                                    onClick={handlePlayAudio}
+                                    disabled={!formData.audioUrl.trim() || isPlaying}
+                                    title="Play audio"
+                                >
+                                    {audioError ? (
+                                        <VolumeX className="h-4 w-4 text-destructive" />
+                                    ) : (
+                                        <Volume2 className="h-4 w-4" />
+                                    )}
+                                </Button>
+                            </div>
+                            {audioError ? (
+                                <p className="text-xs text-destructive">{audioError}</p>
+                            ) : (
+                                <p className="text-xs text-muted-foreground">
+                                    URL to pronunciation audio file
+                                </p>
+                            )}
                         </div>
                     </div>
 
