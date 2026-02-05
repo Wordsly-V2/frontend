@@ -14,10 +14,6 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useCourses } from "@/hooks/useCourses.hook";
 import { useLessons } from "@/hooks/useLessons.hook";
 import { useWords } from "@/hooks/useWords.hook";
-import {
-    reorderLessons,
-    updateCourse,
-} from "@/lib/data-store";
 import { useGetCourseDetailByIdQuery } from "@/queries/courses.query";
 import { CreateMyLesson, CreateMyWord, ICourse, ILesson, IWord } from "@/types/courses/courses.type";
 import {
@@ -299,14 +295,13 @@ export default function ManageCourseDetailPage({ params }: { params: Promise<{ i
             const newIndex = lessons.findIndex((l) => l.id === over.id);
             const newLessons = arrayMove(lessons, oldIndex, newIndex);
             setLessons(newLessons);
-            reorderLessons(id, newLessons.map((l) => l.id));
+            // reorderLessons(id, newLessons.map((l) => l.id));
         }
     };
 
     const handleUpdateMyCourse = (courseId: string, courseData: Pick<ICourse, 'name' | 'coverImageUrl'>) => {
         mutationUpdateMyCourse.mutate({ courseId, courseData }, {
             onSuccess: () => {
-                updateCourse(id, courseData);
                 loadCourse();
                 setCourseFormOpen(false);
                 toast.success('Course updated successfully');
