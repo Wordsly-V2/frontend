@@ -474,26 +474,26 @@ export default function VocabularyPractice({
                 )}
             </div>
 
-            <div>
-                <p className="text-center text-sm font-medium text-muted-foreground mb-4">
+            <div className="space-y-6">
+                <p className="text-center text-sm font-medium text-muted-foreground uppercase tracking-wider">
                     Choose the correct meaning
                 </p>
-                <div className="grid gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {multipleChoiceOptions.map((option, index) => {
                         const isSelected = selectedChoice === option;
                         const isCorrect = option === currentWord.meaning;
                         const showResult = typingResult !== null;
                         
-                        let buttonClass = "w-full p-4 text-left text-lg rounded-xl border-2 transition-all hover:scale-102";
+                        let buttonClass = "group relative w-full min-h-[80px] p-5 text-left rounded-2xl border-2 transition-all duration-300 hover:shadow-lg";
                         
                         if (!showResult) {
-                            buttonClass += " border-border bg-background hover:border-primary hover:bg-primary/5";
+                            buttonClass += " border-border bg-gradient-to-br from-background to-muted/20 hover:border-primary hover:from-primary/5 hover:to-primary/10 hover:scale-[1.02] active:scale-[0.98]";
                         } else if (isCorrect) {
-                            buttonClass += " border-green-500 bg-green-50 text-green-700";
+                            buttonClass += " border-green-500 bg-gradient-to-br from-green-50 to-green-100 shadow-green-200 shadow-md";
                         } else if (isSelected && !isCorrect) {
-                            buttonClass += " border-red-500 bg-red-50 text-red-700";
+                            buttonClass += " border-red-500 bg-gradient-to-br from-red-50 to-red-100 shadow-red-200 shadow-md";
                         } else {
-                            buttonClass += " border-border bg-background opacity-50";
+                            buttonClass += " border-border/50 bg-muted/20 opacity-40";
                         }
                         
                         return (
@@ -504,16 +504,35 @@ export default function VocabularyPractice({
                                 disabled={typingResult !== null}
                                 className={buttonClass}
                             >
-                                <span className="flex items-center gap-3">
-                                    <span className="flex-shrink-0 w-8 h-8 rounded-full border-2 flex items-center justify-center font-semibold">
+                                <span className="flex items-start gap-4 w-full">
+                                    <span 
+                                        className={`
+                                            flex-shrink-0 w-10 h-10 rounded-full border-2 flex items-center justify-center font-bold text-base
+                                            ${!showResult ? 'border-primary/30 bg-primary/5 text-primary group-hover:border-primary group-hover:bg-primary/10' : ''}
+                                            ${showResult && isCorrect ? 'border-green-600 bg-green-600 text-white' : ''}
+                                            ${showResult && isSelected && !isCorrect ? 'border-red-600 bg-red-600 text-white' : ''}
+                                            ${showResult && !isCorrect && !isSelected ? 'border-border bg-muted/50 text-muted-foreground' : ''}
+                                            transition-all duration-300
+                                        `}
+                                    >
                                         {String.fromCharCode(65 + index)}
                                     </span>
-                                    <span className="flex-1">{option}</span>
+                                    <span 
+                                        className={`
+                                            flex-1 text-base leading-relaxed pt-1.5
+                                            ${!showResult ? 'text-foreground group-hover:text-foreground' : ''}
+                                            ${showResult && isCorrect ? 'text-green-700 font-medium' : ''}
+                                            ${showResult && isSelected && !isCorrect ? 'text-red-700 font-medium' : ''}
+                                            ${showResult && !isCorrect && !isSelected ? 'text-muted-foreground' : ''}
+                                        `}
+                                    >
+                                        {option}
+                                    </span>
                                     {showResult && isCorrect && (
-                                        <CheckCircle2 className="h-5 w-5 text-green-600" />
+                                        <CheckCircle2 className="h-6 w-6 text-green-600 flex-shrink-0 animate-in zoom-in duration-300" />
                                     )}
                                     {showResult && isSelected && !isCorrect && (
-                                        <XCircle className="h-5 w-5 text-red-600" />
+                                        <XCircle className="h-6 w-6 text-red-600 flex-shrink-0 animate-in zoom-in duration-300" />
                                     )}
                                 </span>
                             </Button>
