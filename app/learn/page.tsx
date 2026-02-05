@@ -29,7 +29,7 @@ export default function LearnPage() {
 
 
     const handleClickTotalStats = () => {
-        if (isLoadingStats) {
+        if (isErrorCourseTotalStats) {
             refetchCourseTotalStats();
         }
     }
@@ -61,8 +61,10 @@ export default function LearnPage() {
                                 {
                                     isLoadingStats ? (
                                         <LoadingSpinner size="sm" />
+                                    ) : isErrorCourseTotalStats ? (
+                                        <p className="text-2xl font-bold">--</p>
                                     ) : (
-                                        <p className="text-2xl font-bold">{courseTotalStats.totalCourses}</p>
+                                        <p className="text-2xl font-bold">{courseTotalStats?.totalCourses || 0}</p>
                                     )
                                 }
                                 <p className="text-sm text-muted-foreground">Courses</p>
@@ -91,8 +93,10 @@ export default function LearnPage() {
                                 {
                                     isLoadingStats ? (
                                         <LoadingSpinner size="sm" />
+                                    ) : isErrorCourseTotalStats ? (
+                                        <p className="text-2xl font-bold">--</p>
                                     ) : (
-                                        <p className="text-2xl font-bold">{courseTotalStats.totalLessons}</p>
+                                        <p className="text-2xl font-bold">{courseTotalStats?.totalLessons || 0}</p>
                                     )
                                 }
                                 <p className="text-sm text-muted-foreground">Lessons</p>
@@ -121,8 +125,10 @@ export default function LearnPage() {
                                 {
                                     isLoadingStats ? (
                                         <LoadingSpinner size="sm" />
+                                    ) : isErrorCourseTotalStats ? (
+                                        <p className="text-2xl font-bold">--</p>
                                     ) : (
-                                        <p className="text-2xl font-bold">{courseTotalStats.totalWords}</p>
+                                        <p className="text-2xl font-bold">{courseTotalStats?.totalWords || 0}</p>
                                     )
                                 }
                                 <p className="text-sm text-muted-foreground">Words</p>
@@ -131,16 +137,16 @@ export default function LearnPage() {
                     </div>
                 </div>
 
+                <CoursesHeader
+                    searchQuery={searchQuery}
+                    totalCourses={paginatedData?.totalItems || 0}
+                    onSearch={handleSearch}
+                />
                 {
                     isLoadingCourses || isErrorCourses || !paginatedData ? (
                         <LoadingSection isLoading={isLoadingCourses} error={isErrorCourses ? 'Error loading courses' : null} refetch={refetchCourses} />
                     ) : (
                         <>
-                            <CoursesHeader
-                                totalCourses={paginatedData.totalItems}
-                                onSearch={handleSearch}
-                            />
-
                             <div className="mt-8">
                                 <CourseGrid courses={paginatedData.items} />
                             </div>
