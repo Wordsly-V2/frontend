@@ -1,54 +1,23 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import { Button } from "@/components/ui/button";
-import { ArrowLeft } from "lucide-react";
+import LoadingSection from "@/components/common/loading-section/loading-section";
 import VocabularyPractice from "@/components/features/vocabulary/vocabulary-practice";
-import { IWord } from "@/types/courses/courses.type";
-import { getCourseById } from "@/lib/data-store";
+import { Button } from "@/components/ui/button";
+import { useGetWordsByIdsQuery } from "@/queries/words.query";
+import { ArrowLeft } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useState } from "react";
 
 export default function PracticePage() {
     const router = useRouter();
     const searchParams = useSearchParams();
-    const [words, setWords] = useState<IWord[]>([]);
     const [courseName, setCourseName] = useState<string>("");
-    const [isLoading, setIsLoading] = useState(true);
+    
+    const courseId = searchParams.get("courseId") || "";
+    const wordIds = searchParams.get("wordIds") || "";
 
-    useEffect(() => {
-        const courseId = searchParams.get("courseId");
-        const wordIds = searchParams.get("wordIds");
+    const { data: words, isLoading: isWordsLoading, isError: isWordsError, refetch: refetchWords } = useGetWordsByIdsQuery(courseId, wordIds.split(","));
 
-        if (!courseId || !wordIds) {
-            router.push("/learn");
-            return;
-        }
-
-        const course = getCourseById(courseId);
-        if (!course) {
-            router.push("/learn");
-            return;
-        }
-
-        setCourseName(course.name);
-
-        // Get all words from the course
-        const allWords: IWord[] = [];
-        course.lessons?.forEach((lesson) => {
-            if (lesson.words) {
-                allWords.push(...lesson.words);
-            }
-        });
-
-        // Filter selected words
-        const selectedWordIds = wordIds.split(",");
-        const selectedWords = allWords.filter((word) =>
-            selectedWordIds.includes(word.id)
-        );
-
-        setWords(selectedWords);
-        setIsLoading(false);
-    }, [searchParams, router]);
 
     const handleComplete = (score: number) => {
         const courseId = searchParams.get("courseId");
@@ -61,18 +30,12 @@ export default function PracticePage() {
         router.push(`/learn/courses/${courseId}`);
     };
 
-    if (isLoading) {
-        return (
-            <main className="min-h-screen bg-background flex items-center justify-center">
-                <div className="text-center">
-                    <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-primary border-r-transparent"></div>
-                    <p className="mt-4 text-muted-foreground">Loading practice...</p>
-                </div>
-            </main>
-        );
+
+    if(isWordsLoading || isWordsError) {
+        return <LoadingSection isLoading={isWordsLoading} error={isWordsError ? 'Error loading words' : null} refetch={refetchWords} />;
     }
 
-    if (words.length === 0) {
+    if (!words || words.length === 0) {
         return (
             <main className="min-h-screen bg-background flex items-center justify-center">
                 <div className="text-center">

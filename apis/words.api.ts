@@ -1,5 +1,5 @@
 import axiosInstance from "@/lib/axios";
-import { CreateMyWord } from "@/types/courses/courses.type";
+import { CreateMyWord, IWord } from "@/types/courses/courses.type";
 
 export const createMyWord = async (courseId: string, lessonId: string, word: CreateMyWord): Promise<{ success: boolean }> => {
     const response = await axiosInstance.post<{ success: boolean }>(`/courses/me/my-courses/${courseId}/lessons/${lessonId}/words`, word);
@@ -28,5 +28,10 @@ export const bulkDeleteMyWords = async (courseId: string, lessonId: string, word
 
 export const bulkMoveMyWords = async (courseId: string, lessonId: string, wordIds: string[], targetLessonId: string): Promise<{ success: boolean }> => {
     const response = await axiosInstance.put<{ success: boolean }>(`/courses/me/my-courses/${courseId}/lessons/${lessonId}/words/bulk-move`, { wordIds, targetLessonId });
+    return response.data;
+}
+
+export const getWordsByIds = async (courseId: string, wordIds: string[]): Promise<IWord[]> => {
+    const response = await axiosInstance.get<IWord[]>(`/courses/me/my-courses/${courseId}/words/by-ids`, { params: { wordIds: wordIds.join(",") } });
     return response.data;
 }
