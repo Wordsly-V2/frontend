@@ -20,3 +20,13 @@ export const moveMyWord = async (courseId: string, lessonId: string, wordId: str
     const response = await axiosInstance.put<{ success: boolean }>(`/courses/me/my-courses/${courseId}/lessons/${lessonId}/words/${wordId}/move`, { targetLessonId });
     return response.data;
 }
+
+export const bulkDeleteMyWords = async (courseId: string, lessonId: string, wordIds: string[]): Promise<{ success: boolean }> => {
+    const response = await axiosInstance.delete<{ success: boolean }>(`/courses/me/my-courses/${courseId}/lessons/${lessonId}/words/bulk-delete`, { data: { wordIds } });
+    return response.data;
+}
+
+export const bulkMoveMyWords = async (courseId: string, lessonId: string, wordIds: string[], targetLessonId: string): Promise<{ success: boolean }> => {
+    const response = await axiosInstance.put<{ success: boolean }>(`/courses/me/my-courses/${courseId}/lessons/${lessonId}/words/bulk-move`, { wordIds, targetLessonId });
+    return response.data;
+}

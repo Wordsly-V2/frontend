@@ -13,7 +13,7 @@ interface MoveWordDialogProps {
     isOpen: boolean;
     onClose: () => void;
     onConfirm: (targetLessonId: string) => void;
-    word: IWord | null;
+    words: IWord[];
     currentLesson: ILesson | null;
     availableLessons: ILesson[];
 }
@@ -23,7 +23,7 @@ export default function MoveWordDialog({
     isOpen,
     onClose,
     onConfirm,
-    word,
+    words,
     currentLesson,
     availableLessons,
 }: Readonly<MoveWordDialogProps>) {
@@ -41,28 +41,50 @@ export default function MoveWordDialog({
         onClose();
     };
 
-    if (!word || !currentLesson) return null;
+    if (words.length === 0 || !currentLesson) return null;
+
+    const isBulk = words.length > 1;
 
     return (
         <Dialog open={isOpen} onOpenChange={handleClose}>
             <DialogContent className="max-w-md">
                 <DialogHeader>
-                    <DialogTitle>Move Word to Another Lesson</DialogTitle>
+                    <DialogTitle>
+                        {isBulk ? `Move ${words.length} Words to Another Lesson` : 'Move Word to Another Lesson'}
+                    </DialogTitle>
                 </DialogHeader>
 
                 <div className="space-y-4 py-4">
                     {/* Word Info */}
-                    <div className="p-3 bg-muted/50 rounded-lg border border-border">
-                        <div className="flex items-center gap-2 mb-1">
-                            <span className="font-semibold">{word.word}</span>
-                            {word.partOfSpeech && (
-                                <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium">
-                                    {word.partOfSpeech}
-                                </span>
-                            )}
+                    {isBulk ? (
+                        <div className="p-3 bg-muted/50 rounded-lg border border-border">
+                            <p className="text-sm font-medium mb-2">Selected words ({words.length}):</p>
+                            <div className="space-y-1 max-h-[120px] overflow-y-auto">
+                                {words.map((word) => (
+                                    <div key={word.id} className="flex items-center gap-2 text-sm">
+                                        <span className="font-medium">{word.word}</span>
+                                        {word.partOfSpeech && (
+                                            <span className="text-xs px-1.5 py-0.5 rounded bg-primary/10 text-primary">
+                                                {word.partOfSpeech}
+                                            </span>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
                         </div>
-                        <p className="text-sm text-muted-foreground">{word.meaning}</p>
-                    </div>
+                    ) : (
+                        <div className="p-3 bg-muted/50 rounded-lg border border-border">
+                            <div className="flex items-center gap-2 mb-1">
+                                <span className="font-semibold">{words[0].word}</span>
+                                {words[0].partOfSpeech && (
+                                    <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium">
+                                        {words[0].partOfSpeech}
+                                    </span>
+                                )}
+                            </div>
+                            <p className="text-sm text-muted-foreground">{words[0].meaning}</p>
+                        </div>
+                    )}
 
                     {/* Current Lesson */}
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -113,13 +135,13 @@ export default function MoveWordDialog({
                         Cancel
                     </Button>
                     <Button onClick={handleConfirm} disabled={!selectedLessonId || isLoading}>
-                        {
-                            isLoading ? (
-                                <LoadingSpinner size="sm" />
-                            ) : (
-                                'Move Word'
-                            )
-                        }
+                        {isLoading ? (
+                            <LoadingSpinner size="sm" />
+                        ) : isBulk ? (
+                            `Move ${words.length} Words`
+                        ) : (
+                            'Move Word'
+                        )}
                     </Button>
                 </DialogFooter>
             </DialogContent>

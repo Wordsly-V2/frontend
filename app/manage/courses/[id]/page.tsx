@@ -10,15 +10,13 @@ import CourseFormDialog from "@/components/features/manage/course-form-dialog";
 import LessonFormDialog from "@/components/features/manage/lesson-form-dialog";
 import MoveWordDialog from "@/components/features/manage/move-word-dialog";
 import WordFormDialog from "@/components/features/manage/word-form-dialog";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useCourses } from "@/hooks/useCourses.hook";
 import { useLessons } from "@/hooks/useLessons.hook";
 import { useWords } from "@/hooks/useWords.hook";
 import {
-    deleteWord,
-    moveWord,
     reorderLessons,
     updateCourse,
-    updateWord
 } from "@/lib/data-store";
 import { useGetCourseDetailByIdQuery } from "@/queries/courses.query";
 import { CreateMyLesson, CreateMyWord, ICourse, ILesson, IWord } from "@/types/courses/courses.type";
@@ -39,7 +37,7 @@ import {
     verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { ArrowLeft, ArrowRightLeft, ChevronDown, ChevronRight, Edit, GripVertical, Plus, Trash2, Volume2 } from "lucide-react";
+import { ArrowLeft, ArrowRightLeft, ChevronDown, ChevronRight, Edit, GripVertical, Plus, Trash2, Volume2, X } from "lucide-react";
 import { toast } from "sonner";
 
 function SortableLesson({
@@ -52,6 +50,9 @@ function SortableLesson({
     onEditWord,
     onDeleteWord,
     onMoveWord,
+    selectedWords,
+    onToggleWordSelection,
+    onSelectAllWords,
 }: {
     lesson: ILesson;
     isExpanded: boolean;
@@ -62,6 +63,9 @@ function SortableLesson({
     onEditWord: (word: IWord) => void;
     onDeleteWord: (word: IWord) => void;
     onMoveWord: (word: IWord) => void;
+    selectedWords: Set<string>;
+    onToggleWordSelection: (lessonId: string, wordId: string) => void;
+    onSelectAllWords: (lessonId: string, selectAll: boolean) => void;
 }) {
     const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
         id: lesson.id,
@@ -74,6 +78,8 @@ function SortableLesson({
     };
 
     const words = lesson.words || [];
+    const lessonSelectedWords = words.filter(w => selectedWords.has(`${lesson.id}-${w.id}`));
+    const allWordsSelected = words.length > 0 && lessonSelectedWords.length === words.length;
 
     return (
         <div ref={setNodeRef} style={style} className="bg-card border-2 border-border rounded-2xl overflow-hidden">
@@ -127,62 +133,101 @@ function SortableLesson({
 
             {/* Words List */}
             {isExpanded && words.length > 0 && (
-                <div className="p-4 space-y-2">
-                    {words.map((word) => (
-                        <div key={word.id} className="flex items-start gap-3 p-4 bg-background border border-border rounded-lg hover:border-primary/50 transition-colors">
-                            <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2 flex-wrap mb-1">
-                                    <span className="font-semibold text-base">{word.word}</span>
-                                    {word.partOfSpeech && (
-                                        <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium">
-                                            {word.partOfSpeech}
-                                        </span>
+                <div className="p-4 space-y-3">
+                    {/* Bulk Actions Bar */}
+                    {lessonSelectedWords.length > 0 && (
+                        <div className="flex items-center justify-between p-3 bg-primary/5 border border-primary/20 rounded-lg">
+                            <div className="flex items-center gap-3">
+                                <Checkbox
+                                    checked={allWordsSelected}
+                                    onCheckedChange={(checked) => onSelectAllWords(lesson.id, !!checked)}
+                                    className="data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+                                />
+                                <span className="text-sm font-medium">
+                                    {lessonSelectedWords.length} word{lessonSelectedWords.length !== 1 ? 's' : ''} selected
+                                </span>
+                            </div>
+                            <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => onSelectAllWords(lesson.id, false)}
+                                className="text-muted-foreground"
+                            >
+                                <X className="h-4 w-4" />
+                            </Button>
+                        </div>
+                    )}
+
+                    {words.map((word) => {
+                        const isSelected = selectedWords.has(`${lesson.id}-${word.id}`);
+                        return (
+                            <div 
+                                key={word.id} 
+                                className={`flex items-start gap-3 p-4 bg-background border rounded-lg transition-colors ${
+                                    isSelected 
+                                        ? 'border-primary bg-primary/5' 
+                                        : 'border-border hover:border-primary/50'
+                                }`}
+                            >
+                                <Checkbox
+                                    checked={isSelected}
+                                    onCheckedChange={() => onToggleWordSelection(lesson.id, word.id)}
+                                    className="mt-1 data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+                                />
+                                <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-2 flex-wrap mb-1">
+                                        <span className="font-semibold text-base">{word.word}</span>
+                                        {word.partOfSpeech && (
+                                            <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium">
+                                                {word.partOfSpeech}
+                                            </span>
+                                        )}
+                                    </div>
+                                    <p className="text-sm text-foreground mb-1">{word.meaning}</p>
+                                    {word.pronunciation && (
+                                        <p className="text-xs text-muted-foreground">
+                                            {word.pronunciation}
+                                        </p>
                                     )}
                                 </div>
-                                <p className="text-sm text-foreground mb-1">{word.meaning}</p>
-                                {word.pronunciation && (
-                                    <p className="text-xs text-muted-foreground">
-                                        {word.pronunciation}
-                                    </p>
-                                )}
-                            </div>
-                            <div className="flex gap-1 flex-shrink-0">
-                                {word.audioUrl && (
+                                <div className="flex gap-1 flex-shrink-0">
+                                    {word.audioUrl && (
+                                        <Button
+                                            size="sm"
+                                            variant="ghost"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                const audio = new Audio(word.audioUrl);
+                                                audio.play().catch(console.error);
+                                            }}
+                                            className="text-primary hover:text-primary"
+                                        >
+                                            <Volume2 className="h-3.5 w-3.5" />
+                                        </Button>
+                                    )}
                                     <Button
                                         size="sm"
                                         variant="ghost"
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            const audio = new Audio(word.audioUrl);
-                                            audio.play().catch(console.error);
-                                        }}
-                                        className="text-primary hover:text-primary"
+                                        onClick={() => onMoveWord(word)}
+                                        title="Move to another lesson"
                                     >
-                                        <Volume2 className="h-3.5 w-3.5" />
+                                        <ArrowRightLeft className="h-3.5 w-3.5" />
                                     </Button>
-                                )}
-                                <Button
-                                    size="sm"
-                                    variant="ghost"
-                                    onClick={() => onMoveWord(word)}
-                                    title="Move to another lesson"
-                                >
-                                    <ArrowRightLeft className="h-3.5 w-3.5" />
-                                </Button>
-                                <Button size="sm" variant="ghost" onClick={() => onEditWord(word)}>
-                                    <Edit className="h-3.5 w-3.5" />
-                                </Button>
-                                <Button
-                                    size="sm"
-                                    variant="ghost"
-                                    onClick={() => onDeleteWord(word)}
-                                    className="text-destructive hover:text-destructive"
-                                >
-                                    <Trash2 className="h-3.5 w-3.5" />
-                                </Button>
+                                    <Button size="sm" variant="ghost" onClick={() => onEditWord(word)}>
+                                        <Edit className="h-3.5 w-3.5" />
+                                    </Button>
+                                    <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        onClick={() => onDeleteWord(word)}
+                                        className="text-destructive hover:text-destructive"
+                                    >
+                                        <Trash2 className="h-3.5 w-3.5" />
+                                    </Button>
+                                </div>
                             </div>
-                        </div>
-                    ))}
+                        );
+                    })}
                 </div>
             )}
 
@@ -200,6 +245,7 @@ export default function ManageCourseDetailPage({ params }: { params: Promise<{ i
     const router = useRouter();
     const [lessons, setLessons] = useState<ILesson[]>([]);
     const [expandedLessons, setExpandedLessons] = useState<Set<string>>(new Set());
+    const [selectedWords, setSelectedWords] = useState<Set<string>>(new Set());
 
     // Dialog states
     const [courseFormOpen, setCourseFormOpen] = useState(false);
@@ -209,13 +255,13 @@ export default function ManageCourseDetailPage({ params }: { params: Promise<{ i
     const [wordFormOpen, setWordFormOpen] = useState(false);
     const [editingWord, setEditingWord] = useState<IWord | undefined>();
     const [activeLesson, setActiveLesson] = useState<ILesson | undefined>();
-    const [deleteConfirm, setDeleteConfirm] = useState<{ type: 'lesson' | 'word'; item: ILesson | IWord } | null>(null);
-    const [moveWordDialog, setMoveWordDialog] = useState<{ word: IWord; sourceLesson: ILesson } | null>(null);
+    const [deleteConfirm, setDeleteConfirm] = useState<{ type: 'lesson' | 'word' | 'bulk-words'; item: ILesson | IWord | null; lessonId?: string } | null>(null);
+    const [moveWordDialog, setMoveWordDialog] = useState<{ words: IWord[]; sourceLesson: ILesson } | null>(null);
 
     const { data: course, isLoading, isError, refetch: loadCourseDetail } = useGetCourseDetailByIdQuery(id);
     const { mutationUpdateMyCourse, mutationDeleteMyCourse } = useCourses();
     const { mutationCreateMyCourseLesson, mutationUpdateMyCourseLesson, mutationDeleteMyCourseLesson } = useLessons();
-    const { mutationCreateMyWord, mutationUpdateMyWord, mutationDeleteMyWord, mutationMoveMyWord } = useWords();
+    const { mutationCreateMyWord, mutationUpdateMyWord, mutationDeleteMyWord, mutationMoveMyWord, mutationBulkDeleteMyWords, mutationBulkMoveMyWords } = useWords();
 
     const sensors = useSensors(
         useSensor(PointerSensor),
@@ -317,8 +363,9 @@ export default function ManageCourseDetailPage({ params }: { params: Promise<{ i
     }
 
     const handleDeleteMyCourseLesson = () => {
-        if (deleteConfirm && deleteConfirm.type === 'lesson') {
-            mutationDeleteMyCourseLesson.mutate({ courseId: id, lessonId: deleteConfirm.item.id }, {
+        if (deleteConfirm && deleteConfirm.type === 'lesson' && deleteConfirm.item) {
+            const lessonItem = deleteConfirm.item as ILesson;
+            mutationDeleteMyCourseLesson.mutate({ courseId: id, lessonId: lessonItem.id }, {
                 onSuccess: () => {
                     loadCourse();
                     setDeleteConfirm(null);
@@ -365,8 +412,9 @@ export default function ManageCourseDetailPage({ params }: { params: Promise<{ i
     }
 
     const handleDeleteMyWord = () => {
-        if (deleteConfirm && deleteConfirm.type === 'word' && activeLesson) {
-            mutationDeleteMyWord.mutate({ courseId: id, lessonId: activeLesson?.id, wordId: deleteConfirm.item.id }, {
+        if (deleteConfirm && deleteConfirm.type === 'word' && activeLesson && deleteConfirm.item) {
+            const wordItem = deleteConfirm.item as IWord;
+            mutationDeleteMyWord.mutate({ courseId: id, lessonId: activeLesson?.id, wordId: wordItem.id }, {
                 onSuccess: () => {
                     loadCourse();
                     setDeleteConfirm(null);
@@ -377,24 +425,100 @@ export default function ManageCourseDetailPage({ params }: { params: Promise<{ i
                     toast.error('Failed to delete word: ' + err.message);
                 },
             });
+        } else if (deleteConfirm && deleteConfirm.type === 'bulk-words') {
+            handleBulkDeleteWords();
         }
     }
 
     const handleMoveMyWord = (targetLessonId: string) => {
         if (moveWordDialog) {
-            const { word, sourceLesson } = moveWordDialog;
-            mutationMoveMyWord.mutate({ courseId: id, lessonId: sourceLesson?.id, wordId: word?.id, targetLessonId }, {
+            const { words, sourceLesson } = moveWordDialog;
+            
+            // Bulk move
+            if (words.length > 1) {
+                const wordIds = words.map(w => w.id);
+                mutationBulkMoveMyWords.mutate({ courseId: id, lessonId: sourceLesson.id, wordIds, targetLessonId }, {
+                    onSuccess: () => {
+                        loadCourse();
+                        setMoveWordDialog(null);
+                        setSelectedWords(new Set());
+                        toast.success(`${words.length} words moved successfully`);
+                    },
+                    onError: (err) => {
+                        toast.error('Failed to move words: ' + err.message);
+                    },
+                });
+            } else {
+                // Single move
+                mutationMoveMyWord.mutate({ courseId: id, lessonId: sourceLesson.id, wordId: words[0].id, targetLessonId }, {
+                    onSuccess: () => {
+                        loadCourse();
+                        setMoveWordDialog(null);
+                        setSelectedWords(new Set());
+                        toast.success('Word moved successfully');
+                    },
+                    onError: (err) => {
+                        toast.error('Failed to move word: ' + err.message);
+                    },
+                });
+            }
+        }
+    }
+
+    const handleBulkDeleteWords = () => {
+        if (deleteConfirm && deleteConfirm.type === 'bulk-words' && deleteConfirm.lessonId) {
+            const lesson = lessons.find(l => l.id === deleteConfirm.lessonId);
+            if (!lesson) return;
+            
+            const lessonSelectedWords = lesson.words?.filter(w => selectedWords.has(`${lesson.id}-${w.id}`)) || [];
+            const wordIds = lessonSelectedWords.map(w => w.id);
+            
+            mutationBulkDeleteMyWords.mutate({ courseId: id, lessonId: lesson.id, wordIds }, {
                 onSuccess: () => {
                     loadCourse();
-                    setMoveWordDialog(null);
-                    toast.success('Word moved successfully');
+                    setDeleteConfirm(null);
+                    setSelectedWords(new Set());
+                    toast.success(`${wordIds.length} words deleted successfully`);
                 },
                 onError: (err) => {
-                    toast.error('Failed to move word: ' + err.message);
+                    toast.error('Failed to delete words: ' + err.message);
                 },
             });
         }
     }
+
+    const toggleWordSelection = (lessonId: string, wordId: string) => {
+        const key = `${lessonId}-${wordId}`;
+        const newSelected = new Set(selectedWords);
+        if (newSelected.has(key)) {
+            newSelected.delete(key);
+        } else {
+            newSelected.add(key);
+        }
+        setSelectedWords(newSelected);
+    };
+
+    const selectAllWordsInLesson = (lessonId: string, selectAll: boolean) => {
+        const lesson = lessons.find(l => l.id === lessonId);
+        if (!lesson) return;
+        
+        const newSelected = new Set(selectedWords);
+        lesson.words?.forEach(word => {
+            const key = `${lessonId}-${word.id}`;
+            if (selectAll) {
+                newSelected.add(key);
+            } else {
+                newSelected.delete(key);
+            }
+        });
+        setSelectedWords(newSelected);
+    };
+
+    const getSelectedWordsForLesson = (lessonId: string): IWord[] => {
+        const lesson = lessons.find(l => l.id === lessonId);
+        if (!lesson) return [];
+        return lesson.words?.filter(w => selectedWords.has(`${lessonId}-${w.id}`)) || [];
+    };
 
     if (isLoading || isError) {
         return <LoadingSection isLoading={isLoading} error={isError ? 'Error loading course' : null} refetch={loadCourse} />;
@@ -518,8 +642,11 @@ export default function ManageCourseDetailPage({ params }: { params: Promise<{ i
                                             setDeleteConfirm({ type: 'word', item: word });
                                         }}
                                         onMoveWord={(word) => {
-                                            setMoveWordDialog({ word, sourceLesson: lesson });
+                                            setMoveWordDialog({ words: [word], sourceLesson: lesson });
                                         }}
+                                        selectedWords={selectedWords}
+                                        onToggleWordSelection={toggleWordSelection}
+                                        onSelectAllWords={selectAllWordsInLesson}
                                     />
                                 ))}
                             </div>
@@ -527,6 +654,70 @@ export default function ManageCourseDetailPage({ params }: { params: Promise<{ i
                     </DndContext>
                 )}
             </div>
+
+            {/* Floating Bulk Actions Bar */}
+            {selectedWords.size > 0 && (() => {
+                const selectedByLesson = new Map<string, IWord[]>();
+                lessons.forEach(lesson => {
+                    const selectedInLesson = getSelectedWordsForLesson(lesson.id);
+                    if (selectedInLesson.length > 0) {
+                        selectedByLesson.set(lesson.id, selectedInLesson);
+                    }
+                });
+                
+                const totalSelected = Array.from(selectedByLesson.values()).reduce((sum, words) => sum + words.length, 0);
+                
+                return (
+                    <div className="fixed bottom-8 left-1/2 -translate-x-1/2 bg-card border-2 border-border rounded-2xl shadow-2xl p-4 flex items-center gap-4 z-50 min-w-[400px]">
+                        <div className="flex-1">
+                            <p className="text-sm font-semibold">{totalSelected} word{totalSelected !== 1 ? 's' : ''} selected</p>
+                            <p className="text-xs text-muted-foreground">
+                                {selectedByLesson.size} lesson{selectedByLesson.size !== 1 ? 's' : ''}
+                            </p>
+                        </div>
+                        <div className="flex gap-2">
+                            {selectedByLesson.size === 1 && (() => {
+                                const [lessonId, words] = Array.from(selectedByLesson.entries())[0];
+                                const lesson = lessons.find(l => l.id === lessonId);
+                                return lesson ? (
+                                    <>
+                                        <Button
+                                            variant="outline"
+                                            onClick={() => {
+                                                setMoveWordDialog({ words, sourceLesson: lesson });
+                                            }}
+                                        >
+                                            <ArrowRightLeft className="h-4 w-4 mr-2" />
+                                            Move
+                                        </Button>
+                                        <Button
+                                            variant="outline"
+                                            onClick={() => {
+                                                setDeleteConfirm({ type: 'bulk-words', item: null, lessonId });
+                                            }}
+                                            className="text-destructive hover:text-destructive"
+                                        >
+                                            <Trash2 className="h-4 w-4 mr-2" />
+                                            Delete
+                                        </Button>
+                                    </>
+                                ) : null;
+                            })()}
+                            {selectedByLesson.size > 1 && (
+                                <p className="text-xs text-muted-foreground py-2 px-3">
+                                    Select words from one lesson to move or delete
+                                </p>
+                            )}
+                            <Button
+                                variant="ghost"
+                                onClick={() => setSelectedWords(new Set())}
+                            >
+                                <X className="h-4 w-4" />
+                            </Button>
+                        </div>
+                    </div>
+                );
+            })()}
 
             {/* Dialogs */}
             <CourseFormDialog
@@ -563,25 +754,39 @@ export default function ManageCourseDetailPage({ params }: { params: Promise<{ i
                 isLoading={mutationCreateMyWord.isPending || mutationUpdateMyWord.isPending}
             />
 
-            {deleteConfirm && (
-                <ConfirmDialog
-                    isLoading={mutationDeleteMyCourseLesson.isPending || mutationDeleteMyWord.isPending}
-                    isOpen={!!deleteConfirm}
-                    onClose={() => {
-                        setDeleteConfirm(null);
-                        setActiveLesson(undefined);
-                    }}
-                    onConfirm={deleteConfirm.type === 'lesson' ? handleDeleteMyCourseLesson : handleDeleteMyWord}
-                    title={deleteConfirm.type === 'lesson' ? 'Delete Lesson' : 'Delete Word'}
-                    description={
-                        deleteConfirm.type === 'lesson'
-                            ? `Are you sure you want to delete "${(deleteConfirm.item as ILesson).name}"? This will also delete all words in this lesson.`
-                            : `Are you sure you want to delete "${(deleteConfirm.item as IWord).word}"?`
-                    }
-                    confirmText={`Delete ${deleteConfirm.type === 'lesson' ? 'Lesson' : 'Word'}`}
-                    variant="destructive"
-                />
-            )}
+            {deleteConfirm && (() => {
+                let title = 'Delete Word';
+                let description = '';
+                let confirmText = 'Delete Word';
+
+                if (deleteConfirm.type === 'lesson') {
+                    title = 'Delete Lesson';
+                    description = `Are you sure you want to delete "${(deleteConfirm.item as ILesson).name}"? This will also delete all words in this lesson.`;
+                    confirmText = 'Delete Lesson';
+                } else if (deleteConfirm.type === 'bulk-words') {
+                    title = 'Delete Words';
+                    description = `Are you sure you want to delete ${getSelectedWordsForLesson(deleteConfirm.lessonId || '').length} selected words? This action cannot be undone.`;
+                    confirmText = 'Delete Words';
+                } else {
+                    description = `Are you sure you want to delete "${(deleteConfirm.item as IWord)?.word}"?`;
+                }
+
+                return (
+                    <ConfirmDialog
+                        isLoading={mutationDeleteMyCourseLesson.isPending || mutationDeleteMyWord.isPending || mutationBulkDeleteMyWords.isPending}
+                        isOpen={true}
+                        onClose={() => {
+                            setDeleteConfirm(null);
+                            setActiveLesson(undefined);
+                        }}
+                        onConfirm={deleteConfirm.type === 'lesson' ? handleDeleteMyCourseLesson : handleDeleteMyWord}
+                        title={title}
+                        description={description}
+                        confirmText={confirmText}
+                        variant="destructive"
+                    />
+                );
+            })()}
 
             <ConfirmDialog
                 isLoading={mutationDeleteMyCourse.isPending}
@@ -595,11 +800,11 @@ export default function ManageCourseDetailPage({ params }: { params: Promise<{ i
             />
 
             <MoveWordDialog
-                isLoading={mutationMoveMyWord.isPending}
+                isLoading={mutationMoveMyWord.isPending || mutationBulkMoveMyWords.isPending}
                 isOpen={!!moveWordDialog}
                 onClose={() => setMoveWordDialog(null)}
                 onConfirm={handleMoveMyWord}
-                word={moveWordDialog?.word || null}
+                words={moveWordDialog?.words || []}
                 currentLesson={moveWordDialog?.sourceLesson || null}
                 availableLessons={lessons.filter(l => l.id !== moveWordDialog?.sourceLesson.id)}
             />
