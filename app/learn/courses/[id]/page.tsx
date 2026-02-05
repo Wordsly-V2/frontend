@@ -1,26 +1,28 @@
 "use client";
 
-import { use, useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import LoadingSection from "@/components/common/loading-section/loading-section";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Play, ChevronDown, ChevronRight, Volume2 } from "lucide-react";
-import Image from "next/image";
-import { getCourseById } from "@/lib/data-store";
-import { ILesson, IWord } from "@/types/courses/courses.type";
 import { Checkbox } from "@/components/ui/checkbox";
+import { useGetCourseDetailByIdQuery } from "@/queries/courses.query";
+import { ILesson, IWord } from "@/types/courses/courses.type";
+import { ArrowLeft, ChevronDown, ChevronRight, Play, Volume2 } from "lucide-react";
+import Image from "next/image";
+import { useRouter } from "next/navigation";
+import { use, useState } from "react";
 
 export default function LearnCourseDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = use(params);
     const router = useRouter();
-    const [course, setCourse] = useState(getCourseById(id));
     const [expandedLessons, setExpandedLessons] = useState<Set<string>>(new Set());
     const [selectedWords, setSelectedWords] = useState<Set<string>>(new Set());
+
+    const { data: course, isLoading, isError, refetch: loadCourseDetail } = useGetCourseDetailByIdQuery(id);
     
     const lessons = course?.lessons || [];
 
-    useEffect(() => {
-        setCourse(getCourseById(id));
-    }, [id]);
+    if(isLoading || isError) {
+        return <LoadingSection isLoading={isLoading} error={isError ? 'Error loading course' : null} refetch={loadCourseDetail} />;
+    }
 
     if (!course) {
         return (
