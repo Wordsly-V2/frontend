@@ -1,7 +1,7 @@
 'use client';
 
 import { Switch } from "@/components/ui/switch";
-import { useTheme } from "@/hooks/useTheme";
+import { useTheme } from "@/hooks/useTheme.hook";
 
 export function ChangeThemeToggle() {
     const { toggleTheme, mounted, isDark } = useTheme();

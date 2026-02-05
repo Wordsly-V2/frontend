@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
-import { useUser } from "@/hooks/useUser";
+import { useUser } from "@/hooks/useUser.hook";
 
 export default function ProfilePage() {
   const { profile: userProfile, isLoading, error, fetchProfile } = useUser();

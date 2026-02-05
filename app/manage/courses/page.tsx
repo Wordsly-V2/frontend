@@ -1,15 +1,14 @@
 "use client";
 
-import { createMyCourse, deleteMyCourse, updateMyCourse } from "@/apis/courses.api";
 import ConfirmDialog from "@/components/common/confirm-dialog/confirm-dialog";
 import DataTable from "@/components/common/data-table/data-table";
 import LoadingSection from "@/components/common/loading-section/loading-section";
 import CourseFormDialog from "@/components/features/manage/course-form-dialog";
 import { Button } from "@/components/ui/button";
 import { Pagination } from "@/components/ui/pagination";
+import { useCourses } from "@/hooks/useCourses.hook";
 import { useGetMyCoursesQuery } from "@/queries/courses.query";
 import { ICourse } from "@/types/courses/courses.type";
-import { useMutation } from "@tanstack/react-query";
 import { ArrowLeft, Edit, Eye, Plus, Trash2 } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -25,38 +24,59 @@ export default function ManageCoursesPage() {
     const itemsPerPage = 10;
 
     const { data: paginatedData, isLoading, isError, refetch: loadCourses } = useGetMyCoursesQuery(itemsPerPage, currentPage, );
+    const { mutationCreateMyCourse, mutationUpdateMyCourse, mutationDeleteMyCourse } = useCourses();
 
-    const mutationCourse = useMutation({
-        mutationFn: (courseData: Pick<ICourse, 'name' | 'coverImageUrl'>) => {
-            if (editingCourse) {
-                return updateMyCourse(editingCourse.id, courseData);
-            } else {
-                return createMyCourse(courseData);
-            }
-        },
-        onSuccess: () => {
-            loadCourses();
-            setCurrentPage(1);
-            setIsFormOpen(false);
-            toast.success(editingCourse ? 'Course updated successfully' : 'Course created successfully');
-            setEditingCourse(undefined);
-        },
-        onError: (err) => {
-            toast.error('Failed to ' + (editingCourse ? 'update' : 'create') + ' course: ' + err.message);
-        },
-    });
+    const handleCreateMyCourse = (courseData: Pick<ICourse, 'name' | 'coverImageUrl'>) => {
+        mutationCreateMyCourse.mutate(courseData, {
+            onSuccess: () => {
+                loadCourses();
+                setCurrentPage(1);
+                setIsFormOpen(false);
+                toast.success('Course created successfully');
+            },
+            onError: (err) => {
+                toast.error('Failed to create course: ' + err.message);
+            },
+        });
+    }
 
-    const mutationDeleteCourse = useMutation({
-        mutationFn: (courseId: string) => deleteMyCourse(courseId),
-        onSuccess: () => {
-            loadCourses();
-            toast.success('Course deleted successfully');
-            setDeleteConfirm(null);
-        },
-        onError: (err) => {
-            toast.error('Failed to delete course: ' + err.message);
-        },
-    });
+    const handleUpdateMyCourse = (courseId: string, courseData: Pick<ICourse, 'name' | 'coverImageUrl'>) => {
+        mutationUpdateMyCourse.mutate({ courseId, courseData }, {
+            onSuccess: () => {
+                loadCourses();
+                setCurrentPage(1);
+                setIsFormOpen(false);
+                toast.success('Course updated successfully');
+                setEditingCourse(undefined);
+            },
+            onError: (err) => {
+                toast.error('Failed to update course: ' + err.message);
+            },
+        });
+    }
+
+    const handleCreateUpdateMyCourse = (courseData: Pick<ICourse, 'name' | 'coverImageUrl'>) => {
+        if (editingCourse) {
+            handleUpdateMyCourse(editingCourse.id, courseData);
+        } else {
+            handleCreateMyCourse(courseData);
+        }
+    }
+
+    const handleDeleteMyCourse = (courseId: string) => {
+        return mutationDeleteMyCourse.mutate(courseId, {
+            onSuccess: () => {
+                loadCourses();
+                setCurrentPage(1);
+                setIsFormOpen(false);
+                toast.success('Course deleted successfully');
+                setDeleteConfirm(null);
+            },
+            onError: (err) => {
+                toast.error('Failed to delete course: ' + err.message);
+            },
+        });
+    }
 
     const handlePageChange = (page: number) => {
         setCurrentPage(page);
@@ -190,13 +210,13 @@ export default function ManageCoursesPage() {
             </div>
 
             <CourseFormDialog
-                isLoading={mutationCourse.isPending}
+                isLoading={mutationCreateMyCourse.isPending || mutationUpdateMyCourse.isPending}
                 isOpen={isFormOpen}
                 onClose={() => {
                     setIsFormOpen(false);
                     setEditingCourse(undefined);
                 }}
-                onSubmit={mutationCourse.mutate}
+                onSubmit={handleCreateUpdateMyCourse}
                 course={editingCourse}
                 title={editingCourse ? 'Edit Course' : 'Create New Course'}
             />
@@ -205,12 +225,12 @@ export default function ManageCoursesPage() {
                 <ConfirmDialog
                     isOpen={!!deleteConfirm}
                     onClose={() => setDeleteConfirm(null)}
-                    onConfirm={() => mutationDeleteCourse.mutate(deleteConfirm.id)}
+                    onConfirm={() => handleDeleteMyCourse(deleteConfirm.id)}
                     title="Delete Course"
                     description={`Are you sure you want to delete "${deleteConfirm.name}"? This will also delete all lessons and words in this course. This action cannot be undone.`}
                     confirmText="Delete Course"
                     variant="destructive"
-                    isLoading={mutationDeleteCourse.isPending}
+                    isLoading={mutationDeleteMyCourse.isPending}
                 />
             )}
         </main>

@@ -13,7 +13,7 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { useUser } from "@/hooks/useUser";
+import { useUser } from "@/hooks/useUser.hook";
 import { ChangeThemeToggle } from "@/components/common/change-theme-toggle/change-theme-toggle";
 
 export default function AppNav() {

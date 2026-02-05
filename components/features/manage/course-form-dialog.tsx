@@ -1,18 +1,18 @@
 "use client";
 
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogOverlay, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useState, useEffect } from "react";
-import { ICourse } from "@/types/courses/courses.type";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { ICourse } from "@/types/courses/courses.type";
+import { useEffect, useState } from "react";
 
 interface CourseFormDialogProps {
     isLoading?: boolean;
     isOpen: boolean;
     onClose: () => void;
-    onSubmit: (course: Omit<ICourse, 'id' | 'createdAt' | 'updatedAt' | 'lessons'>) => void;
+    onSubmit: (courseData: Pick<ICourse, 'name' | 'coverImageUrl'>) => void;
     course?: ICourse;
     title: string;
 }
@@ -28,7 +28,6 @@ export default function CourseFormDialog({
     const [formData, setFormData] = useState({
         name: "",
         coverImageUrl: "",
-        userLoginId: "user-1",
     });
 
     useEffect(() => {
@@ -37,13 +36,11 @@ export default function CourseFormDialog({
                 setFormData({
                     name: course.name,
                     coverImageUrl: course.coverImageUrl || "",
-                    userLoginId: course.userLoginId || "user-1",
                 });
             } else {
                 setFormData({
                     name: "",
                     coverImageUrl: "",
-                    userLoginId: "user-1",
                 });
             }
         }
@@ -57,7 +54,6 @@ export default function CourseFormDialog({
             onSubmit({
                 name: formData.name.trim(),
                 coverImageUrl: formData.coverImageUrl.trim() || undefined,
-                userLoginId: formData.userLoginId,
             });
         }
     };
@@ -66,7 +62,6 @@ export default function CourseFormDialog({
         setFormData({
             name: "",
             coverImageUrl: "",
-            userLoginId: "user-1",
         });
         onClose();
     };

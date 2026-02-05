@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
-import { useUser } from "@/hooks/useUser";
+import { useUser } from "@/hooks/useUser.hook";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 
 interface AuthGuardProps {

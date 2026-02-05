@@ -1,48 +1,48 @@
 "use client";
 
-import { use, useState, useEffect, useCallback } from "react";
-import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { useRouter } from "next/navigation";
+import { use, useCallback, useEffect, useState } from "react";
 
-import { ArrowLeft, Plus, Edit, Trash2, GripVertical, Volume2, ChevronDown, ChevronRight, ArrowRightLeft } from "lucide-react";
-import {
-    getCourseById,
-    createLesson,
-    updateLesson,
-    deleteLesson,
-    createWord,
-    updateWord,
-    deleteWord,
-    reorderLessons,
-    updateCourse,
-    deleteCourse,
-    moveWord,
-} from "@/lib/data-store";
-import { ICourse, ILesson, IWord } from "@/types/courses/courses.type";
-import LessonFormDialog from "@/components/features/manage/lesson-form-dialog";
-import WordFormDialog from "@/components/features/manage/word-form-dialog";
+import { getCourseDetailById } from "@/apis/courses.api";
 import ConfirmDialog from "@/components/common/confirm-dialog/confirm-dialog";
 import CourseFormDialog from "@/components/features/manage/course-form-dialog";
+import LessonFormDialog from "@/components/features/manage/lesson-form-dialog";
 import MoveWordDialog from "@/components/features/manage/move-word-dialog";
+import WordFormDialog from "@/components/features/manage/word-form-dialog";
+import { useCourses } from "@/hooks/useCourses.hook";
 import {
-    DndContext,
+    createLesson,
+    createWord,
+    deleteLesson,
+    deleteWord,
+    moveWord,
+    reorderLessons,
+    updateCourse,
+    updateLesson,
+    updateWord
+} from "@/lib/data-store";
+import { ICourse, ILesson, IWord } from "@/types/courses/courses.type";
+import {
     closestCenter,
+    DndContext,
+    DragEndEvent,
     KeyboardSensor,
     PointerSensor,
     useSensor,
     useSensors,
-    DragEndEvent,
 } from "@dnd-kit/core";
 import {
     arrayMove,
     SortableContext,
     sortableKeyboardCoordinates,
-    verticalListSortingStrategy,
     useSortable,
+    verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { useQuery } from "@tanstack/react-query";
-import { getCourseDetailById } from "@/apis/courses.api";
+import { ArrowLeft, ArrowRightLeft, ChevronDown, ChevronRight, Edit, GripVertical, Plus, Trash2, Volume2 } from "lucide-react";
+import { toast } from "sonner";
 
 function SortableLesson({
     lesson,
@@ -200,7 +200,6 @@ function SortableLesson({
 export default function ManageCourseDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = use(params);
     const router = useRouter();
-    const [course, setCourse] = useState<ICourse | undefined>();
     const [lessons, setLessons] = useState<ILesson[]>([]);
     const [expandedLessons, setExpandedLessons] = useState<Set<string>>(new Set());
     
@@ -215,10 +214,11 @@ export default function ManageCourseDetailPage({ params }: { params: Promise<{ i
     const [deleteConfirm, setDeleteConfirm] = useState<{ type: 'lesson' | 'word'; item: ILesson | IWord } | null>(null);
     const [moveWordDialog, setMoveWordDialog] = useState<{ word: IWord; sourceLesson: ILesson } | null>(null);
 
-    const { data: courseDetail, isLoading, isError, refetch: loadCourseDetail } = useQuery({
+    const { data: course, isLoading, isError, refetch: loadCourseDetail } = useQuery({
         queryKey: ['courses', 'get', 'course-detail', id],
         queryFn: () => getCourseDetailById(id),
     });
+    const {mutationUpdateMyCourse, mutationDeleteMyCourse } = useCourses();
 
     const sensors = useSensors(
         useSensor(PointerSensor),
@@ -228,10 +228,12 @@ export default function ManageCourseDetailPage({ params }: { params: Promise<{ i
     );
 
     const loadCourse = useCallback(() => {
-        const loaded = getCourseById(id);
-        setCourse(loaded);
-        setLessons(loaded?.lessons || []);
-    }, [id]);
+        loadCourseDetail().then(({ data: course }) => {
+            if (course) {
+                setLessons(course.lessons || []);
+            }
+        });
+    }, [loadCourseDetail]);
 
     useEffect(() => {
         loadCourse();
@@ -258,17 +260,33 @@ export default function ManageCourseDetailPage({ params }: { params: Promise<{ i
         }
     };
 
-    const handleUpdateCourse = (courseData: Omit<ICourse, 'id' | 'createdAt' | 'updatedAt' | 'lessons'>) => {
-        updateCourse(id, courseData);
-        loadCourse();
-        setCourseFormOpen(false);
-    };
+    const handleUpdateMyCourse = (courseId: string, courseData: Pick<ICourse, 'name' | 'coverImageUrl'>) => {
+        mutationUpdateMyCourse.mutate({ courseId, courseData }, {
+            onSuccess: () => {
+                updateCourse(id, courseData);
+                loadCourse();
+                setCourseFormOpen(false);
+                toast.success('Course updated successfully');
+            },
+            onError: (err) => {
+                toast.error('Failed to update course: ' + err.message);
+            },
+        });
+    }
 
-    const handleDeleteCourse = () => {
-        deleteCourse(id);
-        setDeleteCourseConfirm(false);
-        router.push('/manage/courses');
-    };
+    const handleDeleteMyCourse = (courseId: string) => {
+        return mutationDeleteMyCourse.mutate(courseId, {
+            onSuccess: () => {
+                loadCourse();
+                setDeleteCourseConfirm(false);
+                router.push('/manage/courses');
+                toast.success('Course deleted successfully');
+            },
+            onError: (err) => {
+                toast.error('Failed to delete course: ' + err.message);
+            },
+        });
+    }
 
     const handleCreateLesson = (lessonData: Omit<ILesson, 'id' | 'courseId' | 'createdAt' | 'updatedAt' | 'words' | 'orderIndex'>) => {
         createLesson(id, lessonData);
@@ -462,8 +480,9 @@ export default function ManageCourseDetailPage({ params }: { params: Promise<{ i
             <CourseFormDialog
                 isOpen={courseFormOpen}
                 onClose={() => setCourseFormOpen(false)}
-                onSubmit={handleUpdateCourse}
+                onSubmit={(courseData) => handleUpdateMyCourse(course.id, courseData)}
                 course={course}
+                isLoading={mutationUpdateMyCourse.isPending}
                 title="Edit Course"
             />
 
@@ -510,9 +529,10 @@ export default function ManageCourseDetailPage({ params }: { params: Promise<{ i
             )}
 
             <ConfirmDialog
+                isLoading={mutationDeleteMyCourse.isPending}
                 isOpen={deleteCourseConfirm}
                 onClose={() => setDeleteCourseConfirm(false)}
-                onConfirm={handleDeleteCourse}
+                onConfirm={() => handleDeleteMyCourse(course.id)}
                 title="Delete Course"
                 description={`Are you sure you want to delete "${course.name}"? This will permanently delete the course and all its lessons and words. This action cannot be undone.`}
                 confirmText="Delete Course"
