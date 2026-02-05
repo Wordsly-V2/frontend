@@ -6,8 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { ILesson, IWord } from "@/types/courses/courses.type";
 import { ArrowRight } from "lucide-react";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
 
 interface MoveWordDialogProps {
+    isLoading?: boolean;
     isOpen: boolean;
     onClose: () => void;
     onConfirm: (targetLessonId: string) => void;
@@ -17,6 +19,7 @@ interface MoveWordDialogProps {
 }
 
 export default function MoveWordDialog({
+    isLoading,
     isOpen,
     onClose,
     onConfirm,
@@ -106,11 +109,17 @@ export default function MoveWordDialog({
                 </div>
 
                 <DialogFooter>
-                    <Button variant="outline" onClick={handleClose}>
+                    <Button variant="outline" onClick={handleClose} disabled={isLoading}>
                         Cancel
                     </Button>
-                    <Button onClick={handleConfirm} disabled={!selectedLessonId}>
-                        Move Word
+                    <Button onClick={handleConfirm} disabled={!selectedLessonId || isLoading}>
+                        {
+                            isLoading ? (
+                                <LoadingSpinner size="sm" />
+                            ) : (
+                                'Move Word'
+                            )
+                        }
                     </Button>
                 </DialogFooter>
             </DialogContent>

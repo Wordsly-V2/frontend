@@ -215,7 +215,7 @@ export default function ManageCourseDetailPage({ params }: { params: Promise<{ i
     const { data: course, isLoading, isError, refetch: loadCourseDetail } = useGetCourseDetailByIdQuery(id);
     const { mutationUpdateMyCourse, mutationDeleteMyCourse } = useCourses();
     const { mutationCreateMyCourseLesson, mutationUpdateMyCourseLesson, mutationDeleteMyCourseLesson } = useLessons();
-    const { mutationCreateMyWord, mutationUpdateMyWord, mutationDeleteMyWord } = useWords();
+    const { mutationCreateMyWord, mutationUpdateMyWord, mutationDeleteMyWord, mutationMoveMyWord } = useWords();
 
     const sensors = useSensors(
         useSensor(PointerSensor),
@@ -380,14 +380,21 @@ export default function ManageCourseDetailPage({ params }: { params: Promise<{ i
         }
     }
 
-    const handleMoveWord = (targetLessonId: string) => {
+    const handleMoveMyWord = (targetLessonId: string) => {
         if (moveWordDialog) {
             const { word, sourceLesson } = moveWordDialog;
-            moveWord(sourceLesson.id, targetLessonId, word.id);
-            loadCourse();
-            setMoveWordDialog(null);
+            mutationMoveMyWord.mutate({ courseId: id, lessonId: sourceLesson?.id, wordId: word?.id, targetLessonId }, {
+                onSuccess: () => {
+                    loadCourse();
+                    setMoveWordDialog(null);
+                    toast.success('Word moved successfully');
+                },
+                onError: (err) => {
+                    toast.error('Failed to move word: ' + err.message);
+                },
+            });
         }
-    };
+    }
 
     if (isLoading || isError) {
         return <LoadingSection isLoading={isLoading} error={isError ? 'Error loading course' : null} refetch={loadCourse} />;
@@ -588,9 +595,10 @@ export default function ManageCourseDetailPage({ params }: { params: Promise<{ i
             />
 
             <MoveWordDialog
+                isLoading={mutationMoveMyWord.isPending}
                 isOpen={!!moveWordDialog}
                 onClose={() => setMoveWordDialog(null)}
-                onConfirm={handleMoveWord}
+                onConfirm={handleMoveMyWord}
                 word={moveWordDialog?.word || null}
                 currentLesson={moveWordDialog?.sourceLesson || null}
                 availableLessons={lessons.filter(l => l.id !== moveWordDialog?.sourceLesson.id)}

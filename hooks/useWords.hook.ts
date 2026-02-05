@@ -1,4 +1,4 @@
-import { createMyWord, deleteMyWord, updateMyWord } from "@/apis/words.api";
+import { createMyWord, deleteMyWord, moveMyWord, updateMyWord } from "@/apis/words.api";
 import { CreateMyWord } from "@/types/courses/courses.type";
 import { useMutation } from "@tanstack/react-query";
 
@@ -15,5 +15,9 @@ export const useWords = () => {
         mutationFn: ({ courseId, lessonId, wordId }: { courseId: string, lessonId: string, wordId: string }) => deleteMyWord(courseId, lessonId, wordId),
     });
 
-    return { mutationCreateMyWord, mutationUpdateMyWord, mutationDeleteMyWord };
+    const mutationMoveMyWord = useMutation({
+        mutationFn: ({ courseId, lessonId, wordId, targetLessonId }: { courseId: string, lessonId: string, wordId: string, targetLessonId: string }) => moveMyWord(courseId, lessonId, wordId, targetLessonId),
+    });
+
+    return { mutationCreateMyWord, mutationUpdateMyWord, mutationDeleteMyWord, mutationMoveMyWord };
 };
