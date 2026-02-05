@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { IWord } from "@/types/courses/courses.type";
 import { Button } from "@/components/ui/button";
-import { Volume2, ChevronRight, CheckCircle2, XCircle, Settings2, Sparkles, Lightbulb, List } from "lucide-react";
+import { Volume2, ChevronRight, CheckCircle2, XCircle, Settings2, Sparkles, Lightbulb, List, Play } from "lucide-react";
 import PracticeSettingsDialog, { PracticeMode, PracticeSettings } from "./practice-settings-dialog";
 import TypingResultDialog from "./typing-result-dialog";
 import WordsSummaryDialog from "./words-summary-dialog";
@@ -54,6 +54,8 @@ export default function VocabularyPractice({
     const [showResultDialog, setShowResultDialog] = useState(false);
     const [showSummary, setShowSummary] = useState(false);
     const [hintsUsed, setHintsUsed] = useState(0);
+    const [selectedChoice, setSelectedChoice] = useState<string | null>(null);
+    const [hasPlayedAudio, setHasPlayedAudio] = useState(false);
     const inputRef = useRef<HTMLInputElement>(null);
 
     const currentWord = shuffledWords[currentIndex];
@@ -65,6 +67,8 @@ export default function VocabularyPractice({
     const score = Math.round((correctCount / shuffledWords.length) * 100);
     const isFlashcard = mode === "flashcard";
     const isTyping = mode === "typing";
+    const isMultipleChoice = mode === "multiple-choice";
+    const isListening = mode === "listening";
     const isLastWord = currentIndex === shuffledWords.length - 1;
 
     // Get current settings
@@ -72,6 +76,29 @@ export default function VocabularyPractice({
         mode,
         autoCheck,
     };
+
+    // Generate multiple choice options
+    const generateMultipleChoiceOptions = (correctWord: IWord, allWords: IWord[]): string[] => {
+        const options = [correctWord.meaning];
+        const otherWords = allWords.filter(w => w.id !== correctWord.id);
+        const shuffledOthers = shuffleArray(otherWords);
+        
+        // Add 3 random incorrect options
+        for (let i = 0; i < Math.min(3, shuffledOthers.length); i++) {
+            options.push(shuffledOthers[i].meaning);
+        }
+        
+        return shuffleArray(options);
+    };
+
+    // Memoize multiple choice options to avoid regenerating on every render
+    const multipleChoiceOptions = useMemo(() => {
+        if (isMultipleChoice && currentWord) {
+            return generateMultipleChoiceOptions(currentWord, shuffledWords);
+        }
+        return [];
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [currentIndex, isMultipleChoice]);
 
     // Calculate next hint
     const getNextHint = (): string => {
@@ -124,10 +151,10 @@ export default function VocabularyPractice({
     };
 
     useEffect(() => {
-        if (isTyping && !typingResult && inputRef.current) {
+        if ((isTyping || isListening) && !typingResult && inputRef.current) {
             inputRef.current.focus();
         }
-    }, [isTyping, typingResult, currentIndex]);
+    }, [isTyping, isListening, typingResult, currentIndex]);
 
     const handleNext = () => {
         if (currentIndex < shuffledWords.length - 1) {
@@ -136,6 +163,8 @@ export default function VocabularyPractice({
             setUserAnswer("");
             setTypingResult(null);
             setHintsUsed(0);
+            setSelectedChoice(null);
+            setHasPlayedAudio(false);
         } else {
             onComplete?.(score);
         }
@@ -187,6 +216,48 @@ export default function VocabularyPractice({
         handleNext();
     };
 
+    const handleMultipleChoiceSelect = (selectedMeaning: string) => {
+        if (!currentWord || typingResult) {
+            return;
+        }
+        
+        setSelectedChoice(selectedMeaning);
+        const isCorrect = selectedMeaning === currentWord.meaning;
+        
+        if (isCorrect) {
+            setCorrectCount((prev) => prev + 1);
+            setTypingResult("correct");
+        } else {
+            setTypingResult("incorrect");
+        }
+        
+        setShowResultDialog(true);
+    };
+
+    const handlePlayListeningAudio = () => {
+        if (currentWord.audioUrl) {
+            const audio = new Audio(currentWord.audioUrl);
+            audio.play().catch(console.error);
+            setHasPlayedAudio(true);
+        }
+    };
+
+    const handleCheckListeningAnswer = () => {
+        if (!currentWord) {
+            return;
+        }
+        const isCorrect = normalize(userAnswer.trim()) === normalize(currentWord.word.trim());
+        if (isCorrect) {
+            if (typingResult !== "correct") {
+                setCorrectCount((prev) => prev + 1);
+            }
+            setTypingResult("correct");
+        } else {
+            setTypingResult("incorrect");
+        }
+        setShowResultDialog(true);
+    };
+
     useEffect(() => {
         if (mode !== "typing" || !autoCheck || typingResult || !currentWord) {
             return;
@@ -208,6 +279,8 @@ export default function VocabularyPractice({
             setShowAnswer(false);
             setUserAnswer("");
             setTypingResult(null);
+            setSelectedChoice(null);
+            setHasPlayedAudio(false);
         };
         
         resetState();
@@ -373,6 +446,190 @@ export default function VocabularyPractice({
         </div>
     );
 
+    const renderMultipleChoiceCard = () => (
+        <div className="space-y-8">
+            <div className="text-center">
+                <div className="flex items-center justify-center gap-4 mb-4">
+                    <h2 className="text-5xl font-bold tracking-tight">{currentWord.word}</h2>
+                    {currentWord.audioUrl && (
+                        <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={handlePlayAudio}
+                            className="h-12 w-12 rounded-xl hover:scale-110 transition-transform"
+                        >
+                            <Volume2 className="h-6 w-6" />
+                        </Button>
+                    )}
+                </div>
+                {currentWord.pronunciation && (
+                    <p className="text-muted-foreground text-xl font-light mb-3">
+                        {currentWord.pronunciation}
+                    </p>
+                )}
+                {currentWord.partOfSpeech && (
+                    <span className="inline-block px-4 py-1.5 rounded-full bg-gradient-to-r from-primary/10 to-primary/5 text-primary text-sm font-semibold border border-primary/20">
+                        {currentWord.partOfSpeech}
+                    </span>
+                )}
+            </div>
+
+            <div>
+                <p className="text-center text-sm font-medium text-muted-foreground mb-4">
+                    Choose the correct meaning
+                </p>
+                <div className="grid gap-3">
+                    {multipleChoiceOptions.map((option, index) => {
+                        const isSelected = selectedChoice === option;
+                        const isCorrect = option === currentWord.meaning;
+                        const showResult = typingResult !== null;
+                        
+                        let buttonClass = "w-full p-4 text-left text-lg rounded-xl border-2 transition-all hover:scale-102";
+                        
+                        if (!showResult) {
+                            buttonClass += " border-border bg-background hover:border-primary hover:bg-primary/5";
+                        } else if (isCorrect) {
+                            buttonClass += " border-green-500 bg-green-50 text-green-700";
+                        } else if (isSelected && !isCorrect) {
+                            buttonClass += " border-red-500 bg-red-50 text-red-700";
+                        } else {
+                            buttonClass += " border-border bg-background opacity-50";
+                        }
+                        
+                        return (
+                            <Button
+                                key={index}
+                                variant="outline"
+                                onClick={() => !typingResult && handleMultipleChoiceSelect(option)}
+                                disabled={typingResult !== null}
+                                className={buttonClass}
+                            >
+                                <span className="flex items-center gap-3">
+                                    <span className="flex-shrink-0 w-8 h-8 rounded-full border-2 flex items-center justify-center font-semibold">
+                                        {String.fromCharCode(65 + index)}
+                                    </span>
+                                    <span className="flex-1">{option}</span>
+                                    {showResult && isCorrect && (
+                                        <CheckCircle2 className="h-5 w-5 text-green-600" />
+                                    )}
+                                    {showResult && isSelected && !isCorrect && (
+                                        <XCircle className="h-5 w-5 text-red-600" />
+                                    )}
+                                </span>
+                            </Button>
+                        );
+                    })}
+                </div>
+            </div>
+        </div>
+    );
+
+    const renderListeningCard = () => (
+        <div className="space-y-8">
+            <div className="text-center">
+                <p className="text-xs uppercase tracking-widest font-semibold text-muted-foreground mb-6 flex items-center justify-center gap-2">
+                    <span className="h-px w-8 bg-border"></span>
+                    Listening Practice
+                    <span className="h-px w-8 bg-border"></span>
+                </p>
+                
+                {/* Large Play Audio Button */}
+                <div className="flex justify-center mb-6">
+                    <Button
+                        onClick={handlePlayListeningAudio}
+                        size="lg"
+                        className="h-24 w-24 rounded-full hover:scale-110 transition-all shadow-lg"
+                        disabled={!currentWord.audioUrl}
+                    >
+                        {currentWord.audioUrl ? (
+                            <Volume2 className="h-10 w-10" />
+                        ) : (
+                            <Play className="h-10 w-10" />
+                        )}
+                    </Button>
+                </div>
+                
+                <p className="text-muted-foreground mb-4">
+                    {!hasPlayedAudio 
+                        ? "Click the button to listen" 
+                        : "Type what you heard"}
+                </p>
+                
+                {currentWord.partOfSpeech && (
+                    <span className="inline-block px-4 py-1.5 rounded-full bg-gradient-to-r from-primary/10 to-primary/5 text-primary text-sm font-semibold border border-primary/20">
+                        {currentWord.partOfSpeech}
+                    </span>
+                )}
+            </div>
+
+            <div className="space-y-6">
+                <div className="relative">
+                    <input
+                        ref={inputRef}
+                        type="text"
+                        placeholder="Type what you heard..."
+                        value={userAnswer}
+                        onChange={(e) => setUserAnswer(e.target.value)}
+                        onKeyDown={(e) => {
+                            if (e.key !== "Enter") {
+                                return;
+                            }
+                            if (userAnswer.trim().length === 0) {
+                                return;
+                            }
+                            setTimeout(() => {
+                                handleCheckListeningAnswer();
+                            }, 100);
+                        }}
+                        disabled={!hasPlayedAudio}
+                        className="w-full px-6 py-5 text-2xl font-medium text-center rounded-2xl border-2 border-border bg-background focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all outline-none placeholder:text-muted-foreground/40 disabled:opacity-50 disabled:cursor-not-allowed"
+                    />
+                    <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-primary/5 to-purple/5 -z-10 blur-xl opacity-0 transition-opacity group-focus-within:opacity-100"></div>
+                </div>
+                
+                <div className="flex flex-wrap justify-center gap-3">
+                    {/* Replay Audio Button */}
+                    <Button
+                        variant="outline"
+                        size="lg"
+                        onClick={handlePlayListeningAudio}
+                        disabled={!currentWord.audioUrl}
+                        className="gap-2 rounded-xl hover:scale-105 transition-transform"
+                    >
+                        <Volume2 className="h-5 w-5" />
+                        Replay
+                    </Button>
+                    
+                    {/* Hint Button */}
+                    <Button
+                        variant="outline"
+                        size="lg"
+                        onClick={handleGetHint}
+                        disabled={!hasPlayedAudio}
+                        className="gap-2 rounded-xl hover:scale-105 transition-transform"
+                    >
+                        <Lightbulb className="h-5 w-5" />
+                        Get Hint
+                        {hintsUsed > 0 && (
+                            <span className="text-xs opacity-70">({hintsUsed})</span>
+                        )}
+                    </Button>
+                    
+                    {/* Check Answer Button */}
+                    <Button
+                        size="lg"
+                        className="min-w-[200px] h-12 text-lg rounded-xl gap-2 hover:scale-105 transition-transform"
+                        onClick={handleCheckListeningAnswer}
+                        disabled={userAnswer.trim().length === 0 || !hasPlayedAudio}
+                    >
+                        <CheckCircle2 className="h-5 w-5" />
+                        Check Answer
+                    </Button>
+                </div>
+            </div>
+        </div>
+    );
+
     if (!currentWord) {
         return renderCompletion();
     }
@@ -437,7 +694,10 @@ export default function VocabularyPractice({
 
             {/* Practice Card */}
             <div className="bg-gradient-to-br from-card to-card/50 border-2 border-border rounded-3xl p-8 md:p-10 mb-6 min-h-[400px] flex flex-col justify-between shadow-xl shadow-primary/5 backdrop-blur-sm">
-                {isFlashcard ? renderFlashcardCard() : renderTypingCard()}
+                {isFlashcard && renderFlashcardCard()}
+                {isTyping && renderTypingCard()}
+                {isMultipleChoice && renderMultipleChoiceCard()}
+                {isListening && renderListeningCard()}
             </div>
 
             {/* Quick Actions - Only for Flashcard Mode */}
@@ -468,13 +728,13 @@ export default function VocabularyPractice({
             )}
 
             {/* Typing Result Dialog */}
-            {isTyping && (
+            {(isTyping || isMultipleChoice || isListening) && (
                 <TypingResultDialog
                     isOpen={showResultDialog}
                     isCorrect={typingResult === "correct"}
-                    userAnswer={userAnswer}
-                    correctAnswer={currentWord.word}
-                    meaning={currentWord.meaning}
+                    userAnswer={isMultipleChoice ? (selectedChoice || "") : userAnswer}
+                    correctAnswer={isMultipleChoice ? currentWord.meaning : currentWord.word}
+                    meaning={isMultipleChoice ? "" : currentWord.meaning}
                     pronunciation={currentWord.pronunciation}
                     audioUrl={currentWord.audioUrl}
                     onTryAgain={handleTryAgain}

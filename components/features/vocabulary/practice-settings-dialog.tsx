@@ -5,9 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Sparkles, Keyboard } from "lucide-react";
+import { Sparkles, Keyboard, CheckSquare, Volume2 } from "lucide-react";
 
-export type PracticeMode = "flashcard" | "typing";
+export type PracticeMode = "flashcard" | "typing" | "multiple-choice" | "listening";
 
 export interface PracticeSettings {
     mode: PracticeMode;
@@ -32,10 +32,14 @@ export default function PracticeSettingsDialog({
 
     // Update temp settings when dialog opens with current settings
     useEffect(() => {
-        if (isOpen) {
-            setTempMode(currentSettings.mode);
-            setTempAutoCheck(currentSettings.autoCheck);
+        const _initialSettings = () => {
+            if (isOpen) {
+                setTempMode(currentSettings.mode);
+                setTempAutoCheck(currentSettings.autoCheck);
+            }
         }
+
+        _initialSettings();
     }, [isOpen, currentSettings]);
 
     const handleSave = () => {
@@ -56,6 +60,8 @@ export default function PracticeSettingsDialog({
 
     const isFlashcard = tempMode === "flashcard";
     const isTyping = tempMode === "typing";
+    const isMultipleChoice = tempMode === "multiple-choice";
+    const isListening = tempMode === "listening";
 
     return (
         <Dialog open={isOpen} onOpenChange={handleCancel}>
@@ -93,6 +99,32 @@ export default function PracticeSettingsDialog({
                                 <span className="font-medium">Typing</span>
                                 <span className="text-xs opacity-80 font-normal">
                                     Type to practice
+                                </span>
+                            </Button>
+                            <Button
+                                type="button"
+                                size="lg"
+                                variant={isMultipleChoice ? "default" : "outline"}
+                                onClick={() => setTempMode("multiple-choice")}
+                                className="gap-2 h-auto py-4 flex-col"
+                            >
+                                <CheckSquare className="h-5 w-5" />
+                                <span className="font-medium">Quiz</span>
+                                <span className="text-xs opacity-80 font-normal">
+                                    Choose the answer
+                                </span>
+                            </Button>
+                            <Button
+                                type="button"
+                                size="lg"
+                                variant={isListening ? "default" : "outline"}
+                                onClick={() => setTempMode("listening")}
+                                className="gap-2 h-auto py-4 flex-col"
+                            >
+                                <Volume2 className="h-5 w-5" />
+                                <span className="font-medium">Listening</span>
+                                <span className="text-xs opacity-80 font-normal">
+                                    Listen and type
                                 </span>
                             </Button>
                         </div>
