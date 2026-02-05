@@ -103,7 +103,7 @@ export default function LearnCourseDetailPage({ params }: { params: Promise<{ id
     const handleStartPractice = () => {
         if (selectedWords.size > 0) {
             const wordIds = Array.from(selectedWords).join(",");
-            router.push(`/learn/practice?courseId=${id}&wordIds=${wordIds}`);
+            router.push(`/learn/practice?courseId=${id}&courseName=${course.name}&wordIds=${wordIds}`);
         }
     };
 

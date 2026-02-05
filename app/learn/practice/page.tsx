@@ -6,18 +6,20 @@ import { Button } from "@/components/ui/button";
 import { useGetWordsByIdsQuery } from "@/queries/words.query";
 import { ArrowLeft } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState } from "react";
 
 export default function PracticePage() {
     const router = useRouter();
     const searchParams = useSearchParams();
-    const [courseName, setCourseName] = useState<string>("");
     
+    const courseName = searchParams.get("courseName") || "";
     const courseId = searchParams.get("courseId") || "";
     const wordIds = searchParams.get("wordIds") || "";
 
-    const { data: words, isLoading: isWordsLoading, isError: isWordsError, refetch: refetchWords } = useGetWordsByIdsQuery(courseId, wordIds.split(","));
+    if (!courseName  || !courseId || !wordIds) {
+        router.push(`/learn`);
+    }
 
+    const { data: words, isLoading: isWordsLoading, isError: isWordsError, refetch: refetchWords } = useGetWordsByIdsQuery(courseId, wordIds.split(","));
 
     const handleComplete = (score: number) => {
         const courseId = searchParams.get("courseId");
