@@ -12,9 +12,8 @@ import MoveWordDialog from "@/components/features/manage/move-word-dialog";
 import WordFormDialog from "@/components/features/manage/word-form-dialog";
 import { useCourses } from "@/hooks/useCourses.hook";
 import { useLessons } from "@/hooks/useLessons.hook";
+import { useWords } from "@/hooks/useWords.hook";
 import {
-    createWord,
-    deleteLesson,
     deleteWord,
     moveWord,
     reorderLessons,
@@ -22,7 +21,7 @@ import {
     updateWord
 } from "@/lib/data-store";
 import { useGetCourseDetailByIdQuery } from "@/queries/courses.query";
-import { CreateMyCourseLesson, ICourse, ILesson, IWord } from "@/types/courses/courses.type";
+import { CreateMyLesson, CreateMyWord, ICourse, ILesson, IWord } from "@/types/courses/courses.type";
 import {
     closestCenter,
     DndContext,
@@ -216,6 +215,7 @@ export default function ManageCourseDetailPage({ params }: { params: Promise<{ i
     const { data: course, isLoading, isError, refetch: loadCourseDetail } = useGetCourseDetailByIdQuery(id);
     const { mutationUpdateMyCourse, mutationDeleteMyCourse } = useCourses();
     const { mutationCreateMyCourseLesson, mutationUpdateMyCourseLesson, mutationDeleteMyCourseLesson } = useLessons();
+    const { mutationCreateMyWord, mutationUpdateMyWord, mutationDeleteMyWord } = useWords();
 
     const sensors = useSensors(
         useSensor(PointerSensor),
@@ -285,7 +285,7 @@ export default function ManageCourseDetailPage({ params }: { params: Promise<{ i
         });
     }
 
-    const handleCreateMyCourseLesson = (lessonData: CreateMyCourseLesson) => {
+    const handleCreateMyCourseLesson = (lessonData: CreateMyLesson) => {
         mutationCreateMyCourseLesson.mutate({ courseId: id, lesson: lessonData }, {
             onSuccess: () => {
                 loadCourse();
@@ -298,7 +298,7 @@ export default function ManageCourseDetailPage({ params }: { params: Promise<{ i
     }
 
 
-    const handleUpdateMyCourseLesson = (lessonData: CreateMyCourseLesson) => {
+    const handleUpdateMyCourseLesson = (lessonData: CreateMyLesson) => {
         if (editingLesson) {
             mutationUpdateMyCourseLesson.mutate({ courseId: id, lessonId: editingLesson?.id, lesson: lessonData }, {
                 onSuccess: () => {
@@ -318,9 +318,9 @@ export default function ManageCourseDetailPage({ params }: { params: Promise<{ i
 
     const handleDeleteMyCourseLesson = () => {
         if (deleteConfirm && deleteConfirm.type === 'lesson') {
-        mutationDeleteMyCourseLesson.mutate({ courseId: id, lessonId: deleteConfirm.item.id }, {
-            onSuccess: () => {
-                loadCourse();
+            mutationDeleteMyCourseLesson.mutate({ courseId: id, lessonId: deleteConfirm.item.id }, {
+                onSuccess: () => {
+                    loadCourse();
                     setDeleteConfirm(null);
                     toast.success('Lesson deleted successfully');
                 },
@@ -331,41 +331,54 @@ export default function ManageCourseDetailPage({ params }: { params: Promise<{ i
         }
     }
 
-    const handleDeleteLesson = () => {
-        if (deleteConfirm && deleteConfirm.type === 'lesson') {
-            deleteLesson(id, (deleteConfirm.item as ILesson).id);
-            loadCourse();
-            setDeleteConfirm(null);
-        }
-    };
-
-    const handleCreateWord = (wordData: Omit<IWord, 'id' | 'lessonId' | 'createdAt' | 'updatedAt'>) => {
+    const handleCreateMyWord = (wordData: CreateMyWord) => {
         if (activeLesson) {
-            createWord(activeLesson.id, wordData);
-            loadCourse();
-            setActiveLesson(undefined);
-            setWordFormOpen(false);
+            mutationCreateMyWord.mutate({ courseId: id, lessonId: activeLesson?.id, word: wordData }, {
+                onSuccess: () => {
+                    loadCourse();
+                    setActiveLesson(undefined);
+                    setWordFormOpen(false);
+                    toast.success('Word created successfully');
+                },
+                onError: (err) => {
+                    toast.error('Failed to create word: ' + err.message);
+                },
+            });
         }
-    };
+    }
 
-    const handleUpdateWord = (wordData: Omit<IWord, 'id' | 'lessonId' | 'createdAt' | 'updatedAt'>) => {
+    const handleUpdateMyWord = (wordData: CreateMyWord) => {
         if (editingWord && activeLesson) {
-            updateWord(activeLesson.id, editingWord.id, wordData);
-            loadCourse();
-            setEditingWord(undefined);
-            setActiveLesson(undefined);
-            setWordFormOpen(false);
+            mutationUpdateMyWord.mutate({ courseId: id, lessonId: activeLesson?.id, wordId: editingWord?.id, word: wordData }, {
+                onSuccess: () => {
+                    loadCourse();
+                    setEditingWord(undefined);
+                    setActiveLesson(undefined);
+                    setWordFormOpen(false);
+                    toast.success('Word updated successfully');
+                },
+                onError: (err) => {
+                    toast.error('Failed to update word: ' + err.message);
+                },
+            });
         }
-    };
+    }
 
-    const handleDeleteWord = () => {
+    const handleDeleteMyWord = () => {
         if (deleteConfirm && deleteConfirm.type === 'word' && activeLesson) {
-            deleteWord(activeLesson.id, (deleteConfirm.item as IWord).id);
-            loadCourse();
-            setDeleteConfirm(null);
-            setActiveLesson(undefined);
+            mutationDeleteMyWord.mutate({ courseId: id, lessonId: activeLesson?.id, wordId: deleteConfirm.item.id }, {
+                onSuccess: () => {
+                    loadCourse();
+                    setDeleteConfirm(null);
+                    setActiveLesson(undefined);
+                    toast.success('Word deleted successfully');
+                },
+                onError: (err) => {
+                    toast.error('Failed to delete word: ' + err.message);
+                },
+            });
         }
-    };
+    }
 
     const handleMoveWord = (targetLessonId: string) => {
         if (moveWordDialog) {
@@ -537,20 +550,21 @@ export default function ManageCourseDetailPage({ params }: { params: Promise<{ i
                     setEditingWord(undefined);
                     setActiveLesson(undefined);
                 }}
-                onSubmit={editingWord ? handleUpdateWord : handleCreateWord}
+                onSubmit={editingWord ? handleUpdateMyWord : handleCreateMyWord}
                 word={editingWord}
                 title={editingWord ? 'Edit Word' : 'Add New Word'}
+                isLoading={mutationCreateMyWord.isPending || mutationUpdateMyWord.isPending}
             />
 
             {deleteConfirm && (
                 <ConfirmDialog
-                    isLoading={mutationDeleteMyCourseLesson.isPending}
+                    isLoading={mutationDeleteMyCourseLesson.isPending || mutationDeleteMyWord.isPending}
                     isOpen={!!deleteConfirm}
                     onClose={() => {
                         setDeleteConfirm(null);
                         setActiveLesson(undefined);
                     }}
-                    onConfirm={deleteConfirm.type === 'lesson' ? handleDeleteMyCourseLesson : handleDeleteWord}
+                    onConfirm={deleteConfirm.type === 'lesson' ? handleDeleteMyCourseLesson : handleDeleteMyWord}
                     title={deleteConfirm.type === 'lesson' ? 'Delete Lesson' : 'Delete Word'}
                     description={
                         deleteConfirm.type === 'lesson'

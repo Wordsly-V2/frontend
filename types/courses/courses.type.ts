@@ -40,6 +40,8 @@ export interface ICourseTotalStats {
     totalWords: number;
 }
 
-export type CreateMyCourseLesson = Pick<ILesson, 'name' | 'coverImageUrl' | 'maxWords' | 'orderIndex'>;
+export type CreateMyLesson = Pick<ILesson, 'name' | 'coverImageUrl' | 'maxWords' | 'orderIndex'>;
 
 export type CreateUpdateMyCourse = Pick<ILesson, 'name' | 'coverImageUrl'>;
+
+export type CreateMyWord = Pick<IWord, 'word' | 'meaning' | 'pronunciation' | 'partOfSpeech' | 'audioUrl'>;

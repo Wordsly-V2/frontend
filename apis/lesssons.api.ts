@@ -1,12 +1,12 @@
 import axiosInstance from "@/lib/axios";
-import { CreateMyCourseLesson } from "@/types/courses/courses.type";
+import { CreateMyLesson } from "@/types/courses/courses.type";
 
-export const createMyCourseLesson = async (courseId: string, lesson: CreateMyCourseLesson): Promise<{ success: boolean }> => {
+export const createMyCourseLesson = async (courseId: string, lesson: CreateMyLesson): Promise<{ success: boolean }> => {
     const response = await axiosInstance.post<{ success: boolean }>(`/courses/me/my-courses/${courseId}/lessons`, lesson);
     return response.data;
 }
 
-export const updateMyCourseLesson = async (courseId: string, lessonId: string, lesson: CreateMyCourseLesson): Promise<{ success: boolean }> => {
+export const updateMyCourseLesson = async (courseId: string, lessonId: string, lesson: CreateMyLesson): Promise<{ success: boolean }> => {
     const response = await axiosInstance.put<{ success: boolean }>(`/courses/me/my-courses/${courseId}/lessons/${lessonId}`, lesson);
     return response.data;
 }

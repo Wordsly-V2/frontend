@@ -6,8 +6,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useState, useEffect } from "react";
 import { IWord } from "@/types/courses/courses.type";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
 
 interface WordFormDialogProps {
+    isLoading: boolean;
     isOpen: boolean;
     onClose: () => void;
     onSubmit: (word: Omit<IWord, 'id' | 'lessonId' | 'createdAt' | 'updatedAt'>) => void;
@@ -16,6 +18,7 @@ interface WordFormDialogProps {
 }
 
 export default function WordFormDialog({
+    isLoading,
     isOpen,
     onClose,
     onSubmit,
@@ -31,23 +34,27 @@ export default function WordFormDialog({
     });
 
     useEffect(() => {
-        if (word) {
-            setFormData({
-                word: word.word,
-                meaning: word.meaning,
-                pronunciation: word.pronunciation || "",
-                partOfSpeech: word.partOfSpeech || "",
-                audioUrl: word.audioUrl || "",
-            });
-        } else {
-            setFormData({
-                word: "",
-                meaning: "",
-                pronunciation: "",
-                partOfSpeech: "",
-                audioUrl: "",
-            });
+        const _setFormData = () => {
+            if (word) {
+                setFormData({
+                    word: word.word,
+                    meaning: word.meaning,
+                    pronunciation: word.pronunciation || "",
+                    partOfSpeech: word.partOfSpeech || "",
+                    audioUrl: word.audioUrl || "",
+                });
+            } else {
+                setFormData({
+                    word: "",
+                    meaning: "",
+                    pronunciation: "",
+                    partOfSpeech: "",
+                    audioUrl: "",
+                });
+            }
         }
+
+        _setFormData();
     }, [word, isOpen]);
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -60,7 +67,6 @@ export default function WordFormDialog({
                 partOfSpeech: formData.partOfSpeech.trim() || undefined,
                 audioUrl: formData.audioUrl.trim() || undefined,
             });
-            handleClose();
         }
     };
 
@@ -150,11 +156,18 @@ export default function WordFormDialog({
                     </div>
 
                     <DialogFooter>
-                        <Button type="button" variant="outline" onClick={handleClose}>
+                        <Button type="button" variant="outline" onClick={handleClose} disabled={isLoading}>
                             Cancel
                         </Button>
-                        <Button type="submit">
-                            {word ? 'Update' : 'Add'} Word
+                        <Button type="submit" disabled={isLoading}>
+                        {
+                                isLoading ? (
+                                    <LoadingSpinner size="sm" />
+                                ) : (
+                                    word ? 'Update' : 'Add'
+                                )
+                            }
+                            Word
                         </Button>
                     </DialogFooter>
                 </form>
