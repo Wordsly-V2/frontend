@@ -1,41 +1,22 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import CoursesHeader from "@/components/features/courses/courses-header";
-import CourseGrid from "@/components/features/courses/course-grid";
-import { Pagination } from "@/components/ui/pagination";
-import { ICourse } from "@/types/courses/courses.type";
-import { IPaginatedResponse } from "@/types/common/pagination.type";
-import { getMyCourses } from "@/apis/courses.api";
-import { useGetMyCoursesTotalStatsQuery } from "@/queries/courses.query";
 import LoadingSection from "@/components/common/loading-section/loading-section";
+import CourseGrid from "@/components/features/courses/course-grid";
+import CoursesHeader from "@/components/features/courses/courses-header";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { Pagination } from "@/components/ui/pagination";
+import { useGetMyCoursesQuery, useGetMyCoursesTotalStatsQuery } from "@/queries/courses.query";
+import { useState } from "react";
 
 export default function LearnPage() {
     const { data: courseTotalStats, isLoading: isLoadingCourseTotalStats, isError: isErrorCourseTotalStats, refetch: refetchCourseTotalStats } = useGetMyCoursesTotalStatsQuery();
     const isLoadingStats = isLoadingCourseTotalStats || isErrorCourseTotalStats || !courseTotalStats;
 
-    const [paginatedData, setPaginatedData] = useState<IPaginatedResponse<ICourse>>({
-        totalItems: 0,
-        totalPages: 0,
-        currentPage: 1,
-        items: [],
-    });
     const [currentPage, setCurrentPage] = useState(1);
     const [searchQuery, setSearchQuery] = useState("");
     const itemsPerPage = 10;
 
-    // Load all courses for stats and search
-    useEffect(() => {
-        getMyCourses(itemsPerPage, currentPage).then((res) => {
-            setPaginatedData({
-                totalItems: res.totalItems,
-                totalPages: res.totalPages,
-                currentPage: res.currentPage,
-                items: res.items,
-            });
-        });
-    }, []);
+    const { data: paginatedData, isLoading: isLoadingCourses, isError: isErrorCourses, refetch: refetchCourses } = useGetMyCoursesQuery(itemsPerPage, currentPage, "name", "asc", searchQuery);
 
     const handleSearch = (query: string) => {
         setSearchQuery(query);
@@ -47,10 +28,11 @@ export default function LearnPage() {
     };
 
 
-    if (isLoadingCourseTotalStats || isErrorCourseTotalStats || !courseTotalStats) {
-        return <LoadingSection isLoading={isLoadingCourseTotalStats} error={isErrorCourseTotalStats ? 'Error loading course total stats' : null} refetch={refetchCourseTotalStats} />;
+    const handleClickTotalStats = () => {
+        if (isLoadingStats) {
+            refetchCourseTotalStats();
+        }
     }
-
 
     return (
         <main className="min-h-screen bg-background">
@@ -58,7 +40,7 @@ export default function LearnPage() {
 
                 {/* Stats Section */}
                 <div className="mb-6 grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div className="bg-card border border-border rounded-lg p-6">
+                    <div className="bg-card border border-border rounded-lg p-6 hover:border-primary/50 transition-all cursor-pointer card-hover" onClick={handleClickTotalStats}>
                         <div className="flex items-center gap-3">
                             <div className="w-12 h-12 rounded-lg gradient-brand flex items-center justify-center">
                                 <svg
@@ -88,7 +70,7 @@ export default function LearnPage() {
                         </div>
                     </div>
 
-                    <div className="bg-card border border-border rounded-lg p-6">
+                    <div className="bg-card border border-border rounded-lg p-6 hover:border-primary/50 transition-all cursor-pointer card-hover" onClick={handleClickTotalStats}>
                         <div className="flex items-center gap-3">
                             <div className="w-12 h-12 rounded-lg gradient-accent flex items-center justify-center">
                                 <svg
@@ -118,7 +100,7 @@ export default function LearnPage() {
                         </div>
                     </div>
 
-                    <div className="bg-card border border-border rounded-lg p-6">
+                    <div className="bg-card border border-border rounded-lg p-6 hover:border-primary/50 transition-all cursor-pointer card-hover" onClick={handleClickTotalStats}>
                         <div className="flex items-center gap-3">
                             <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center">
                                 <svg
@@ -149,20 +131,29 @@ export default function LearnPage() {
                     </div>
                 </div>
 
-                <CoursesHeader
-                    totalCourses={paginatedData.totalItems}
-                    onSearch={handleSearch}
-                />
+                {
+                    isLoadingCourses || isErrorCourses || !paginatedData ? (
+                        <LoadingSection isLoading={isLoadingCourses} error={isErrorCourses ? 'Error loading courses' : null} refetch={refetchCourses} />
+                    ) : (
+                        <>
+                            <CoursesHeader
+                                totalCourses={paginatedData.totalItems}
+                                onSearch={handleSearch}
+                            />
 
-                <div className="mt-8">
-                    <CourseGrid courses={paginatedData.items} />
-                </div>
+                            <div className="mt-8">
+                                <CourseGrid courses={paginatedData.items} />
+                            </div>
 
-                <Pagination
-                    currentPage={paginatedData.currentPage}
-                    totalPages={paginatedData.totalPages}
-                    onPageChange={handlePageChange}
-                />
+                            <Pagination
+                                currentPage={paginatedData.currentPage}
+                                totalPages={paginatedData.totalPages}
+                                onPageChange={handlePageChange}
+                            />
+                        </>
+                    )
+                }
+
             </div>
         </main>
     );
