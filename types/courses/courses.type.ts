@@ -39,3 +39,7 @@ export interface ICourseTotalStats {
     totalLessons: number;
     totalWords: number;
 }
+
+export type CreateMyCourseLesson = Pick<ILesson, 'name' | 'coverImageUrl' | 'maxWords' | 'orderIndex'>;
+
+export type CreateUpdateMyCourse = Pick<ILesson, 'name' | 'coverImageUrl'>;

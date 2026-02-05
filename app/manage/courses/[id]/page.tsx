@@ -4,25 +4,25 @@ import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import { use, useCallback, useEffect, useState } from "react";
 
-import { getCourseDetailById } from "@/apis/courses.api";
 import ConfirmDialog from "@/components/common/confirm-dialog/confirm-dialog";
+import LoadingSection from "@/components/common/loading-section/loading-section";
 import CourseFormDialog from "@/components/features/manage/course-form-dialog";
 import LessonFormDialog from "@/components/features/manage/lesson-form-dialog";
 import MoveWordDialog from "@/components/features/manage/move-word-dialog";
 import WordFormDialog from "@/components/features/manage/word-form-dialog";
 import { useCourses } from "@/hooks/useCourses.hook";
+import { useLessons } from "@/hooks/useLessons.hook";
 import {
-    createLesson,
     createWord,
     deleteLesson,
     deleteWord,
     moveWord,
     reorderLessons,
     updateCourse,
-    updateLesson,
     updateWord
 } from "@/lib/data-store";
-import { ICourse, ILesson, IWord } from "@/types/courses/courses.type";
+import { useGetCourseDetailByIdQuery } from "@/queries/courses.query";
+import { CreateMyCourseLesson, ICourse, ILesson, IWord } from "@/types/courses/courses.type";
 import {
     closestCenter,
     DndContext,
@@ -40,7 +40,6 @@ import {
     verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, ArrowRightLeft, ChevronDown, ChevronRight, Edit, GripVertical, Plus, Trash2, Volume2 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -150,9 +149,9 @@ function SortableLesson({
                             </div>
                             <div className="flex gap-1 flex-shrink-0">
                                 {word.audioUrl && (
-                                    <Button 
-                                        size="sm" 
-                                        variant="ghost" 
+                                    <Button
+                                        size="sm"
+                                        variant="ghost"
                                         onClick={(e) => {
                                             e.stopPropagation();
                                             const audio = new Audio(word.audioUrl);
@@ -163,9 +162,9 @@ function SortableLesson({
                                         <Volume2 className="h-3.5 w-3.5" />
                                     </Button>
                                 )}
-                                <Button 
-                                    size="sm" 
-                                    variant="ghost" 
+                                <Button
+                                    size="sm"
+                                    variant="ghost"
                                     onClick={() => onMoveWord(word)}
                                     title="Move to another lesson"
                                 >
@@ -202,7 +201,7 @@ export default function ManageCourseDetailPage({ params }: { params: Promise<{ i
     const router = useRouter();
     const [lessons, setLessons] = useState<ILesson[]>([]);
     const [expandedLessons, setExpandedLessons] = useState<Set<string>>(new Set());
-    
+
     // Dialog states
     const [courseFormOpen, setCourseFormOpen] = useState(false);
     const [deleteCourseConfirm, setDeleteCourseConfirm] = useState(false);
@@ -214,11 +213,9 @@ export default function ManageCourseDetailPage({ params }: { params: Promise<{ i
     const [deleteConfirm, setDeleteConfirm] = useState<{ type: 'lesson' | 'word'; item: ILesson | IWord } | null>(null);
     const [moveWordDialog, setMoveWordDialog] = useState<{ word: IWord; sourceLesson: ILesson } | null>(null);
 
-    const { data: course, isLoading, isError, refetch: loadCourseDetail } = useQuery({
-        queryKey: ['courses', 'get', 'course-detail', id],
-        queryFn: () => getCourseDetailById(id),
-    });
-    const {mutationUpdateMyCourse, mutationDeleteMyCourse } = useCourses();
+    const { data: course, isLoading, isError, refetch: loadCourseDetail } = useGetCourseDetailByIdQuery(id);
+    const { mutationUpdateMyCourse, mutationDeleteMyCourse } = useCourses();
+    const { mutationCreateMyCourseLesson, mutationUpdateMyCourseLesson, mutationDeleteMyCourseLesson } = useLessons();
 
     const sensors = useSensors(
         useSensor(PointerSensor),
@@ -288,20 +285,51 @@ export default function ManageCourseDetailPage({ params }: { params: Promise<{ i
         });
     }
 
-    const handleCreateLesson = (lessonData: Omit<ILesson, 'id' | 'courseId' | 'createdAt' | 'updatedAt' | 'words' | 'orderIndex'>) => {
-        createLesson(id, lessonData);
-        loadCourse();
-        setLessonFormOpen(false);
-    };
+    const handleCreateMyCourseLesson = (lessonData: CreateMyCourseLesson) => {
+        mutationCreateMyCourseLesson.mutate({ courseId: id, lesson: lessonData }, {
+            onSuccess: () => {
+                loadCourse();
+                setLessonFormOpen(false);
+            },
+            onError: (err) => {
+                toast.error('Failed to create lesson: ' + err.message);
+            },
+        });
+    }
 
-    const handleUpdateLesson = (lessonData: Omit<ILesson, 'id' | 'courseId' | 'createdAt' | 'updatedAt' | 'words' | 'orderIndex'>) => {
+
+    const handleUpdateMyCourseLesson = (lessonData: CreateMyCourseLesson) => {
         if (editingLesson) {
-            updateLesson(id, editingLesson.id, lessonData);
-            loadCourse();
-            setEditingLesson(undefined);
-            setLessonFormOpen(false);
+            mutationUpdateMyCourseLesson.mutate({ courseId: id, lessonId: editingLesson?.id, lesson: lessonData }, {
+                onSuccess: () => {
+                    loadCourse();
+                    setEditingLesson(undefined);
+                    setLessonFormOpen(false);
+                    toast.success('Lesson updated successfully');
+                },
+                onError: (err) => {
+                    toast.error('Failed to update lesson: ' + err.message);
+                },
+            });
+        } else {
+            toast.error('Lesson not found');
         }
-    };
+    }
+
+    const handleDeleteMyCourseLesson = () => {
+        if (deleteConfirm && deleteConfirm.type === 'lesson') {
+        mutationDeleteMyCourseLesson.mutate({ courseId: id, lessonId: deleteConfirm.item.id }, {
+            onSuccess: () => {
+                loadCourse();
+                    setDeleteConfirm(null);
+                    toast.success('Lesson deleted successfully');
+                },
+                onError: (err) => {
+                    toast.error('Failed to delete lesson: ' + err.message);
+                },
+            });
+        }
+    }
 
     const handleDeleteLesson = () => {
         if (deleteConfirm && deleteConfirm.type === 'lesson') {
@@ -347,6 +375,10 @@ export default function ManageCourseDetailPage({ params }: { params: Promise<{ i
             setMoveWordDialog(null);
         }
     };
+
+    if (isLoading || isError) {
+        return <LoadingSection isLoading={isLoading} error={isError ? 'Error loading course' : null} refetch={loadCourse} />;
+    }
 
     if (!course) {
         return (
@@ -487,12 +519,13 @@ export default function ManageCourseDetailPage({ params }: { params: Promise<{ i
             />
 
             <LessonFormDialog
+                isLoading={mutationCreateMyCourseLesson.isPending || mutationUpdateMyCourseLesson.isPending}
                 isOpen={lessonFormOpen}
                 onClose={() => {
                     setLessonFormOpen(false);
                     setEditingLesson(undefined);
                 }}
-                onSubmit={editingLesson ? handleUpdateLesson : handleCreateLesson}
+                onSubmit={editingLesson ? handleUpdateMyCourseLesson : handleCreateMyCourseLesson}
                 lesson={editingLesson}
                 title={editingLesson ? 'Edit Lesson' : 'Create New Lesson'}
             />
@@ -511,12 +544,13 @@ export default function ManageCourseDetailPage({ params }: { params: Promise<{ i
 
             {deleteConfirm && (
                 <ConfirmDialog
+                    isLoading={mutationDeleteMyCourseLesson.isPending}
                     isOpen={!!deleteConfirm}
                     onClose={() => {
                         setDeleteConfirm(null);
                         setActiveLesson(undefined);
                     }}
-                    onConfirm={deleteConfirm.type === 'lesson' ? handleDeleteLesson : handleDeleteWord}
+                    onConfirm={deleteConfirm.type === 'lesson' ? handleDeleteMyCourseLesson : handleDeleteWord}
                     title={deleteConfirm.type === 'lesson' ? 'Delete Lesson' : 'Delete Word'}
                     description={
                         deleteConfirm.type === 'lesson'

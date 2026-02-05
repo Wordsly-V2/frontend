@@ -1,14 +1,14 @@
 import { createMyCourse, deleteMyCourse, updateMyCourse } from "@/apis/courses.api";
-import { ICourse } from "@/types/courses/courses.type";
+import { CreateUpdateMyCourse } from "@/types/courses/courses.type";
 import { useMutation } from "@tanstack/react-query";
 
 export const useCourses = () => {
     const mutationCreateMyCourse = useMutation({
-        mutationFn: (courseData: Pick<ICourse, 'name' | 'coverImageUrl'>) => createMyCourse(courseData),
+        mutationFn: (courseData: CreateUpdateMyCourse) => createMyCourse(courseData),
     });
 
     const mutationUpdateMyCourse = useMutation({
-        mutationFn: ({ courseId, courseData }: { courseId: string, courseData: Pick<ICourse, 'name' | 'coverImageUrl'> }) => updateMyCourse(courseId, courseData),
+        mutationFn: ({ courseId, courseData }: { courseId: string, courseData: CreateUpdateMyCourse }) => updateMyCourse(courseId, courseData),
     });
 
     const mutationDeleteMyCourse = useMutation({

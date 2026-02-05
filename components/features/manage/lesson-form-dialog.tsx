@@ -6,8 +6,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useState, useEffect } from "react";
 import { ILesson } from "@/types/courses/courses.type";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
 
 interface LessonFormDialogProps {
+    isLoading: boolean;
     isOpen: boolean;
     onClose: () => void;
     onSubmit: (lesson: Omit<ILesson, 'id' | 'courseId' | 'createdAt' | 'updatedAt' | 'words' | 'orderIndex'>) => void;
@@ -16,6 +18,7 @@ interface LessonFormDialogProps {
 }
 
 export default function LessonFormDialog({
+    isLoading,
     isOpen,
     onClose,
     onSubmit,
@@ -29,19 +32,22 @@ export default function LessonFormDialog({
     });
 
     useEffect(() => {
-        if (lesson) {
-            setFormData({
-                name: lesson.name,
-                coverImageUrl: lesson.coverImageUrl || "",
-                maxWords: lesson.maxWords?.toString() || "",
-            });
-        } else {
-            setFormData({
-                name: "",
-                coverImageUrl: "",
-                maxWords: "",
-            });
+        const _setFormData = () => {
+            if (lesson) {
+                setFormData({
+                    name: lesson.name,
+                    coverImageUrl: lesson.coverImageUrl || "",
+                    maxWords: lesson.maxWords?.toString() || "",
+                });
+            } else {
+                setFormData({
+                    name: "",
+                    coverImageUrl: "",
+                    maxWords: "",
+                });
+            }
         }
+        _setFormData();
     }, [lesson, isOpen]);
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -52,7 +58,6 @@ export default function LessonFormDialog({
                 coverImageUrl: formData.coverImageUrl.trim() || undefined,
                 maxWords: formData.maxWords ? parseInt(formData.maxWords) : undefined,
             });
-            handleClose();
         }
     };
 
@@ -138,11 +143,18 @@ export default function LessonFormDialog({
                     </div>
 
                     <DialogFooter>
-                        <Button type="button" variant="outline" onClick={handleClose}>
+                        <Button type="button" variant="outline" onClick={handleClose} disabled={isLoading}>
                             Cancel
                         </Button>
-                        <Button type="submit">
-                            {lesson ? 'Update' : 'Create'} Lesson
+                        <Button type="submit" disabled={isLoading}>
+                        {
+                                isLoading ? (
+                                    <LoadingSpinner size="sm" />
+                                ) : (
+                                    lesson ? 'Update' : 'Create'
+                                )
+                            }
+                            Lesson
                         </Button>
                     </DialogFooter>
                 </form>
