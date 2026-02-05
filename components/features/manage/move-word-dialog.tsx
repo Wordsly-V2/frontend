@@ -70,7 +70,7 @@ export default function MoveWordDialog({
                     {/* Target Lesson Selection */}
                     <div className="space-y-2">
                         <Label htmlFor="target-lesson">Move to:</Label>
-                        <div className="space-y-2">
+                        <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1">
                             {availableLessons.map((lesson) => (
                                 <button
                                     key={lesson.id}
