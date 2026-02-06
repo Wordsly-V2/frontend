@@ -45,3 +45,31 @@ export type CreateMyLesson = Pick<ILesson, 'name' | 'coverImageUrl' | 'maxWords'
 export type CreateUpdateMyCourse = Pick<ILesson, 'name' | 'coverImageUrl'>;
 
 export type CreateMyWord = Pick<IWord, 'word' | 'meaning' | 'pronunciation' | 'partOfSpeech' | 'audioUrl'>;
+
+export interface IDictionaryWord {
+  word: string;
+  phonetic?: string;
+  phonetics: PhoneticDto[];
+  meanings: MeaningDto[];
+  sourceUrls?: string[];
+}
+
+export interface PhoneticDto {
+  text?: string;
+  audio?: string;
+  sourceUrl?: string;
+}
+
+export interface MeaningDto {
+  partOfSpeech: string;
+  definitions: DefinitionDto[];
+  synonyms: string[];
+  antonyms: string[];
+}
+
+export interface DefinitionDto {
+  definition: string;
+  example?: string;
+  synonyms: string[];
+  antonyms: string[];
+}
