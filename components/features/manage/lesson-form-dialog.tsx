@@ -72,7 +72,7 @@ export default function LessonFormDialog({
 
     return (
         <Dialog open={isOpen} onOpenChange={handleClose}>
-            <DialogContent className="max-w-md max-h-[85vh] overflow-y-auto mx-3 sm:mx-auto">
+            <DialogContent className="max-w-md max-h-[85vh] overflow-y-auto sm:mx-auto">
                 <form onSubmit={handleSubmit}>
                     <DialogHeader>
                         <DialogTitle className="text-lg sm:text-xl">{title}</DialogTitle>

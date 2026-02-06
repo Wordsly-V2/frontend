@@ -78,24 +78,24 @@ function SortableLesson({
     const allWordsSelected = words.length > 0 && lessonSelectedWords.length === words.length;
 
     return (
-        <div ref={setNodeRef} style={style} className="bg-card border-2 border-border rounded-2xl overflow-hidden">
+        <div ref={setNodeRef} style={style} className="bg-card border-2 border-border rounded-xl sm:rounded-2xl overflow-hidden">
             {/* Lesson Header */}
-            <div className="p-4 bg-muted/30 flex items-center gap-3">
-                <button className="cursor-grab active:cursor-grabbing touch-none" {...attributes} {...listeners}>
-                    <GripVertical className="h-5 w-5 text-muted-foreground" />
+            <div className="p-3 sm:p-4 bg-muted/30 flex items-center gap-2 sm:gap-3">
+                <button className="cursor-grab active:cursor-grabbing touch-none flex-shrink-0" {...attributes} {...listeners}>
+                    <GripVertical className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground" />
                 </button>
                 <button
                     onClick={onToggle}
-                    className="text-muted-foreground hover:text-foreground transition-colors"
+                    className="text-muted-foreground hover:text-foreground transition-colors flex-shrink-0"
                 >
                     {isExpanded ? (
-                        <ChevronDown className="h-5 w-5" />
+                        <ChevronDown className="h-4 w-4 sm:h-5 sm:w-5" />
                     ) : (
-                        <ChevronRight className="h-5 w-5" />
+                        <ChevronRight className="h-4 w-4 sm:h-5 sm:w-5" />
                     )}
                 </button>
                 {lesson.coverImageUrl && (
-                    <div className="relative w-16 h-16 rounded-lg overflow-hidden bg-muted flex-shrink-0">
+                    <div className="relative w-12 h-12 sm:w-16 sm:h-16 rounded-lg overflow-hidden bg-muted flex-shrink-0">
                         <img
                             src={lesson.coverImageUrl}
                             alt={lesson.name}
@@ -107,39 +107,39 @@ function SortableLesson({
                         />
                     </div>
                 )}
-                <div className="flex-1">
-                    <h3 className="font-semibold text-lg">{lesson.name}</h3>
-                    <p className="text-sm text-muted-foreground">
+                <div className="flex-1 min-w-0">
+                    <h3 className="font-semibold text-base sm:text-lg truncate">{lesson.name}</h3>
+                    <p className="text-xs sm:text-sm text-muted-foreground">
                         {words.length} words {lesson.maxWords && `• Max: ${lesson.maxWords}`}
                     </p>
                 </div>
-                <div className="flex gap-2">
-                    <Button size="sm" variant="outline" onClick={onAddWord}>
-                        <Plus className="h-4 w-4 mr-1" />
-                        Add Word
+                <div className="flex gap-1 sm:gap-2 flex-shrink-0">
+                    <Button size="sm" variant="outline" onClick={onAddWord} className="text-xs h-8 px-2 sm:px-3">
+                        <Plus className="h-3.5 w-3.5 sm:h-4 sm:w-4 sm:mr-1" />
+                        <span className="hidden sm:inline">Add Word</span>
                     </Button>
-                    <Button size="sm" variant="outline" onClick={onEdit}>
-                        <Edit className="h-4 w-4" />
+                    <Button size="sm" variant="outline" onClick={onEdit} className="h-8 w-8 sm:w-auto p-0 sm:px-3">
+                        <Edit className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                     </Button>
-                    <Button size="sm" variant="outline" onClick={onDelete} className="text-destructive hover:text-destructive">
-                        <Trash2 className="h-4 w-4" />
+                    <Button size="sm" variant="outline" onClick={onDelete} className="text-destructive hover:text-destructive h-8 w-8 sm:w-auto p-0 sm:px-3">
+                        <Trash2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                     </Button>
                 </div>
             </div>
 
             {/* Words List */}
             {isExpanded && words.length > 0 && (
-                <div className="p-4 space-y-3">
+                <div className="p-3 sm:p-4 space-y-2 sm:space-y-3">
                     {/* Bulk Actions Bar */}
                     {lessonSelectedWords.length > 0 && (
-                        <div className="flex items-center justify-between p-3 bg-primary/5 border border-primary/20 rounded-lg">
-                            <div className="flex items-center gap-3">
+                        <div className="flex items-center justify-between p-2 sm:p-3 bg-primary/5 border border-primary/20 rounded-lg">
+                            <div className="flex items-center gap-2 sm:gap-3">
                                 <Checkbox
                                     checked={allWordsSelected}
                                     onCheckedChange={(checked) => onSelectAllWords(lesson.id, !!checked)}
                                     className="data-[state=checked]:bg-primary data-[state=checked]:border-primary"
                                 />
-                                <span className="text-sm font-medium">
+                                <span className="text-xs sm:text-sm font-medium">
                                     {lessonSelectedWords.length} word{lessonSelectedWords.length !== 1 ? 's' : ''} selected
                                 </span>
                             </div>
@@ -147,9 +147,9 @@ function SortableLesson({
                                 size="sm"
                                 variant="ghost"
                                 onClick={() => onSelectAllWords(lesson.id, false)}
-                                className="text-muted-foreground"
+                                className="text-muted-foreground h-7 w-7 p-0 sm:h-8 sm:w-8"
                             >
-                                <X className="h-4 w-4" />
+                                <X className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                             </Button>
                         </div>
                     )}
@@ -159,7 +159,7 @@ function SortableLesson({
                         return (
                             <div 
                                 key={word.id} 
-                                className={`flex items-start gap-3 p-4 bg-background border rounded-lg transition-colors ${
+                                className={`flex items-start gap-2 sm:gap-3 p-3 sm:p-4 bg-background border rounded-lg transition-colors ${
                                     isSelected 
                                         ? 'border-primary bg-primary/5' 
                                         : 'border-border hover:border-primary/50'
@@ -168,25 +168,25 @@ function SortableLesson({
                                 <Checkbox
                                     checked={isSelected}
                                     onCheckedChange={() => onToggleWordSelection(lesson.id, word.id)}
-                                    className="mt-1 data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+                                    className="mt-0.5 sm:mt-1 data-[state=checked]:bg-primary data-[state=checked]:border-primary flex-shrink-0"
                                 />
                                 <div className="flex-1 min-w-0">
-                                    <div className="flex items-center gap-2 flex-wrap mb-1">
-                                        <span className="font-semibold text-base">{word.word}</span>
+                                    <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap mb-1">
+                                        <span className="font-semibold text-sm sm:text-base break-words">{word.word}</span>
                                         {word.partOfSpeech && (
-                                            <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium">
+                                            <span className="text-xs px-1.5 sm:px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium flex-shrink-0">
                                                 {word.partOfSpeech}
                                             </span>
                                         )}
                                     </div>
-                                    <p className="text-sm text-foreground mb-1">{word.meaning}</p>
+                                    <p className="text-xs sm:text-sm text-foreground mb-1 break-words">{word.meaning}</p>
                                     {word.pronunciation && (
-                                        <p className="text-xs text-muted-foreground">
+                                        <p className="text-xs text-muted-foreground break-all">
                                             {word.pronunciation}
                                         </p>
                                     )}
                                 </div>
-                                <div className="flex gap-1 flex-shrink-0">
+                                <div className="flex gap-0.5 sm:gap-1 flex-shrink-0 flex-wrap">
                                     {word.audioUrl && (
                                         <Button
                                             size="sm"
@@ -196,9 +196,9 @@ function SortableLesson({
                                                 const audio = new Audio(word.audioUrl);
                                                 audio.play().catch(console.error);
                                             }}
-                                            className="text-primary hover:text-primary"
+                                            className="text-primary hover:text-primary h-7 w-7 p-0 sm:h-8 sm:w-8"
                                         >
-                                            <Volume2 className="h-3.5 w-3.5" />
+                                            <Volume2 className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
                                         </Button>
                                     )}
                                     <Button
@@ -206,19 +206,20 @@ function SortableLesson({
                                         variant="ghost"
                                         onClick={() => onMoveWord(word)}
                                         title="Move to another lesson"
+                                        className="h-7 w-7 p-0 sm:h-8 sm:w-8"
                                     >
-                                        <ArrowRightLeft className="h-3.5 w-3.5" />
+                                        <ArrowRightLeft className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
                                     </Button>
-                                    <Button size="sm" variant="ghost" onClick={() => onEditWord(word)}>
-                                        <Edit className="h-3.5 w-3.5" />
+                                    <Button size="sm" variant="ghost" onClick={() => onEditWord(word)} className="h-7 w-7 p-0 sm:h-8 sm:w-8">
+                                        <Edit className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
                                     </Button>
                                     <Button
                                         size="sm"
                                         variant="ghost"
                                         onClick={() => onDeleteWord(word)}
-                                        className="text-destructive hover:text-destructive"
+                                        className="text-destructive hover:text-destructive h-7 w-7 p-0 sm:h-8 sm:w-8"
                                     >
-                                        <Trash2 className="h-3.5 w-3.5" />
+                                        <Trash2 className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
                                     </Button>
                                 </div>
                             </div>
@@ -228,8 +229,8 @@ function SortableLesson({
             )}
 
             {isExpanded && words.length === 0 && (
-                <div className="p-8 text-center text-muted-foreground">
-                    <p className="text-sm">No words yet. Click &ldquo;Add Word&rdquo; to get started.</p>
+                <div className="p-6 sm:p-8 text-center text-muted-foreground">
+                    <p className="text-xs sm:text-sm">No words yet. Click &ldquo;Add Word&rdquo; to get started.</p>
                 </div>
             )}
         </div>
@@ -535,16 +536,16 @@ export default function ManageCourseDetailPage({ params }: { params: Promise<{ i
 
     return (
         <main className="min-h-screen bg-background">
-            <div className="container mx-auto px-4 py-8 max-w-5xl">
-                <Button variant="ghost" onClick={() => router.push('/manage/courses')} className="mb-6">
-                    <ArrowLeft className="h-4 w-4 mr-2" />
+            <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 md:py-8 max-w-5xl">
+                <Button variant="ghost" onClick={() => router.push('/manage/courses')} className="mb-4 sm:mb-6 text-sm sm:text-base" size="sm">
+                    <ArrowLeft className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-2" />
                     Back to Courses
                 </Button>
 
                 {/* Course Header */}
-                <div className="bg-card border-2 border-border rounded-2xl overflow-hidden mb-8">
+                <div className="bg-card border-2 border-border rounded-2xl overflow-hidden mb-6 sm:mb-8">
                     {course.coverImageUrl && (
-                        <div className="relative w-full h-48 bg-muted">
+                        <div className="relative w-full h-40 sm:h-48 bg-muted">
                             <img
                                 src={course.coverImageUrl}
                                 alt={course.name}
@@ -556,37 +557,44 @@ export default function ManageCourseDetailPage({ params }: { params: Promise<{ i
                             />
                         </div>
                     )}
-                    <div className="p-6">
-                        <div className="flex justify-between items-start">
-                            <div>
-                                <h1 className="text-3xl font-bold mb-2">{course.name}</h1>
-                                <p className="text-muted-foreground">
+                    <div className="p-4 sm:p-6">
+                        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3 sm:gap-4">
+                            <div className="flex-1 min-w-0">
+                                <h1 className="text-2xl sm:text-3xl font-bold mb-1 sm:mb-2 break-words">{course.name}</h1>
+                                <p className="text-sm sm:text-base text-muted-foreground">
                                     {lessons.length} lessons • {lessons.reduce((sum, l) => sum + (l.words?.length || 0), 0)} words
                                 </p>
                             </div>
-                            <div className="flex gap-2">
+                            <div className="flex flex-wrap gap-2">
                                 <Button
                                     variant="outline"
                                     onClick={() => setCourseFormOpen(true)}
+                                    size="sm"
+                                    className="text-xs sm:text-sm"
                                 >
-                                    <Edit className="h-4 w-4 mr-2" />
-                                    Edit Course
+                                    <Edit className="h-3.5 w-3.5 sm:h-4 sm:w-4 sm:mr-2" />
+                                    <span className="hidden sm:inline">Edit Course</span>
+                                    <span className="sm:hidden">Edit</span>
                                 </Button>
                                 <Button
                                     variant="outline"
                                     onClick={() => setDeleteCourseConfirm(true)}
-                                    className="text-destructive hover:text-destructive"
+                                    className="text-destructive hover:text-destructive text-xs sm:text-sm"
+                                    size="sm"
                                 >
-                                    <Trash2 className="h-4 w-4 mr-2" />
-                                    Delete Course
+                                    <Trash2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 sm:mr-2" />
+                                    <span className="hidden sm:inline">Delete Course</span>
+                                    <span className="sm:hidden">Delete</span>
                                 </Button>
                                 <Button
                                     onClick={() => {
                                         setEditingLesson(undefined);
                                         setLessonFormOpen(true);
                                     }}
+                                    size="sm"
+                                    className="text-xs sm:text-sm w-full sm:w-auto"
                                 >
-                                    <Plus className="h-4 w-4 mr-2" />
+                                    <Plus className="h-3.5 w-3.5 sm:h-4 sm:w-4 sm:mr-2" />
                                     Add Lesson
                                 </Button>
                             </div>
@@ -596,21 +604,21 @@ export default function ManageCourseDetailPage({ params }: { params: Promise<{ i
 
                 {/* Lessons List */}
                 {lessons.length === 0 ? (
-                    <div className="text-center py-16 border-2 border-dashed border-border rounded-2xl bg-muted/30">
-                        <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-muted mb-4">
-                            <Plus className="h-8 w-8 text-muted-foreground" />
+                    <div className="text-center py-12 sm:py-16 border-2 border-dashed border-border rounded-xl sm:rounded-2xl bg-muted/30 px-4">
+                        <div className="inline-flex items-center justify-center w-12 h-12 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl bg-muted mb-3 sm:mb-4">
+                            <Plus className="h-6 w-6 sm:h-8 sm:w-8 text-muted-foreground" />
                         </div>
-                        <h3 className="text-lg font-semibold mb-2">No lessons yet</h3>
-                        <p className="text-muted-foreground mb-6">Create your first lesson to start adding vocabulary</p>
-                        <Button onClick={() => setLessonFormOpen(true)}>
-                            <Plus className="h-4 w-4 mr-2" />
+                        <h3 className="text-base sm:text-lg font-semibold mb-1 sm:mb-2">No lessons yet</h3>
+                        <p className="text-sm sm:text-base text-muted-foreground mb-4 sm:mb-6">Create your first lesson to start adding vocabulary</p>
+                        <Button onClick={() => setLessonFormOpen(true)} size="sm" className="text-sm sm:text-base">
+                            <Plus className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-2" />
                             Create First Lesson
                         </Button>
                     </div>
                 ) : (
                     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
                         <SortableContext items={lessons.map((l) => l.id)} strategy={verticalListSortingStrategy}>
-                            <div className="space-y-4">
+                            <div className="space-y-3 sm:space-y-4">
                                 {lessons.map((lesson) => (
                                     <SortableLesson
                                         key={lesson.id}

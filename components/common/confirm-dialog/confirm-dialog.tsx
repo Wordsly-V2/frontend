@@ -36,20 +36,20 @@ export default function ConfirmDialog({
 }: Readonly<ConfirmDialogProps>) {
     return (
         <AlertDialog open={isOpen} onOpenChange={onClose}>
-            <AlertDialogContent>
+            <AlertDialogContent className="sm:mx-auto max-w-lg">
                 <AlertDialogHeader>
-                    <AlertDialogTitle>{title}</AlertDialogTitle>
-                    <AlertDialogDescription>{description}</AlertDialogDescription>
+                    <AlertDialogTitle className="text-lg sm:text-xl">{title}</AlertDialogTitle>
+                    <AlertDialogDescription className="text-sm sm:text-base">{description}</AlertDialogDescription>
                 </AlertDialogHeader>
-                <AlertDialogFooter>
-                    <AlertDialogCancel disabled={isLoading}>{cancelText}</AlertDialogCancel>
+                <AlertDialogFooter className="gap-2 sm:gap-0">
+                    <AlertDialogCancel disabled={isLoading} className="w-full sm:w-auto text-sm">{cancelText}</AlertDialogCancel>
                     <AlertDialogAction
                         onClick={(e) => {
                             e.preventDefault();
                             onConfirm();
                         }}
                         disabled={isLoading}
-                        className={variant === "destructive" ? "bg-destructive hover:bg-destructive/90" : ""}
+                        className={`w-full sm:w-auto text-sm ${variant === "destructive" ? "bg-destructive hover:bg-destructive/90" : ""}`}
                     >
                         {isLoading ? "Đang xử lý..." : confirmText}
                     </AlertDialogAction>
