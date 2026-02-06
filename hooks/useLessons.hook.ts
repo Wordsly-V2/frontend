@@ -1,4 +1,4 @@
-import { createMyCourseLesson, deleteMyCourseLesson, updateMyCourseLesson } from "@/apis/lesssons.api";
+import { createMyCourseLesson, deleteMyCourseLesson, reorderMyCourseLessons, updateMyCourseLesson } from "@/apis/lesssons.api";
 import { CreateMyLesson } from "@/types/courses/courses.type";
 import { useMutation } from "@tanstack/react-query";
 
@@ -15,5 +15,9 @@ export const useLessons = () => {
         mutationFn: ({ courseId, lessonId }: { courseId: string, lessonId: string }) => deleteMyCourseLesson(courseId, lessonId),
     });
 
-    return { mutationCreateMyCourseLesson, mutationUpdateMyCourseLesson, mutationDeleteMyCourseLesson };
+    const mutationReorderMyCourseLessons = useMutation({
+        mutationFn: ({ courseId, lessonId, targetOrderIndex }: { courseId: string, lessonId: string, targetOrderIndex: number }) => reorderMyCourseLessons(courseId, lessonId, targetOrderIndex),
+    });
+
+    return { mutationCreateMyCourseLesson, mutationUpdateMyCourseLesson, mutationDeleteMyCourseLesson, mutationReorderMyCourseLessons };
 };

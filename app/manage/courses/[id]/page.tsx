@@ -13,6 +13,7 @@ import MoveWordDialog from "@/components/features/manage/move-word-dialog";
 import WordFormDialog from "@/components/features/manage/word-form-dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useCourses } from "@/hooks/useCourses.hook";
+import { useLoadingOverlay } from "@/hooks/useLoadingOverlay.hook";
 import { useLessons } from "@/hooks/useLessons.hook";
 import { useWords } from "@/hooks/useWords.hook";
 import { useGetCourseDetailByIdQuery } from "@/queries/courses.query";
@@ -270,8 +271,10 @@ export default function ManageCourseDetailPage({ params }: { params: Promise<{ i
 
     const { data: course, isLoading, isError, refetch: loadCourseDetail } = useGetCourseDetailByIdQuery(id, !!id);
     const { mutationUpdateMyCourse, mutationDeleteMyCourse } = useCourses();
-    const { mutationCreateMyCourseLesson, mutationUpdateMyCourseLesson, mutationDeleteMyCourseLesson } = useLessons();
+    const { mutationCreateMyCourseLesson, mutationUpdateMyCourseLesson, mutationDeleteMyCourseLesson, mutationReorderMyCourseLessons } = useLessons();
     const { mutationCreateMyWord, mutationUpdateMyWord, mutationDeleteMyWord, mutationMoveMyWord, mutationBulkDeleteMyWords, mutationBulkMoveMyWords } = useWords();
+
+    useLoadingOverlay({ isPending: mutationReorderMyCourseLessons.isPending, label: "Reordering lessons..." });
 
     const sensors = useSensors(
         useSensor(PointerSensor),
@@ -293,10 +296,17 @@ export default function ManageCourseDetailPage({ params }: { params: Promise<{ i
     const handleDragEnd = (event: DragEndEvent) => {
         const { active, over } = event;
         if (over && active.id !== over.id) {
-            const oldIndex = course?.lessons?.findIndex((l: ILesson) => l.id === active.id);
-            const newIndex = course?.lessons?.findIndex((l: ILesson) => l.id === over.id);
+            const newIndex = (course?.lessons?.findIndex((l: ILesson) => l.id === over.id) || 0) + 1;
 
-            console.log('TODO: reorder lessons', oldIndex, newIndex);
+            mutationReorderMyCourseLessons.mutate({ courseId: id, lessonId: active.id as string, targetOrderIndex: newIndex }, {
+                onSuccess: () => {
+                    loadCourseDetail();
+                    toast.success('Lessons reordered successfully');
+                },
+                onError: (err) => {
+                    toast.error('Failed to reorder lessons: ' + err.message);
+                }
+            });
         }
     };
 
