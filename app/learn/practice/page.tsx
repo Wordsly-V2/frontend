@@ -9,6 +9,7 @@ import { ArrowLeft } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback } from "react";
 import { toast } from "sonner";
+import { useLoadingOverlay } from "@/hooks/useLoadingOverlay.hook";
 
 export default function PracticePage() {
     const router = useRouter();
@@ -45,6 +46,7 @@ export default function PracticePage() {
             }, 2000);
         }
     }, [courseId, router, recordAnswersMutation]);
+    useLoadingOverlay({ isPending: recordAnswersMutation.isPending, label: "Saving progress..." });
 
     const handleBackToCourse = () => {
         const courseId = searchParams.get("courseId");

@@ -10,17 +10,34 @@ import { ILesson, IWord } from "@/types/courses/courses.type";
 import { ArrowLeft, Brain, ChevronDown, ChevronRight, Play, Volume2 } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { use, useState } from "react";
+import { use, useEffect, useState } from "react";
 import { toast } from "sonner";
 
 const DUE_WORDS_LIMIT_OPTIONS = [5, 10, 15, 20] as const;
+const DUE_WORDS_LIMIT_STORAGE_KEY = "wordsly-learn-due-words-limit";
+const DEFAULT_DUE_WORDS_LIMIT = 20;
+
+function getStoredDueWordsLimit(): number {
+    if (globalThis.window === undefined) return DEFAULT_DUE_WORDS_LIMIT;
+    const stored = localStorage.getItem(DUE_WORDS_LIMIT_STORAGE_KEY);
+    const parsed = stored ? Number(stored) : Number.NaN;
+    return DUE_WORDS_LIMIT_OPTIONS.includes(parsed as (typeof DUE_WORDS_LIMIT_OPTIONS)[number])
+        ? parsed
+        : DEFAULT_DUE_WORDS_LIMIT;
+}
 
 export default function LearnCourseDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = use(params);
     const router = useRouter();
     const [expandedLessons, setExpandedLessons] = useState<Set<string>>(new Set());
     const [selectedWords, setSelectedWords] = useState<Set<string>>(new Set());
-    const [dueWordsLimit, setDueWordsLimit] = useState(20);
+    const [dueWordsLimit, setDueWordsLimit] = useState(DEFAULT_DUE_WORDS_LIMIT);
+
+    // Hydrate due-words limit from localStorage after mount (client-only; SSR has no access)
+    useEffect(() => {
+        // eslint-disable-next-line -- hydrate from external store (localStorage) on mount
+        setDueWordsLimit(getStoredDueWordsLimit());
+    }, []);
 
     const { data: course, isLoading, isError, refetch: loadCourseDetail } = useGetCourseDetailByIdQuery(id, !!id);
     const { data: dueWordIds, isLoading: isDueWordIdsLoading } = useGetDueWordIdsQuery(id, undefined, dueWordsLimit, true, !!id);
@@ -48,7 +65,7 @@ export default function LearnCourseDetailPage({ params }: { params: Promise<{ id
     course.lessons?.forEach((lesson) => {
         if (lesson.words) {
             allWords.push(...lesson.words);
-        }   
+        }
     });
 
     const toggleLesson = (lessonId: string) => {
@@ -211,7 +228,11 @@ export default function LearnCourseDetailPage({ params }: { params: Promise<{ id
                                 <select
                                     id="due-words-limit"
                                     value={dueWordsLimit}
-                                    onChange={(e) => setDueWordsLimit(Number(e.target.value))}
+                                    onChange={(e) => {
+                                        const value = Number(e.target.value);
+                                        setDueWordsLimit(value);
+                                        localStorage.setItem(DUE_WORDS_LIMIT_STORAGE_KEY, String(value));
+                                    }}
                                     className="h-8 rounded-md border border-input bg-background px-2 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-ring"
                                 >
                                     {DUE_WORDS_LIMIT_OPTIONS.map((n) => (
