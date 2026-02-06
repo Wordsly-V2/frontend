@@ -6,7 +6,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useGetCourseDetailByIdQuery } from "@/queries/courses.query";
 import { useGetDueWordsQuery } from "@/queries/word-progress.query";
 import { ILesson, IWord } from "@/types/courses/courses.type";
-import { LearningProgressSection, WordProgressStatsInline } from "@/components/common/word-progress-stats";
+import { LearningProgressSection, WordProgressBadge, WordProgressStatsInline } from "@/components/common/word-progress-stats";
 import { ArrowLeft, Brain, ChevronDown, ChevronRight, Play, Volume2 } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -363,6 +363,12 @@ export default function LearnCourseDetailPage({ params }: { params: Promise<{ id
                                                             <p className="text-xs text-muted-foreground mt-0.5 sm:mt-1 break-all">
                                                                 {word.pronunciation}
                                                             </p>
+                                                        )}
+                                                        {word.wordProgress && (
+                                                            <WordProgressBadge
+                                                                progress={word.wordProgress}
+                                                                className="mt-1.5"
+                                                            />
                                                         )}
                                                     </div>
 
