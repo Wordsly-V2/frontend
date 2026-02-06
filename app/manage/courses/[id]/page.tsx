@@ -6,6 +6,7 @@ import { use, useCallback, useEffect, useState } from "react";
 
 import ConfirmDialog from "@/components/common/confirm-dialog/confirm-dialog";
 import LoadingSection from "@/components/common/loading-section/loading-section";
+import { LearningProgressSection, WordProgressBadge, WordProgressStatsInline } from "@/components/common/word-progress-stats";
 import CourseFormDialog from "@/components/features/manage/course-form-dialog";
 import LessonFormDialog from "@/components/features/manage/lesson-form-dialog";
 import MoveWordDialog from "@/components/features/manage/move-word-dialog";
@@ -112,6 +113,13 @@ function SortableLesson({
                     <p className="text-xs sm:text-sm text-muted-foreground">
                         {words.length} words {lesson.maxWords && `• Max: ${lesson.maxWords}`}
                     </p>
+                    {lesson.wordProgressStats && words.length > 0 && (
+                        <WordProgressStatsInline
+                            stats={lesson.wordProgressStats}
+                            totalWords={words.length}
+                            className="mt-1.5"
+                        />
+                    )}
                 </div>
                 <div className="flex gap-1 sm:gap-2 flex-shrink-0">
                     <Button size="sm" variant="outline" onClick={onAddWord} className="text-xs h-8 px-2 sm:px-3">
@@ -184,6 +192,12 @@ function SortableLesson({
                                         <p className="text-xs text-muted-foreground break-all">
                                             {word.pronunciation}
                                         </p>
+                                    )}
+                                    {word.wordProgress && (
+                                        <WordProgressBadge
+                                            progress={word.wordProgress}
+                                            className="mt-1.5"
+                                        />
                                     )}
                                 </div>
                                 <div className="flex gap-0.5 sm:gap-1 flex-shrink-0 flex-wrap">
@@ -601,6 +615,15 @@ export default function ManageCourseDetailPage({ params }: { params: Promise<{ i
                         </div>
                     </div>
                 </div>
+
+                {/* Course word-progress stats */}
+                {course.wordProgressStats && (
+                    <LearningProgressSection
+                        stats={course.wordProgressStats}
+                        title="Learning Progress"
+                        className="mb-6 sm:mb-8"
+                    />
+                )}
 
                 {/* Lessons List */}
                 {lessons.length === 0 ? (

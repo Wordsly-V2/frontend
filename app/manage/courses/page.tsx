@@ -4,6 +4,7 @@ import ConfirmDialog from "@/components/common/confirm-dialog/confirm-dialog";
 import DataTable from "@/components/common/data-table/data-table";
 import LoadingSection from "@/components/common/loading-section/loading-section";
 import CourseFormDialog from "@/components/features/manage/course-form-dialog";
+import { WordProgressStatsInline } from "@/components/common/word-progress-stats";
 import { Button } from "@/components/ui/button";
 import { Pagination } from "@/components/ui/pagination";
 import { useCourses } from "@/hooks/useCourses.hook";
@@ -120,6 +121,22 @@ export default function ManageCoursesPage() {
                     <p className="text-xs text-muted-foreground">
                         {course.totalLessonsCount || 0} lessons • {course.totalWordsCount || 0} words
                     </p>
+                </div>
+            ),
+        },
+        {
+            key: 'wordProgressStats' as keyof ICourse,
+            label: 'Progress',
+            render: (course: ICourse) => (
+                <div className="min-w-0 max-w-[200px]">
+                    {course.wordProgressStats ? (
+                        <WordProgressStatsInline
+                            stats={course.wordProgressStats}
+                            totalWords={course.totalWordsCount}
+                        />
+                    ) : (
+                        <span className="text-xs text-muted-foreground">—</span>
+                    )}
                 </div>
             ),
         },
