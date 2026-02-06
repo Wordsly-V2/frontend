@@ -4,7 +4,7 @@ import LoadingSection from "@/components/common/loading-section/loading-section"
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useGetCourseDetailByIdQuery } from "@/queries/courses.query";
-import { useGetDueWordsQuery } from "@/queries/word-progress.query";
+import { useGetDueWordIdsQuery, useGetDueWordsQuery } from "@/queries/word-progress.query";
 import { ILesson, IWord } from "@/types/courses/courses.type";
 import { LearningProgressSection, WordProgressBadge, WordProgressStatsInline } from "@/components/common/word-progress-stats";
 import { ArrowLeft, Brain, ChevronDown, ChevronRight, Play, Volume2 } from "lucide-react";
@@ -20,7 +20,7 @@ export default function LearnCourseDetailPage({ params }: { params: Promise<{ id
     const [selectedWords, setSelectedWords] = useState<Set<string>>(new Set());
 
     const { data: course, isLoading, isError, refetch: loadCourseDetail } = useGetCourseDetailByIdQuery(id);
-    const { data: dueWords, isLoading: isDueWordsLoading } = useGetDueWordsQuery(id, undefined, 20, true, !!id);
+    const { data: dueWordIds, isLoading: isDueWordIdsLoading } = useGetDueWordIdsQuery(id, undefined, 20, true, !!id);
 
     const lessons = course?.lessons || [];
 
@@ -112,12 +112,12 @@ export default function LearnCourseDetailPage({ params }: { params: Promise<{ id
     };
 
     const handlePracticeDueWords = () => {
-        if (!dueWords || dueWords.length === 0) {
+        if (!dueWordIds || dueWordIds.wordIds.length === 0) {
             toast.info("No words are due for review right now!");
             return;
         }
 
-        const wordIds = dueWords.map((dueWord) => dueWord.word.id).join(",");
+        const wordIds = dueWordIds.wordIds.join(",");
         router.push(`/learn/practice?courseId=${id}&courseName=${course.name}&wordIds=${wordIds}`);
     };
 
@@ -206,15 +206,15 @@ export default function LearnCourseDetailPage({ params }: { params: Promise<{ id
                             <Button
                                 variant="outline"
                                 onClick={handlePracticeDueWords}
-                                disabled={isDueWordsLoading || !dueWords || dueWords.length === 0}
+                                disabled={isDueWordIdsLoading || !dueWordIds || dueWordIds.wordIds.length === 0}
                                 className="border-2 border-purple-500/20 hover:border-purple-500/40 hover:bg-purple-500/10 text-xs sm:text-sm flex-1 sm:flex-initial"
                                 size="sm"
                             >
                                 <Brain className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-2" />
-                                {isDueWordsLoading
+                                {isDueWordIdsLoading
                                     ? "Loading..."
-                                    : dueWords && dueWords.length > 0
-                                        ? `Review Due (${dueWords.length})`
+                                    : dueWordIds && dueWordIds.wordIds.length > 0
+                                        ? `Review Due (${dueWordIds.wordIds.length})`
                                         : "No Due Words"
                                 }
                             </Button>

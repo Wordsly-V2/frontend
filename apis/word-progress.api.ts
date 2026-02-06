@@ -34,6 +34,23 @@ export const getDueWords = async (
     return response.data;
 }
 
+export const getDueWordIds = async (
+    courseId?: string,
+    lessonId?: string,
+    limit?: number,
+    includeNew?: boolean
+): Promise<{ wordIds: string[] }> => {
+    const response = await axiosInstance.get<{ wordIds: string[] }>('/vocabulary/word-progress/due-word-ids', {
+        params: {
+            courseId,
+            lessonId,
+            limit,
+            includeNew: includeNew?.toString(),
+        },
+    });
+    return response.data;
+}
+
 export const getProgressStats = async (
     courseId?: string,
     lessonId?: string

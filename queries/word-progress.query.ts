@@ -1,17 +1,18 @@
-import { 
-    recordAnswer, 
-    recordAnswers, 
-    getDueWords, 
-    getProgressStats, 
-    getWordProgress, 
-    resetProgress 
+import {
+    getDueWordIds,
+    getDueWords,
+    getProgressStats,
+    getWordProgress,
+    recordAnswer,
+    recordAnswers,
+    resetProgress
 } from "@/apis/word-progress.api";
-import { 
-    IRecordAnswerDto, 
-    IBulkRecordAnswersDto, 
-    IWordProgressResponse, 
+import {
+    IBulkRecordAnswersDto,
     IDueWord,
-    IWordProgressStats 
+    IRecordAnswerDto,
+    IWordProgressResponse,
+    IWordProgressStats
 } from "@/types/word-progress/word-progress.type";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
@@ -48,6 +49,18 @@ export const useGetDueWordsQuery = (
 ) => useQuery<IDueWord[]>({
     queryKey: ['due-words', courseId, lessonId, limit, includeNew],
     queryFn: () => getDueWords(courseId, lessonId, limit, includeNew),
+    enabled,
+});
+
+export const useGetDueWordIdsQuery = (
+    courseId?: string,
+    lessonId?: string,
+    limit?: number,
+    includeNew?: boolean,
+    enabled: boolean = true
+) => useQuery<{ wordIds: string[] }>({
+    queryKey: ['due-word-ids', courseId, lessonId, limit, includeNew],
+    queryFn: () => getDueWordIds(courseId, lessonId, limit, includeNew),
     enabled,
 });
 
