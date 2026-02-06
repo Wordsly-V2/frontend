@@ -1,26 +1,29 @@
 "use client";
 
 import LoadingSection from "@/components/common/loading-section/loading-section";
+import { LearningProgressSection, WordProgressBadge, WordProgressStatsInline } from "@/components/common/word-progress-stats";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useGetCourseDetailByIdQuery } from "@/queries/courses.query";
-import { useGetDueWordIdsQuery, useGetDueWordsQuery } from "@/queries/word-progress.query";
+import { useGetDueWordIdsQuery } from "@/queries/word-progress.query";
 import { ILesson, IWord } from "@/types/courses/courses.type";
-import { LearningProgressSection, WordProgressBadge, WordProgressStatsInline } from "@/components/common/word-progress-stats";
 import { ArrowLeft, Brain, ChevronDown, ChevronRight, Play, Volume2 } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { use, useState } from "react";
 import { toast } from "sonner";
 
+const DUE_WORDS_LIMIT_OPTIONS = [5, 10, 15, 20] as const;
+
 export default function LearnCourseDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = use(params);
     const router = useRouter();
     const [expandedLessons, setExpandedLessons] = useState<Set<string>>(new Set());
     const [selectedWords, setSelectedWords] = useState<Set<string>>(new Set());
+    const [dueWordsLimit, setDueWordsLimit] = useState(20);
 
     const { data: course, isLoading, isError, refetch: loadCourseDetail } = useGetCourseDetailByIdQuery(id, !!id);
-    const { data: dueWordIds, isLoading: isDueWordIdsLoading } = useGetDueWordIdsQuery(id, undefined, 20, true, !!id);
+    const { data: dueWordIds, isLoading: isDueWordIdsLoading } = useGetDueWordIdsQuery(id, undefined, dueWordsLimit, true, !!id);
 
     const lessons = course?.lessons || [];
 
@@ -202,7 +205,29 @@ export default function LearnCourseDetailPage({ params }: { params: Promise<{ id
                                 </span>
                             )}
                         </div>
-                        <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+                        <div className="flex flex-wrap gap-2 w-full sm:w-auto items-center">
+                            <div className="flex items-center gap-2">
+                                <label htmlFor="due-words-limit" className="text-xs sm:text-sm text-muted-foreground whitespace-nowrap">
+                                    Due words:
+                                </label>
+                                <select
+                                    id="due-words-limit"
+                                    value={dueWordsLimit}
+                                    onChange={(e) => setDueWordsLimit(Number(e.target.value))}
+                                    className="h-8 rounded-md border border-input bg-background px-2 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                                >
+                                    {DUE_WORDS_LIMIT_OPTIONS.map((n) => (
+                                        <option key={n} value={n}>
+                                            {n}
+                                        </option>
+                                    ))}
+                                </select>
+                                {course?.wordProgressStats?.dueToday != null && course.wordProgressStats.dueToday > 0 && (
+                                    <span className="text-xs text-muted-foreground">
+                                        ({course.wordProgressStats.dueToday} due today)
+                                    </span>
+                                )}
+                            </div>
                             <Button
                                 variant="outline"
                                 onClick={handlePracticeDueWords}
