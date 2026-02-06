@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter, usePathname } from "next/navigation";
 import { useUser } from "@/hooks/useUser.hook";
-import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import LoadingSection from "../loading-section/loading-section";
 
 interface AuthGuardProps {
     children: React.ReactNode;
@@ -47,11 +47,7 @@ export default function AuthGuard({ children }: Readonly<AuthGuardProps>) {
     // Show loading while checking authentication
     if (isChecking || isLoading) {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/5 via-secondary/5 to-accent/5">
-                <div className="text-center space-y-4">
-                    <LoadingSpinner size="lg" label="Checking authentication..." />
-                </div>
-            </div>
+            <LoadingSection isLoading={isChecking || isLoading} error={null} refetch={() => {}} loadingLabel="Checking authentication..." />
         );
     }
 
