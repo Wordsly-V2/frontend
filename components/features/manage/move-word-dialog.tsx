@@ -96,30 +96,35 @@ export default function MoveWordDialog({
                     <div className="space-y-2">
                         <Label htmlFor="target-lesson" className="text-sm">Move to:</Label>
                         <div className="space-y-2 max-h-[200px] sm:max-h-[300px] overflow-y-auto pr-1">
-                            {availableLessons.map((lesson) => (
-                                <button
-                                    key={lesson.id}
-                                    onClick={() => setSelectedLessonId(lesson.id)}
-                                    className={`w-full p-2.5 sm:p-3 text-left rounded-lg border-2 transition-all ${
-                                        selectedLessonId === lesson.id
-                                            ? "border-primary bg-primary/5"
-                                            : "border-border hover:border-primary/50 bg-background"
-                                    }`}
-                                >
-                                    <div className="flex items-center justify-between gap-2">
-                                        <div className="flex-1 min-w-0">
-                                            <div className="font-medium text-sm sm:text-base truncate">{lesson.name}</div>
-                                            <div className="text-xs text-muted-foreground mt-0.5 sm:mt-1">
-                                                {lesson.words?.length || 0} words
-                                                {lesson.maxWords && ` • Max: ${lesson.maxWords}`}
+                            {availableLessons.map((lesson) => {
+                                const isDisabled = lesson.maxWords && (lesson.words?.length ?? 0) >= lesson.maxWords ? true : false;
+                                return (
+                                    (
+                                        <button
+                                            disabled={isDisabled}
+                                            key={lesson.id}
+                                            onClick={() => setSelectedLessonId(lesson.id)}
+                                            className={`w-full p-2.5 sm:p-3 text-left rounded-lg border-2 transition-all ${selectedLessonId === lesson.id
+                                                ? "border-primary bg-primary/5"
+                                                : "border-border hover:border-primary/50 bg-background"
+                                                } ${isDisabled ? "opacity-50 cursor-not-allowed" : ""}`}
+                                        >
+                                            <div className="flex items-center justify-between gap-2">
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="font-medium text-sm sm:text-base truncate">{lesson.name}</div>
+                                                    <div className="text-xs text-muted-foreground mt-0.5 sm:mt-1">
+                                                        {lesson.words?.length || 0} words
+                                                        {lesson.maxWords && ` • Max: ${lesson.maxWords}`}
+                                                    </div>
+                                                </div>
+                                                {selectedLessonId === lesson.id && (
+                                                    <ArrowRight className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary flex-shrink-0" />
+                                                )}
                                             </div>
-                                        </div>
-                                        {selectedLessonId === lesson.id && (
-                                            <ArrowRight className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary flex-shrink-0" />
-                                        )}
-                                    </div>
-                                </button>
-                            ))}
+                                        </button>
+                                    )
+                                )
+                            })}
                         </div>
                     </div>
 
