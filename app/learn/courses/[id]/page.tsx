@@ -4,11 +4,13 @@ import LoadingSection from "@/components/common/loading-section/loading-section"
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useGetCourseDetailByIdQuery } from "@/queries/courses.query";
+import { useGetDueWordsQuery } from "@/queries/word-progress.query";
 import { ILesson, IWord } from "@/types/courses/courses.type";
-import { ArrowLeft, ChevronDown, ChevronRight, Play, Volume2 } from "lucide-react";
+import { ArrowLeft, Brain, ChevronDown, ChevronRight, Play, Volume2 } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { use, useState } from "react";
+import { toast } from "sonner";
 
 export default function LearnCourseDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = use(params);
@@ -17,6 +19,7 @@ export default function LearnCourseDetailPage({ params }: { params: Promise<{ id
     const [selectedWords, setSelectedWords] = useState<Set<string>>(new Set());
 
     const { data: course, isLoading, isError, refetch: loadCourseDetail } = useGetCourseDetailByIdQuery(id);
+    const { data: dueWords, isLoading: isDueWordsLoading } = useGetDueWordsQuery(id, undefined, 20, true, !!id);
     
     const lessons = course?.lessons || [];
 
@@ -107,6 +110,16 @@ export default function LearnCourseDetailPage({ params }: { params: Promise<{ id
         }
     };
 
+    const handlePracticeDueWords = () => {
+        if (!dueWords || dueWords.length === 0) {
+            toast.info("No words are due for review right now!");
+            return;
+        }
+
+        const wordIds = dueWords.map((dueWord) => dueWord.word.id).join(",");
+        router.push(`/learn/practice?courseId=${id}&courseName=${course.name}&wordIds=${wordIds}`);
+    };
+
     return (
         <main className="min-h-screen bg-background">
             <div className="container mx-auto px-4 py-8 max-w-5xl">
@@ -179,13 +192,29 @@ export default function LearnCourseDetailPage({ params }: { params: Promise<{ id
                                 </span>
                             )}
                         </div>
-                        <Button
-                            onClick={handleStartPractice}
-                            disabled={selectedWords.size === 0}
-                        >
-                            <Play className="h-4 w-4 mr-2" />
-                            Practice Selected
-                        </Button>
+                        <div className="flex flex-wrap gap-2">
+                            <Button
+                                variant="outline"
+                                onClick={handlePracticeDueWords}
+                                disabled={isDueWordsLoading || !dueWords || dueWords.length === 0}
+                                className="border-2 border-purple-500/20 hover:border-purple-500/40 hover:bg-purple-500/10"
+                            >
+                                <Brain className="h-4 w-4 mr-2" />
+                                {isDueWordsLoading 
+                                    ? "Loading..." 
+                                    : dueWords && dueWords.length > 0 
+                                        ? `Review Due Words (${dueWords.length})`
+                                        : "No Due Words"
+                                }
+                            </Button>
+                            <Button
+                                onClick={handleStartPractice}
+                                disabled={selectedWords.size === 0}
+                            >
+                                <Play className="h-4 w-4 mr-2" />
+                                Practice Selected
+                            </Button>
+                        </div>
                     </div>
                 )}
 
