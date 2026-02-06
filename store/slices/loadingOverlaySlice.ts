@@ -1,4 +1,4 @@
-import { createSlice } from "@reduxjs/toolkit";
+import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 
 interface LoadingOverlayState {
     visible: boolean;
@@ -14,7 +14,7 @@ const loadingOverlaySlice = createSlice({
     name: "loadingOverlay",
     initialState,
     reducers: {
-        showLoadingOverlay: (state, action: { payload?: { label?: string } }) => {
+        showLoadingOverlay: (state, action: PayloadAction<{ label?: string }>) => {
             state.visible = true;
             if (action.payload?.label === undefined) {
                 state.label = initialState.label;
