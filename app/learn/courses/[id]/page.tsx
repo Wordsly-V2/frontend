@@ -4,7 +4,7 @@ import LoadingSection from "@/components/common/loading-section/loading-section"
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useGetCourseDetailByIdQuery } from "@/queries/courses.query";
-import { useGetDueWordsQuery, useGetProgressStatsQuery } from "@/queries/word-progress.query";
+import { useGetDueWordsQuery } from "@/queries/word-progress.query";
 import { ILesson, IWord } from "@/types/courses/courses.type";
 import { ArrowLeft, Brain, ChevronDown, ChevronRight, Play, Volume2 } from "lucide-react";
 import Image from "next/image";
@@ -19,12 +19,11 @@ export default function LearnCourseDetailPage({ params }: { params: Promise<{ id
     const [selectedWords, setSelectedWords] = useState<Set<string>>(new Set());
 
     const { data: course, isLoading, isError, refetch: loadCourseDetail } = useGetCourseDetailByIdQuery(id);
-    const { data: dueWords, isLoading: isDueWordsLoading } = useGetDueWordsQuery(id, undefined, 20, true, !!id); 
-    const { data: progressStats, isLoading: isProgressStatsLoading } = useGetProgressStatsQuery(id, undefined, true); 
-    
+    const { data: dueWords, isLoading: isDueWordsLoading } = useGetDueWordsQuery(id, undefined, 20, true, !!id);
+
     const lessons = course?.lessons || [];
 
-    if(isLoading || isError) {
+    if (isLoading || isError) {
         return <LoadingSection isLoading={isLoading} error={isError ? 'Error loading course' : null} refetch={loadCourseDetail} />;
     }
 
@@ -74,10 +73,10 @@ export default function LearnCourseDetailPage({ params }: { params: Promise<{ id
         if (!lesson.words) {
             return;
         }
-        
+
         const lessonWordIds = lesson.words.map((w) => w.id);
         const allSelected = lessonWordIds.every((id) => selectedWords.has(id));
-        
+
         const newSelected = new Set(selectedWords);
         if (allSelected) {
             lessonWordIds.forEach((id) => newSelected.delete(id));
@@ -170,96 +169,94 @@ export default function LearnCourseDetailPage({ params }: { params: Promise<{ id
                 </div>
 
                 {/* Word Progress Stats */}
-                {progressStats && !isProgressStatsLoading && (
-                    <div className="bg-card rounded-xl sm:rounded-2xl border border-border p-4 sm:p-6 mb-6 sm:mb-8">
-                        <div className="flex items-center gap-2 mb-4 sm:mb-6">
-                            <Brain className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
-                            <h2 className="text-lg sm:text-xl font-semibold">Learning Progress</h2>
-                        </div>
-                        
-                        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
-                            {/* Total Words */}
-                            <div className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/30 dark:to-blue-900/30 rounded-lg sm:rounded-xl p-3 sm:p-4 border border-blue-200 dark:border-blue-800">
-                                <div className="text-xs sm:text-sm font-medium text-blue-700 dark:text-blue-300 mb-1">
-                                    Total Words
-                                </div>
-                                <div className="text-2xl sm:text-3xl font-bold text-blue-900 dark:text-blue-100">
-                                    {progressStats.totalWords}
-                                </div>
-                            </div>
-
-                            {/* New Words */}
-                            <div className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950/30 dark:to-green-900/30 rounded-lg sm:rounded-xl p-3 sm:p-4 border border-green-200 dark:border-green-800">
-                                <div className="text-xs sm:text-sm font-medium text-green-700 dark:text-green-300 mb-1">
-                                    New
-                                </div>
-                                <div className="text-2xl sm:text-3xl font-bold text-green-900 dark:text-green-100">
-                                    {progressStats.newWords}
-                                </div>
-                            </div>
-
-                            {/* Learning Words */}
-                            <div className="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-950/30 dark:to-orange-900/30 rounded-lg sm:rounded-xl p-3 sm:p-4 border border-orange-200 dark:border-orange-800">
-                                <div className="text-xs sm:text-sm font-medium text-orange-700 dark:text-orange-300 mb-1">
-                                    Learning
-                                </div>
-                                <div className="text-2xl sm:text-3xl font-bold text-orange-900 dark:text-orange-100">
-                                    {progressStats.learningWords}
-                                </div>
-                            </div>
-
-                            {/* Review Words */}
-                            <div className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950/30 dark:to-purple-900/30 rounded-lg sm:rounded-xl p-3 sm:p-4 border border-purple-200 dark:border-purple-800">
-                                <div className="text-xs sm:text-sm font-medium text-purple-700 dark:text-purple-300 mb-1">
-                                    Review
-                                </div>
-                                <div className="text-2xl sm:text-3xl font-bold text-purple-900 dark:text-purple-100">
-                                    {progressStats.reviewWords}
-                                </div>
-                            </div>
-
-                            {/* Due Today */}
-                            <div className="bg-gradient-to-br from-red-50 to-red-100 dark:from-red-950/30 dark:to-red-900/30 rounded-lg sm:rounded-xl p-3 sm:p-4 border border-red-200 dark:border-red-800">
-                                <div className="text-xs sm:text-sm font-medium text-red-700 dark:text-red-300 mb-1">
-                                    Due Today
-                                </div>
-                                <div className="text-2xl sm:text-3xl font-bold text-red-900 dark:text-red-100">
-                                    {progressStats.dueToday}
-                                </div>
-                            </div>
-
-                            {/* Success Rate */}
-                            <div className="bg-gradient-to-br from-teal-50 to-teal-100 dark:from-teal-950/30 dark:to-teal-900/30 rounded-lg sm:rounded-xl p-3 sm:p-4 border border-teal-200 dark:border-teal-800">
-                                <div className="text-xs sm:text-sm font-medium text-teal-700 dark:text-teal-300 mb-1">
-                                    Success Rate
-                                </div>
-                                <div className="text-2xl sm:text-3xl font-bold text-teal-900 dark:text-teal-100">
-                                    {Math.round(progressStats.overallSuccessRate)}%
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Progress Bar */}
-                        {progressStats.totalWords > 0 && (
-                            <div className="mt-4 sm:mt-6">
-                                <div className="flex items-center justify-between text-xs sm:text-sm text-muted-foreground mb-2">
-                                    <span>Learning Progress</span>
-                                    <span>
-                                        {progressStats.learningWords + progressStats.reviewWords} / {progressStats.totalWords} words started
-                                    </span>
-                                </div>
-                                <div className="h-2 sm:h-3 bg-muted rounded-full overflow-hidden">
-                                    <div 
-                                        className="h-full bg-gradient-to-r from-primary to-purple-600 rounded-full transition-all duration-500"
-                                        style={{ 
-                                            width: `${((progressStats.learningWords + progressStats.reviewWords) / progressStats.totalWords * 100)}%` 
-                                        }}
-                                    />
-                                </div>
-                            </div>
-                        )}
+                <div className="bg-card rounded-xl sm:rounded-2xl border border-border p-4 sm:p-6 mb-6 sm:mb-8">
+                    <div className="flex items-center gap-2 mb-4 sm:mb-6">
+                        <Brain className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
+                        <h2 className="text-lg sm:text-xl font-semibold">Learning Progress</h2>
                     </div>
-                )}
+
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
+                        {/* Total Words */}
+                        <div className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/30 dark:to-blue-900/30 rounded-lg sm:rounded-xl p-3 sm:p-4 border border-blue-200 dark:border-blue-800">
+                            <div className="text-xs sm:text-sm font-medium text-blue-700 dark:text-blue-300 mb-1">
+                                Total Words
+                            </div>
+                            <div className="text-2xl sm:text-3xl font-bold text-blue-900 dark:text-blue-100">
+                                {course.wordProgressStats.totalWords}
+                            </div>
+                        </div>
+
+                        {/* New Words */}
+                        <div className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950/30 dark:to-green-900/30 rounded-lg sm:rounded-xl p-3 sm:p-4 border border-green-200 dark:border-green-800">
+                            <div className="text-xs sm:text-sm font-medium text-green-700 dark:text-green-300 mb-1">
+                                New
+                            </div>
+                            <div className="text-2xl sm:text-3xl font-bold text-green-900 dark:text-green-100">
+                                {course.wordProgressStats.newWords}
+                            </div>
+                        </div>
+
+                        {/* Learning Words */}
+                        <div className="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-950/30 dark:to-orange-900/30 rounded-lg sm:rounded-xl p-3 sm:p-4 border border-orange-200 dark:border-orange-800">
+                            <div className="text-xs sm:text-sm font-medium text-orange-700 dark:text-orange-300 mb-1">
+                                Learning
+                            </div>
+                            <div className="text-2xl sm:text-3xl font-bold text-orange-900 dark:text-orange-100">
+                                {course.wordProgressStats.learningWords}
+                            </div>
+                        </div>
+
+                        {/* Review Words */}
+                        <div className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950/30 dark:to-purple-900/30 rounded-lg sm:rounded-xl p-3 sm:p-4 border border-purple-200 dark:border-purple-800">
+                            <div className="text-xs sm:text-sm font-medium text-purple-700 dark:text-purple-300 mb-1">
+                                Review
+                            </div>
+                            <div className="text-2xl sm:text-3xl font-bold text-purple-900 dark:text-purple-100">
+                                {course.wordProgressStats.reviewWords}
+                            </div>
+                        </div>
+
+                        {/* Due Today */}
+                        <div className="bg-gradient-to-br from-red-50 to-red-100 dark:from-red-950/30 dark:to-red-900/30 rounded-lg sm:rounded-xl p-3 sm:p-4 border border-red-200 dark:border-red-800">
+                            <div className="text-xs sm:text-sm font-medium text-red-700 dark:text-red-300 mb-1">
+                                Due Today
+                            </div>
+                            <div className="text-2xl sm:text-3xl font-bold text-red-900 dark:text-red-100">
+                                {course.wordProgressStats.dueToday}
+                            </div>
+                        </div>
+
+                        {/* Success Rate */}
+                        <div className="bg-gradient-to-br from-teal-50 to-teal-100 dark:from-teal-950/30 dark:to-teal-900/30 rounded-lg sm:rounded-xl p-3 sm:p-4 border border-teal-200 dark:border-teal-800">
+                            <div className="text-xs sm:text-sm font-medium text-teal-700 dark:text-teal-300 mb-1">
+                                Success Rate
+                            </div>
+                            <div className="text-2xl sm:text-3xl font-bold text-teal-900 dark:text-teal-100">
+                                {Math.round(course.wordProgressStats.overallSuccessRate)}%
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Progress Bar */}
+                    {course.wordProgressStats.totalWords > 0 && (
+                        <div className="mt-4 sm:mt-6">
+                            <div className="flex items-center justify-between text-xs sm:text-sm text-muted-foreground mb-2">
+                                <span>Learning Progress</span>
+                                <span>
+                                    {course.wordProgressStats.learningWords + course.wordProgressStats.reviewWords} / {course.wordProgressStats.totalWords} words started
+                                </span>
+                            </div>
+                            <div className="h-2 sm:h-3 bg-muted rounded-full overflow-hidden">
+                                <div
+                                    className="h-full bg-gradient-to-r from-primary to-purple-600 rounded-full transition-all duration-500"
+                                    style={{
+                                        width: `${((course.wordProgressStats.learningWords + course.wordProgressStats.reviewWords) / course.wordProgressStats.totalWords * 100)}%`
+                                    }}
+                                />
+                            </div>
+                        </div>
+                    )}
+                </div>
 
                 {/* Selection Actions */}
                 {totalWords > 0 && (
@@ -297,9 +294,9 @@ export default function LearnCourseDetailPage({ params }: { params: Promise<{ id
                                 size="sm"
                             >
                                 <Brain className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-2" />
-                                {isDueWordsLoading 
-                                    ? "Loading..." 
-                                    : dueWords && dueWords.length > 0 
+                                {isDueWordsLoading
+                                    ? "Loading..."
+                                    : dueWords && dueWords.length > 0
                                         ? `Review Due (${dueWords.length})`
                                         : "No Due Words"
                                 }
@@ -362,7 +359,7 @@ export default function LearnCourseDetailPage({ params }: { params: Promise<{ id
                                                 <ChevronRight className="h-4 w-4 sm:h-5 sm:w-5" />
                                             )}
                                         </button>
-                                        
+
                                         <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
                                             {lesson.coverImageUrl ? (
                                                 <div className="relative w-10 h-10 sm:w-12 sm:h-12 rounded-lg overflow-hidden bg-muted flex-shrink-0">
@@ -388,6 +385,38 @@ export default function LearnCourseDetailPage({ params }: { params: Promise<{ id
                                                 <p className="text-xs sm:text-sm text-muted-foreground">
                                                     {lessonWords.length} words
                                                 </p>
+                                                {/* Lesson word-progress stats */}
+                                                {lesson.wordProgressStats && lessonWords.length > 0 && (
+                                                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-1.5">
+                                                        <span className="text-[10px] sm:text-xs text-green-600 dark:text-green-400 font-medium">
+                                                            {lesson.wordProgressStats.newWords} new
+                                                        </span>
+                                                        <span className="text-muted-foreground/60">·</span>
+                                                        <span className="text-[10px] sm:text-xs text-orange-600 dark:text-orange-400 font-medium">
+                                                            {lesson.wordProgressStats.learningWords} learning
+                                                        </span>
+                                                        <span className="text-muted-foreground/60">·</span>
+                                                        <span className="text-[10px] sm:text-xs text-purple-600 dark:text-purple-400 font-medium">
+                                                            {lesson.wordProgressStats.reviewWords} review
+                                                        </span>
+                                                        {lesson.wordProgressStats.dueToday > 0 && (
+                                                            <>
+                                                                <span className="text-muted-foreground/60">·</span>
+                                                                <span className="text-[10px] sm:text-xs text-red-600 dark:text-red-400 font-medium">
+                                                                    {lesson.wordProgressStats.dueToday} due
+                                                                </span>
+                                                            </>
+                                                        )}
+                                                        {(lesson.wordProgressStats.learningWords + lesson.wordProgressStats.reviewWords) > 0 && (
+                                                            <>
+                                                                <span className="text-muted-foreground/60">·</span>
+                                                                <span className="text-[10px] sm:text-xs text-teal-600 dark:text-teal-400 font-medium">
+                                                                    {Math.round(lesson.wordProgressStats.overallSuccessRate)}%
+                                                                </span>
+                                                            </>
+                                                        )}
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
 
@@ -424,7 +453,7 @@ export default function LearnCourseDetailPage({ params }: { params: Promise<{ id
                                                         onClick={(e) => e.stopPropagation()}
                                                         className="flex-shrink-0"
                                                     />
-                                                    
+
                                                     <div className="flex-1 min-w-0">
                                                         <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
                                                             <span className="font-semibold text-sm sm:text-base break-words">{word.word}</span>

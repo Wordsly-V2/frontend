@@ -1,3 +1,11 @@
+export interface IWordProgressStats {
+  totalWords: number;
+  newWords: number;
+  learningWords: number;
+  reviewWords: number;
+  dueToday: number;
+  overallSuccessRate: number;
+}
 export interface ICourse {
     id: string;
     name: string;
@@ -8,6 +16,7 @@ export interface ICourse {
     lessons?: ILesson[];
     totalLessonsCount?: number;
     totalWordsCount?: number;
+    wordProgressStats: IWordProgressStats;
   }
 
 export interface ILesson {
@@ -20,6 +29,7 @@ export interface ILesson {
     createdAt: Date;
     updatedAt: Date;
     words?: IWord[];
+    wordProgressStats: IWordProgressStats;
   }
 
 export interface IWord {
