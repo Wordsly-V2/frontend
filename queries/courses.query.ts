@@ -13,7 +13,8 @@ export const useGetMyCoursesTotalStatsQuery = () => useQuery<ICourseTotalStats>(
     queryFn: () => getMyCoursesTotalStats(),
 });
 
-export const useGetCourseDetailByIdQuery = (courseId: string) => useQuery<ICourse>({
+export const useGetCourseDetailByIdQuery = (courseId: string, enabled: boolean = true) => useQuery<ICourse>({
     queryKey: ['courses', 'get', 'course-detail', courseId],
     queryFn: () => getCourseDetailById(courseId),
+    enabled,
 });

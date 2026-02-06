@@ -134,7 +134,7 @@ export default function WordFormDialog({
 
     return (
         <Dialog open={isOpen} onOpenChange={handleClose}>
-            <DialogContent className="max-w-lg w-[calc(100vw-1.5rem)] sm:w-full max-h-[85vh] overflow-y-auto overflow-x-hidden mx-3 sm:mx-auto">
+            <DialogContent className="max-w-lg w-[calc(100vw-1.5rem)] sm:w-full max-h-[85vh] overflow-y-auto overflow-x-hidden mx-auto">
                 <form onSubmit={handleSubmit} className="min-w-0">
                     <DialogHeader>
                         <DialogTitle className="text-lg sm:text-xl">{title}</DialogTitle>

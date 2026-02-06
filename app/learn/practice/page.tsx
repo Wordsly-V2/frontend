@@ -22,7 +22,7 @@ export default function PracticePage() {
         router.push(`/learn`);
     }
 
-    const { data: words, isLoading: isWordsLoading, isError: isWordsError, refetch: refetchWords } = useGetWordsByIdsQuery(courseId, wordIds.split(","));
+    const { data: words, isLoading: isWordsLoading, isError: isWordsError, refetch: refetchWords } = useGetWordsByIdsQuery(courseId, wordIds.split(","), !!courseId && !!wordIds);
     const recordAnswersMutation = useRecordAnswersMutation();
 
     const handleComplete = useCallback(async (score: number, wordResults: WordResult[]) => {
