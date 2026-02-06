@@ -52,25 +52,25 @@ export default function PracticePage() {
     }
 
     return (
-        <main className="h-[calc(100vh-4rem)] bg-background flex flex-col overflow-hidden">
-            <div className="container mx-auto px-4 py-6 max-w-4xl h-full flex flex-col">
+        <main className="bg-background flex flex-col">
+            <div className="container mx-auto px-3 sm:px-4 py-3 sm:py-6 max-w-4xl flex flex-col">
                 <Button
                     variant="ghost"
                     onClick={handleBackToCourse}
-                    className="mb-4 self-start flex-shrink-0"
+                    className="mb-3 sm:mb-4 self-start flex-shrink-0"
                 >
                     <ArrowLeft className="h-4 w-4 mr-2" />
                     Back to Course
                 </Button>
-                <div className="text-center mb-6 flex-shrink-0">
-                    <h1 className="text-2xl sm:text-3xl font-bold mb-2">
+                <div className="text-center mb-4 sm:mb-6 flex-shrink-0">
+                    <h1 className="text-xl sm:text-2xl md:text-3xl font-bold mb-2">
                         Practice Vocabulary
                     </h1>
-                    <p className="text-muted-foreground">
+                    <p className="text-sm sm:text-base text-muted-foreground">
                         {courseName} • {words.length} words
                     </p>
                 </div>
-                <div className="flex-1">
+                <div className="flex-1 pb-4">
                     <VocabularyPractice words={words} onComplete={handleComplete} />
                 </div>
             </div>

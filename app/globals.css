@@ -160,6 +160,15 @@
 }
 
 @layer utilities {
+  /* Mobile safe area support */
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  
+  .pt-safe {
+    padding-top: env(safe-area-inset-top);
+  }
+  
   /* Learning App Specific Utilities */
   .gradient-brand {
     background: linear-gradient(135deg, var(--brand-primary) 0%, var(--brand-accent) 100%);

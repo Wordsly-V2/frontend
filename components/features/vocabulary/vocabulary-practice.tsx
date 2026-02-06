@@ -153,6 +153,19 @@ export default function VocabularyPractice({
     useEffect(() => {
         if ((isTyping || isListening) && !typingResult && inputRef.current) {
             inputRef.current.focus();
+            
+            // Scroll input into view when keyboard appears on mobile
+            const handleFocus = () => {
+                setTimeout(() => {
+                    inputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }, 300); // Wait for keyboard to appear
+            };
+            
+            inputRef.current.addEventListener('focus', handleFocus);
+            
+            return () => {
+                inputRef.current?.removeEventListener('focus', handleFocus);
+            };
         }
     }, [isTyping, isListening, typingResult, currentIndex]);
 
@@ -287,19 +300,19 @@ export default function VocabularyPractice({
     }, [mode]);
 
     const renderCompletion = () => (
-        <div className="text-center py-16 animate-in fade-in zoom-in duration-500">
-            <div className="inline-flex items-center justify-center w-24 h-24 rounded-full bg-gradient-to-br from-green-400 to-emerald-500 mb-6 animate-in zoom-in duration-700">
-                <CheckCircle2 className="h-14 w-14 text-white" />
+        <div className="text-center py-8 sm:py-16 animate-in fade-in zoom-in duration-500">
+            <div className="inline-flex items-center justify-center w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-gradient-to-br from-green-400 to-emerald-500 mb-4 sm:mb-6 animate-in zoom-in duration-700">
+                <CheckCircle2 className="h-12 w-12 sm:h-14 sm:w-14 text-white" />
             </div>
-            <h2 className="text-3xl font-bold mb-3 gradient-brand bg-clip-text text-transparent">
+            <h2 className="text-2xl sm:text-3xl font-bold mb-2 sm:mb-3 gradient-brand bg-clip-text text-transparent">
                 Excellent Work!
             </h2>
-            <p className="text-muted-foreground mb-8 text-lg">
+            <p className="text-muted-foreground mb-6 sm:mb-8 text-base sm:text-lg">
                 You&apos;ve completed all <span className="font-semibold text-foreground">{shuffledWords.length}</span> words
             </p>
-            <div className="inline-flex items-center justify-center gap-3 px-8 py-4 rounded-2xl bg-primary/10 border-2 border-primary/20">
-                <Sparkles className="h-6 w-6 text-primary" />
-                <p className="text-4xl font-bold text-primary">
+            <div className="inline-flex items-center justify-center gap-2 sm:gap-3 px-6 sm:px-8 py-3 sm:py-4 rounded-2xl bg-primary/10 border-2 border-primary/20">
+                <Sparkles className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
+                <p className="text-3xl sm:text-4xl font-bold text-primary">
                     {score}%
                 </p>
             </div>
@@ -308,46 +321,46 @@ export default function VocabularyPractice({
 
     const renderFlashcardCard = () => (
         <>
-            <div className="space-y-8">
+            <div className="space-y-4 sm:space-y-8">
                 <div className="text-center">
-                    <div className="flex items-center justify-center gap-4 mb-4">
-                        <h2 className="text-5xl font-bold tracking-tight">{currentWord.word}</h2>
+                    <div className="flex items-center justify-center gap-3 sm:gap-4 mb-3 sm:mb-4">
+                        <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight">{currentWord.word}</h2>
                         {currentWord.audioUrl && (
                             <Button
                                 variant="outline"
                                 size="icon"
                                 onClick={handlePlayAudio}
-                                className="h-12 w-12 rounded-xl hover:scale-110 transition-transform"
+                                className="h-10 w-10 sm:h-12 sm:w-12 rounded-xl hover:scale-110 transition-transform flex-shrink-0"
                             >
-                                <Volume2 className="h-6 w-6" />
+                                <Volume2 className="h-5 w-5 sm:h-6 sm:w-6" />
                             </Button>
                         )}
                     </div>
                     {currentWord.pronunciation && (
-                        <p className="text-muted-foreground text-xl font-light mb-3">
+                        <p className="text-muted-foreground text-base sm:text-xl font-light mb-2 sm:mb-3">
                             {currentWord.pronunciation}
                         </p>
                     )}
                     {currentWord.partOfSpeech && (
-                        <span className="inline-block px-4 py-1.5 rounded-full bg-gradient-to-r from-primary/10 to-primary/5 text-primary text-sm font-semibold border border-primary/20">
+                        <span className="inline-block px-3 sm:px-4 py-1 sm:py-1.5 rounded-full bg-gradient-to-r from-primary/10 to-primary/5 text-primary text-xs sm:text-sm font-semibold border border-primary/20">
                             {currentWord.partOfSpeech}
                         </span>
                     )}
                 </div>
 
                 {showAnswer && (
-                    <div className="text-center pt-8 border-t-2 border-dashed border-border animate-in fade-in slide-in-from-bottom-6 duration-500">
-                        <p className="text-3xl font-semibold text-foreground">{currentWord.meaning}</p>
+                    <div className="text-center pt-4 sm:pt-8 border-t-2 border-dashed border-border animate-in fade-in slide-in-from-bottom-6 duration-500">
+                        <p className="text-xl sm:text-2xl md:text-3xl font-semibold text-foreground">{currentWord.meaning}</p>
                     </div>
                 )}
             </div>
 
-            <div className="flex justify-center mt-10">
+            <div className="flex justify-center mt-6 sm:mt-10">
                 {showAnswer ? (
                     <Button
                         onClick={handleNext}
                         size="lg"
-                        className="min-w-[240px] h-14 text-lg rounded-xl gap-2 hover:scale-105 transition-transform"
+                        className="w-full sm:min-w-[240px] sm:w-auto h-12 sm:h-14 text-base sm:text-lg rounded-xl gap-2 hover:scale-105 transition-transform"
                     >
                         {currentIndex < shuffledWords.length - 1 ? (
                             <>
@@ -362,7 +375,7 @@ export default function VocabularyPractice({
                     <Button 
                         onClick={handleReveal} 
                         size="lg" 
-                        className="min-w-[240px] h-14 text-lg rounded-xl hover:scale-105 transition-transform"
+                        className="w-full sm:min-w-[240px] sm:w-auto h-12 sm:h-14 text-base sm:text-lg rounded-xl hover:scale-105 transition-transform"
                     >
                         Reveal Meaning
                     </Button>
@@ -372,22 +385,22 @@ export default function VocabularyPractice({
     );
 
     const renderTypingCard = () => (
-        <div className="space-y-8">
+        <div className="space-y-4 sm:space-y-8">
             <div className="text-center">
-                <p className="text-xs uppercase tracking-widest font-semibold text-muted-foreground mb-4 flex items-center justify-center gap-2">
-                    <span className="h-px w-8 bg-border"></span>
+                <p className="text-xs uppercase tracking-widest font-semibold text-muted-foreground mb-3 sm:mb-4 flex items-center justify-center gap-2">
+                    <span className="h-px w-6 sm:w-8 bg-border"></span>
                     Translation
-                    <span className="h-px w-8 bg-border"></span>
+                    <span className="h-px w-6 sm:w-8 bg-border"></span>
                 </p>
-                <p className="text-3xl font-bold mb-4">{currentWord.meaning}</p>
+                <p className="text-xl sm:text-2xl md:text-3xl font-bold mb-3 sm:mb-4 px-2">{currentWord.meaning}</p>
                 {currentWord.partOfSpeech && (
-                    <span className="inline-block px-4 py-1.5 rounded-full bg-gradient-to-r from-primary/10 to-primary/5 text-primary text-sm font-semibold border border-primary/20">
+                    <span className="inline-block px-3 sm:px-4 py-1 sm:py-1.5 rounded-full bg-gradient-to-r from-primary/10 to-primary/5 text-primary text-xs sm:text-sm font-semibold border border-primary/20">
                         {currentWord.partOfSpeech}
                     </span>
                 )}
             </div>
 
-            <div className="space-y-6">
+            <div className="space-y-4 sm:space-y-6">
                 <div className="relative">
                     <input
                         ref={inputRef}
@@ -409,20 +422,20 @@ export default function VocabularyPractice({
                                 handleCheckTypingAnswer();
                             }, 100);
                         }}
-                        className="w-full px-6 py-5 text-2xl font-medium text-center rounded-2xl border-2 border-border bg-background focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all outline-none placeholder:text-muted-foreground/40"
+                        className="w-full px-4 sm:px-6 py-4 sm:py-5 text-lg sm:text-2xl font-medium text-center rounded-xl sm:rounded-2xl border-2 border-border bg-background focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all outline-none placeholder:text-muted-foreground/40"
                     />
-                    <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-primary/5 to-purple/5 -z-10 blur-xl opacity-0 transition-opacity group-focus-within:opacity-100"></div>
+                    <div className="absolute inset-0 rounded-xl sm:rounded-2xl bg-gradient-to-r from-primary/5 to-purple/5 -z-10 blur-xl opacity-0 transition-opacity group-focus-within:opacity-100"></div>
                 </div>
                 
-                <div className="flex flex-wrap justify-center gap-3">
+                <div className="flex flex-wrap justify-center gap-2 sm:gap-3">
                     {/* Hint Button */}
                     <Button
                         variant="outline"
                         size="lg"
                         onClick={handleGetHint}
-                        className="gap-2 rounded-xl hover:scale-105 transition-transform"
+                        className="gap-2 rounded-xl hover:scale-105 transition-transform h-11 sm:h-12 text-sm sm:text-base"
                     >
-                        <Lightbulb className="h-5 w-5" />
+                        <Lightbulb className="h-4 w-4 sm:h-5 sm:w-5" />
                         Get Hint
                         {hintsUsed > 0 && (
                             <span className="text-xs opacity-70">({hintsUsed})</span>
@@ -433,11 +446,11 @@ export default function VocabularyPractice({
                     {!autoCheck && (
                         <Button
                             size="lg"
-                            className="min-w-[200px] h-12 text-lg rounded-xl gap-2 hover:scale-105 transition-transform"
+                            className="min-w-[160px] sm:min-w-[200px] h-11 sm:h-12 text-sm sm:text-lg rounded-xl gap-2 hover:scale-105 transition-transform"
                             onClick={handleCheckTypingAnswer}
                             disabled={userAnswer.trim().length === 0}
                         >
-                            <CheckCircle2 className="h-5 w-5" />
+                            <CheckCircle2 className="h-4 w-4 sm:h-5 sm:w-5" />
                             Check Answer
                         </Button>
                     )}
@@ -447,44 +460,44 @@ export default function VocabularyPractice({
     );
 
     const renderMultipleChoiceCard = () => (
-        <div className="space-y-8">
+        <div className="space-y-4 sm:space-y-8">
             <div className="text-center">
-                <div className="flex items-center justify-center gap-4 mb-4">
-                    <h2 className="text-5xl font-bold tracking-tight">{currentWord.word}</h2>
+                <div className="flex items-center justify-center gap-3 sm:gap-4 mb-3 sm:mb-4">
+                    <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight">{currentWord.word}</h2>
                     {currentWord.audioUrl && (
                         <Button
                             variant="outline"
                             size="icon"
                             onClick={handlePlayAudio}
-                            className="h-12 w-12 rounded-xl hover:scale-110 transition-transform"
+                            className="h-10 w-10 sm:h-12 sm:w-12 rounded-xl hover:scale-110 transition-transform flex-shrink-0"
                         >
-                            <Volume2 className="h-6 w-6" />
+                            <Volume2 className="h-5 w-5 sm:h-6 sm:w-6" />
                         </Button>
                     )}
                 </div>
                 {currentWord.pronunciation && (
-                    <p className="text-muted-foreground text-xl font-light mb-3">
+                    <p className="text-muted-foreground text-base sm:text-xl font-light mb-2 sm:mb-3">
                         {currentWord.pronunciation}
                     </p>
                 )}
                 {currentWord.partOfSpeech && (
-                    <span className="inline-block px-4 py-1.5 rounded-full bg-gradient-to-r from-primary/10 to-primary/5 text-primary text-sm font-semibold border border-primary/20">
+                    <span className="inline-block px-3 sm:px-4 py-1 sm:py-1.5 rounded-full bg-gradient-to-r from-primary/10 to-primary/5 text-primary text-xs sm:text-sm font-semibold border border-primary/20">
                         {currentWord.partOfSpeech}
                     </span>
                 )}
             </div>
 
-            <div className="space-y-6">
-                <p className="text-center text-sm font-medium text-muted-foreground uppercase tracking-wider">
+            <div className="space-y-4 sm:space-y-6">
+                <p className="text-center text-xs sm:text-sm font-medium text-muted-foreground uppercase tracking-wider">
                     Choose the correct meaning
                 </p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-3 sm:gap-4">
                     {multipleChoiceOptions.map((option, index) => {
                         const isSelected = selectedChoice === option;
                         const isCorrect = option === currentWord.meaning;
                         const showResult = typingResult !== null;
                         
-                        let buttonClass = "group relative w-full min-h-[80px] p-5 text-left rounded-2xl border-2 transition-all duration-300 hover:shadow-lg";
+                        let buttonClass = "group relative w-full min-h-[60px] sm:min-h-[80px] p-4 sm:p-5 text-left rounded-xl sm:rounded-2xl border-2 transition-all duration-300 hover:shadow-lg";
                         
                         if (!showResult) {
                             buttonClass += " border-border bg-gradient-to-br from-background to-muted/20 hover:border-primary hover:from-primary/5 hover:to-primary/10 hover:scale-[1.02] active:scale-[0.98]";
@@ -504,10 +517,10 @@ export default function VocabularyPractice({
                                 disabled={typingResult !== null}
                                 className={buttonClass}
                             >
-                                <span className="flex items-start gap-4 w-full">
+                                <span className="flex items-start gap-3 sm:gap-4 w-full">
                                     <span 
                                         className={`
-                                            flex-shrink-0 w-10 h-10 rounded-full border-2 flex items-center justify-center font-bold text-base
+                                            flex-shrink-0 w-8 h-8 sm:w-10 sm:h-10 rounded-full border-2 flex items-center justify-center font-bold text-sm sm:text-base
                                             ${!showResult ? 'border-primary/30 bg-primary/5 text-primary group-hover:border-primary group-hover:bg-primary/10' : ''}
                                             ${showResult && isCorrect ? 'border-green-600 bg-green-600 text-white' : ''}
                                             ${showResult && isSelected && !isCorrect ? 'border-red-600 bg-red-600 text-white' : ''}
@@ -519,7 +532,7 @@ export default function VocabularyPractice({
                                     </span>
                                     <span 
                                         className={`
-                                            flex-1 text-base leading-relaxed pt-1.5
+                                            flex-1 text-sm sm:text-base leading-relaxed pt-1 sm:pt-1.5
                                             ${!showResult ? 'text-foreground group-hover:text-foreground' : ''}
                                             ${showResult && isCorrect ? 'text-green-700 font-medium' : ''}
                                             ${showResult && isSelected && !isCorrect ? 'text-red-700 font-medium' : ''}
@@ -529,10 +542,10 @@ export default function VocabularyPractice({
                                         {option}
                                     </span>
                                     {showResult && isCorrect && (
-                                        <CheckCircle2 className="h-6 w-6 text-green-600 flex-shrink-0 animate-in zoom-in duration-300" />
+                                        <CheckCircle2 className="h-5 w-5 sm:h-6 sm:w-6 text-green-600 flex-shrink-0 animate-in zoom-in duration-300" />
                                     )}
                                     {showResult && isSelected && !isCorrect && (
-                                        <XCircle className="h-6 w-6 text-red-600 flex-shrink-0 animate-in zoom-in duration-300" />
+                                        <XCircle className="h-5 w-5 sm:h-6 sm:w-6 text-red-600 flex-shrink-0 animate-in zoom-in duration-300" />
                                     )}
                                 </span>
                             </Button>
@@ -544,44 +557,44 @@ export default function VocabularyPractice({
     );
 
     const renderListeningCard = () => (
-        <div className="space-y-8">
+        <div className="space-y-4 sm:space-y-8">
             <div className="text-center">
-                <p className="text-xs uppercase tracking-widest font-semibold text-muted-foreground mb-6 flex items-center justify-center gap-2">
-                    <span className="h-px w-8 bg-border"></span>
+                <p className="text-xs uppercase tracking-widest font-semibold text-muted-foreground mb-4 sm:mb-6 flex items-center justify-center gap-2">
+                    <span className="h-px w-6 sm:w-8 bg-border"></span>
                     Listening Practice
-                    <span className="h-px w-8 bg-border"></span>
+                    <span className="h-px w-6 sm:w-8 bg-border"></span>
                 </p>
                 
                 {/* Large Play Audio Button */}
-                <div className="flex justify-center mb-6">
+                <div className="flex justify-center mb-4 sm:mb-6">
                     <Button
                         onClick={handlePlayListeningAudio}
                         size="lg"
-                        className="h-24 w-24 rounded-full hover:scale-110 transition-all shadow-lg"
+                        className="h-20 w-20 sm:h-24 sm:w-24 rounded-full hover:scale-110 transition-all shadow-lg"
                         disabled={!currentWord.audioUrl}
                     >
                         {currentWord.audioUrl ? (
-                            <Volume2 className="h-10 w-10" />
+                            <Volume2 className="h-8 w-8 sm:h-10 sm:w-10" />
                         ) : (
-                            <Play className="h-10 w-10" />
+                            <Play className="h-8 w-8 sm:h-10 sm:w-10" />
                         )}
                     </Button>
                 </div>
                 
-                <p className="text-muted-foreground mb-4">
+                <p className="text-sm sm:text-base text-muted-foreground mb-3 sm:mb-4">
                     {!hasPlayedAudio 
                         ? "Click the button to listen" 
                         : "Type what you heard"}
                 </p>
                 
                 {currentWord.partOfSpeech && (
-                    <span className="inline-block px-4 py-1.5 rounded-full bg-gradient-to-r from-primary/10 to-primary/5 text-primary text-sm font-semibold border border-primary/20">
+                    <span className="inline-block px-3 sm:px-4 py-1 sm:py-1.5 rounded-full bg-gradient-to-r from-primary/10 to-primary/5 text-primary text-xs sm:text-sm font-semibold border border-primary/20">
                         {currentWord.partOfSpeech}
                     </span>
                 )}
             </div>
 
-            <div className="space-y-6">
+            <div className="space-y-4 sm:space-y-6">
                 <div className="relative">
                     <input
                         ref={inputRef}
@@ -601,21 +614,21 @@ export default function VocabularyPractice({
                             }, 100);
                         }}
                         disabled={!hasPlayedAudio}
-                        className="w-full px-6 py-5 text-2xl font-medium text-center rounded-2xl border-2 border-border bg-background focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all outline-none placeholder:text-muted-foreground/40 disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="w-full px-4 sm:px-6 py-4 sm:py-5 text-lg sm:text-2xl font-medium text-center rounded-xl sm:rounded-2xl border-2 border-border bg-background focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all outline-none placeholder:text-muted-foreground/40 disabled:opacity-50 disabled:cursor-not-allowed"
                     />
-                    <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-primary/5 to-purple/5 -z-10 blur-xl opacity-0 transition-opacity group-focus-within:opacity-100"></div>
+                    <div className="absolute inset-0 rounded-xl sm:rounded-2xl bg-gradient-to-r from-primary/5 to-purple/5 -z-10 blur-xl opacity-0 transition-opacity group-focus-within:opacity-100"></div>
                 </div>
                 
-                <div className="flex flex-wrap justify-center gap-3">
+                <div className="flex flex-wrap justify-center gap-2 sm:gap-3">
                     {/* Replay Audio Button */}
                     <Button
                         variant="outline"
                         size="lg"
                         onClick={handlePlayListeningAudio}
                         disabled={!currentWord.audioUrl}
-                        className="gap-2 rounded-xl hover:scale-105 transition-transform"
+                        className="gap-2 rounded-xl hover:scale-105 transition-transform h-11 sm:h-12 text-sm sm:text-base"
                     >
-                        <Volume2 className="h-5 w-5" />
+                        <Volume2 className="h-4 w-4 sm:h-5 sm:w-5" />
                         Replay
                     </Button>
                     
@@ -625,9 +638,9 @@ export default function VocabularyPractice({
                         size="lg"
                         onClick={handleGetHint}
                         disabled={!hasPlayedAudio}
-                        className="gap-2 rounded-xl hover:scale-105 transition-transform"
+                        className="gap-2 rounded-xl hover:scale-105 transition-transform h-11 sm:h-12 text-sm sm:text-base"
                     >
-                        <Lightbulb className="h-5 w-5" />
+                        <Lightbulb className="h-4 w-4 sm:h-5 sm:w-5" />
                         Get Hint
                         {hintsUsed > 0 && (
                             <span className="text-xs opacity-70">({hintsUsed})</span>
@@ -637,11 +650,11 @@ export default function VocabularyPractice({
                     {/* Check Answer Button */}
                     <Button
                         size="lg"
-                        className="min-w-[200px] h-12 text-lg rounded-xl gap-2 hover:scale-105 transition-transform"
+                        className="min-w-[160px] sm:min-w-[200px] h-11 sm:h-12 text-sm sm:text-lg rounded-xl gap-2 hover:scale-105 transition-transform"
                         onClick={handleCheckListeningAnswer}
                         disabled={userAnswer.trim().length === 0 || !hasPlayedAudio}
                     >
-                        <CheckCircle2 className="h-5 w-5" />
+                        <CheckCircle2 className="h-4 w-4 sm:h-5 sm:w-5" />
                         Check Answer
                     </Button>
                 </div>
@@ -654,16 +667,16 @@ export default function VocabularyPractice({
     }
 
     return (
-        <div className="max-w-3xl mx-auto">
+        <div className="max-w-3xl mx-auto pb-safe">
             {/* Progress Bar */}
-            <div className="mb-6">
-                <div className="flex items-center justify-between text-sm font-medium text-muted-foreground mb-2">
+            <div className="mb-4 sm:mb-6">
+                <div className="flex items-center justify-between text-xs sm:text-sm font-medium text-muted-foreground mb-2">
                     <span>Progress</span>
-                    <span className="px-2.5 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-semibold">
+                    <span className="px-2 sm:px-2.5 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-semibold">
                         {currentIndex + 1} / {shuffledWords.length}
                     </span>
                 </div>
-                <div className="h-2.5 bg-muted rounded-full overflow-hidden shadow-inner">
+                <div className="h-2 sm:h-2.5 bg-muted rounded-full overflow-hidden shadow-inner">
                     <div
                         className="h-full bg-gradient-to-r from-primary to-purple-500 transition-all duration-500 ease-out relative"
                         style={{ width: `${progress}%` }}
@@ -674,23 +687,23 @@ export default function VocabularyPractice({
             </div>
 
             {/* Settings and Summary Buttons */}
-            <div className="flex justify-center gap-3 mb-6">
+            <div className="flex justify-center gap-2 sm:gap-3 mb-4 sm:mb-6">
                 <Button
                     variant="outline"
                     size="sm"
                     onClick={() => setShowSettings(true)}
-                    className="gap-2 rounded-full"
+                    className="gap-1.5 sm:gap-2 rounded-full text-xs sm:text-sm"
                 >
-                    <Settings2 className="h-4 w-4" />
+                    <Settings2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                     Settings
                 </Button>
                 <Button
                     variant="outline"
                     size="sm"
                     onClick={() => setShowSummary(true)}
-                    className="gap-2 rounded-full"
+                    className="gap-1.5 sm:gap-2 rounded-full text-xs sm:text-sm"
                 >
-                    <List className="h-4 w-4" />
+                    <List className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                     View All Words
                 </Button>
             </div>
@@ -712,7 +725,7 @@ export default function VocabularyPractice({
             />
 
             {/* Practice Card */}
-            <div className="bg-gradient-to-br from-card to-card/50 border-2 border-border rounded-3xl p-8 md:p-10 mb-6 min-h-[400px] flex flex-col justify-between shadow-xl shadow-primary/5 backdrop-blur-sm">
+            <div className="bg-gradient-to-br from-card to-card/50 border-2 border-border rounded-2xl sm:rounded-3xl p-4 sm:p-8 md:p-10 mb-4 sm:mb-6 min-h-[320px] sm:min-h-[400px] flex flex-col justify-between shadow-xl shadow-primary/5 backdrop-blur-sm">
                 {isFlashcard && renderFlashcardCard()}
                 {isTyping && renderTypingCard()}
                 {isMultipleChoice && renderMultipleChoiceCard()}
@@ -721,7 +734,7 @@ export default function VocabularyPractice({
 
             {/* Quick Actions - Only for Flashcard Mode */}
             {isFlashcard && showAnswer && (
-                <div className="flex flex-wrap gap-3 justify-center animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 justify-center animate-in fade-in slide-in-from-bottom-4 duration-500">
                     <Button
                         variant="outline"
                         size="lg"
@@ -729,18 +742,18 @@ export default function VocabularyPractice({
                             setCorrectCount(correctCount + 1);
                             handleNext();
                         }}
-                        className="gap-2 rounded-xl border-2 text-green-600 border-green-200 bg-green-50 hover:bg-green-100 hover:scale-105 transition-all"
+                        className="gap-2 rounded-xl border-2 text-green-600 border-green-200 bg-green-50 hover:bg-green-100 hover:scale-105 transition-all h-12 sm:h-auto text-sm sm:text-base"
                     >
-                        <CheckCircle2 className="h-5 w-5" />
+                        <CheckCircle2 className="h-4 w-4 sm:h-5 sm:w-5" />
                         I Know This
                     </Button>
                     <Button
                         variant="outline"
                         size="lg"
                         onClick={handleNext}
-                        className="gap-2 rounded-xl border-2 text-orange-600 border-orange-200 bg-orange-50 hover:bg-orange-100 hover:scale-105 transition-all"
+                        className="gap-2 rounded-xl border-2 text-orange-600 border-orange-200 bg-orange-50 hover:bg-orange-100 hover:scale-105 transition-all h-12 sm:h-auto text-sm sm:text-base"
                     >
-                        <XCircle className="h-5 w-5" />
+                        <XCircle className="h-4 w-4 sm:h-5 sm:w-5" />
                         Still Learning
                     </Button>
                 </div>
