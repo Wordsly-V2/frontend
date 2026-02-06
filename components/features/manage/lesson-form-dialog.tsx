@@ -150,14 +150,13 @@ export default function LessonFormDialog({
                             Cancel
                         </Button>
                         <Button type="submit" disabled={isLoading} className="w-full sm:w-auto text-sm">
-                        {
+                            {
                                 isLoading ? (
                                     <LoadingSpinner size="sm" />
                                 ) : (
-                                    lesson ? 'Update' : 'Create'
+                                    lesson ? 'Update Lesson' : 'Create Lesson'
                                 )
                             }
-                            Lesson
                         </Button>
                     </DialogFooter>
                 </form>

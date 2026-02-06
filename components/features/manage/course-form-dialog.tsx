@@ -134,9 +134,9 @@ export default function CourseFormDialog({
                                 isLoading ? (
                                     <LoadingSpinner size="sm" />
                                 ) : (
-                                    course ? 'Update' : 'Create'
+                                    course ? 'Update Course' : 'Create Course'
                                 )
-                            } Course
+                            }
                         </Button>
                     </DialogFooter>
                 </form>

@@ -317,10 +317,9 @@ export default function WordFormDialog({
                                 isLoading ? (
                                     <LoadingSpinner size="sm" />
                                 ) : (
-                                    word ? 'Update ' : 'Add '
+                                    word ? 'Update Word' : 'Add Word'
                                 )
                             }
-                            Word
                         </Button>
                     </DialogFooter>
                 </form>

@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
-import { use, useCallback, useEffect, useState } from "react";
+import { use, useState } from "react";
 
 import ConfirmDialog from "@/components/common/confirm-dialog/confirm-dialog";
 import LoadingSection from "@/components/common/loading-section/loading-section";
@@ -254,7 +254,6 @@ function SortableLesson({
 export default function ManageCourseDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = use(params);
     const router = useRouter();
-    const [lessons, setLessons] = useState<ILesson[]>([]);
     const [expandedLessons, setExpandedLessons] = useState<Set<string>>(new Set());
     const [selectedWords, setSelectedWords] = useState<Set<string>>(new Set());
 
@@ -281,18 +280,6 @@ export default function ManageCourseDetailPage({ params }: { params: Promise<{ i
         })
     );
 
-    const loadCourse = useCallback(() => {
-        loadCourseDetail().then(({ data: course }) => {
-            if (course) {
-                setLessons(course.lessons || []);
-            }
-        });
-    }, [loadCourseDetail]);
-
-    useEffect(() => {
-        loadCourse();
-    }, [loadCourse]);
-
     const toggleLesson = (lessonId: string) => {
         const newExpanded = new Set(expandedLessons);
         if (newExpanded.has(lessonId)) {
@@ -306,18 +293,17 @@ export default function ManageCourseDetailPage({ params }: { params: Promise<{ i
     const handleDragEnd = (event: DragEndEvent) => {
         const { active, over } = event;
         if (over && active.id !== over.id) {
-            const oldIndex = lessons.findIndex((l) => l.id === active.id);
-            const newIndex = lessons.findIndex((l) => l.id === over.id);
-            const newLessons = arrayMove(lessons, oldIndex, newIndex);
-            setLessons(newLessons);
-            // reorderLessons(id, newLessons.map((l) => l.id));
+            const oldIndex = course?.lessons?.findIndex((l: ILesson) => l.id === active.id);
+            const newIndex = course?.lessons?.findIndex((l: ILesson) => l.id === over.id);
+
+            console.log('TODO: reorder lessons', oldIndex, newIndex);
         }
     };
 
     const handleUpdateMyCourse = (courseId: string, courseData: Pick<ICourse, 'name' | 'coverImageUrl'>) => {
         mutationUpdateMyCourse.mutate({ courseId, courseData }, {
             onSuccess: () => {
-                loadCourse();
+                loadCourseDetail();
                 setCourseFormOpen(false);
                 toast.success('Course updated successfully');
             },
@@ -330,7 +316,7 @@ export default function ManageCourseDetailPage({ params }: { params: Promise<{ i
     const handleDeleteMyCourse = (courseId: string) => {
         return mutationDeleteMyCourse.mutate(courseId, {
             onSuccess: () => {
-                loadCourse();
+                loadCourseDetail();
                 setDeleteCourseConfirm(false);
                 router.push('/manage/courses');
                 toast.success('Course deleted successfully');
@@ -344,7 +330,7 @@ export default function ManageCourseDetailPage({ params }: { params: Promise<{ i
     const handleCreateMyCourseLesson = (lessonData: CreateMyLesson) => {
         mutationCreateMyCourseLesson.mutate({ courseId: id, lesson: lessonData }, {
             onSuccess: () => {
-                loadCourse();
+                loadCourseDetail();
                 setLessonFormOpen(false);
             },
             onError: (err) => {
@@ -358,7 +344,7 @@ export default function ManageCourseDetailPage({ params }: { params: Promise<{ i
         if (editingLesson) {
             mutationUpdateMyCourseLesson.mutate({ courseId: id, lessonId: editingLesson?.id, lesson: lessonData }, {
                 onSuccess: () => {
-                    loadCourse();
+                    loadCourseDetail();
                     setEditingLesson(undefined);
                     setLessonFormOpen(false);
                     toast.success('Lesson updated successfully');
@@ -377,7 +363,7 @@ export default function ManageCourseDetailPage({ params }: { params: Promise<{ i
             const lessonItem = deleteConfirm.item as ILesson;
             mutationDeleteMyCourseLesson.mutate({ courseId: id, lessonId: lessonItem.id }, {
                 onSuccess: () => {
-                    loadCourse();
+                    loadCourseDetail();
                     setDeleteConfirm(null);
                     toast.success('Lesson deleted successfully');
                 },
@@ -392,7 +378,7 @@ export default function ManageCourseDetailPage({ params }: { params: Promise<{ i
         if (activeLesson) {
             mutationCreateMyWord.mutate({ courseId: id, lessonId: activeLesson?.id, word: wordData }, {
                 onSuccess: () => {
-                    loadCourse();
+                    loadCourseDetail();
                     setActiveLesson(undefined);
                     setWordFormOpen(false);
                     toast.success('Word created successfully');
@@ -408,7 +394,7 @@ export default function ManageCourseDetailPage({ params }: { params: Promise<{ i
         if (editingWord && activeLesson) {
             mutationUpdateMyWord.mutate({ courseId: id, lessonId: activeLesson?.id, wordId: editingWord?.id, word: wordData }, {
                 onSuccess: () => {
-                    loadCourse();
+                    loadCourseDetail();
                     setEditingWord(undefined);
                     setActiveLesson(undefined);
                     setWordFormOpen(false);
@@ -426,7 +412,7 @@ export default function ManageCourseDetailPage({ params }: { params: Promise<{ i
             const wordItem = deleteConfirm.item as IWord;
             mutationDeleteMyWord.mutate({ courseId: id, lessonId: activeLesson?.id, wordId: wordItem.id }, {
                 onSuccess: () => {
-                    loadCourse();
+                    loadCourseDetail();
                     setDeleteConfirm(null);
                     setActiveLesson(undefined);
                     toast.success('Word deleted successfully');
@@ -449,7 +435,7 @@ export default function ManageCourseDetailPage({ params }: { params: Promise<{ i
                 const wordIds = words.map(w => w.id);
                 mutationBulkMoveMyWords.mutate({ courseId: id, lessonId: sourceLesson.id, wordIds, targetLessonId }, {
                     onSuccess: () => {
-                        loadCourse();
+                        loadCourseDetail();
                         setMoveWordDialog(null);
                         setSelectedWords(new Set());
                         toast.success(`${words.length} words moved successfully`);
@@ -462,7 +448,7 @@ export default function ManageCourseDetailPage({ params }: { params: Promise<{ i
                 // Single move
                 mutationMoveMyWord.mutate({ courseId: id, lessonId: sourceLesson.id, wordId: words[0].id, targetLessonId }, {
                     onSuccess: () => {
-                        loadCourse();
+                        loadCourseDetail();
                         setMoveWordDialog(null);
                         setSelectedWords(new Set());
                         toast.success('Word moved successfully');
@@ -477,15 +463,15 @@ export default function ManageCourseDetailPage({ params }: { params: Promise<{ i
 
     const handleBulkDeleteWords = () => {
         if (deleteConfirm && deleteConfirm.type === 'bulk-words' && deleteConfirm.lessonId) {
-            const lesson = lessons.find(l => l.id === deleteConfirm.lessonId);
+            const lesson = course?.lessons?.find((l: ILesson) => l.id === deleteConfirm.lessonId);
             if (!lesson) return;
             
-            const lessonSelectedWords = lesson.words?.filter(w => selectedWords.has(`${lesson.id}-${w.id}`)) || [];
-            const wordIds = lessonSelectedWords.map(w => w.id);
+            const lessonSelectedWords = lesson.words?.filter((w: IWord) => selectedWords.has(`${lesson.id}-${w.id}`)) || [];
+            const wordIds = lessonSelectedWords.map((w: IWord) => w.id);
             
             mutationBulkDeleteMyWords.mutate({ courseId: id, lessonId: lesson.id, wordIds }, {
                 onSuccess: () => {
-                    loadCourse();
+                    loadCourseDetail();
                     setDeleteConfirm(null);
                     setSelectedWords(new Set());
                     toast.success(`${wordIds.length} words deleted successfully`);
@@ -509,7 +495,7 @@ export default function ManageCourseDetailPage({ params }: { params: Promise<{ i
     };
 
     const selectAllWordsInLesson = (lessonId: string, selectAll: boolean) => {
-        const lesson = lessons.find(l => l.id === lessonId);
+        const lesson = course?.lessons?.find((l: ILesson) => l.id === lessonId);
         if (!lesson) return;
         
         const newSelected = new Set(selectedWords);
@@ -525,13 +511,13 @@ export default function ManageCourseDetailPage({ params }: { params: Promise<{ i
     };
 
     const getSelectedWordsForLesson = (lessonId: string): IWord[] => {
-        const lesson = lessons.find(l => l.id === lessonId);
+        const lesson = course?.lessons?.find((l: ILesson) => l.id === lessonId);
         if (!lesson) return [];
         return lesson.words?.filter(w => selectedWords.has(`${lessonId}-${w.id}`)) || [];
     };
 
     if (isLoading || isError) {
-        return <LoadingSection isLoading={isLoading} error={isError ? 'Error loading course' : null} refetch={loadCourse} />;
+        return <LoadingSection isLoading={isLoading} error={isError ? 'Error loading course' : null} refetch={loadCourseDetail} />;
     }
 
     if (!course) {
@@ -576,7 +562,7 @@ export default function ManageCourseDetailPage({ params }: { params: Promise<{ i
                             <div className="flex-1 min-w-0">
                                 <h1 className="text-2xl sm:text-3xl font-bold mb-1 sm:mb-2 break-words">{course.name}</h1>
                                 <p className="text-sm sm:text-base text-muted-foreground">
-                                    {lessons.length} lessons • {lessons.reduce((sum, l) => sum + (l.words?.length || 0), 0)} words
+                                    {course?.lessons?.length || 0} lessons • {course?.lessons?.reduce((sum, l) => sum + (l.words?.length || 0), 0) || 0} words
                                 </p>
                             </div>
                             <div className="flex flex-wrap gap-2">
@@ -626,7 +612,7 @@ export default function ManageCourseDetailPage({ params }: { params: Promise<{ i
                 )}
 
                 {/* Lessons List */}
-                {lessons.length === 0 ? (
+                {course?.lessons?.length === 0 ? (
                     <div className="text-center py-12 sm:py-16 border-2 border-dashed border-border rounded-xl sm:rounded-2xl bg-muted/30 px-4">
                         <div className="inline-flex items-center justify-center w-12 h-12 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl bg-muted mb-3 sm:mb-4">
                             <Plus className="h-6 w-6 sm:h-8 sm:w-8 text-muted-foreground" />
@@ -640,9 +626,9 @@ export default function ManageCourseDetailPage({ params }: { params: Promise<{ i
                     </div>
                 ) : (
                     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-                        <SortableContext items={lessons.map((l) => l.id)} strategy={verticalListSortingStrategy}>
+                        <SortableContext items={course?.lessons?.map((l: ILesson) => l.id) || []} strategy={verticalListSortingStrategy}>
                             <div className="space-y-3 sm:space-y-4">
-                                {lessons.map((lesson) => (
+                                {course?.lessons?.map((lesson: ILesson) => (
                                     <SortableLesson
                                         key={lesson.id}
                                         lesson={lesson}
@@ -684,7 +670,7 @@ export default function ManageCourseDetailPage({ params }: { params: Promise<{ i
             {/* Floating Bulk Actions Bar */}
             {selectedWords.size > 0 && (() => {
                 const selectedByLesson = new Map<string, IWord[]>();
-                lessons.forEach(lesson => {
+                course?.lessons?.forEach((lesson: ILesson) => {
                     const selectedInLesson = getSelectedWordsForLesson(lesson.id);
                     if (selectedInLesson.length > 0) {
                         selectedByLesson.set(lesson.id, selectedInLesson);
@@ -704,7 +690,7 @@ export default function ManageCourseDetailPage({ params }: { params: Promise<{ i
                         <div className="flex gap-2">
                             {selectedByLesson.size === 1 && (() => {
                                 const [lessonId, words] = Array.from(selectedByLesson.entries())[0];
-                                const lesson = lessons.find(l => l.id === lessonId);
+                                const lesson = course?.lessons?.find((l: ILesson) => l.id === lessonId);
                                 return lesson ? (
                                     <>
                                         <Button
@@ -832,7 +818,7 @@ export default function ManageCourseDetailPage({ params }: { params: Promise<{ i
                 onConfirm={handleMoveMyWord}
                 words={moveWordDialog?.words || []}
                 currentLesson={moveWordDialog?.sourceLesson || null}
-                availableLessons={lessons.filter(l => l.id !== moveWordDialog?.sourceLesson.id)}
+                availableLessons={course?.lessons?.filter((l: ILesson) => l.id !== moveWordDialog?.sourceLesson.id) || []}
             />
         </main>
     );

@@ -25,8 +25,6 @@ export default function LearnCourseDetailPage({ params }: { params: Promise<{ id
     const { data: course, isLoading, isError, refetch: loadCourseDetail } = useGetCourseDetailByIdQuery(id, !!id);
     const { data: dueWordIds, isLoading: isDueWordIdsLoading } = useGetDueWordIdsQuery(id, undefined, dueWordsLimit, true, !!id);
 
-    const lessons = course?.lessons || [];
-
     if (isLoading || isError) {
         return <LoadingSection isLoading={isLoading} error={isError ? 'Error loading course' : null} refetch={loadCourseDetail} />;
     }
@@ -45,12 +43,12 @@ export default function LearnCourseDetailPage({ params }: { params: Promise<{ id
         );
     }
 
-    const totalWords = lessons.reduce((sum, l) => sum + (l.words?.length || 0), 0);
+    const totalWords = course.lessons?.reduce((sum, l) => sum + (l.words?.length || 0), 0) || 0;
     const allWords: IWord[] = [];
-    lessons.forEach((lesson) => {
+    course.lessons?.forEach((lesson) => {
         if (lesson.words) {
             allWords.push(...lesson.words);
-        }
+        }   
     });
 
     const toggleLesson = (lessonId: string) => {
@@ -158,7 +156,7 @@ export default function LearnCourseDetailPage({ params }: { params: Promise<{ id
                                         <svg className="h-4 w-4 sm:h-5 sm:w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
                                         </svg>
-                                        {lessons.length} lessons
+                                        {course.lessons?.length || 0} lessons
                                     </span>
                                     <span className="flex items-center gap-1.5">
                                         <svg className="h-4 w-4 sm:h-5 sm:w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -258,16 +256,16 @@ export default function LearnCourseDetailPage({ params }: { params: Promise<{ id
 
                 {/* Expandable Lessons List */}
                 <div className="space-y-2 sm:space-y-3">
-                    {lessons.length === 0 ? (
+                    {course.lessons?.length === 0 ? (
                         <div className="text-center py-12 border-2 border-dashed border-border rounded-xl bg-muted/30">
                             <p className="text-sm sm:text-base text-muted-foreground">No lessons yet</p>
                         </div>
                     ) : (
-                        lessons.map((lesson, index) => {
+                        course.lessons?.map((lesson: ILesson, index: number) => {
                             const isExpanded = expandedLessons.has(lesson.id);
                             const lessonWords = lesson.words || [];
-                            const lessonWordIds = lessonWords.map((w) => w.id);
-                            const allLessonWordsSelected = lessonWordIds.length > 0 && lessonWordIds.every((id) => selectedWords.has(id));
+                            const lessonWordIds = lessonWords.map((w: IWord) => w.id);
+                            const allLessonWordsSelected = lessonWordIds.length > 0 && lessonWordIds.every((id: string) => selectedWords.has(id));
                             const someLessonWordsSelected = lessonWordIds.some((id) => selectedWords.has(id)) && !allLessonWordsSelected;
 
                             return (
