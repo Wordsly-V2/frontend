@@ -1,7 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogFooter, DialogTitle } from "@/components/ui/dialog";
 import { CheckCircle2, XCircle, Volume2 } from "lucide-react";
 import { useEffect } from "react";
 
@@ -66,6 +66,9 @@ export default function TypingResultDialog({
     return (
         <Dialog open={isOpen} onOpenChange={() => {}}>
             <DialogContent className="max-w-md" showCloseButton={false}>
+                <DialogTitle className="sr-only">
+                    {isCorrect ? "Correct Answer" : "Incorrect Answer"}
+                </DialogTitle>
                 <div className="text-center py-6">
                     {isCorrect ? (
                         <div className="space-y-4 animate-in fade-in zoom-in duration-500">
