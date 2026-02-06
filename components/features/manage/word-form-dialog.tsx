@@ -134,8 +134,8 @@ export default function WordFormDialog({
 
     return (
         <Dialog open={isOpen} onOpenChange={handleClose}>
-            <DialogContent className="max-w-lg max-h-[75vh] overflow-y-auto overflow-x-hidden sm:mx-auto">
-                <form onSubmit={handleSubmit}>
+            <DialogContent className="max-w-lg w-[calc(100vw-1.5rem)] sm:w-full max-h-[85vh] overflow-y-auto overflow-x-hidden mx-3 sm:mx-auto">
+                <form onSubmit={handleSubmit} className="min-w-0">
                     <DialogHeader>
                         <DialogTitle className="text-lg sm:text-xl">{title}</DialogTitle>
                     </DialogHeader>
@@ -199,9 +199,9 @@ export default function WordFormDialog({
                             </div>
                         </div>
 
-                        <div className="space-y-2">
+                        <div className="space-y-2 min-w-0">
                             <Label htmlFor="audioUrl" className="text-sm">Audio URL</Label>
-                            <div className="flex gap-1.5 sm:gap-2">
+                            <div className="flex gap-1.5 sm:gap-2 min-w-0">
                                 <Input
                                     id="audioUrl"
                                     type="url"
@@ -211,7 +211,7 @@ export default function WordFormDialog({
                                         setFormData({ ...formData, audioUrl: e.target.value });
                                         clearError();
                                     }}
-                                    className={`text-sm sm:text-base ${audioError ? 'border-destructive' : ''}`}
+                                    className={`flex-1 min-w-0 text-sm sm:text-base ${audioError ? 'border-destructive' : ''}`}
                                 />
                                 <Button
                                     type="button"
@@ -255,12 +255,18 @@ export default function WordFormDialog({
                             )}
 
                             {availableAudioUrls.length > 0 && (
-                                <div className="mt-2 sm:mt-3 space-y-2 rounded-md border p-2 sm:p-3 bg-muted/30">
+                                <div className="mt-2 sm:mt-3 w-full min-w-0 overflow-hidden rounded-md border p-2 sm:p-3 bg-muted/30">
                                     <p className="text-xs sm:text-sm font-medium">Available pronunciations:</p>
-                                    <div className="space-y-2">
+                                    <div className="mt-2 space-y-2 max-h-40 sm:max-h-48 overflow-y-auto overflow-x-hidden">
                                         {availableAudioUrls.map((url, index) => (
-                                            <div key={index} className="flex items-center gap-1.5 sm:gap-2 rounded-md border bg-background p-2 min-w-0">
-                                                <span className="flex-1 truncate text-xs text-muted-foreground overflow-hidden min-w-0">
+                                            <div
+                                                key={index}
+                                                className="flex items-center gap-1.5 sm:gap-2 rounded-md border bg-background p-2 min-w-0 w-full"
+                                            >
+                                                <span
+                                                    className="flex-1 min-w-0 truncate text-xs text-muted-foreground"
+                                                    title={url}
+                                                >
                                                     {url}
                                                 </span>
                                                 <div className="flex gap-1 sm:gap-2 flex-shrink-0">
@@ -271,9 +277,9 @@ export default function WordFormDialog({
                                                         onClick={() => handlePlayPreviewAudio(url)}
                                                         disabled={isPlaying}
                                                         title="Play audio"
-                                                        className="h-7 px-2"
+                                                        className="h-7 w-7 min-w-7 p-0 sm:h-8 sm:w-8 sm:min-w-8"
                                                     >
-                                                        <Volume2 className="h-3 w-3" />
+                                                        <Volume2 className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
                                                     </Button>
                                                     <Button
                                                         type="button"
@@ -281,13 +287,13 @@ export default function WordFormDialog({
                                                         size="sm"
                                                         onClick={() => handleSelectAudioUrl(url)}
                                                         title="Use this audio"
-                                                        className="h-7 px-2 text-xs"
+                                                        className="h-7 min-w-[2.5rem] px-2 text-xs sm:h-8 sm:min-w-10"
                                                     >
                                                         {formData.audioUrl === url ? (
                                                             <>
-                                                                <Check className="h-3 w-3 mr-1" />
-                                                                <span className="hidden xs:inline">Selected</span>
-                                                                <span className="xs:hidden">✓</span>
+                                                                <Check className="h-3 w-3 mr-1 shrink-0" />
+                                                                <span className="hidden sm:inline">Selected</span>
+                                                                <span className="sm:hidden">✓</span>
                                                             </>
                                                         ) : (
                                                             "Use"
@@ -302,7 +308,7 @@ export default function WordFormDialog({
                         </div>
                     </div>
 
-                    <DialogFooter className="gap-2 sm:gap-0">
+                    <DialogFooter className="gap-2 sm:gap-2">
                         <Button type="button" variant="outline" onClick={handleClose} disabled={isLoading} className="w-full sm:w-auto text-sm">
                             Cancel
                         </Button>
@@ -311,7 +317,7 @@ export default function WordFormDialog({
                                 isLoading ? (
                                     <LoadingSpinner size="sm" />
                                 ) : (
-                                    word ? 'Update' : 'Add'
+                                    word ? 'Update ' : 'Add '
                                 )
                             }
                             Word
