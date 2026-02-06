@@ -13,8 +13,8 @@ import MoveWordDialog from "@/components/features/manage/move-word-dialog";
 import WordFormDialog from "@/components/features/manage/word-form-dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useCourses } from "@/hooks/useCourses.hook";
-import { useLoadingOverlay } from "@/hooks/useLoadingOverlay.hook";
 import { useLessons } from "@/hooks/useLessons.hook";
+import { useLoadingOverlay } from "@/hooks/useLoadingOverlay.hook";
 import { useWords } from "@/hooks/useWords.hook";
 import { useGetCourseDetailByIdQuery } from "@/queries/courses.query";
 import { CreateMyLesson, CreateMyWord, ICourse, ILesson, IWord } from "@/types/courses/courses.type";
@@ -28,11 +28,10 @@ import {
     useSensors,
 } from "@dnd-kit/core";
 import {
-    arrayMove,
     SortableContext,
     sortableKeyboardCoordinates,
     useSortable,
-    verticalListSortingStrategy,
+    verticalListSortingStrategy
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { ArrowLeft, ArrowRightLeft, ChevronDown, ChevronRight, Edit, GripVertical, Plus, Trash2, Volume2, X } from "lucide-react";
