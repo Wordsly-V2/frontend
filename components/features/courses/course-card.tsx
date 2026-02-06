@@ -1,5 +1,6 @@
 "use client";
 
+import { WordProgressStatsInline } from "@/components/common/word-progress-stats";
 import { ICourse } from "@/types/courses/courses.type";
 import Image from "next/image";
 import Link from "next/link";
@@ -12,6 +13,12 @@ interface CourseCardProps {
 export default function CourseCard({ course }: Readonly<CourseCardProps>) {
     const lessonCount = course.totalLessonsCount || 0;
     const wordCount = course.totalWordsCount || 0;
+    const stats = course.wordProgressStats ?? undefined;
+    const startedCount = stats
+        ? stats.learningWords + stats.reviewWords
+        : 0;
+    const progressPercent =
+        wordCount > 0 && stats ? (startedCount / stats.totalWords) * 100 : 0;
 
     return (
         <Link href={`/learn/courses/${course.id}`} className="block group">
@@ -56,13 +63,28 @@ export default function CourseCard({ course }: Readonly<CourseCardProps>) {
                         )}
                     </div>
 
-                    {/* Progress bar placeholder */}
+                    {/* Word progress stats inline */}
+                    {stats && wordCount > 0 && (
+                        <WordProgressStatsInline
+                            stats={stats}
+                            totalWords={wordCount}
+                            className="mt-2"
+                        />
+                    )}
+
+                    {/* Progress bar */}
                     <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-border">
                         <div className="flex items-center justify-between text-xs text-muted-foreground mb-1.5">
-                            <span>Start learning</span>
+                            <span>{stats && startedCount > 0 ? "Learning progress" : "Start learning"}</span>
+                            {stats && wordCount > 0 && (
+                                <span>{startedCount} / {stats.totalWords} started</span>
+                            )}
                         </div>
                         <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-                            <div className="h-full bg-primary w-0 rounded-full" />
+                            <div
+                                className="h-full bg-gradient-to-r from-primary to-purple-600 rounded-full transition-all duration-500"
+                                style={{ width: `${progressPercent}%` }}
+                            />
                         </div>
                     </div>
                 </div>

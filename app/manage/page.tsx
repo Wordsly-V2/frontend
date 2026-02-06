@@ -1,8 +1,10 @@
 "use client";
 
+import { LearningProgressSection } from "@/components/common/word-progress-stats";
 import { Button } from "@/components/ui/button";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { useGetMyCoursesTotalStatsQuery } from "@/queries/courses.query";
+import { useGetProgressStatsQuery } from "@/queries/word-progress.query";
 import { BookOpen, FileText, MessageSquare, Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -12,6 +14,7 @@ export default function ManagePage() {
     const router = useRouter();
 
     const { data: courseTotalStats, isLoading, isError, refetch: refetchCourseTotalStats, error } = useGetMyCoursesTotalStatsQuery();
+    const { data: wordProgressStats } = useGetProgressStatsQuery(undefined, undefined, true);
 
     useEffect(() => {
         if (isError) {
@@ -100,6 +103,15 @@ export default function ManagePage() {
                         </div>
                     </div>
                 </div>
+
+                {/* Learning Progress (all courses) */}
+                {wordProgressStats && (
+                    <LearningProgressSection
+                        stats={wordProgressStats}
+                        title="Learning Progress (All Courses)"
+                        className="mb-6 sm:mb-8"
+                    />
+                )}
 
                 {/* Quick Actions */}
                 <div className="bg-card border-2 border-border rounded-xl sm:rounded-2xl p-4 sm:p-6 md:p-8">
