@@ -12,7 +12,7 @@ interface LessonFormDialogProps {
     isLoading: boolean;
     isOpen: boolean;
     onClose: () => void;
-    onSubmit: (lesson: Omit<ILesson, 'id' | 'courseId' | 'createdAt' | 'updatedAt' | 'words' | 'orderIndex'>) => void;
+    onSubmit: (lesson: Omit<ILesson, 'id' | 'courseId' | 'createdAt' | 'updatedAt' | 'words' | 'orderIndex' | 'wordProgressStats'>) => void;
     lesson?: ILesson;
     title: string;
 }
