@@ -37,50 +37,88 @@ export default function DataTable<T extends { id: string }>({
                         />
                     </svg>
                 </div>
-                <p className="text-muted-foreground">{emptyMessage}</p>
+                <p className="text-muted-foreground text-sm sm:text-base px-4">{emptyMessage}</p>
             </div>
         );
     }
 
     return (
-        <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
-            <div className="overflow-x-auto">
-                <table className="w-full">
-                    <thead>
-                        <tr className="border-b border-border bg-muted/50">
-                            {columns.map((column, index) => (
-                                <th
-                                    key={index}
-                                    className="px-6 py-4 text-left text-sm font-semibold text-foreground"
-                                >
-                                    {column.label}
-                                </th>
-                            ))}
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-border">
-                        {data.map((item) => (
-                            <tr
-                                key={item.id}
-                                onClick={() => onRowClick?.(item)}
-                                className={`transition-colors ${
-                                    onRowClick ? 'hover:bg-muted/50 cursor-pointer' : ''
-                                }`}
-                            >
-                                {columns.map((column, colIndex) => (
-                                    <td key={colIndex} className="px-6 py-4 text-sm">
-                                        {column.render
-                                            ? column.render(item)
-                                            : column.key !== 'actions'
-                                            ? String(item[column.key])
-                                            : null}
-                                    </td>
+        <>
+            {/* Desktop Table View */}
+            <div className="hidden md:block overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+                <div className="overflow-x-auto">
+                    <table className="w-full">
+                        <thead>
+                            <tr className="border-b border-border bg-muted/50">
+                                {columns.map((column, index) => (
+                                    <th
+                                        key={index}
+                                        className="px-6 py-4 text-left text-sm font-semibold text-foreground"
+                                    >
+                                        {column.label}
+                                    </th>
                                 ))}
                             </tr>
-                        ))}
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody className="divide-y divide-border">
+                            {data.map((item) => (
+                                <tr
+                                    key={item.id}
+                                    onClick={() => onRowClick?.(item)}
+                                    className={`transition-colors ${
+                                        onRowClick ? 'hover:bg-muted/50 cursor-pointer' : ''
+                                    }`}
+                                >
+                                    {columns.map((column, colIndex) => (
+                                        <td key={colIndex} className="px-6 py-4 text-sm">
+                                            {column.render
+                                                ? column.render(item)
+                                                : column.key !== 'actions'
+                                                ? String(item[column.key])
+                                                : null}
+                                        </td>
+                                    ))}
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
             </div>
-        </div>
+
+            {/* Mobile Card View */}
+            <div className="md:hidden space-y-3">
+                {data.map((item) => (
+                    <div
+                        key={item.id}
+                        onClick={() => onRowClick?.(item)}
+                        className={`bg-card border border-border rounded-xl p-4 shadow-sm ${
+                            onRowClick ? 'active:bg-muted/50 cursor-pointer' : ''
+                        }`}
+                    >
+                        {columns.map((column, index) => {
+                            if (column.key === 'actions') {
+                                return (
+                                    <div key={index} className="flex gap-2 justify-end mt-3 pt-3 border-t border-border">
+                                        {column.render?.(item)}
+                                    </div>
+                                );
+                            }
+                            return (
+                                <div key={index} className="mb-2 last:mb-0">
+                                    <span className="text-xs font-medium text-muted-foreground block mb-1">
+                                        {column.label}
+                                    </span>
+                                    <div className="text-sm">
+                                        {column.render
+                                            ? column.render(item)
+                                            : String(item[column.key])}
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                ))}
+            </div>
+        </>
     );
 }

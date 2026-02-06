@@ -36,15 +36,15 @@ export default function LearnPage() {
 
     return (
         <main className="min-h-screen bg-background">
-            <div className="container mx-auto px-4 py-8 max-w-7xl">
+            <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 md:py-8 max-w-7xl">
 
                 {/* Stats Section */}
-                <div className="mb-6 grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div className="bg-card border border-border rounded-lg p-6 hover:border-primary/50 transition-all cursor-pointer card-hover" onClick={handleClickTotalStats}>
-                        <div className="flex items-center gap-3">
-                            <div className="w-12 h-12 rounded-lg gradient-brand flex items-center justify-center">
+                <div className="mb-6 grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 md:gap-6">
+                    <div className="bg-card border border-border rounded-lg p-4 sm:p-5 md:p-6 hover:border-primary/50 transition-all cursor-pointer card-hover" onClick={handleClickTotalStats}>
+                        <div className="flex items-center gap-2 sm:gap-3">
+                            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg gradient-brand flex items-center justify-center flex-shrink-0">
                                 <svg
-                                    className="h-6 w-6 text-white"
+                                    className="h-5 w-5 sm:h-6 sm:w-6 text-white"
                                     fill="none"
                                     viewBox="0 0 24 24"
                                     stroke="currentColor"
@@ -57,26 +57,26 @@ export default function LearnPage() {
                                     />
                                 </svg>
                             </div>
-                            <div>
+                            <div className="min-w-0">
                                 {
                                     isLoadingStats ? (
                                         <LoadingSpinner size="sm" />
                                     ) : isErrorCourseTotalStats ? (
-                                        <p className="text-2xl font-bold">--</p>
+                                        <p className="text-xl sm:text-2xl font-bold">--</p>
                                     ) : (
-                                        <p className="text-2xl font-bold">{courseTotalStats?.totalCourses || 0}</p>
+                                        <p className="text-xl sm:text-2xl font-bold">{courseTotalStats?.totalCourses || 0}</p>
                                     )
                                 }
-                                <p className="text-sm text-muted-foreground">Courses</p>
+                                <p className="text-xs sm:text-sm text-muted-foreground">Courses</p>
                             </div>
                         </div>
                     </div>
 
-                    <div className="bg-card border border-border rounded-lg p-6 hover:border-primary/50 transition-all cursor-pointer card-hover" onClick={handleClickTotalStats}>
-                        <div className="flex items-center gap-3">
-                            <div className="w-12 h-12 rounded-lg gradient-accent flex items-center justify-center">
+                    <div className="bg-card border border-border rounded-lg p-4 sm:p-5 md:p-6 hover:border-primary/50 transition-all cursor-pointer card-hover" onClick={handleClickTotalStats}>
+                        <div className="flex items-center gap-2 sm:gap-3">
+                            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg gradient-accent flex items-center justify-center flex-shrink-0">
                                 <svg
-                                    className="h-6 w-6 text-white"
+                                    className="h-5 w-5 sm:h-6 sm:w-6 text-white"
                                     fill="none"
                                     viewBox="0 0 24 24"
                                     stroke="currentColor"
@@ -89,26 +89,26 @@ export default function LearnPage() {
                                     />
                                 </svg>
                             </div>
-                            <div>
+                            <div className="min-w-0">
                                 {
                                     isLoadingStats ? (
                                         <LoadingSpinner size="sm" />
                                     ) : isErrorCourseTotalStats ? (
-                                        <p className="text-2xl font-bold">--</p>
+                                        <p className="text-xl sm:text-2xl font-bold">--</p>
                                     ) : (
-                                        <p className="text-2xl font-bold">{courseTotalStats?.totalLessons || 0}</p>
+                                        <p className="text-xl sm:text-2xl font-bold">{courseTotalStats?.totalLessons || 0}</p>
                                     )
                                 }
-                                <p className="text-sm text-muted-foreground">Lessons</p>
+                                <p className="text-xs sm:text-sm text-muted-foreground">Lessons</p>
                             </div>
                         </div>
                     </div>
 
-                    <div className="bg-card border border-border rounded-lg p-6 hover:border-primary/50 transition-all cursor-pointer card-hover" onClick={handleClickTotalStats}>
-                        <div className="flex items-center gap-3">
-                            <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center">
+                    <div className="bg-card border border-border rounded-lg p-4 sm:p-5 md:p-6 hover:border-primary/50 transition-all cursor-pointer card-hover" onClick={handleClickTotalStats}>
+                        <div className="flex items-center gap-2 sm:gap-3">
+                            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center flex-shrink-0">
                                 <svg
-                                    className="h-6 w-6 text-white"
+                                    className="h-5 w-5 sm:h-6 sm:w-6 text-white"
                                     fill="none"
                                     viewBox="0 0 24 24"
                                     stroke="currentColor"
@@ -121,17 +121,17 @@ export default function LearnPage() {
                                     />
                                 </svg>
                             </div>
-                            <div>
+                            <div className="min-w-0">
                                 {
                                     isLoadingStats ? (
                                         <LoadingSpinner size="sm" />
                                     ) : isErrorCourseTotalStats ? (
-                                        <p className="text-2xl font-bold">--</p>
+                                        <p className="text-xl sm:text-2xl font-bold">--</p>
                                     ) : (
-                                        <p className="text-2xl font-bold">{courseTotalStats?.totalWords || 0}</p>
+                                        <p className="text-xl sm:text-2xl font-bold">{courseTotalStats?.totalWords || 0}</p>
                                     )
                                 }
-                                <p className="text-sm text-muted-foreground">Words</p>
+                                <p className="text-xs sm:text-sm text-muted-foreground">Words</p>
                             </div>
                         </div>
                     </div>
@@ -147,7 +147,7 @@ export default function LearnPage() {
                         <LoadingSection isLoading={isLoadingCourses} error={isErrorCourses ? 'Error loading courses' : null} refetch={refetchCourses} />
                     ) : (
                         <>
-                            <div className="mt-8">
+                            <div className="mt-6 sm:mt-8">
                                 <CourseGrid courses={paginatedData.items} />
                             </div>
 

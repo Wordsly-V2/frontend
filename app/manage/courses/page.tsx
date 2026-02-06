@@ -92,7 +92,7 @@ export default function ManageCoursesPage() {
             key: 'coverImageUrl' as keyof ICourse,
             label: 'Image',
             render: (course: ICourse) => (
-                <div className="w-16 h-16 rounded-lg overflow-hidden bg-muted">
+                <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-lg overflow-hidden bg-muted">
                     {course.coverImageUrl ? (
                         <Image
                             src={course.coverImageUrl}
@@ -116,7 +116,7 @@ export default function ManageCoursesPage() {
             label: 'Course Name',
             render: (course: ICourse) => (
                 <div>
-                    <p className="font-semibold">{course.name}</p>
+                    <p className="font-semibold text-sm sm:text-base">{course.name}</p>
                     <p className="text-xs text-muted-foreground">
                         {course.totalLessonsCount || 0} lessons • {course.totalWordsCount || 0} words
                     </p>
@@ -127,7 +127,7 @@ export default function ManageCoursesPage() {
             key: 'actions' as keyof ICourse,
             label: 'Actions',
             render: (course: ICourse) => (
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
                     <Button
                         size="sm"
                         variant="outline"
@@ -135,9 +135,10 @@ export default function ManageCoursesPage() {
                             e.stopPropagation();
                             router.push(`/manage/courses/${course.id}`);
                         }}
+                        className="text-xs sm:text-sm h-8"
                     >
-                        <Eye className="h-4 w-4 mr-1" />
-                        View
+                        <Eye className="h-3.5 w-3.5 sm:h-4 sm:w-4 sm:mr-1" />
+                        <span className="hidden sm:inline">View</span>
                     </Button>
                     <Button
                         size="sm"
@@ -147,9 +148,10 @@ export default function ManageCoursesPage() {
                             setEditingCourse(course);
                             setIsFormOpen(true);
                         }}
+                        className="text-xs sm:text-sm h-8"
                     >
-                        <Edit className="h-4 w-4 mr-1" />
-                        Edit
+                        <Edit className="h-3.5 w-3.5 sm:h-4 sm:w-4 sm:mr-1" />
+                        <span className="hidden sm:inline">Edit</span>
                     </Button>
                     <Button
                         size="sm"
@@ -158,9 +160,9 @@ export default function ManageCoursesPage() {
                             e.stopPropagation();
                             setDeleteConfirm(course);
                         }}
-                        className="text-destructive hover:text-destructive"
+                        className="text-destructive hover:text-destructive text-xs sm:text-sm h-8 px-2 sm:px-3"
                     >
-                        <Trash2 className="h-4 w-4" />
+                        <Trash2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                     </Button>
                 </div>
             ),
@@ -173,24 +175,25 @@ export default function ManageCoursesPage() {
 
     return (
         <main className="min-h-screen bg-background">
-            <div className="container mx-auto px-4 py-8 max-w-7xl">
+            <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 md:py-8 max-w-7xl">
                 <Button
                     variant="ghost"
                     onClick={() => router.push('/manage')}
-                    className="mb-6"
+                    className="mb-4 sm:mb-6 text-sm sm:text-base"
+                    size="sm"
                 >
-                    <ArrowLeft className="h-4 w-4 mr-2" />
+                    <ArrowLeft className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-2" />
                     Back to Dashboard
                 </Button>
 
-                <div className="flex justify-between items-center mb-8">
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6 sm:mb-8">
                     <div>
-                        <h1 className="text-3xl font-bold tracking-tight mb-2">Manage Courses</h1>
-                        <p className="text-muted-foreground">
+                        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight mb-1 sm:mb-2">Manage Courses</h1>
+                        <p className="text-sm sm:text-base text-muted-foreground">
                             {paginatedData.totalItems} {paginatedData.totalItems === 1 ? 'course' : 'courses'} in your library
                         </p>
                     </div>
-                    <Button onClick={openCreateDialog} size="lg">
+                    <Button onClick={openCreateDialog} size="default" className="w-full sm:w-auto">
                         <Plus className="h-4 w-4 mr-2" />
                         Create Course
                     </Button>

@@ -17,7 +17,7 @@ export default function CourseCard({ course }: Readonly<CourseCardProps>) {
         <Link href={`/learn/courses/${course.id}`} className="block group">
             <div className="bg-card rounded-xl shadow-sm overflow-hidden border border-border card-hover">
                 {/* Image */}
-                <div className="relative h-48 w-full overflow-hidden bg-muted">
+                <div className="relative h-40 sm:h-48 w-full overflow-hidden bg-muted">
                     {course.coverImageUrl ? (
                         <Image
                             src={course.coverImageUrl}
@@ -27,7 +27,7 @@ export default function CourseCard({ course }: Readonly<CourseCardProps>) {
                         />
                     ) : (
                         <div className="w-full h-full flex items-center justify-center gradient-brand">
-                            <GraduationCap className="h-16 w-16 text-white/80" />
+                            <GraduationCap className="h-12 w-12 sm:h-16 sm:w-16 text-white/80" />
                         </div>
                     )}
                     {/* Overlay gradient for better text readability */}
@@ -35,20 +35,20 @@ export default function CourseCard({ course }: Readonly<CourseCardProps>) {
                 </div>
 
                 {/* Content */}
-                <div className="p-5">
-                    <h3 className="font-semibold text-lg mb-2 group-hover:text-primary transition-colors line-clamp-2">
+                <div className="p-4 sm:p-5">
+                    <h3 className="font-semibold text-base sm:text-lg mb-2 group-hover:text-primary transition-colors line-clamp-2">
                         {course.name}
                     </h3>
 
                     {/* Stats */}
-                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                    <div className="flex items-center gap-3 sm:gap-4 text-xs sm:text-sm text-muted-foreground">
                         <div className="flex items-center gap-1.5">
-                            <BookOpen className="h-4 w-4" />
+                            <BookOpen className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                             <span>{lessonCount} {lessonCount === 1 ? 'lesson' : 'lessons'}</span>
                         </div>
                         {wordCount > 0 && (
                             <div className="flex items-center gap-1.5">
-                                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <svg className="h-3.5 w-3.5 sm:h-4 sm:w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
                                 </svg>
                                 <span>{wordCount} words</span>
@@ -57,7 +57,7 @@ export default function CourseCard({ course }: Readonly<CourseCardProps>) {
                     </div>
 
                     {/* Progress bar placeholder */}
-                    <div className="mt-4 pt-4 border-t border-border">
+                    <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-border">
                         <div className="flex items-center justify-between text-xs text-muted-foreground mb-1.5">
                             <span>Start learning</span>
                         </div>

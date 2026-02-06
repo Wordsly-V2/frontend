@@ -134,16 +134,16 @@ export default function WordFormDialog({
 
     return (
         <Dialog open={isOpen} onOpenChange={handleClose}>
-            <DialogContent className="max-w-lg max-h-[75vh] overflow-y-auto overflow-x-hidden">
+            <DialogContent className="max-w-lg max-h-[75vh] overflow-y-auto overflow-x-hidden mx-3 sm:mx-auto">
                 <form onSubmit={handleSubmit}>
                     <DialogHeader>
-                        <DialogTitle>{title}</DialogTitle>
+                        <DialogTitle className="text-lg sm:text-xl">{title}</DialogTitle>
                     </DialogHeader>
 
-                    <div className="space-y-4 py-4">
-                        <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-3 sm:space-y-4 py-3 sm:py-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                             <div className="space-y-2">
-                                <Label htmlFor="word">
+                                <Label htmlFor="word" className="text-sm">
                                     Word <span className="text-destructive">*</span>
                                 </Label>
                                 <Input
@@ -156,11 +156,12 @@ export default function WordFormDialog({
                                         setFetchError("");
                                     }}
                                     required
+                                    className="text-sm sm:text-base"
                                 />
                             </div>
 
                             <div className="space-y-2">
-                                <Label htmlFor="meaning">
+                                <Label htmlFor="meaning" className="text-sm">
                                     Meaning <span className="text-destructive">*</span>
                                 </Label>
                                 <Input
@@ -169,35 +170,38 @@ export default function WordFormDialog({
                                     value={formData.meaning}
                                     onChange={(e) => setFormData({ ...formData, meaning: e.target.value })}
                                     required
+                                    className="text-sm sm:text-base"
                                 />
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                             <div className="space-y-2">
-                                <Label htmlFor="pronunciation">Pronunciation (IPA)</Label>
+                                <Label htmlFor="pronunciation" className="text-sm">Pronunciation (IPA)</Label>
                                 <Input
                                     id="pronunciation"
                                     placeholder="e.g., həˈloʊ"
                                     value={formData.pronunciation}
                                     onChange={(e) => setFormData({ ...formData, pronunciation: e.target.value })}
+                                    className="text-sm sm:text-base"
                                 />
                             </div>
 
                             <div className="space-y-2">
-                                <Label htmlFor="partOfSpeech">Part of Speech</Label>
+                                <Label htmlFor="partOfSpeech" className="text-sm">Part of Speech</Label>
                                 <Input
                                     id="partOfSpeech"
                                     placeholder="e.g., noun, verb"
                                     value={formData.partOfSpeech}
                                     onChange={(e) => setFormData({ ...formData, partOfSpeech: e.target.value })}
+                                    className="text-sm sm:text-base"
                                 />
                             </div>
                         </div>
 
                         <div className="space-y-2">
-                            <Label htmlFor="audioUrl">Audio URL</Label>
-                            <div className="flex gap-2">
+                            <Label htmlFor="audioUrl" className="text-sm">Audio URL</Label>
+                            <div className="flex gap-1.5 sm:gap-2">
                                 <Input
                                     id="audioUrl"
                                     type="url"
@@ -207,7 +211,7 @@ export default function WordFormDialog({
                                         setFormData({ ...formData, audioUrl: e.target.value });
                                         clearError();
                                     }}
-                                    className={audioError ? 'border-destructive' : ''}
+                                    className={`text-sm sm:text-base ${audioError ? 'border-destructive' : ''}`}
                                 />
                                 <Button
                                     type="button"
@@ -216,11 +220,12 @@ export default function WordFormDialog({
                                     onClick={handlePlayAudio}
                                     disabled={!formData.audioUrl.trim() || isPlaying}
                                     title="Play audio"
+                                    className="flex-shrink-0 h-9 w-9 sm:h-10 sm:w-10"
                                 >
                                     {audioError ? (
-                                        <VolumeX className="h-4 w-4 text-destructive" />
+                                        <VolumeX className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-destructive" />
                                     ) : (
-                                        <Volume2 className="h-4 w-4" />
+                                        <Volume2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                                     )}
                                 </Button>
                                 <Button
@@ -230,11 +235,12 @@ export default function WordFormDialog({
                                     onClick={handleFetchAudioUrls}
                                     disabled={!formData.word.trim() || mutationFetchWordDetailsDictionary.isPending}
                                     title="Fetch audio from dictionary"
+                                    className="flex-shrink-0 h-9 w-9 sm:h-10 sm:w-10"
                                 >
                                     {mutationFetchWordDetailsDictionary.isPending ? (
                                         <LoadingSpinner size="sm" />
                                     ) : (
-                                        <Search className="h-4 w-4" />
+                                        <Search className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                                     )}
                                 </Button>
                             </div>
@@ -249,15 +255,15 @@ export default function WordFormDialog({
                             )}
 
                             {availableAudioUrls.length > 0 && (
-                                <div className="mt-3 space-y-2 rounded-md border p-3 bg-muted/30">
-                                    <p className="text-sm font-medium">Available pronunciations:</p>
+                                <div className="mt-2 sm:mt-3 space-y-2 rounded-md border p-2 sm:p-3 bg-muted/30">
+                                    <p className="text-xs sm:text-sm font-medium">Available pronunciations:</p>
                                     <div className="space-y-2">
                                         {availableAudioUrls.map((url, index) => (
-                                            <div key={index} className="flex items-center gap-2 rounded-md border bg-background p-2 min-w-0">
-                                                <span className="flex-1 truncate text-xs text-muted-foreground min-w-0 w-50">
+                                            <div key={index} className="flex items-center gap-1.5 sm:gap-2 rounded-md border bg-background p-2 min-w-0">
+                                                <span className="flex-1 truncate text-xs text-muted-foreground overflow-hidden min-w-0">
                                                     {url}
                                                 </span>
-                                                <div className="flex gap-2 flex-shrink-0">
+                                                <div className="flex gap-1 sm:gap-2 flex-shrink-0">
                                                     <Button
                                                         type="button"
                                                         variant="outline"
@@ -265,6 +271,7 @@ export default function WordFormDialog({
                                                         onClick={() => handlePlayPreviewAudio(url)}
                                                         disabled={isPlaying}
                                                         title="Play audio"
+                                                        className="h-7 px-2"
                                                     >
                                                         <Volume2 className="h-3 w-3" />
                                                     </Button>
@@ -274,11 +281,13 @@ export default function WordFormDialog({
                                                         size="sm"
                                                         onClick={() => handleSelectAudioUrl(url)}
                                                         title="Use this audio"
+                                                        className="h-7 px-2 text-xs"
                                                     >
                                                         {formData.audioUrl === url ? (
                                                             <>
                                                                 <Check className="h-3 w-3 mr-1" />
-                                                                Selected
+                                                                <span className="hidden xs:inline">Selected</span>
+                                                                <span className="xs:hidden">✓</span>
                                                             </>
                                                         ) : (
                                                             "Use"
@@ -293,11 +302,11 @@ export default function WordFormDialog({
                         </div>
                     </div>
 
-                    <DialogFooter>
-                        <Button type="button" variant="outline" onClick={handleClose} disabled={isLoading}>
+                    <DialogFooter className="gap-2 sm:gap-0">
+                        <Button type="button" variant="outline" onClick={handleClose} disabled={isLoading} className="w-full sm:w-auto text-sm">
                             Cancel
                         </Button>
-                        <Button type="submit" disabled={isLoading}>
+                        <Button type="submit" disabled={isLoading} className="w-full sm:w-auto text-sm">
                         {
                                 isLoading ? (
                                     <LoadingSpinner size="sm" />

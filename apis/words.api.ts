@@ -33,7 +33,7 @@ export const bulkMoveMyWords = async (courseId: string, lessonId: string, wordId
 }
 
 export const getWordsByIds = async (courseId: string, wordIds: string[]): Promise<IWord[]> => {
-    const response = await axiosInstance.get<IWord[]>(`/courses/me/my-courses/${courseId}/words/by-ids`, { params: { wordIds: wordIds.join(",") } });
+    const response = await axiosInstance.get<IWord[]>(`/courses/me/my-courses/${courseId}/words`, { params: { ids: wordIds.join(",") } });
     return response.data;
 }
 

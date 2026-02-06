@@ -41,9 +41,9 @@ export default function AppNav() {
                     <DropdownMenuTrigger asChild>
                         <Button
                             variant="ghost"
-                            className="relative h-9 w-9 rounded-full ring-2 ring-offset-2 ring-offset-background ring-primary/20 hover:ring-primary/40 transition-all hover:scale-110"
+                            className="relative h-8 w-8 sm:h-9 sm:w-9 rounded-full ring-2 ring-offset-2 ring-offset-background ring-primary/20 hover:ring-primary/40 transition-all hover:scale-110 p-0"
                         >
-                            <Avatar className="h-9 w-9">
+                            <Avatar className="h-8 w-8 sm:h-9 sm:w-9">
                                 <AvatarImage
                                     src={profile.pictureUrl ?? ''}
                                     alt={profile.displayName ?? ''}
@@ -51,7 +51,7 @@ export default function AppNav() {
                                     crossOrigin="anonymous"
                                     referrerPolicy="no-referrer"
                                 />
-                                <AvatarFallback className="gradient-brand text-white font-semibold">
+                                <AvatarFallback className="gradient-brand text-white font-semibold text-xs sm:text-sm">
                                     {profile.displayName?.charAt(0) ?? 'U'}
                                 </AvatarFallback>
                             </Avatar>
@@ -60,10 +60,10 @@ export default function AppNav() {
                     <DropdownMenuContent align="end" className="w-56 rounded-xl">
                         <DropdownMenuLabel className="font-normal">
                             <div className="flex flex-col space-y-1">
-                                <p className="text-sm font-semibold leading-none">
+                                <p className="text-sm font-semibold leading-none truncate">
                                     {profile.displayName}
                                 </p>
-                                <p className="text-xs leading-none text-muted-foreground">
+                                <p className="text-xs leading-none text-muted-foreground truncate">
                                     {profile.gmail}
                                 </p>
                             </div>
@@ -97,9 +97,9 @@ export default function AppNav() {
 
         return (
             <Link href="/auth/login">
-                <Button size="sm" className="gap-2 rounded-lg gradient-brand text-white hover:opacity-90 transition-opacity shadow-lg shadow-primary/30">
-                    <LogIn className="h-4 w-4" />
-                    <span className="hidden sm:inline">Login</span>
+                <Button size="sm" className="gap-1.5 sm:gap-2 rounded-lg gradient-brand text-white hover:opacity-90 transition-opacity shadow-lg shadow-primary/30 h-8 sm:h-9 px-2 sm:px-3">
+                    <LogIn className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                    <span className="text-xs sm:text-sm">Login</span>
                 </Button>
             </Link>
         );
@@ -107,14 +107,14 @@ export default function AppNav() {
 
     return (
         <nav className="border-b border-border bg-card/80 backdrop-blur-md sticky top-0 z-50 shadow-sm">
-            <div className="container mx-auto px-4">
-                <div className="flex items-center justify-between h-16">
+            <div className="container mx-auto px-3 sm:px-4">
+                <div className="flex items-center justify-between h-14 sm:h-16">
                     {/* Logo */}
-                    <Link href="/" className="flex items-center gap-2 font-bold text-xl hover:opacity-80 transition-opacity">
-                        <div className="w-9 h-9 rounded-xl gradient-brand flex items-center justify-center shadow-lg shadow-primary/30">
-                            <GraduationCap className="h-5 w-5 text-white" />
+                    <Link href="/" className="flex items-center gap-1.5 sm:gap-2 font-bold text-lg sm:text-xl hover:opacity-80 transition-opacity">
+                        <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg sm:rounded-xl gradient-brand flex items-center justify-center shadow-lg shadow-primary/30">
+                            <GraduationCap className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
                         </div>
-                        <span>Wordsly</span>
+                        <span className="hidden xs:inline">Wordsly</span>
                     </Link>
 
                     {/* Center - Mode Toggle */}
@@ -127,7 +127,7 @@ export default function AppNav() {
                                     className="gap-2 rounded-lg transition-all hover:scale-105"
                                 >
                                     <BookOpen className="h-4 w-4" />
-                                    <span className="hidden sm:inline">Learn</span>
+                                    <span>Learn</span>
                                 </Button>
                             </Link>
                             <Link href="/manage">
@@ -137,22 +137,22 @@ export default function AppNav() {
                                     className="gap-2 rounded-lg transition-all hover:scale-105"
                                 >
                                     <Settings className="h-4 w-4" />
-                                    <span className="hidden sm:inline">Manage</span>
+                                    <span>Manage</span>
                                 </Button>
                             </Link>
                         </div>
                     )}
 
                     {/* Right - User Menu */}
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-1.5 sm:gap-3">
                         {/* Mobile Mode Toggle */}
                         {!isAuthPage && profile && (
-                            <div className="flex md:hidden items-center gap-2">
+                            <div className="flex md:hidden items-center gap-1">
                                 <Link href="/learn">
                                     <Button
                                         variant={isLearnMode ? "default" : "ghost"}
                                         size="sm"
-                                        className="gap-2"
+                                        className="h-8 w-8 p-0"
                                     >
                                         <BookOpen className="h-4 w-4" />
                                     </Button>
@@ -161,7 +161,7 @@ export default function AppNav() {
                                     <Button
                                         variant={isManageMode ? "default" : "ghost"}
                                         size="sm"
-                                        className="gap-2"
+                                        className="h-8 w-8 p-0"
                                     >
                                         <Settings className="h-4 w-4" />
                                     </Button>
