@@ -1,11 +1,14 @@
 "use client";
 
 import LoadingSection from "@/components/common/loading-section/loading-section";
-import VocabularyPractice from "@/components/features/vocabulary/vocabulary-practice";
+import VocabularyPractice, { WordResult } from "@/components/features/vocabulary/vocabulary-practice";
 import { Button } from "@/components/ui/button";
 import { useGetWordsByIdsQuery } from "@/queries/words.query";
+import { useRecordAnswersMutation } from "@/queries/word-progress.query";
 import { ArrowLeft } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useCallback } from "react";
+import { toast } from "sonner";
 
 export default function PracticePage() {
     const router = useRouter();
@@ -20,12 +23,28 @@ export default function PracticePage() {
     }
 
     const { data: words, isLoading: isWordsLoading, isError: isWordsError, refetch: refetchWords } = useGetWordsByIdsQuery(courseId, wordIds.split(","));
+    const recordAnswersMutation = useRecordAnswersMutation();
 
-    const handleComplete = (score: number) => {
-        const courseId = searchParams.get("courseId");
-        console.log("Practice complete! Score:", score);
-        router.push(`/learn/courses/${courseId}`);
-    };
+    const handleComplete = useCallback(async (score: number, wordResults: WordResult[]) => {
+        
+        // Submit bulk progress update
+        try {
+            await recordAnswersMutation.mutateAsync({
+                answers: wordResults
+            });
+            
+            toast.success("Practice completed! Your progress has been saved.");
+            router.push(`/learn/courses/${courseId}`);
+        } catch (error) {
+            console.error("Failed to save progress:", error);
+            toast.error("Failed to save your progress. Please try again.");
+            
+            // Still navigate to course page even if save fails
+            setTimeout(() => {
+                router.push(`/learn/courses/${courseId}`);
+            }, 2000);
+        }
+    }, [courseId, router, recordAnswersMutation]);
 
     const handleBackToCourse = () => {
         const courseId = searchParams.get("courseId");

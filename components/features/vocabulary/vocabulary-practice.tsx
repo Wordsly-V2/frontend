@@ -7,10 +7,16 @@ import { Volume2, ChevronRight, CheckCircle2, XCircle, Settings2, Sparkles, Ligh
 import PracticeSettingsDialog, { PracticeMode, PracticeSettings } from "./practice-settings-dialog";
 import TypingResultDialog from "./typing-result-dialog";
 import WordsSummaryDialog from "./words-summary-dialog";
+import { AnswerQuality } from "@/types/word-progress/word-progress.type";
+
+export interface WordResult {
+    wordId: string;
+    quality: AnswerQuality;
+}
 
 interface VocabularyPracticeProps {
     words: IWord[];
-    onComplete?: (score: number) => void;
+    onComplete?: (score: number, wordResults: WordResult[]) => void;
 }
 
 const SETTINGS_STORAGE_KEY = "vocabulary-practice-settings";
@@ -56,6 +62,7 @@ export default function VocabularyPractice({
     const [hintsUsed, setHintsUsed] = useState(0);
     const [selectedChoice, setSelectedChoice] = useState<string | null>(null);
     const [hasPlayedAudio, setHasPlayedAudio] = useState(false);
+    const [wordResults, setWordResults] = useState<WordResult[]>([]);
     const inputRef = useRef<HTMLInputElement>(null);
 
     const currentWord = shuffledWords[currentIndex];
@@ -63,6 +70,21 @@ export default function VocabularyPractice({
 
     const normalize = (value: string) =>
         value.trim().toLowerCase().replaceAll(/\s+/g, " ");
+
+    // Helper function to calculate answer quality based on correctness and hints
+    const calculateAnswerQuality = (isCorrect: boolean, hintsUsed: number = 0): AnswerQuality => {
+        if (!isCorrect) {
+            return AnswerQuality.INCORRECT;
+        }
+        
+        if (hintsUsed === 0) {
+            return AnswerQuality.PERFECT;
+        } else if (hintsUsed === 1) {
+            return AnswerQuality.CORRECT_WITH_HESITATION;
+        } else {
+            return AnswerQuality.CORRECT_WITH_DIFFICULTY;
+        }
+    };
 
     const score = Math.round((correctCount / shuffledWords.length) * 100);
     const isFlashcard = mode === "flashcard";
@@ -179,7 +201,7 @@ export default function VocabularyPractice({
             setSelectedChoice(null);
             setHasPlayedAudio(false);
         } else {
-            onComplete?.(score);
+            onComplete?.(score, wordResults);
         }
     };
 
@@ -211,8 +233,22 @@ export default function VocabularyPractice({
                 setCorrectCount((prev) => prev + 1);
             }
             setTypingResult("correct");
+            
+            // Record the word result
+            const quality = calculateAnswerQuality(true, hintsUsed);
+            setWordResults(prev => {
+                const updated = [...prev, { wordId: currentWord.id, quality }];
+                return updated;
+            });
         } else {
             setTypingResult("incorrect");
+            
+            // Record the word result
+            const quality = calculateAnswerQuality(false, hintsUsed);
+            setWordResults(prev => {
+                const updated = [...prev, { wordId: currentWord.id, quality }];
+                return updated;
+            });
         }
         setShowResultDialog(true);
     };
@@ -221,6 +257,10 @@ export default function VocabularyPractice({
         setShowResultDialog(false);
         setTypingResult(null);
         setUserAnswer("");
+        
+        // Remove the last word result since user wants to try again
+        setWordResults(prev => prev.slice(0, -1));
+        
         setTimeout(() => inputRef.current?.focus(), 100);
     };
 
@@ -240,8 +280,16 @@ export default function VocabularyPractice({
         if (isCorrect) {
             setCorrectCount((prev) => prev + 1);
             setTypingResult("correct");
+            
+            // Record the word result (no hints in multiple choice)
+            const quality = calculateAnswerQuality(true, 0);
+            setWordResults(prev => [...prev, { wordId: currentWord.id, quality }]);
         } else {
             setTypingResult("incorrect");
+            
+            // Record the word result
+            const quality = calculateAnswerQuality(false, 0);
+            setWordResults(prev => [...prev, { wordId: currentWord.id, quality }]);
         }
         
         setShowResultDialog(true);
@@ -265,8 +313,16 @@ export default function VocabularyPractice({
                 setCorrectCount((prev) => prev + 1);
             }
             setTypingResult("correct");
+            
+            // Record the word result
+            const quality = calculateAnswerQuality(true, hintsUsed);
+            setWordResults(prev => [...prev, { wordId: currentWord.id, quality }]);
         } else {
             setTypingResult("incorrect");
+            
+            // Record the word result
+            const quality = calculateAnswerQuality(false, hintsUsed);
+            setWordResults(prev => [...prev, { wordId: currentWord.id, quality }]);
         }
         setShowResultDialog(true);
     };
@@ -280,12 +336,17 @@ export default function VocabularyPractice({
             if (normalize(userAnswer) === normalize(currentWord.word)) {
                 setTypingResult("correct");
                 setCorrectCount((prev) => prev + 1);
+                
+                // Record the word result for auto-check
+                const quality = calculateAnswerQuality(true, hintsUsed);
+                setWordResults(prev => [...prev, { wordId: currentWord.id, quality }]);
+                
                 setShowResultDialog(true);
             }
         };
         
         checkAnswer();
-    }, [autoCheck, currentWord, mode, typingResult, userAnswer]);
+    }, [autoCheck, currentWord, mode, typingResult, userAnswer, hintsUsed]);
 
     useEffect(() => {
         const resetState = () => {
@@ -740,6 +801,14 @@ export default function VocabularyPractice({
                         size="lg"
                         onClick={() => {
                             setCorrectCount(correctCount + 1);
+                            // Record as perfect for "I Know This"
+                            setWordResults(prev => {
+                                const updated = [...prev, { 
+                                    wordId: currentWord.id, 
+                                    quality: AnswerQuality.PERFECT 
+                                }];
+                                return updated;
+                            });
                             handleNext();
                         }}
                         className="gap-2 rounded-xl border-2 text-green-600 border-green-200 bg-green-50 hover:bg-green-100 hover:scale-105 transition-all h-12 sm:h-auto text-sm sm:text-base"
@@ -750,7 +819,17 @@ export default function VocabularyPractice({
                     <Button
                         variant="outline"
                         size="lg"
-                        onClick={handleNext}
+                        onClick={() => {
+                            // Record as incorrect for "Still Learning"
+                            setWordResults(prev => {
+                                const updated = [...prev, { 
+                                    wordId: currentWord.id, 
+                                    quality: AnswerQuality.INCORRECT 
+                                }];
+                                return updated;
+                            });
+                            handleNext();
+                        }}
                         className="gap-2 rounded-xl border-2 text-orange-600 border-orange-200 bg-orange-50 hover:bg-orange-100 hover:scale-105 transition-all h-12 sm:h-auto text-sm sm:text-base"
                     >
                         <XCircle className="h-4 w-4 sm:h-5 sm:w-5" />
