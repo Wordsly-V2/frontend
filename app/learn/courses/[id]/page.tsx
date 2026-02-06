@@ -4,7 +4,7 @@ import LoadingSection from "@/components/common/loading-section/loading-section"
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useGetCourseDetailByIdQuery } from "@/queries/courses.query";
-import { useGetDueWordsQuery } from "@/queries/word-progress.query";
+import { useGetDueWordsQuery, useGetProgressStatsQuery } from "@/queries/word-progress.query";
 import { ILesson, IWord } from "@/types/courses/courses.type";
 import { ArrowLeft, Brain, ChevronDown, ChevronRight, Play, Volume2 } from "lucide-react";
 import Image from "next/image";
@@ -19,7 +19,8 @@ export default function LearnCourseDetailPage({ params }: { params: Promise<{ id
     const [selectedWords, setSelectedWords] = useState<Set<string>>(new Set());
 
     const { data: course, isLoading, isError, refetch: loadCourseDetail } = useGetCourseDetailByIdQuery(id);
-    const { data: dueWords, isLoading: isDueWordsLoading } = useGetDueWordsQuery(id, undefined, 20, true, !!id);
+    const { data: dueWords, isLoading: isDueWordsLoading } = useGetDueWordsQuery(id, undefined, 20, true, !!id); 
+    const { data: progressStats, isLoading: isProgressStatsLoading } = useGetProgressStatsQuery(id, undefined, true); 
     
     const lessons = course?.lessons || [];
 
@@ -122,21 +123,22 @@ export default function LearnCourseDetailPage({ params }: { params: Promise<{ id
 
     return (
         <main className="min-h-screen bg-background">
-            <div className="container mx-auto px-4 py-8 max-w-5xl">
+            <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 md:py-8 max-w-5xl">
                 {/* Back Button */}
                 <Button
                     variant="ghost"
                     onClick={() => router.push('/learn')}
-                    className="mb-6"
+                    className="mb-4 sm:mb-6 text-sm sm:text-base"
+                    size="sm"
                 >
-                    <ArrowLeft className="h-4 w-4 mr-2" />
+                    <ArrowLeft className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-2" />
                     All Courses
                 </Button>
 
                 {/* Course Header */}
-                <div className="bg-card rounded-2xl shadow-sm overflow-hidden border border-border mb-8">
+                <div className="bg-card rounded-xl sm:rounded-2xl shadow-sm overflow-hidden border border-border mb-6 sm:mb-8">
                     {course.coverImageUrl && (
-                        <div className="relative h-64 w-full">
+                        <div className="relative h-48 sm:h-64 w-full">
                             <Image
                                 src={course.coverImageUrl}
                                 alt={course.name}
@@ -144,19 +146,19 @@ export default function LearnCourseDetailPage({ params }: { params: Promise<{ id
                                 className="object-cover"
                             />
                             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
-                            <div className="absolute bottom-6 left-6 right-6">
-                                <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">
+                            <div className="absolute bottom-4 sm:bottom-6 left-4 sm:left-6 right-4 sm:right-6">
+                                <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white mb-2">
                                     {course.name}
                                 </h1>
-                                <div className="flex items-center gap-4 text-white/90">
+                                <div className="flex items-center gap-3 sm:gap-4 text-white/90 text-sm sm:text-base">
                                     <span className="flex items-center gap-1.5">
-                                        <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <svg className="h-4 w-4 sm:h-5 sm:w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
                                         </svg>
                                         {lessons.length} lessons
                                     </span>
                                     <span className="flex items-center gap-1.5">
-                                        <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <svg className="h-4 w-4 sm:h-5 sm:w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
                                         </svg>
                                         {totalWords} words
@@ -167,14 +169,107 @@ export default function LearnCourseDetailPage({ params }: { params: Promise<{ id
                     )}
                 </div>
 
+                {/* Word Progress Stats */}
+                {progressStats && !isProgressStatsLoading && (
+                    <div className="bg-card rounded-xl sm:rounded-2xl border border-border p-4 sm:p-6 mb-6 sm:mb-8">
+                        <div className="flex items-center gap-2 mb-4 sm:mb-6">
+                            <Brain className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
+                            <h2 className="text-lg sm:text-xl font-semibold">Learning Progress</h2>
+                        </div>
+                        
+                        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
+                            {/* Total Words */}
+                            <div className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/30 dark:to-blue-900/30 rounded-lg sm:rounded-xl p-3 sm:p-4 border border-blue-200 dark:border-blue-800">
+                                <div className="text-xs sm:text-sm font-medium text-blue-700 dark:text-blue-300 mb-1">
+                                    Total Words
+                                </div>
+                                <div className="text-2xl sm:text-3xl font-bold text-blue-900 dark:text-blue-100">
+                                    {progressStats.totalWords}
+                                </div>
+                            </div>
+
+                            {/* New Words */}
+                            <div className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950/30 dark:to-green-900/30 rounded-lg sm:rounded-xl p-3 sm:p-4 border border-green-200 dark:border-green-800">
+                                <div className="text-xs sm:text-sm font-medium text-green-700 dark:text-green-300 mb-1">
+                                    New
+                                </div>
+                                <div className="text-2xl sm:text-3xl font-bold text-green-900 dark:text-green-100">
+                                    {progressStats.newWords}
+                                </div>
+                            </div>
+
+                            {/* Learning Words */}
+                            <div className="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-950/30 dark:to-orange-900/30 rounded-lg sm:rounded-xl p-3 sm:p-4 border border-orange-200 dark:border-orange-800">
+                                <div className="text-xs sm:text-sm font-medium text-orange-700 dark:text-orange-300 mb-1">
+                                    Learning
+                                </div>
+                                <div className="text-2xl sm:text-3xl font-bold text-orange-900 dark:text-orange-100">
+                                    {progressStats.learningWords}
+                                </div>
+                            </div>
+
+                            {/* Review Words */}
+                            <div className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950/30 dark:to-purple-900/30 rounded-lg sm:rounded-xl p-3 sm:p-4 border border-purple-200 dark:border-purple-800">
+                                <div className="text-xs sm:text-sm font-medium text-purple-700 dark:text-purple-300 mb-1">
+                                    Review
+                                </div>
+                                <div className="text-2xl sm:text-3xl font-bold text-purple-900 dark:text-purple-100">
+                                    {progressStats.reviewWords}
+                                </div>
+                            </div>
+
+                            {/* Due Today */}
+                            <div className="bg-gradient-to-br from-red-50 to-red-100 dark:from-red-950/30 dark:to-red-900/30 rounded-lg sm:rounded-xl p-3 sm:p-4 border border-red-200 dark:border-red-800">
+                                <div className="text-xs sm:text-sm font-medium text-red-700 dark:text-red-300 mb-1">
+                                    Due Today
+                                </div>
+                                <div className="text-2xl sm:text-3xl font-bold text-red-900 dark:text-red-100">
+                                    {progressStats.dueToday}
+                                </div>
+                            </div>
+
+                            {/* Success Rate */}
+                            <div className="bg-gradient-to-br from-teal-50 to-teal-100 dark:from-teal-950/30 dark:to-teal-900/30 rounded-lg sm:rounded-xl p-3 sm:p-4 border border-teal-200 dark:border-teal-800">
+                                <div className="text-xs sm:text-sm font-medium text-teal-700 dark:text-teal-300 mb-1">
+                                    Success Rate
+                                </div>
+                                <div className="text-2xl sm:text-3xl font-bold text-teal-900 dark:text-teal-100">
+                                    {Math.round(progressStats.overallSuccessRate)}%
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Progress Bar */}
+                        {progressStats.totalWords > 0 && (
+                            <div className="mt-4 sm:mt-6">
+                                <div className="flex items-center justify-between text-xs sm:text-sm text-muted-foreground mb-2">
+                                    <span>Learning Progress</span>
+                                    <span>
+                                        {progressStats.learningWords + progressStats.reviewWords} / {progressStats.totalWords} words started
+                                    </span>
+                                </div>
+                                <div className="h-2 sm:h-3 bg-muted rounded-full overflow-hidden">
+                                    <div 
+                                        className="h-full bg-gradient-to-r from-primary to-purple-600 rounded-full transition-all duration-500"
+                                        style={{ 
+                                            width: `${((progressStats.learningWords + progressStats.reviewWords) / progressStats.totalWords * 100)}%` 
+                                        }}
+                                    />
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                )}
+
                 {/* Selection Actions */}
                 {totalWords > 0 && (
-                    <div className="flex flex-wrap gap-3 items-center justify-between mb-6">
-                        <div className="flex flex-wrap gap-2">
+                    <div className="flex flex-col sm:flex-row flex-wrap gap-3 items-start sm:items-center justify-between mb-4 sm:mb-6">
+                        <div className="flex flex-wrap gap-2 w-full sm:w-auto">
                             <Button
                                 variant="outline"
                                 size="sm"
                                 onClick={selectAllWords}
+                                className="text-xs sm:text-sm"
                             >
                                 Select All
                             </Button>
@@ -183,35 +278,39 @@ export default function LearnCourseDetailPage({ params }: { params: Promise<{ id
                                 size="sm"
                                 onClick={deselectAllWords}
                                 disabled={selectedWords.size === 0}
+                                className="text-xs sm:text-sm"
                             >
                                 Clear Selection
                             </Button>
                             {selectedWords.size > 0 && (
-                                <span className="inline-flex items-center px-3 py-1 rounded-full bg-primary/10 text-primary text-sm font-semibold">
+                                <span className="inline-flex items-center px-2 sm:px-3 py-1 rounded-full bg-primary/10 text-primary text-xs sm:text-sm font-semibold">
                                     {selectedWords.size} selected
                                 </span>
                             )}
                         </div>
-                        <div className="flex flex-wrap gap-2">
+                        <div className="flex flex-wrap gap-2 w-full sm:w-auto">
                             <Button
                                 variant="outline"
                                 onClick={handlePracticeDueWords}
                                 disabled={isDueWordsLoading || !dueWords || dueWords.length === 0}
-                                className="border-2 border-purple-500/20 hover:border-purple-500/40 hover:bg-purple-500/10"
+                                className="border-2 border-purple-500/20 hover:border-purple-500/40 hover:bg-purple-500/10 text-xs sm:text-sm flex-1 sm:flex-initial"
+                                size="sm"
                             >
-                                <Brain className="h-4 w-4 mr-2" />
+                                <Brain className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-2" />
                                 {isDueWordsLoading 
                                     ? "Loading..." 
                                     : dueWords && dueWords.length > 0 
-                                        ? `Review Due Words (${dueWords.length})`
+                                        ? `Review Due (${dueWords.length})`
                                         : "No Due Words"
                                 }
                             </Button>
                             <Button
                                 onClick={handleStartPractice}
                                 disabled={selectedWords.size === 0}
+                                className="text-xs sm:text-sm flex-1 sm:flex-initial"
+                                size="sm"
                             >
-                                <Play className="h-4 w-4 mr-2" />
+                                <Play className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-2" />
                                 Practice Selected
                             </Button>
                         </div>
@@ -219,10 +318,10 @@ export default function LearnCourseDetailPage({ params }: { params: Promise<{ id
                 )}
 
                 {/* Expandable Lessons List */}
-                <div className="space-y-3">
+                <div className="space-y-2 sm:space-y-3">
                     {lessons.length === 0 ? (
                         <div className="text-center py-12 border-2 border-dashed border-border rounded-xl bg-muted/30">
-                            <p className="text-muted-foreground">No lessons yet</p>
+                            <p className="text-sm sm:text-base text-muted-foreground">No lessons yet</p>
                         </div>
                     ) : (
                         lessons.map((lesson, index) => {
@@ -241,7 +340,7 @@ export default function LearnCourseDetailPage({ params }: { params: Promise<{ id
                                     <div
                                         role="button"
                                         tabIndex={0}
-                                        className="flex items-center gap-3 p-4 cursor-pointer"
+                                        className="flex items-center gap-2 sm:gap-3 p-3 sm:p-4 cursor-pointer"
                                         onClick={() => toggleLesson(lesson.id)}
                                         onKeyDown={(e) => {
                                             if (e.key === "Enter" || e.key === " ") {
@@ -251,22 +350,22 @@ export default function LearnCourseDetailPage({ params }: { params: Promise<{ id
                                         }}
                                     >
                                         <button
-                                            className="text-muted-foreground hover:text-foreground transition-colors"
+                                            className="text-muted-foreground hover:text-foreground transition-colors flex-shrink-0"
                                             onClick={(e) => {
                                                 e.stopPropagation();
                                                 toggleLesson(lesson.id);
                                             }}
                                         >
                                             {isExpanded ? (
-                                                <ChevronDown className="h-5 w-5" />
+                                                <ChevronDown className="h-4 w-4 sm:h-5 sm:w-5" />
                                             ) : (
-                                                <ChevronRight className="h-5 w-5" />
+                                                <ChevronRight className="h-4 w-4 sm:h-5 sm:w-5" />
                                             )}
                                         </button>
                                         
-                                        <div className="flex items-center gap-3 flex-1">
+                                        <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
                                             {lesson.coverImageUrl ? (
-                                                <div className="relative w-12 h-12 rounded-lg overflow-hidden bg-muted flex-shrink-0">
+                                                <div className="relative w-10 h-10 sm:w-12 sm:h-12 rounded-lg overflow-hidden bg-muted flex-shrink-0">
                                                     <Image
                                                         src={lesson.coverImageUrl}
                                                         alt={lesson.name}
@@ -280,13 +379,13 @@ export default function LearnCourseDetailPage({ params }: { params: Promise<{ id
                                                     />
                                                 </div>
                                             ) : (
-                                                <div className="flex items-center justify-center w-12 h-12 rounded-lg bg-gradient-to-br from-primary/20 to-purple-500/20 text-primary font-semibold flex-shrink-0">
+                                                <div className="flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-gradient-to-br from-primary/20 to-purple-500/20 text-primary font-semibold flex-shrink-0 text-sm sm:text-base">
                                                     {index + 1}
                                                 </div>
                                             )}
-                                            <div className="flex-1">
-                                                <h3 className="font-semibold text-lg">{lesson.name}</h3>
-                                                <p className="text-sm text-muted-foreground">
+                                            <div className="flex-1 min-w-0">
+                                                <h3 className="font-semibold text-base sm:text-lg truncate">{lesson.name}</h3>
+                                                <p className="text-xs sm:text-sm text-muted-foreground">
                                                     {lessonWords.length} words
                                                 </p>
                                             </div>
@@ -297,20 +396,20 @@ export default function LearnCourseDetailPage({ params }: { params: Promise<{ id
                                                 checked={allLessonWordsSelected}
                                                 onCheckedChange={() => toggleAllWordsInLesson(lesson)}
                                                 onClick={(e) => e.stopPropagation()}
-                                                className={someLessonWordsSelected ? "data-[state=checked]:bg-primary/50" : ""}
+                                                className={`flex-shrink-0 ${someLessonWordsSelected ? "data-[state=checked]:bg-primary/50" : ""}`}
                                             />
                                         )}
                                     </div>
 
                                     {/* Words List */}
                                     {isExpanded && lessonWords.length > 0 && (
-                                        <div className="border-t border-border bg-muted/30 p-4 space-y-2">
+                                        <div className="border-t border-border bg-muted/30 p-3 sm:p-4 space-y-2">
                                             {lessonWords.map((word) => (
                                                 <div
                                                     key={word.id}
                                                     role="button"
                                                     tabIndex={0}
-                                                    className="flex items-center gap-3 p-3 bg-background rounded-lg border border-border hover:border-primary/50 transition-colors cursor-pointer"
+                                                    className="flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 bg-background rounded-lg border border-border hover:border-primary/50 transition-colors cursor-pointer"
                                                     onClick={() => toggleWord(word.id)}
                                                     onKeyDown={(e) => {
                                                         if (e.key === "Enter" || e.key === " ") {
@@ -323,22 +422,23 @@ export default function LearnCourseDetailPage({ params }: { params: Promise<{ id
                                                         checked={selectedWords.has(word.id)}
                                                         onCheckedChange={() => toggleWord(word.id)}
                                                         onClick={(e) => e.stopPropagation()}
+                                                        className="flex-shrink-0"
                                                     />
                                                     
-                                                    <div className="flex-1">
-                                                        <div className="flex items-center gap-2">
-                                                            <span className="font-semibold">{word.word}</span>
+                                                    <div className="flex-1 min-w-0">
+                                                        <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+                                                            <span className="font-semibold text-sm sm:text-base break-words">{word.word}</span>
                                                             {word.partOfSpeech && (
-                                                                <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary">
+                                                                <span className="text-xs px-1.5 sm:px-2 py-0.5 rounded-full bg-primary/10 text-primary flex-shrink-0">
                                                                     {word.partOfSpeech}
                                                                 </span>
                                                             )}
                                                         </div>
-                                                        <p className="text-sm text-muted-foreground">
+                                                        <p className="text-xs sm:text-sm text-muted-foreground break-words">
                                                             {word.meaning}
                                                         </p>
                                                         {word.pronunciation && (
-                                                            <p className="text-xs text-muted-foreground mt-1">
+                                                            <p className="text-xs text-muted-foreground mt-0.5 sm:mt-1 break-all">
                                                                 {word.pronunciation}
                                                             </p>
                                                         )}
@@ -349,9 +449,9 @@ export default function LearnCourseDetailPage({ params }: { params: Promise<{ id
                                                             variant="ghost"
                                                             size="icon"
                                                             onClick={(e) => handlePlayAudio(word.audioUrl, e)}
-                                                            className="h-8 w-8"
+                                                            className="h-7 w-7 sm:h-8 sm:w-8 flex-shrink-0"
                                                         >
-                                                            <Volume2 className="h-4 w-4" />
+                                                            <Volume2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                                                         </Button>
                                                     )}
                                                 </div>
@@ -360,8 +460,8 @@ export default function LearnCourseDetailPage({ params }: { params: Promise<{ id
                                     )}
 
                                     {isExpanded && lessonWords.length === 0 && (
-                                        <div className="border-t border-border bg-muted/30 p-6 text-center">
-                                            <p className="text-sm text-muted-foreground">
+                                        <div className="border-t border-border bg-muted/30 p-4 sm:p-6 text-center">
+                                            <p className="text-xs sm:text-sm text-muted-foreground">
                                                 No words in this lesson yet
                                             </p>
                                         </div>
