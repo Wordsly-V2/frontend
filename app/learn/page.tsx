@@ -1,7 +1,7 @@
 "use client";
 
 import LoadingSection from "@/components/common/loading-section/loading-section";
-import { StatsCards, getCourseTotalStatsItems } from "@/components/common/stats-cards";
+import { StatsCards } from "@/components/common/stats-cards";
 import LearningProgressSection from "@/components/common/word-progress-stats/learning-progress-section";
 import CourseGrid from "@/components/features/courses/course-grid";
 import CoursesHeader from "@/components/features/courses/courses-header";

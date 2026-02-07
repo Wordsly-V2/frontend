@@ -1,5 +1,5 @@
 "use client";
-import { healthCheck, ServiceHealth } from "@/apis/app.api";
+import { getServiceHealth, healthCheck, ServiceHealth } from "@/apis/app.api";
 import GlobalLoadingOverlay from "@/components/common/loading-overlay/global-loading-overlay";
 import { queryClient } from "@/lib/queryClient";
 import { store } from "@/store/store";
@@ -11,7 +11,7 @@ import { toast } from "sonner";
 export function Providers({ children }: { children: React.ReactNode }) {
     useEffect(() => {
         setTimeout(() => {
-            healthCheck().then((services: ServiceHealth[]) => {
+            getServiceHealth().then(() => healthCheck()).then((services: ServiceHealth[]) => {
                 for (const service of services) {
                     if (service.status === 'unhealthy') {
                         toast.warning(`${service.name} is unhealthy`, {
