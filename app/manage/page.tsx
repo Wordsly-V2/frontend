@@ -1,19 +1,14 @@
 "use client";
 
+import { StatsCards, getCourseTotalStatsItems } from "@/components/common/stats-cards";
 import { LearningProgressSection } from "@/components/common/word-progress-stats";
-import { Button } from "@/components/ui/button";
-import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { useGetMyCoursesTotalStatsQuery } from "@/queries/courses.query";
 import { useGetProgressStatsQuery } from "@/queries/word-progress.query";
-import { BookOpen, FileText, MessageSquare, Plus } from "lucide-react";
-import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useEffect } from "react";
 import ManageCourses from "./manage-courses";
 
 export default function ManagePage() {
-    const router = useRouter();
-
     const { data: courseTotalStats, isLoading, isError, refetch: refetchCourseTotalStats, error } = useGetMyCoursesTotalStatsQuery();
     const { data: wordProgressStats } = useGetProgressStatsQuery(undefined, undefined, true);
 
@@ -41,67 +36,13 @@ export default function ManagePage() {
                 </div>
 
                 {/* Stats Cards */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
-                    <div className="bg-card border-2 border-border rounded-xl sm:rounded-2xl p-4 sm:p-6 hover:border-primary/50 transition-all cursor-pointer card-hover" onClick={handleClickTotalStats}>
-                        <div className="flex items-center gap-3 sm:gap-4">
-                            <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl gradient-brand flex items-center justify-center flex-shrink-0">
-                                <BookOpen className="h-6 w-6 sm:h-7 sm:w-7 text-white" />
-                            </div>
-                            <div className="min-w-0">
-                                {
-                                    isLoading ? (
-                                        <LoadingSpinner size="sm" />
-                                    ) : isError ? (
-                                        <p className="text-2xl sm:text-3xl font-bold">--</p>
-                                    ) : (
-                                        <p className="text-2xl sm:text-3xl font-bold">{courseTotalStats?.totalCourses || 0}</p>
-                                    )
-                                }
-                                <p className="text-xs sm:text-sm text-muted-foreground">Courses</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="bg-card border-2 border-border rounded-xl sm:rounded-2xl p-4 sm:p-6 hover:border-primary/50 transition-all cursor-pointer card-hover" onClick={handleClickTotalStats}>
-                        <div className="flex items-center gap-3 sm:gap-4">
-                            <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl gradient-accent flex items-center justify-center flex-shrink-0">
-                                <FileText className="h-6 w-6 sm:h-7 sm:w-7 text-white" />
-                            </div>
-                            <div className="min-w-0">
-                                {
-                                    isLoading ? (
-                                        <LoadingSpinner size="sm" />
-                                    ) : isError ? (
-                                        <p className="text-2xl sm:text-3xl font-bold">--</p>
-                                    ) : (
-                                        <p className="text-2xl sm:text-3xl font-bold">{courseTotalStats?.totalLessons || 0}</p>
-                                    )
-                                }
-                                <p className="text-xs sm:text-sm text-muted-foreground">Lessons</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="bg-card border-2 border-border rounded-xl sm:rounded-2xl p-4 sm:p-6 hover:border-primary/50 transition-all cursor-pointer card-hover" onClick={handleClickTotalStats}>
-                        <div className="flex items-center gap-3 sm:gap-4">
-                            <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center flex-shrink-0">
-                                <MessageSquare className="h-6 w-6 sm:h-7 sm:w-7 text-white" />
-                            </div>
-                            <div className="min-w-0">
-                                {
-                                    isLoading ? (
-                                        <LoadingSpinner size="sm" />
-                                    ) : isError ? (
-                                        <p className="text-2xl sm:text-3xl font-bold">--</p>
-                                    ) : (
-                                        <p className="text-2xl sm:text-3xl font-bold">{courseTotalStats?.totalWords || 0}</p>
-                                    )
-                                }
-                                <p className="text-xs sm:text-sm text-muted-foreground">Words</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                <StatsCards
+                    items={getCourseTotalStatsItems(courseTotalStats)}
+                    isLoading={isLoading}
+                    isError={isError}
+                    onCardClick={handleClickTotalStats}
+                    className="mb-6 sm:mb-8"
+                />
 
                 {/* Learning Progress (all courses) */}
                 {wordProgressStats && (
