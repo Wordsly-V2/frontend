@@ -11,7 +11,8 @@ import { toast } from "sonner";
 export function Providers({ children }: { children: React.ReactNode }) {
     useEffect(() => {
         setTimeout(() => {
-            getServiceHealth().then(() => healthCheck()).then((services: ServiceHealth[]) => {
+            getServiceHealth();
+            healthCheck().then((services: ServiceHealth[]) => {
                 for (const service of services) {
                     if (service.status === 'unhealthy') {
                         toast.warning(`${service.name} is unhealthy`, {
@@ -26,6 +27,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
             });
         }, 100);
     }, []);
+
     return (
         <Provider store={store}>
             <QueryClientProvider client={queryClient}>

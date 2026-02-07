@@ -19,7 +19,7 @@ export const healthCheck = async (): Promise<ServiceHealth[]> => {
 
 export const getServiceHealth = async (): Promise<string[]> => {
     try {
-        const serviceApiUrls = process.env.NEXT_PUBLIC_SERVICE_API_URLS?.split(',');
+        const serviceApiUrls = process.env.NEXT_PUBLIC_BOOTSTRAP_SERVICE_URLS?.split(',');
         const healthChecks = await Promise.all(serviceApiUrls?.map(url => axios.get(`${url}/health`)) || []);
         return healthChecks.map(response => response.data);
     } catch (error) {
