@@ -21,9 +21,16 @@ export default function WordsIntro({
 }: Readonly<WordsIntroProps>) {
     return (
         <div className="flex flex-col flex-1 animate-in fade-in duration-300">
-            <p className="text-sm text-muted-foreground mb-4">
-                {description}
-            </p>
+            <div className="flex flex-row justify-between items-center py-4 border-b border-border">
+                <p className="text-sm text-muted-foreground">
+                    {description}
+                </p>
+
+                <Button onClick={onStart} size="lg" className="gap-2">
+                    <Play className="h-4 w-4" />
+                    {actionLabel}
+                </Button>   
+            </div>
             <ul className="space-y-3 flex-1 overflow-y-auto pb-4 pr-1">
                 {words.map((word, i) => (
                     <li
