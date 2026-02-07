@@ -1,16 +1,19 @@
 "use client";
 
 import LoadingSection from "@/components/common/loading-section/loading-section";
+import LearningProgressSection from "@/components/common/word-progress-stats/learning-progress-section";
 import CourseGrid from "@/components/features/courses/course-grid";
 import CoursesHeader from "@/components/features/courses/courses-header";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { Pagination } from "@/components/ui/pagination";
 import { useGetMyCoursesQuery, useGetMyCoursesTotalStatsQuery } from "@/queries/courses.query";
+import { useGetProgressStatsQuery } from "@/queries/word-progress.query";
 import { useState } from "react";
 
 export default function LearnPage() {
     const { data: courseTotalStats, isLoading: isLoadingCourseTotalStats, isError: isErrorCourseTotalStats, refetch: refetchCourseTotalStats } = useGetMyCoursesTotalStatsQuery();
     const isLoadingStats = isLoadingCourseTotalStats || isErrorCourseTotalStats || !courseTotalStats;
+    const { data: wordProgressStats } = useGetProgressStatsQuery(undefined, undefined, true);
 
     const [currentPage, setCurrentPage] = useState(1);
     const [searchQuery, setSearchQuery] = useState("");
@@ -37,6 +40,13 @@ export default function LearnPage() {
     return (
         <main className="min-h-screen bg-background">
             <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 md:py-8 max-w-7xl">
+                {/* Header */}
+                <div className="mb-6 sm:mb-8">
+                    <h1 className="text-2xl sm:text-3xl font-bold tracking-tight mb-1 sm:mb-2">Learn</h1>
+                    <p className="text-sm sm:text-base text-muted-foreground">
+                        Learn new words and improve your vocabulary
+                    </p>
+                </div>
 
                 {/* Stats Section */}
                 <div className="mb-6 grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 md:gap-6">
@@ -137,6 +147,16 @@ export default function LearnPage() {
                     </div>
                 </div>
 
+
+                {/* Learning Progress (all courses) */}
+                {wordProgressStats && (
+                    <LearningProgressSection
+                        stats={wordProgressStats}
+                        title="Learning Progress (All Courses)"
+                        className="mb-6 sm:mb-8"
+                    />
+                )}
+                
                 <CoursesHeader
                     searchQuery={searchQuery}
                     totalCourses={paginatedData?.totalItems || 0}

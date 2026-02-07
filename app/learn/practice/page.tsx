@@ -37,14 +37,14 @@ export default function PracticePage() {
             });
             
             toast.success("Practice completed! Your progress has been saved.");
-            router.push(`/learn/courses/${courseId}`);
+            router.replace(`/learn/courses/${courseId}`);
         } catch (error) {
             console.error("Failed to save progress:", error);
             toast.error("Failed to save your progress. Please try again.");
             
             // Still navigate to course page even if save fails
             setTimeout(() => {
-                router.push(`/learn/courses/${courseId}`);
+                router.replace(`/learn/courses/${courseId}`);
             }, 2000);
         }
     }, [courseId, router, recordAnswersMutation]);
