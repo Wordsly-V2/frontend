@@ -13,7 +13,7 @@ import { useState } from "react";
 export default function LearnPage() {
     const { data: courseTotalStats, isLoading: isLoadingCourseTotalStats, isError: isErrorCourseTotalStats, refetch: refetchCourseTotalStats } = useGetMyCoursesTotalStatsQuery();
     const isLoadingStats = isLoadingCourseTotalStats || isErrorCourseTotalStats || !courseTotalStats;
-    const { data: wordProgressStats } = useGetProgressStatsQuery(undefined, undefined, true);
+    const { data: wordProgressStats, isLoading: isLoadingProgressStats, isError: isErrorProgressStats, refetch: refetchProgressStats } = useGetProgressStatsQuery(undefined, undefined, true);
 
     const [currentPage, setCurrentPage] = useState(1);
     const [searchQuery, setSearchQuery] = useState("");
@@ -34,6 +34,12 @@ export default function LearnPage() {
     const handleClickTotalStats = () => {
         if (isErrorCourseTotalStats) {
             refetchCourseTotalStats();
+        }
+    }
+
+    const handleClickProgressStats = () => {
+        if (isLoadingProgressStats || isErrorProgressStats) {
+            refetchProgressStats();
         }
     }
 
@@ -59,14 +65,15 @@ export default function LearnPage() {
 
 
                 {/* Learning Progress (all courses) */}
-                {wordProgressStats && (
-                    <LearningProgressSection
-                        stats={wordProgressStats}
-                        title="Learning Progress (All Courses)"
-                        className="mb-6 sm:mb-8"
-                    />
-                )}
-                
+                <LearningProgressSection
+                    stats={wordProgressStats}
+                    title="Learning Progress (All Courses)"
+                    className="mb-6 sm:mb-8"
+                    isLoading={isLoadingProgressStats}
+                    isError={isErrorProgressStats}
+                    onCardClick={handleClickProgressStats}
+                />
+
                 <CoursesHeader
                     searchQuery={searchQuery}
                     totalCourses={paginatedData?.totalItems || 0}
