@@ -2,34 +2,39 @@
 
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogFooter, DialogTitle } from "@/components/ui/dialog";
-import { CheckCircle2, XCircle, Volume2 } from "lucide-react";
+import { CheckCircle2, XCircle, Volume2, Timer } from "lucide-react";
 import { useEffect } from "react";
 
-interface TypingResultDialogProps {
+export interface PracticeResultDialogProps {
     isOpen: boolean;
     isCorrect: boolean;
     userAnswer: string;
     correctAnswer: string;
     meaning: string;
     pronunciation?: string;
+    partOfSpeech?: string;
     audioUrl?: string;
+    /** Time spent on this word in seconds (optional, shown as speed per word) */
+    timeSpentSeconds?: number;
     onTryAgain: () => void;
     onNext: () => void;
     isLastWord: boolean;
 }
 
-export default function TypingResultDialog({
+export default function PracticeResultDialog({
     isOpen,
     isCorrect,
     userAnswer,
     correctAnswer,
     meaning,
     pronunciation,
+    partOfSpeech,
     audioUrl,
+    timeSpentSeconds,
     onTryAgain,
     onNext,
     isLastWord,
-}: Readonly<TypingResultDialogProps>) {
+}: Readonly<PracticeResultDialogProps>) {
     // Auto-play audio when dialog opens
     useEffect(() => {
         if (isOpen && audioUrl) {
@@ -37,7 +42,7 @@ export default function TypingResultDialog({
                 const audio = new Audio(audioUrl);
                 audio.play().catch(console.error);
             }, 300); // Small delay for better UX
-            
+
             return () => clearTimeout(timer);
         }
     }, [isOpen, audioUrl]);
@@ -53,8 +58,8 @@ export default function TypingResultDialog({
             }
         };
 
-        window.addEventListener("keydown", handleKeyDown);
-        return () => window.removeEventListener("keydown", handleKeyDown);
+        globalThis.addEventListener("keydown", handleKeyDown);
+        return () => globalThis.removeEventListener("keydown", handleKeyDown);
     }, [isOpen, onNext]);
 
     const handlePlayAudio = () => {
@@ -63,13 +68,27 @@ export default function TypingResultDialog({
             audio.play().catch(console.error);
         }
     };
+
+    let speedLabel: string | null = null;
+    if (timeSpentSeconds != null && timeSpentSeconds > 0) {
+        speedLabel = timeSpentSeconds < 60
+            ? `${Math.round(timeSpentSeconds)} sec per word`
+            : `${(60 / timeSpentSeconds).toFixed(1)} words/min`;
+    }
+
     return (
-        <Dialog open={isOpen} onOpenChange={() => {}}>
+        <Dialog open={isOpen} onOpenChange={() => { }}>
             <DialogContent className="max-w-md" showCloseButton={false}>
                 <DialogTitle className="sr-only">
                     {isCorrect ? "Correct Answer" : "Incorrect Answer"}
                 </DialogTitle>
                 <div className="text-center py-6">
+                    {speedLabel && (
+                        <div className="flex items-center justify-center gap-1.5 text-sm text-muted-foreground mb-3">
+                            <Timer className="h-4 w-4" />
+                            <span>{speedLabel}</span>
+                        </div>
+                    )}
                     {isCorrect ? (
                         <div className="space-y-4 animate-in fade-in zoom-in duration-500">
                             <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-br from-green-400 to-emerald-500 animate-in zoom-in duration-500">
@@ -84,6 +103,9 @@ export default function TypingResultDialog({
                                         </p>
                                         <p className="text-sm text-green-700 mt-0.5">
                                             {meaning}
+                                        </p>
+                                        <p className="text-sm text-green-700 mt-0.5">
+                                            {partOfSpeech}
                                         </p>
                                         {pronunciation && (
                                             <p className="text-xs text-green-600 mt-1">

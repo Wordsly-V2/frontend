@@ -1,20 +1,22 @@
 "use client";
 
 import LoadingSection from "@/components/common/loading-section/loading-section";
+import { WordsIntro } from "@/components/common/words-intro";
 import VocabularyPractice, { WordResult } from "@/components/features/vocabulary/vocabulary-practice";
 import { Button } from "@/components/ui/button";
 import { useGetWordsByIdsQuery } from "@/queries/words.query";
 import { useRecordAnswersMutation } from "@/queries/word-progress.query";
 import { ArrowLeft } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 import { toast } from "sonner";
 import { useLoadingOverlay } from "@/hooks/useLoadingOverlay.hook";
 
 export default function PracticePage() {
     const router = useRouter();
     const searchParams = useSearchParams();
-    
+    const [phase, setPhase] = useState<"intro" | "practice">("intro");
+
     const courseName = searchParams.get("courseName") || "";
     const courseId = searchParams.get("courseId") || "";
     const wordIds = searchParams.get("wordIds") || "";
@@ -85,14 +87,18 @@ export default function PracticePage() {
                 </Button>
                 <div className="text-center mb-4 sm:mb-6 flex-shrink-0">
                     <h1 className="text-xl sm:text-2xl md:text-3xl font-bold mb-2">
-                        Practice Vocabulary
+                        {phase === "intro" ? "New Words" : "Practice Vocabulary"}
                     </h1>
                     <p className="text-sm sm:text-base text-muted-foreground">
                         {courseName} • {words.length} words
                     </p>
                 </div>
                 <div className="flex-1 pb-4">
-                    <VocabularyPractice words={words} onComplete={handleComplete} />
+                    {phase === "intro" ? (
+                        <WordsIntro words={words} onStart={() => setPhase("practice")} />
+                    ) : (
+                        <VocabularyPractice words={words} onComplete={handleComplete} />
+                    )}
                 </div>
             </div>
         </main>

@@ -4,9 +4,9 @@ import { useState, useEffect, useRef, useMemo } from "react";
 import { IWord } from "@/types/courses/courses.type";
 import { Button } from "@/components/ui/button";
 import { Volume2, ChevronRight, CheckCircle2, XCircle, Settings2, Sparkles, Lightbulb, List, Play } from "lucide-react";
-import PracticeSettingsDialog, { PracticeMode, PracticeSettings } from "./practice-settings-dialog";
-import TypingResultDialog from "./typing-result-dialog";
-import WordsSummaryDialog from "./words-summary-dialog";
+import PracticeSettingsDialog, { PracticeMode, PracticeSettings } from "@/components/features/vocabulary/practice-settings-dialog";
+import PracticeResultDialog from "@/components/features/vocabulary/practice-result-dialog";
+import WordsSummaryDialog from "@/components/features/vocabulary/words-summary-dialog";
 import { AnswerQuality } from "@/types/word-progress/word-progress.type";
 
 export interface WordResult {
@@ -63,7 +63,9 @@ export default function VocabularyPractice({
     const [selectedChoice, setSelectedChoice] = useState<string | null>(null);
     const [hasPlayedAudio, setHasPlayedAudio] = useState(false);
     const [wordResults, setWordResults] = useState<WordResult[]>([]);
+    const [timeSpentSeconds, setTimeSpentSeconds] = useState<number | undefined>(undefined);
     const inputRef = useRef<HTMLInputElement>(null);
+    const wordStartTimeRef = useRef<number | null>(null);
 
     const currentWord = shuffledWords[currentIndex];
     const progress = ((currentIndex + 1) / shuffledWords.length) * 100;
@@ -172,19 +174,26 @@ export default function VocabularyPractice({
         }
     };
 
+    // Start per-word timer when showing a new word (typing, multiple-choice, listening)
+    useEffect(() => {
+        if (isTyping || isMultipleChoice || isListening) {
+            wordStartTimeRef.current = Date.now();
+        }
+    }, [currentIndex, isTyping, isMultipleChoice, isListening]);
+
     useEffect(() => {
         if ((isTyping || isListening) && !typingResult && inputRef.current) {
             inputRef.current.focus();
-            
+
             // Scroll input into view when keyboard appears on mobile
             const handleFocus = () => {
                 setTimeout(() => {
                     inputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 }, 300); // Wait for keyboard to appear
             };
-            
+
             inputRef.current.addEventListener('focus', handleFocus);
-            
+
             return () => {
                 inputRef.current?.removeEventListener('focus', handleFocus);
             };
@@ -227,13 +236,15 @@ export default function VocabularyPractice({
         if (!currentWord) {
             return;
         }
+        const elapsed = wordStartTimeRef.current != null ? (Date.now() - wordStartTimeRef.current) / 1000 : undefined;
+        if (elapsed != null) setTimeSpentSeconds(elapsed);
         const isCorrect = normalize(userAnswer.trim()) === normalize(currentWord.word.trim());
         if (isCorrect) {
             if (typingResult !== "correct") {
                 setCorrectCount((prev) => prev + 1);
             }
             setTypingResult("correct");
-            
+
             // Record the word result
             const quality = calculateAnswerQuality(true, hintsUsed);
             setWordResults(prev => {
@@ -242,7 +253,7 @@ export default function VocabularyPractice({
             });
         } else {
             setTypingResult("incorrect");
-            
+
             // Record the word result
             const quality = calculateAnswerQuality(false, hintsUsed);
             setWordResults(prev => {
@@ -257,15 +268,17 @@ export default function VocabularyPractice({
         setShowResultDialog(false);
         setTypingResult(null);
         setUserAnswer("");
-        
+        setTimeSpentSeconds(undefined);
+
         // Remove the last word result since user wants to try again
         setWordResults(prev => prev.slice(0, -1));
-        
+
         setTimeout(() => inputRef.current?.focus(), 100);
     };
 
     const handleNextFromDialog = () => {
         setShowResultDialog(false);
+        setTimeSpentSeconds(undefined);
         handleNext();
     };
 
@@ -273,25 +286,26 @@ export default function VocabularyPractice({
         if (!currentWord || typingResult) {
             return;
         }
-        
+        const elapsed = wordStartTimeRef.current != null ? (Date.now() - wordStartTimeRef.current) / 1000 : undefined;
+        if (elapsed != null) setTimeSpentSeconds(elapsed);
         setSelectedChoice(selectedMeaning);
         const isCorrect = selectedMeaning === currentWord.meaning;
-        
+
         if (isCorrect) {
             setCorrectCount((prev) => prev + 1);
             setTypingResult("correct");
-            
+
             // Record the word result (no hints in multiple choice)
             const quality = calculateAnswerQuality(true, 0);
             setWordResults(prev => [...prev, { wordId: currentWord.id, quality }]);
         } else {
             setTypingResult("incorrect");
-            
+
             // Record the word result
             const quality = calculateAnswerQuality(false, 0);
             setWordResults(prev => [...prev, { wordId: currentWord.id, quality }]);
         }
-        
+
         setShowResultDialog(true);
     };
 
@@ -307,19 +321,21 @@ export default function VocabularyPractice({
         if (!currentWord) {
             return;
         }
+        const elapsed = wordStartTimeRef.current != null ? (Date.now() - wordStartTimeRef.current) / 1000 : undefined;
+        if (elapsed != null) setTimeSpentSeconds(elapsed);
         const isCorrect = normalize(userAnswer.trim()) === normalize(currentWord.word.trim());
         if (isCorrect) {
             if (typingResult !== "correct") {
                 setCorrectCount((prev) => prev + 1);
             }
             setTypingResult("correct");
-            
+
             // Record the word result
             const quality = calculateAnswerQuality(true, hintsUsed);
             setWordResults(prev => [...prev, { wordId: currentWord.id, quality }]);
         } else {
             setTypingResult("incorrect");
-            
+
             // Record the word result
             const quality = calculateAnswerQuality(false, hintsUsed);
             setWordResults(prev => [...prev, { wordId: currentWord.id, quality }]);
@@ -334,13 +350,15 @@ export default function VocabularyPractice({
         
         const checkAnswer = () => {
             if (normalize(userAnswer) === normalize(currentWord.word)) {
+                const elapsed = wordStartTimeRef.current != null ? (Date.now() - wordStartTimeRef.current) / 1000 : undefined;
+                if (elapsed != null) setTimeSpentSeconds(elapsed);
                 setTypingResult("correct");
                 setCorrectCount((prev) => prev + 1);
-                
+
                 // Record the word result for auto-check
                 const quality = calculateAnswerQuality(true, hintsUsed);
                 setWordResults(prev => [...prev, { wordId: currentWord.id, quality }]);
-                
+
                 setShowResultDialog(true);
             }
         };
@@ -838,16 +856,18 @@ export default function VocabularyPractice({
                 </div>
             )}
 
-            {/* Typing Result Dialog */}
+            {/* Practice Result Dialog */}
             {(isTyping || isMultipleChoice || isListening) && (
-                <TypingResultDialog
+                <PracticeResultDialog
                     isOpen={showResultDialog}
                     isCorrect={typingResult === "correct"}
                     userAnswer={isMultipleChoice ? (selectedChoice || "") : userAnswer}
-                    correctAnswer={isMultipleChoice ? currentWord.meaning : currentWord.word}
-                    meaning={isMultipleChoice ? "" : currentWord.meaning}
+                    correctAnswer={currentWord.word}
+                    meaning={currentWord.meaning}
                     pronunciation={currentWord.pronunciation}
+                    partOfSpeech={currentWord.partOfSpeech}
                     audioUrl={currentWord.audioUrl}
+                    timeSpentSeconds={timeSpentSeconds}
                     onTryAgain={handleTryAgain}
                     onNext={handleNextFromDialog}
                     isLastWord={isLastWord}
