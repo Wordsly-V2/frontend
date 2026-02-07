@@ -3,20 +3,20 @@
 import ConfirmDialog from "@/components/common/confirm-dialog/confirm-dialog";
 import DataTable from "@/components/common/data-table/data-table";
 import LoadingSection from "@/components/common/loading-section/loading-section";
-import CourseFormDialog from "@/components/features/manage/course-form-dialog";
 import { WordProgressStatsInline } from "@/components/common/word-progress-stats";
+import CourseFormDialog from "@/components/features/manage/course-form-dialog";
 import { Button } from "@/components/ui/button";
 import { Pagination } from "@/components/ui/pagination";
 import { useCourses } from "@/hooks/useCourses.hook";
 import { useGetMyCoursesQuery } from "@/queries/courses.query";
 import { ICourse } from "@/types/courses/courses.type";
-import { ArrowLeft, Edit, Eye, Plus, Trash2 } from "lucide-react";
+import { Edit, Eye, Plus, Trash2 } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
 
-export default function ManageCoursesPage() {
+export default function ManageCourses() {
     const router = useRouter();
     const [currentPage, setCurrentPage] = useState(1);
     const [isFormOpen, setIsFormOpen] = useState(false);
@@ -193,16 +193,6 @@ export default function ManageCoursesPage() {
     return (
         <main className="min-h-screen bg-background">
             <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 md:py-8 max-w-7xl">
-                <Button
-                    variant="ghost"
-                    onClick={() => router.push('/manage')}
-                    className="mb-4 sm:mb-6 text-sm sm:text-base"
-                    size="sm"
-                >
-                    <ArrowLeft className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-2" />
-                    Back to Dashboard
-                </Button>
-
                 <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6 sm:mb-8">
                     <div>
                         <h1 className="text-2xl sm:text-3xl font-bold tracking-tight mb-1 sm:mb-2">Manage Courses</h1>

@@ -9,6 +9,7 @@ import { BookOpen, FileText, MessageSquare, Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useEffect } from "react";
+import ManageCourses from "./manage-courses";
 
 export default function ManagePage() {
     const router = useRouter();
@@ -25,8 +26,6 @@ export default function ManagePage() {
     const handleClickTotalStats = () => {
         if (isLoading || isError) {
             refetchCourseTotalStats();
-        } else {
-            router.push('/manage/courses');
         }
     }
 
@@ -113,48 +112,7 @@ export default function ManagePage() {
                     />
                 )}
 
-                {/* Quick Actions */}
-                <div className="bg-card border-2 border-border rounded-xl sm:rounded-2xl p-4 sm:p-6 md:p-8">
-                    <h2 className="text-lg sm:text-xl font-semibold mb-4 sm:mb-6">Quick Actions</h2>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                        <Button
-                            size="lg"
-                            className="h-12 sm:h-16 text-sm sm:text-base"
-                            onClick={() => router.push('/manage/courses')}
-                        >
-                            <BookOpen className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
-                            Manage Courses
-                        </Button>
-                        <Button
-                            size="lg"
-                            variant="outline"
-                            className="h-12 sm:h-16 text-sm sm:text-base"
-                            onClick={() => router.push('/learn')}
-                        >
-                            <Plus className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
-                            Switch to Learn Mode
-                        </Button>
-                    </div>
-                </div>
-
-                {/* Getting Started */}
-                {courseTotalStats?.totalCourses === 0 && (
-                    <div className="mt-6 sm:mt-8 bg-primary/5 border-2 border-primary/20 rounded-xl sm:rounded-2xl p-6 sm:p-8 text-center">
-                        <div className="max-w-md mx-auto">
-                            <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-3 sm:mb-4">
-                                <BookOpen className="h-6 w-6 sm:h-8 sm:w-8 text-primary" />
-                            </div>
-                            <h3 className="text-lg sm:text-xl font-semibold mb-1 sm:mb-2">Get Started</h3>
-                            <p className="text-sm sm:text-base text-muted-foreground mb-4 sm:mb-6">
-                                Create your first course to start building your vocabulary learning content
-                            </p>
-                            <Button onClick={() => router.push('/manage/courses')} size="sm" className="text-sm sm:text-base">
-                                <Plus className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-2" />
-                                Create First Course
-                            </Button>
-                        </div>
-                    </div>
-                )}
+                <ManageCourses />
             </div>
         </main>
     );

@@ -327,7 +327,7 @@ export default function ManageCourseDetailPage({ params }: { params: Promise<{ i
             onSuccess: () => {
                 loadCourseDetail();
                 setDeleteCourseConfirm(false);
-                router.push('/manage/courses');
+                router.push('/manage');
                 toast.success('Course deleted successfully');
             },
             onError: (err) => {
@@ -534,7 +534,7 @@ export default function ManageCourseDetailPage({ params }: { params: Promise<{ i
             <main className="min-h-screen bg-background flex items-center justify-center">
                 <div className="text-center">
                     <h2 className="text-2xl font-bold mb-4">Course not found</h2>
-                    <Button onClick={() => router.push('/manage/courses')}>
+                    <Button onClick={() => router.push('/manage')}>
                         <ArrowLeft className="h-4 w-4 mr-2" />
                         Back to Courses
                     </Button>
@@ -546,7 +546,7 @@ export default function ManageCourseDetailPage({ params }: { params: Promise<{ i
     return (
         <main className="min-h-screen bg-background">
             <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 md:py-8 max-w-5xl">
-                <Button variant="ghost" onClick={() => router.push('/manage/courses')} className="mb-4 sm:mb-6 text-sm sm:text-base" size="sm">
+                <Button variant="ghost" onClick={() => router.push('/manage')} className="mb-4 sm:mb-6 text-sm sm:text-base" size="sm">
                     <ArrowLeft className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-2" />
                     Back to Courses
                 </Button>
