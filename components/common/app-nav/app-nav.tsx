@@ -15,6 +15,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useUser } from "@/hooks/useUser.hook";
 import { ChangeThemeToggle } from "@/components/common/change-theme-toggle/change-theme-toggle";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
 
 export default function AppNav() {
     const pathname = usePathname();
@@ -32,7 +33,7 @@ export default function AppNav() {
 
     const renderUserSection = () => {
         if (isLoading) {
-            return <div className="w-9 h-9 rounded-full bg-muted animate-pulse" />;
+            return <LoadingSpinner size="sm" />;
         }
 
         if (profile) {
