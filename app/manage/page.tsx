@@ -10,19 +10,37 @@ import ManageCourses from "./manage-courses";
 
 export default function ManagePage() {
     const { data: courseTotalStats, isLoading, isError, refetch: refetchCourseTotalStats, error } = useGetMyCoursesTotalStatsQuery();
-    const { data: wordProgressStats } = useGetProgressStatsQuery(undefined, undefined, true);
+    const {
+        data: wordProgressStats,
+        isLoading: isProgressStatsLoading,
+        isError: isProgressStatsError,
+        refetch: refetchProgressStats,
+        error: progressStatsError,
+    } = useGetProgressStatsQuery(undefined, undefined, true);
 
     useEffect(() => {
         if (isError) {
-            toast.error('Failed to load course total stats: ' + error?.message);
+            toast.error("Failed to load course total stats: " + (error?.message ?? "Unknown error"));
         }
     }, [isError, error]);
+
+    useEffect(() => {
+        if (isProgressStatsError) {
+            toast.error("Failed to load learning progress: " + (progressStatsError?.message ?? "Unknown error"));
+        }
+    }, [isProgressStatsError, progressStatsError]);
 
     const handleClickTotalStats = () => {
         if (isLoading || isError) {
             refetchCourseTotalStats();
         }
-    }
+    };
+
+    const handleClickProgressStats = () => {
+        if (isProgressStatsLoading || isProgressStatsError) {
+            refetchProgressStats();
+        }
+    };
 
     return (
         <main className="min-h-screen bg-background">
@@ -37,7 +55,7 @@ export default function ManagePage() {
 
                 {/* Stats Cards */}
                 <StatsCards
-                    items={getCourseTotalStatsItems(courseTotalStats)}
+                    items={courseTotalStats}
                     isLoading={isLoading}
                     isError={isError}
                     onCardClick={handleClickTotalStats}
@@ -45,13 +63,14 @@ export default function ManagePage() {
                 />
 
                 {/* Learning Progress (all courses) */}
-                {wordProgressStats && (
-                    <LearningProgressSection
-                        stats={wordProgressStats}
-                        title="Learning Progress (All Courses)"
-                        className="mb-6 sm:mb-8"
-                    />
-                )}
+                <LearningProgressSection
+                    stats={wordProgressStats}
+                    title="Learning Progress (All Courses)"
+                    className="mb-6 sm:mb-8"
+                    isLoading={isProgressStatsLoading}
+                    isError={isProgressStatsError}
+                    onCardClick={handleClickProgressStats}
+                />
 
                 <ManageCourses />
             </div>

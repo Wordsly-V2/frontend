@@ -49,7 +49,7 @@ export function getCourseTotalStatsItems(
 }
 
 export interface StatsCardsProps {
-    items: StatsCardItem[];
+    items: CourseTotalStats | null | undefined;
     isLoading?: boolean;
     isError?: boolean;
     /** Called when a card is clicked (e.g. to retry loading). Optional. */
@@ -64,9 +64,10 @@ export default function StatsCards({
     onCardClick,
     className = "",
 }: Readonly<StatsCardsProps>) {
+    const statsItems = getCourseTotalStatsItems(items);
     return (
         <div className={`grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 ${className}`.trim()}>
-            {items.map((item) => {
+            {statsItems.map((item) => {
                 let valueContent: ReactNode;
                 if (isLoading) {
                     valueContent = <LoadingSpinner size="sm" />;

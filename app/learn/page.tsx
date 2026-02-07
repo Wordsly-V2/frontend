@@ -50,7 +50,7 @@ export default function LearnPage() {
 
                 {/* Stats Section */}
                 <StatsCards
-                    items={getCourseTotalStatsItems(courseTotalStats)}
+                    items={courseTotalStats}
                     isLoading={isLoadingStats}
                     isError={isErrorCourseTotalStats}
                     onCardClick={handleClickTotalStats}
