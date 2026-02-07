@@ -18,8 +18,8 @@ export const useUser = () => {
         return dispatch(fetchProfileAction());
     }
 
-    function logout() {
-        return dispatch(logoutAction()).then(() => {
+    function logout(isLoggedOutFromAllDevices?: boolean) {
+        return dispatch(logoutAction({ isLoggedOutFromAllDevices })).then(() => {
             localStorage.removeItem('access_token');
             router.replace('/');
             router.refresh();

@@ -1,8 +1,9 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { BookOpen, GraduationCap, Settings, User, LogOut, LogIn } from "lucide-react";
+import { BookOpen, GraduationCap, Settings, User, LogOut, LogIn, Smartphone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
     DropdownMenu,
@@ -12,6 +13,15 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+    AlertDialog,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useUser } from "@/hooks/useUser.hook";
 import { ChangeThemeToggle } from "@/components/common/change-theme-toggle/change-theme-toggle";
@@ -21,14 +31,22 @@ export default function AppNav() {
     const pathname = usePathname();
     const router = useRouter();
     const { profile, isLoading, logout } = useUser();
-    
+    const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
+    const [isLoggingOut, setIsLoggingOut] = useState(false);
+
     const isManageMode = pathname?.startsWith('/manage');
     const isLearnMode = pathname?.startsWith('/learn');
     const isAuthPage = pathname?.startsWith('/auth');
 
-    const handleLogout = async () => {
-        await logout();
-        router.push('/auth/login');
+    const handleLogoutChoice = async (fromAllDevices: boolean) => {
+        setIsLoggingOut(true);
+        try {
+            await logout(fromAllDevices);
+            setLogoutDialogOpen(false);
+            router.push('/auth/login');
+        } finally {
+            setIsLoggingOut(false);
+        }
     };
 
     const renderUserSection = () => {
@@ -38,61 +56,96 @@ export default function AppNav() {
 
         if (profile) {
             return (
-                <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                        <Button
-                            variant="ghost"
-                            className="relative h-8 w-8 sm:h-9 sm:w-9 rounded-full ring-2 ring-offset-2 ring-offset-background ring-primary/20 hover:ring-primary/40 transition-all hover:scale-110 p-0"
-                        >
-                            <Avatar className="h-8 w-8 sm:h-9 sm:w-9">
-                                <AvatarImage
-                                    src={profile.pictureUrl ?? ''}
-                                    alt={profile.displayName ?? ''}
-                                    loading="lazy"
-                                    crossOrigin="anonymous"
-                                    referrerPolicy="no-referrer"
-                                />
-                                <AvatarFallback className="gradient-brand text-white font-semibold text-xs sm:text-sm">
-                                    {profile.displayName?.charAt(0) ?? 'U'}
-                                </AvatarFallback>
-                            </Avatar>
-                        </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-56 rounded-xl">
-                        <DropdownMenuLabel className="font-normal">
-                            <div className="flex flex-col space-y-1">
-                                <p className="text-sm font-semibold leading-none truncate">
-                                    {profile.displayName}
-                                </p>
-                                <p className="text-xs leading-none text-muted-foreground truncate">
-                                    {profile.gmail}
-                                </p>
-                            </div>
-                        </DropdownMenuLabel>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem
-                            onClick={() => router.push('/profile')}
-                            className="cursor-pointer rounded-lg"
-                        >
-                            <User className="mr-2 h-4 w-4" />
-                            <span>Profile</span>
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem
-                            className="cursor-pointer rounded-lg"
-                        >
-                            <ChangeThemeToggle />
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem
-                            onClick={handleLogout}
-                            className="cursor-pointer text-destructive focus:text-destructive rounded-lg"
-                        >
-                            <LogOut className="mr-2 h-4 w-4" />
-                            <span>Log out</span>
-                        </DropdownMenuItem>
-                    </DropdownMenuContent>
-                </DropdownMenu>
+                <>
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button
+                                variant="ghost"
+                                className="relative h-8 w-8 sm:h-9 sm:w-9 rounded-full ring-2 ring-offset-2 ring-offset-background ring-primary/20 hover:ring-primary/40 transition-all hover:scale-110 p-0"
+                            >
+                                <Avatar className="h-8 w-8 sm:h-9 sm:w-9">
+                                    <AvatarImage
+                                        src={profile.pictureUrl ?? ''}
+                                        alt={profile.displayName ?? ''}
+                                        loading="lazy"
+                                        crossOrigin="anonymous"
+                                        referrerPolicy="no-referrer"
+                                    />
+                                    <AvatarFallback className="gradient-brand text-white font-semibold text-xs sm:text-sm">
+                                        {profile.displayName?.charAt(0) ?? 'U'}
+                                    </AvatarFallback>
+                                </Avatar>
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-56 rounded-xl">
+                            <DropdownMenuLabel className="font-normal">
+                                <div className="flex flex-col space-y-1">
+                                    <p className="text-sm font-semibold leading-none truncate">
+                                        {profile.displayName}
+                                    </p>
+                                    <p className="text-xs leading-none text-muted-foreground truncate">
+                                        {profile.gmail}
+                                    </p>
+                                </div>
+                            </DropdownMenuLabel>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                                onClick={() => router.push('/profile')}
+                                className="cursor-pointer rounded-lg"
+                            >
+                                <User className="mr-2 h-4 w-4" />
+                                <span>Profile</span>
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                                className="cursor-pointer rounded-lg"
+                            >
+                                <ChangeThemeToggle />
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                                onClick={() => setLogoutDialogOpen(true)}
+                                className="cursor-pointer text-destructive focus:text-destructive rounded-lg"
+                            >
+                                <LogOut className="mr-2 h-4 w-4" />
+                                <span>Log out</span>
+                            </DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                    <AlertDialog open={logoutDialogOpen} onOpenChange={setLogoutDialogOpen}>
+                        <AlertDialogContent className="sm:max-w-md">
+                            <AlertDialogHeader>
+                                <AlertDialogTitle>Log out</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                    Do you want to log out on this device only or from all devices?
+                                </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+                                <AlertDialogCancel disabled={isLoggingOut} className="w-full sm:w-auto">
+                                    Cancel
+                                </AlertDialogCancel>
+                                <Button
+                                    variant="outline"
+                                    disabled={isLoggingOut}
+                                    onClick={() => handleLogoutChoice(false)}
+                                    className="w-full sm:w-auto gap-2"
+                                >
+                                    <Smartphone className="h-4 w-4" />
+                                    This device only
+                                </Button>
+                                <Button
+                                    variant="destructive"
+                                    disabled={isLoggingOut}
+                                    onClick={() => handleLogoutChoice(true)}
+                                    className="w-full sm:w-auto gap-2"
+                                >
+                                    <LogOut className="h-4 w-4" />
+                                    All devices
+                                </Button>
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
+                </>
             );
         }
 

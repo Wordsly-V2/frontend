@@ -1,10 +1,12 @@
 import axiosInstance from "@/lib/axios";
 import type { AxiosError } from "axios";
 
-export const logout = async (): Promise<{ success: boolean }> => {
+export const logout = async (isLoggedOutFromAllDevices?: boolean): Promise<{ success: boolean }> => {
     try {
-        await axiosInstance.post('/auth/logout');
-        return { success: true };
+        const response = await axiosInstance.post<{ success: boolean }>('/auth/logout', {
+            isLoggedOutFromAllDevices,
+        });
+        return response.data;
     } catch (error) {
         throw (error as AxiosError).response?.data || error;
     }
