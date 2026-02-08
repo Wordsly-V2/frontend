@@ -4,13 +4,12 @@ import LoadingSection from "@/components/common/loading-section/loading-section"
 import { WordsIntro } from "@/components/common/words-intro";
 import VocabularyPractice, { WordResult } from "@/components/features/vocabulary/vocabulary-practice";
 import { Button } from "@/components/ui/button";
+import { useRecordAnswerMutation } from "@/queries/word-progress.query";
 import { useGetWordsByIdsQuery } from "@/queries/words.query";
-import { useRecordAnswersMutation } from "@/queries/word-progress.query";
 import { ArrowLeft } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useState } from "react";
 import { toast } from "sonner";
-import { useLoadingOverlay } from "@/hooks/useLoadingOverlay.hook";
 
 export default function PracticePage() {
     const router = useRouter();
@@ -26,29 +25,22 @@ export default function PracticePage() {
     }
 
     const { data: words, isLoading: isWordsLoading, isError: isWordsError, refetch: refetchWords } = useGetWordsByIdsQuery(courseId, wordIds.split(","), !!courseId && !!wordIds);
-    const recordAnswersMutation = useRecordAnswersMutation();
+    const recordAnswerMutation = useRecordAnswerMutation();
 
-    const handleComplete = useCallback(async (score: number, wordResults: WordResult[]) => {
-        
-        // Submit bulk progress update
-        try {
-            await recordAnswersMutation.mutateAsync({
-                answers: wordResults
-            });
-            
+    const handleWordComplete = useCallback(
+        (result: WordResult) => {
+            recordAnswerMutation.mutate({ wordId: result.wordId, quality: result.quality });
+        },
+        [recordAnswerMutation]
+    );
+
+    const handleComplete = useCallback(
+        async () => {
             toast.success("Practice completed! Your progress has been saved.");
             router.replace(`/learn/courses/${courseId}`);
-        } catch (error) {
-            console.error("Failed to save progress:", error);
-            toast.error("Failed to save your progress. Please try again.");
-            
-            // Still navigate to course page even if save fails
-            setTimeout(() => {
-                router.replace(`/learn/courses/${courseId}`);
-            }, 2000);
-        }
-    }, [courseId, router, recordAnswersMutation]);
-    useLoadingOverlay({ isPending: recordAnswersMutation.isPending, label: "Saving progress..." });
+        },
+        [courseId, router]
+    );
 
     const handleBackToCourse = () => {
         const courseId = searchParams.get("courseId");
@@ -97,7 +89,11 @@ export default function PracticePage() {
                     {phase === "intro" ? (
                         <WordsIntro words={words} onStart={() => setPhase("practice")} />
                     ) : (
-                        <VocabularyPractice words={words} onComplete={handleComplete} />
+                        <VocabularyPractice
+                            words={words}
+                            onWordComplete={handleWordComplete}
+                            onComplete={handleComplete}
+                        />
                     )}
                 </div>
             </div>

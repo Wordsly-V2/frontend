@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { IWord } from "@/types/courses/courses.type";
 import { Button } from "@/components/ui/button";
 import { Volume2, ChevronRight, CheckCircle2, XCircle, Settings2, Sparkles, Lightbulb, List, Play } from "lucide-react";
@@ -16,6 +16,7 @@ export interface WordResult {
 
 interface VocabularyPracticeProps {
     words: IWord[];
+    onWordComplete?: (result: WordResult) => void;
     onComplete?: (score: number, wordResults: WordResult[]) => void;
 }
 
@@ -46,6 +47,7 @@ const loadSettings = (): PracticeSettings => {
 
 export default function VocabularyPractice({
     words,
+    onWordComplete,
     onComplete,
 }: Readonly<VocabularyPracticeProps>) {
     const [shuffledWords] = useState(() => shuffleArray(words));
@@ -66,6 +68,14 @@ export default function VocabularyPractice({
     const [timeSpentSeconds, setTimeSpentSeconds] = useState<number | undefined>(undefined);
     const inputRef = useRef<HTMLInputElement>(null);
     const wordStartTimeRef = useRef<number | null>(null);
+
+    const addWordResult = useCallback(
+        (result: WordResult) => {
+            setWordResults((prev) => [...prev, result]);
+            onWordComplete?.(result);
+        },
+        [onWordComplete]
+    );
 
     const currentWord = shuffledWords[currentIndex];
     const progress = ((currentIndex + 1) / shuffledWords.length) * 100;
@@ -247,19 +257,13 @@ export default function VocabularyPractice({
 
             // Record the word result
             const quality = calculateAnswerQuality(true, hintsUsed);
-            setWordResults(prev => {
-                const updated = [...prev, { wordId: currentWord.id, quality }];
-                return updated;
-            });
+            addWordResult({ wordId: currentWord.id, quality });
         } else {
             setTypingResult("incorrect");
 
             // Record the word result
             const quality = calculateAnswerQuality(false, hintsUsed);
-            setWordResults(prev => {
-                const updated = [...prev, { wordId: currentWord.id, quality }];
-                return updated;
-            });
+            addWordResult({ wordId: currentWord.id, quality });
         }
         setShowResultDialog(true);
     };
@@ -297,13 +301,13 @@ export default function VocabularyPractice({
 
             // Record the word result (no hints in multiple choice)
             const quality = calculateAnswerQuality(true, 0);
-            setWordResults(prev => [...prev, { wordId: currentWord.id, quality }]);
+            addWordResult({ wordId: currentWord.id, quality });
         } else {
             setTypingResult("incorrect");
 
             // Record the word result
             const quality = calculateAnswerQuality(false, 0);
-            setWordResults(prev => [...prev, { wordId: currentWord.id, quality }]);
+            addWordResult({ wordId: currentWord.id, quality });
         }
 
         setShowResultDialog(true);
@@ -332,13 +336,13 @@ export default function VocabularyPractice({
 
             // Record the word result
             const quality = calculateAnswerQuality(true, hintsUsed);
-            setWordResults(prev => [...prev, { wordId: currentWord.id, quality }]);
+            addWordResult({ wordId: currentWord.id, quality });
         } else {
             setTypingResult("incorrect");
 
             // Record the word result
             const quality = calculateAnswerQuality(false, hintsUsed);
-            setWordResults(prev => [...prev, { wordId: currentWord.id, quality }]);
+            addWordResult({ wordId: currentWord.id, quality });
         }
         setShowResultDialog(true);
     };
@@ -357,14 +361,14 @@ export default function VocabularyPractice({
 
                 // Record the word result for auto-check
                 const quality = calculateAnswerQuality(true, hintsUsed);
-                setWordResults(prev => [...prev, { wordId: currentWord.id, quality }]);
+                addWordResult({ wordId: currentWord.id, quality });
 
                 setShowResultDialog(true);
             }
         };
         
         checkAnswer();
-    }, [autoCheck, currentWord, mode, typingResult, userAnswer, hintsUsed]);
+    }, [autoCheck, currentWord, mode, typingResult, userAnswer, hintsUsed, addWordResult]);
 
     useEffect(() => {
         const resetState = () => {
@@ -820,13 +824,7 @@ export default function VocabularyPractice({
                         onClick={() => {
                             setCorrectCount(correctCount + 1);
                             // Record as perfect for "I Know This"
-                            setWordResults(prev => {
-                                const updated = [...prev, { 
-                                    wordId: currentWord.id, 
-                                    quality: AnswerQuality.PERFECT 
-                                }];
-                                return updated;
-                            });
+                            addWordResult({ wordId: currentWord.id, quality: AnswerQuality.PERFECT });
                             handleNext();
                         }}
                         className="gap-2 rounded-xl border-2 text-green-600 border-green-200 bg-green-50 hover:bg-green-100 hover:scale-105 transition-all h-12 sm:h-auto text-sm sm:text-base"
@@ -839,13 +837,7 @@ export default function VocabularyPractice({
                         size="lg"
                         onClick={() => {
                             // Record as incorrect for "Still Learning"
-                            setWordResults(prev => {
-                                const updated = [...prev, { 
-                                    wordId: currentWord.id, 
-                                    quality: AnswerQuality.INCORRECT 
-                                }];
-                                return updated;
-                            });
+                            addWordResult({ wordId: currentWord.id, quality: AnswerQuality.INCORRECT });
                             handleNext();
                         }}
                         className="gap-2 rounded-xl border-2 text-orange-600 border-orange-200 bg-orange-50 hover:bg-orange-100 hover:scale-105 transition-all h-12 sm:h-auto text-sm sm:text-base"

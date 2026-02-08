@@ -4,11 +4,9 @@ import {
     getProgressStats,
     getWordProgress,
     recordAnswer,
-    recordAnswers,
     resetProgress
 } from "@/apis/word-progress.api";
 import {
-    IBulkRecordAnswersDto,
     IDueWord,
     IRecordAnswerDto,
     IWordProgressResponse,
@@ -17,26 +15,8 @@ import {
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 export const useRecordAnswerMutation = () => {
-    const queryClient = useQueryClient();
-    
     return useMutation<IWordProgressResponse, Error, IRecordAnswerDto>({
         mutationFn: recordAnswer,
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['word-progress'] });
-            queryClient.invalidateQueries({ queryKey: ['due-words'] });
-        },
-    });
-};
-
-export const useRecordAnswersMutation = () => {
-    const queryClient = useQueryClient();
-    
-    return useMutation<IWordProgressResponse[], Error, IBulkRecordAnswersDto>({
-        mutationFn: recordAnswers,
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['word-progress'] });
-            queryClient.invalidateQueries({ queryKey: ['due-words'] });
-        },
     });
 };
 
