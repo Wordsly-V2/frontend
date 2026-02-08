@@ -31,7 +31,7 @@ export default function LearnCourseDetailPage({ params }: { params: Promise<{ id
     const router = useRouter();
     const [expandedLessons, setExpandedLessons] = useState<Set<string>>(new Set());
     const [selectedWords, setSelectedWords] = useState<Set<string>>(new Set());
-    const [dueWordsLimit, setDueWordsLimit] = useState(DEFAULT_DUE_WORDS_LIMIT);
+    const [dueWordsLimit, setDueWordsLimit] = useState(0);
 
     // Hydrate due-words limit from localStorage after mount (client-only; SSR has no access)
     useEffect(() => {
@@ -40,7 +40,7 @@ export default function LearnCourseDetailPage({ params }: { params: Promise<{ id
     }, []);
 
     const { data: course, isLoading, isError, refetch: loadCourseDetail } = useGetCourseDetailByIdQuery(id, !!id);
-    const { data: dueWordIds, isLoading: isDueWordIdsLoading } = useGetDueWordIdsQuery(id, undefined, dueWordsLimit, true, !!id);
+    const { data: dueWordIds, isLoading: isDueWordIdsLoading } = useGetDueWordIdsQuery(id, undefined, dueWordsLimit, true, !!id && dueWordsLimit > 0);
 
     if (isLoading || isError) {
         return <LoadingSection isLoading={isLoading} error={isError ? 'Error loading course' : null} refetch={loadCourseDetail} />;
