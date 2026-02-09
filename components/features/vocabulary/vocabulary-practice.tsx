@@ -88,7 +88,7 @@ export default function VocabularyPractice({
         if (!isCorrect) {
             return AnswerQuality.INCORRECT;
         }
-        
+
         if (hintsUsed === 0) {
             return AnswerQuality.PERFECT;
         } else if (hintsUsed === 1) {
@@ -116,12 +116,12 @@ export default function VocabularyPractice({
         const options = [correctWord.meaning];
         const otherWords = allWords.filter(w => w.id !== correctWord.id);
         const shuffledOthers = shuffleArray(otherWords);
-        
+
         // Add 3 random incorrect options
         for (let i = 0; i < Math.min(3, shuffledOthers.length); i++) {
             options.push(shuffledOthers[i].meaning);
         }
-        
+
         return shuffleArray(options);
     };
 
@@ -131,14 +131,14 @@ export default function VocabularyPractice({
             return generateMultipleChoiceOptions(currentWord, shuffledWords);
         }
         return [];
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [currentIndex, isMultipleChoice]);
 
     // Calculate next hint
     const getNextHint = (): string => {
         const correctWord = normalize(currentWord.word);
         const currentInput = normalize(userAnswer);
-        
+
         // Find the longest correct prefix
         let correctPrefixLength = 0;
         for (let i = 0; i < Math.min(currentInput.length, correctWord.length); i++) {
@@ -148,12 +148,12 @@ export default function VocabularyPractice({
                 break;
             }
         }
-        
+
         // Return hint up to the next correct letter
         if (correctPrefixLength < correctWord.length) {
             return correctWord.substring(0, correctPrefixLength + 1);
         }
-        
+
         return correctWord;
     };
 
@@ -175,7 +175,7 @@ export default function VocabularyPractice({
     const handleSaveSettings = (newSettings: PracticeSettings) => {
         setMode(newSettings.mode);
         setAutoCheck(newSettings.autoCheck);
-        
+
         // Save to localStorage
         try {
             localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(newSettings));
@@ -351,7 +351,7 @@ export default function VocabularyPractice({
         if (mode !== "typing" || !autoCheck || typingResult || !currentWord) {
             return;
         }
-        
+
         const checkAnswer = () => {
             if (normalize(userAnswer) === normalize(currentWord.word)) {
                 const elapsed = wordStartTimeRef.current != null ? (Date.now() - wordStartTimeRef.current) / 1000 : undefined;
@@ -366,7 +366,7 @@ export default function VocabularyPractice({
                 setShowResultDialog(true);
             }
         };
-        
+
         checkAnswer();
     }, [autoCheck, currentWord, mode, typingResult, userAnswer, hintsUsed, addWordResult]);
 
@@ -378,7 +378,7 @@ export default function VocabularyPractice({
             setSelectedChoice(null);
             setHasPlayedAudio(false);
         };
-        
+
         resetState();
     }, [mode]);
 
@@ -455,9 +455,9 @@ export default function VocabularyPractice({
                         )}
                     </Button>
                 ) : (
-                    <Button 
-                        onClick={handleReveal} 
-                        size="lg" 
+                    <Button
+                        onClick={handleReveal}
+                        size="lg"
                         className="w-full sm:min-w-[240px] sm:w-auto h-12 sm:h-14 text-base sm:text-lg rounded-xl hover:scale-105 transition-transform"
                     >
                         Reveal Meaning
@@ -495,9 +495,6 @@ export default function VocabularyPractice({
                             if (e.key !== "Enter") {
                                 return;
                             }
-                            if (autoCheck) {
-                                return;
-                            }
                             if (userAnswer.trim().length === 0) {
                                 return;
                             }
@@ -509,7 +506,7 @@ export default function VocabularyPractice({
                     />
                     <div className="absolute inset-0 rounded-xl sm:rounded-2xl bg-gradient-to-r from-primary/5 to-purple/5 -z-10 blur-xl opacity-0 transition-opacity group-focus-within:opacity-100"></div>
                 </div>
-                
+
                 <div className="flex flex-wrap justify-center gap-2 sm:gap-3">
                     {/* Hint Button */}
                     <Button
@@ -524,19 +521,17 @@ export default function VocabularyPractice({
                             <span className="text-xs opacity-70">({hintsUsed})</span>
                         )}
                     </Button>
-                    
+
                     {/* Check Answer Button (only if auto-check is off) */}
-                    {!autoCheck && (
-                        <Button
-                            size="lg"
-                            className="min-w-[160px] sm:min-w-[200px] h-11 sm:h-12 text-sm sm:text-lg rounded-xl gap-2 hover:scale-105 transition-transform"
-                            onClick={handleCheckTypingAnswer}
-                            disabled={userAnswer.trim().length === 0}
-                        >
-                            <CheckCircle2 className="h-4 w-4 sm:h-5 sm:w-5" />
-                            Check Answer
-                        </Button>
-                    )}
+                    <Button
+                        size="lg"
+                        className="min-w-[160px] sm:min-w-[200px] h-11 sm:h-12 text-sm sm:text-lg rounded-xl gap-2 hover:scale-105 transition-transform"
+                        onClick={handleCheckTypingAnswer}
+                        disabled={userAnswer.trim().length === 0}
+                    >
+                        <CheckCircle2 className="h-4 w-4 sm:h-5 sm:w-5" />
+                        Check Answer
+                    </Button>
                 </div>
             </div>
         </div>
@@ -579,9 +574,9 @@ export default function VocabularyPractice({
                         const isSelected = selectedChoice === option;
                         const isCorrect = option === currentWord.meaning;
                         const showResult = typingResult !== null;
-                        
+
                         let buttonClass = "group relative w-full min-h-[60px] sm:min-h-[80px] p-4 sm:p-5 text-left rounded-xl sm:rounded-2xl border-2 transition-all duration-300 hover:shadow-lg";
-                        
+
                         if (!showResult) {
                             buttonClass += " border-border bg-gradient-to-br from-background to-muted/20 hover:border-primary hover:from-primary/5 hover:to-primary/10 hover:scale-[1.02] active:scale-[0.98]";
                         } else if (isCorrect) {
@@ -591,7 +586,7 @@ export default function VocabularyPractice({
                         } else {
                             buttonClass += " border-border/50 bg-muted/20 opacity-40";
                         }
-                        
+
                         return (
                             <Button
                                 key={index}
@@ -601,7 +596,7 @@ export default function VocabularyPractice({
                                 className={buttonClass}
                             >
                                 <span className="flex items-start gap-3 sm:gap-4 w-full">
-                                    <span 
+                                    <span
                                         className={`
                                             flex-shrink-0 w-8 h-8 sm:w-10 sm:h-10 rounded-full border-2 flex items-center justify-center font-bold text-sm sm:text-base
                                             ${!showResult ? 'border-primary/30 bg-primary/5 text-primary group-hover:border-primary group-hover:bg-primary/10' : ''}
@@ -613,7 +608,7 @@ export default function VocabularyPractice({
                                     >
                                         {String.fromCharCode(65 + index)}
                                     </span>
-                                    <span 
+                                    <span
                                         className={`
                                             flex-1 text-sm sm:text-base leading-relaxed pt-1 sm:pt-1.5
                                             ${!showResult ? 'text-foreground group-hover:text-foreground' : ''}
@@ -647,7 +642,7 @@ export default function VocabularyPractice({
                     Listening Practice
                     <span className="h-px w-6 sm:w-8 bg-border"></span>
                 </p>
-                
+
                 {/* Large Play Audio Button */}
                 <div className="flex justify-center mb-4 sm:mb-6">
                     <Button
@@ -663,13 +658,13 @@ export default function VocabularyPractice({
                         )}
                     </Button>
                 </div>
-                
+
                 <p className="text-sm sm:text-base text-muted-foreground mb-3 sm:mb-4">
-                    {!hasPlayedAudio 
-                        ? "Click the button to listen" 
+                    {!hasPlayedAudio
+                        ? "Click the button to listen"
                         : "Type what you heard"}
                 </p>
-                
+
                 {currentWord.partOfSpeech && (
                     <span className="inline-block px-3 sm:px-4 py-1 sm:py-1.5 rounded-full bg-gradient-to-r from-primary/10 to-primary/5 text-primary text-xs sm:text-sm font-semibold border border-primary/20">
                         {currentWord.partOfSpeech}
@@ -701,7 +696,7 @@ export default function VocabularyPractice({
                     />
                     <div className="absolute inset-0 rounded-xl sm:rounded-2xl bg-gradient-to-r from-primary/5 to-purple/5 -z-10 blur-xl opacity-0 transition-opacity group-focus-within:opacity-100"></div>
                 </div>
-                
+
                 <div className="flex flex-wrap justify-center gap-2 sm:gap-3">
                     {/* Replay Audio Button */}
                     <Button
@@ -714,7 +709,7 @@ export default function VocabularyPractice({
                         <Volume2 className="h-4 w-4 sm:h-5 sm:w-5" />
                         Replay
                     </Button>
-                    
+
                     {/* Hint Button */}
                     <Button
                         variant="outline"
@@ -729,7 +724,7 @@ export default function VocabularyPractice({
                             <span className="text-xs opacity-70">({hintsUsed})</span>
                         )}
                     </Button>
-                    
+
                     {/* Check Answer Button */}
                     <Button
                         size="lg"
