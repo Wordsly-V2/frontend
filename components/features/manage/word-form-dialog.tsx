@@ -106,9 +106,9 @@ export default function WordFormDialog({
         setAvailableAudioUrls([]);
 
         mutationFetchWordDetailsDictionary.mutate(formData.word.trim(), {
-            onSuccess: (dictionaryData) => {
-                const audioUrls = dictionaryData.phonetics
-                    .map(p => p.audio)
+            onSuccess: (pronunciations) => {
+                const audioUrls = pronunciations
+                    .map(p => p.url)
                     .filter((url): url is string => !!url && url.trim() !== "");
 
                 if (audioUrls.length === 0) {

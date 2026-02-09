@@ -10,7 +10,7 @@ import { AxiosError } from "axios";
 
 export const recordAnswer = async (data: IRecordAnswerDto): Promise<IWordProgressResponse> => {
     try {
-        const response = await axiosInstance.post<IWordProgressResponse>('/vocabulary/word-progress/record-answer', data);
+        const response = await axiosInstance.post<IWordProgressResponse>('/word-progress/record-answer', data);
         return response.data;
     } catch (error) {
         throw (error as AxiosError).response?.data || error;
@@ -19,7 +19,7 @@ export const recordAnswer = async (data: IRecordAnswerDto): Promise<IWordProgres
 
 export const recordAnswers = async (data: IBulkRecordAnswersDto): Promise<IWordProgressResponse[]> => {
     try {
-        const response = await axiosInstance.post<IWordProgressResponse[]>('/vocabulary/word-progress/record-answers', data);
+        const response = await axiosInstance.post<IWordProgressResponse[]>('/word-progress/record-answers', data);
         return response.data;
     } catch (error) {
         throw (error as AxiosError).response?.data || error;
@@ -33,7 +33,7 @@ export const getDueWords = async (
     includeNew?: boolean
 ): Promise<IDueWord[]> => {
     try {
-        const response = await axiosInstance.get<IDueWord[]>('/vocabulary/word-progress/due-words', {
+        const response = await axiosInstance.get<IDueWord[]>('/word-progress/due-words', {
             params: {
                 courseId,
                 lessonId,
@@ -54,7 +54,7 @@ export const getDueWordIds = async (
     includeNew?: boolean
 ): Promise<{ wordIds: string[] }> => {
     try {
-        const response = await axiosInstance.get<{ wordIds: string[] }>('/vocabulary/word-progress/due-word-ids', {
+        const response = await axiosInstance.get<{ wordIds: string[] }>('/word-progress/due-word-ids', {
             params: {
                 courseId,
                 lessonId,
@@ -73,7 +73,7 @@ export const getProgressStats = async (
     lessonId?: string
 ): Promise<IWordProgressStats> => {
     try {
-        const response = await axiosInstance.get<IWordProgressStats>('/vocabulary/word-progress/stats', {
+        const response = await axiosInstance.get<IWordProgressStats>('/word-progress/stats', {
             params: {
                 courseId,
                 lessonId,
@@ -87,7 +87,7 @@ export const getProgressStats = async (
 
 export const getWordProgress = async (wordId: string): Promise<IWordProgressResponse | null> => {
     try {
-        const response = await axiosInstance.get<IWordProgressResponse | null>(`/vocabulary/word-progress/words/${wordId}`);
+        const response = await axiosInstance.get<IWordProgressResponse | null>(`/word-progress/words/${wordId}`);
         return response.data;
     } catch (error) {
         throw (error as AxiosError).response?.data || error;
@@ -96,7 +96,7 @@ export const getWordProgress = async (wordId: string): Promise<IWordProgressResp
 
 export const resetProgress = async (wordId: string): Promise<{ success: boolean }> => {
     try {
-        const response = await axiosInstance.delete<{ success: boolean }>(`/vocabulary/word-progress/words/${wordId}/reset`);
+        const response = await axiosInstance.delete<{ success: boolean }>(`/word-progress/words/${wordId}/reset`);
         return response.data;
     } catch (error) {
         throw (error as AxiosError).response?.data || error;

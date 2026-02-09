@@ -1,6 +1,5 @@
-import axios from "axios";
 import axiosInstance from "@/lib/axios";
-import { CreateMyWord, IDictionaryWord, IWord } from "@/types/courses/courses.type";
+import { CreateMyWord, IWord, IWordPronunciation } from "@/types/courses/courses.type";
 import { AxiosError } from "axios";
 
 export const createMyWord = async (courseId: string, lessonId: string, word: CreateMyWord): Promise<{ success: boolean }> => {
@@ -66,10 +65,10 @@ export const getWordsByIds = async (courseId: string, wordIds: string[]): Promis
     }
 }
 
-export const fetchWordDetailsDictionary = async (word: string): Promise<IDictionaryWord> => {
+export const fetchWordDetailsDictionary = async (word: string): Promise<IWordPronunciation[]> => {
     try {
-        const response = await axios.get<IDictionaryWord[]>(`https://api.dictionaryapi.dev/api/v2/entries/en/${word}`);
-        return response.data[0];
+        const response = await axiosInstance.get<IWordPronunciation[]>(`/words/pronunciation/${word}`);
+        return response.data;
     } catch (error) {
         throw (error as AxiosError).response?.data || error;
     }
