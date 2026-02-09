@@ -77,13 +77,13 @@ axiosInstance.interceptors.response.use(
         originalRequest.headers['Authorization'] = 'Bearer ' + newToken;
         return axios(originalRequest);
       } catch (refreshError) {
+
         processQueue(
           refreshError instanceof Error
             ? refreshError
             : new Error(String(refreshError)),
           null,
         );
-        localStorage.removeItem('access_token');
 
         return Promise.reject(
           refreshError instanceof Error
