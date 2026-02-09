@@ -490,7 +490,7 @@ export default function VocabularyPractice({
                         type="text"
                         placeholder="Type your answer..."
                         value={userAnswer}
-                        onChange={(e) => setUserAnswer(e.target.value)}
+                        onChange={(e) => setUserAnswer(String(e.target.value).toLowerCase())}
                         onKeyDown={(e) => {
                             if (e.key !== "Enter") {
                                 return;
