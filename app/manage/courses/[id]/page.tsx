@@ -122,7 +122,7 @@ function SortableLesson({
                     )}
                 </div>
                 <div className="flex gap-1 sm:gap-2 flex-shrink-0">
-                    <Button size="sm" variant="outline" onClick={onAddWord} className="text-xs h-8 px-2 sm:px-3">
+                    <Button size="sm" variant="outline" onClick={onAddWord} className="text-xs h-8 px-2 sm:px-3" disabled={!!(lesson.maxWords && words.length >= lesson.maxWords)}>
                         <Plus className="h-3.5 w-3.5 sm:h-4 sm:w-4 sm:mr-1" />
                         <span className="hidden sm:inline">Add Word</span>
                     </Button>
