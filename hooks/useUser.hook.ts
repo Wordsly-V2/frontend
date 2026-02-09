@@ -19,8 +19,8 @@ export const useUser = () => {
     }
 
     function logout(isLoggedOutFromAllDevices?: boolean) {
-        localStorage.removeItem('access_token');
         return dispatch(logoutAction({ isLoggedOutFromAllDevices })).then(() => {
+            localStorage.removeItem('access_token');
             router.replace('/');
             router.refresh();
         });
