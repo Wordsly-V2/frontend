@@ -855,7 +855,7 @@ export default function VocabularyPractice({
                     partOfSpeech={currentWord.partOfSpeech}
                     audioUrl={currentWord.audioUrl}
                     imageUrl={currentWord.imageUrl}
-                    examples={currentWord.examples}
+                    examples={JSON.parse(currentWord.example || "[]")}
                     timeSpentSeconds={timeSpentSeconds}
                     onTryAgain={handleTryAgain}
                     onNext={handleNextFromDialog}

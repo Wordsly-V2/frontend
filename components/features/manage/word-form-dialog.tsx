@@ -4,10 +4,10 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { IWord } from "@/types/courses/courses.type";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
-import { Volume2, VolumeX, Search, Check } from "lucide-react";
+import { Volume2, VolumeX, Search, Check, Plus, Trash2, ImageIcon } from "lucide-react";
 import { useAudio } from "@/hooks/useAudio.hook";
 import { useWords } from "@/hooks/useWords.hook";
 
@@ -34,11 +34,16 @@ export default function WordFormDialog({
         pronunciation: "",
         partOfSpeech: "",
         audioUrl: "",
+        imageUrl: "",
+        examples: [] as string[],
     });
     const { isPlaying, error: audioError, play, stop, clearError } = useAudio();
     const { mutationFetchWordDetailsDictionary } = useWords();
     const [availableAudioUrls, setAvailableAudioUrls] = useState<string[]>([]);
     const [fetchError, setFetchError] = useState<string>("");
+    const [imageLoadError, setImageLoadError] = useState(false);
+    const [exampleIds, setExampleIds] = useState<string[]>([]);
+    const exampleIdRef = useRef(0);
 
     useEffect(() => {
         const _setFormData = () => {
@@ -49,7 +54,12 @@ export default function WordFormDialog({
                     pronunciation: word.pronunciation || "",
                     partOfSpeech: word.partOfSpeech || "",
                     audioUrl: word.audioUrl || "",
+                    imageUrl: word.imageUrl || "",
+                    examples: JSON.parse(word.example || "[]"),
                 });
+                setExampleIds(
+                    JSON.parse(word.example || "[]").map(() => `ex-${++exampleIdRef.current}`)
+                );
             } else {
                 setFormData({
                     word: "",
@@ -57,7 +67,10 @@ export default function WordFormDialog({
                     pronunciation: "",
                     partOfSpeech: "",
                     audioUrl: "",
+                    imageUrl: "",
+                    examples: [],
                 });
+                setExampleIds([]);
             }
         }
 
@@ -73,6 +86,8 @@ export default function WordFormDialog({
                 pronunciation: formData.pronunciation.trim() || undefined,
                 partOfSpeech: formData.partOfSpeech.trim() || undefined,
                 audioUrl: formData.audioUrl.trim() || undefined,
+                imageUrl: formData.imageUrl.trim() || undefined,
+                example: JSON.stringify(formData.examples.map((ex) => ex.trim()).filter(Boolean))
             });
         }
     };
@@ -82,13 +97,17 @@ export default function WordFormDialog({
         clearError();
         setAvailableAudioUrls([]);
         setFetchError("");
+        setImageLoadError(false);
         setFormData({
             word: "",
             meaning: "",
             pronunciation: "",
             partOfSpeech: "",
             audioUrl: "",
+            imageUrl: "",
+            examples: [],
         });
+        setExampleIds([]);
         onClose();
     };
 
@@ -238,7 +257,7 @@ export default function WordFormDialog({
                                     className="flex-shrink-0 h-9 w-9 sm:h-10 sm:w-10"
                                 >
                                     {mutationFetchWordDetailsDictionary.isPending ? (
-                                        <LoadingSpinner size="sm" />
+                                        <LoadingSpinner size="sm" showLabel={false} />
                                     ) : (
                                         <Search className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                                     )}
@@ -258,9 +277,9 @@ export default function WordFormDialog({
                                 <div className="mt-2 sm:mt-3 w-full min-w-0 overflow-hidden rounded-md border p-2 sm:p-3 bg-muted/30">
                                     <p className="text-xs sm:text-sm font-medium">Available pronunciations:</p>
                                     <div className="mt-2 space-y-2 max-h-40 sm:max-h-48 overflow-y-auto overflow-x-hidden">
-                                        {availableAudioUrls.map((url, index) => (
+                                        {availableAudioUrls.map((url) => (
                                             <div
-                                                key={index}
+                                                key={url}
                                                 className="flex items-center gap-1.5 sm:gap-2 rounded-md border bg-background p-2 min-w-0 w-full"
                                             >
                                                 <span
@@ -306,6 +325,91 @@ export default function WordFormDialog({
                                 </div>
                             )}
                         </div>
+
+                        <div className="space-y-2 min-w-0">
+                            <Label className="text-sm">Examples</Label>
+                            <p className="text-xs text-muted-foreground">Example sentences using this word</p>
+                            <div className="space-y-2 max-h-40 sm:max-h-48 overflow-y-auto overflow-x-hidden">
+                                {formData.examples.map((example, index) => (
+                                    <div key={exampleIds[index] ?? `ex-${index}`} className="flex gap-1.5 sm:gap-2 items-center min-w-0">
+                                        <Input
+                                            placeholder="e.g., I said hello to my neighbor."
+                                            value={example}
+                                            onChange={(e) => {
+                                                const next = [...formData.examples];
+                                                next[index] = e.target.value;
+                                                setFormData({ ...formData, examples: next });
+                                            }}
+                                            className="flex-1 min-w-0 text-sm sm:text-base"
+                                        />
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="icon"
+                                            onClick={() => {
+                                                const nextExamples = formData.examples.filter((_, i) => i !== index);
+                                                const nextIds = exampleIds.filter((_, i) => i !== index);
+                                                setFormData({ ...formData, examples: nextExamples });
+                                                setExampleIds(nextIds);
+                                            }}
+                                            title="Remove example"
+                                            className="flex-shrink-0 h-9 w-9 sm:h-10 sm:w-10 text-muted-foreground hover:text-destructive"
+                                        >
+                                            <Trash2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                                        </Button>
+                                    </div>
+                                ))}
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => {
+                                        const id = `ex-${++exampleIdRef.current}`;
+                                        setFormData({ ...formData, examples: [...formData.examples, ""] });
+                                        setExampleIds([...exampleIds, id]);
+                                    }}
+                                    className="w-full text-sm"
+                                >
+                                    <Plus className="h-3.5 w-3.5 mr-1.5" />
+                                    Add example
+                                </Button>
+                            </div>
+                        </div>
+
+                        <div className="space-y-2 min-w-0">
+                            <Label htmlFor="imageUrl" className="text-sm flex items-center gap-1.5">
+                                <ImageIcon className="h-3.5 w-3.5" />
+                                Image URL
+                            </Label>
+                            <Input
+                                id="imageUrl"
+                                type="url"
+                                placeholder="https://..."
+                                value={formData.imageUrl}
+                                onChange={(e) => {
+                                    setFormData({ ...formData, imageUrl: e.target.value });
+                                    setImageLoadError(false);
+                                }}
+                                className="text-sm sm:text-base"
+                            />
+                            {formData.imageUrl.trim() && (
+                                <div className="rounded-md border overflow-hidden bg-muted/30 max-w-[200px] aspect-video flex items-center justify-center">
+                                    {imageLoadError ? (
+                                        <span className="text-xs text-muted-foreground px-2 text-center">Could not load image</span>
+                                    ) : (
+                                        // eslint-disable-next-line @next/next/no-img-element -- User-provided URL preview; domain unknown
+                                        <img
+                                            src={formData.imageUrl}
+                                            alt="Preview"
+                                            className="w-full h-full object-contain"
+                                            onError={() => setImageLoadError(true)}
+                                            onLoad={() => setImageLoadError(false)}
+                                        />
+                                    )}
+                                </div>
+                            )}
+                            <p className="text-xs text-muted-foreground">Optional image for the word card</p>
+                        </div>
                     </div>
 
                     <DialogFooter className="gap-2 sm:gap-2">
@@ -313,7 +417,7 @@ export default function WordFormDialog({
                             Cancel
                         </Button>
                         <Button type="submit" disabled={isLoading} className="w-full sm:w-auto text-sm">
-                        {
+                            {
                                 isLoading ? (
                                     <LoadingSpinner size="sm" />
                                 ) : (

@@ -53,7 +53,7 @@ export interface IWord {
   partOfSpeech?: string;
   audioUrl?: string;
   imageUrl?: string;
-  examples?: string[];
+  example?: string;
   lessonId: string; createdAt: Date;
   updatedAt: Date;
   wordProgress?: IWordProgress;
@@ -69,7 +69,7 @@ export type CreateMyLesson = Pick<ILesson, 'name' | 'coverImageUrl' | 'maxWords'
 
 export type CreateUpdateMyCourse = Pick<ILesson, 'name' | 'coverImageUrl'>;
 
-export type CreateMyWord = Pick<IWord, 'word' | 'meaning' | 'pronunciation' | 'partOfSpeech' | 'audioUrl'>;
+export type CreateMyWord = Pick<IWord, 'word' | 'meaning' | 'pronunciation' | 'partOfSpeech' | 'audioUrl' | 'imageUrl' | 'example'>;
 
 export interface IWordPronunciation {
   type: string;
