@@ -68,7 +68,12 @@ export const getWordsByIds = async (courseId: string, wordIds: string[]): Promis
 export const fetchWordDetailsDictionary = async (word: string): Promise<IWordPronunciation[]> => {
     try {
         const response = await axiosInstance.get<IWordPronunciation[]>(`/words/pronunciation/${word}`);
-        return response.data;
+        const seen = new Set<string>();
+        return response.data.filter((p) => {
+            if (seen.has(p.url)) return false;
+            seen.add(p.url);
+            return true;
+        });
     } catch (error) {
         throw (error as AxiosError).response?.data || error;
     }
