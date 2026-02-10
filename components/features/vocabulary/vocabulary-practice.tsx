@@ -854,6 +854,8 @@ export default function VocabularyPractice({
                     pronunciation={currentWord.pronunciation}
                     partOfSpeech={currentWord.partOfSpeech}
                     audioUrl={currentWord.audioUrl}
+                    imageUrl={currentWord.imageUrl}
+                    examples={currentWord.examples}
                     timeSpentSeconds={timeSpentSeconds}
                     onTryAgain={handleTryAgain}
                     onNext={handleNextFromDialog}

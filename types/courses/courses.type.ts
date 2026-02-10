@@ -52,6 +52,8 @@ export interface IWord {
   pronunciation?: string;
   partOfSpeech?: string;
   audioUrl?: string;
+  imageUrl?: string;
+  examples?: string[];
   lessonId: string; createdAt: Date;
   updatedAt: Date;
   wordProgress?: IWordProgress;
