@@ -89,22 +89,39 @@ export function WordAutocomplete({
                                 >
                                     <button
                                         type="button"
-                                        className="w-full px-3 py-2.5 text-left text-sm hover:bg-muted focus:bg-muted focus:outline-none border-b border-border/50 last:border-b-0"
+                                        className="w-full px-3 py-2.5 text-left text-sm hover:bg-muted focus:bg-muted focus:outline-none border-b border-border/50 last:border-b-0 flex gap-2.5 sm:gap-3"
                                         onClick={() => handleSelect(item)}
                                     >
-                                        <div className="flex items-baseline gap-2 flex-wrap">
-                                            <span className="font-medium">{item.word}</span>
-                                            {item.partOfSpeech && (
-                                                <span className="text-xs text-muted-foreground italic">
-                                                    {item.partOfSpeech}
-                                                </span>
-                                            )}
-                                        </div>
-                                        {item.meaning && (
-                                            <p className="mt-0.5 text-muted-foreground text-xs sm:text-sm line-clamp-2">
-                                                {item.meaning}
-                                            </p>
+                                        {item.imageUrl && (
+                                            <span className="flex-shrink-0 w-10 h-10 sm:w-11 sm:h-11 rounded-md overflow-hidden bg-muted border">
+                                                {/* eslint-disable-next-line @next/next/no-img-element -- External API URL; domain unknown */}
+                                                <img
+                                                    src={item.imageUrl}
+                                                    alt=""
+                                                    className="w-full h-full object-cover"
+                                                />
+                                            </span>
                                         )}
+                                        <span className="min-w-0 flex-1">
+                                            <div className="flex items-baseline gap-2 flex-wrap">
+                                                <span className="font-medium">{item.word}</span>
+                                                {item.partOfSpeech && (
+                                                    <span className="text-xs text-muted-foreground italic">
+                                                        {item.partOfSpeech}
+                                                    </span>
+                                                )}
+                                            </div>
+                                            {item.meaning && (
+                                                <p className="mt-0.5 text-muted-foreground text-xs sm:text-sm line-clamp-2">
+                                                    {item.meaning}
+                                                </p>
+                                            )}
+                                            {item.examples?.[0] && (
+                                                <p className="mt-1 text-xs text-muted-foreground/90 italic line-clamp-1">
+                                                    e.g. {item.examples[0]}
+                                                </p>
+                                            )}
+                                        </span>
                                     </button>
                                 </li>
                             ))}
