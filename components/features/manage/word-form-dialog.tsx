@@ -1,5 +1,6 @@
 "use client";
 
+import { WordAutocomplete } from "@/components/common/word-autocomplete";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -7,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { useAudio } from "@/hooks/useAudio.hook";
 import { useDebounce } from "@/hooks/useDebounce";
-import { useFetchWordDetailsDictionaryQuery, useSearchWordsQuery } from "@/queries/dictionary.query";
+import { useFetchWordDetailsDictionaryQuery } from "@/queries/dictionary.query";
 import { IWord } from "@/types/courses/courses.type";
 import { Check, ImageIcon, Plus, Trash2, Volume2, VolumeX } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
@@ -42,7 +43,6 @@ export default function WordFormDialog({
 
     const debouncedWord = useDebounce(formData.word.trim(), 1000);
     const { data: pronunciations, isLoading: isFetchingPronunciations, error: fetchErrorPronunciations } = useFetchWordDetailsDictionaryQuery(debouncedWord, !!debouncedWord);
-    const { data: searchWords, isLoading: isSearchWordsLoading } = useSearchWordsQuery( debouncedWord, !!debouncedWord);
 
     const [imageLoadError, setImageLoadError] = useState(false);
     const [exampleIds, setExampleIds] = useState<string[]>([]);
@@ -126,6 +126,17 @@ export default function WordFormDialog({
         play(url);
     };
 
+    const handleSelectWordSuggestion = (item: { word: string; meaning?: string; partOfSpeech?: string; imageUrl?: string, examples?: string[] }) => {
+        setFormData((prev) => ({
+            ...prev,
+            word: item.word,
+            ...(item.meaning != null && item.meaning !== "" && { meaning: item.meaning }),
+            ...(item.partOfSpeech != null && item.partOfSpeech !== "" && { partOfSpeech: item.partOfSpeech }),
+            ...(item.imageUrl != null && item.imageUrl !== "" && { imageUrl: item.imageUrl }),
+            ...(item.examples != null && item.examples.length > 0 && { examples: item.examples }),
+        }));
+    };
+
     return (
         <Dialog open={isOpen} onOpenChange={handleClose}>
             <DialogContent className="max-w-lg w-[calc(100vw-1.5rem)] sm:w-full max-h-[85vh] overflow-y-auto overflow-x-hidden mx-auto">
@@ -135,22 +146,20 @@ export default function WordFormDialog({
                     </DialogHeader>
 
                     <div className="space-y-3 sm:space-y-4 py-3 sm:py-4">
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                            <div className="space-y-2">
-                                <Label htmlFor="word" className="text-sm">
-                                    Word <span className="text-destructive">*</span>
-                                </Label>
-                                <Input
-                                    id="word"
-                                    placeholder="e.g., hello"
-                                    value={formData.word}
-                                    onChange={(e) => {
-                                        setFormData({ ...formData, word: e.target.value });
-                                    }}
-                                    required
-                                    className="text-sm sm:text-base"
-                                />
-                            </div>
+                        <div className="grid grid-cols-1 gap-3 sm:gap-4">
+                            <WordAutocomplete
+                                id="word"
+                                label={
+                                    <>
+                                        Word <span className="text-destructive">*</span>
+                                    </>
+                                }
+                                placeholder="e.g., hello"
+                                value={formData.word}
+                                onChange={(word) => setFormData({ ...formData, word })}
+                                onSelect={handleSelectWordSuggestion}
+                                required
+                            />
 
                             <div className="space-y-2">
                                 <Label htmlFor="meaning" className="text-sm">

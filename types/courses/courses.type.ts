@@ -81,4 +81,5 @@ export interface IWordSearchResult {
   meaning: string;
   partOfSpeech: string;
   imageUrl: string;
+  examples: string[];
 }
