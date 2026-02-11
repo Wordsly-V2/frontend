@@ -101,6 +101,7 @@ function SortableLesson({
                             src={lesson.coverImageUrl}
                             alt={lesson.name}
                             className="w-full h-full object-cover"
+                            loading="lazy"
                             onError={(e) => {
                                 const target = e.target as HTMLImageElement;
                                 target.style.display = 'none';
@@ -178,7 +179,20 @@ function SortableLesson({
                                     onCheckedChange={() => onToggleWordSelection(lesson.id, word.id)}
                                     className="mt-0.5 sm:mt-1 data-[state=checked]:bg-primary data-[state=checked]:border-primary flex-shrink-0"
                                 />
-                                <div className="flex-1 min-w-0">
+                                <div className="flex-1 min-w-0 flex items-start gap-2 sm:gap-3">
+                                    {word.imageUrl && (
+                                        <div className="flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 lg:w-16 lg:h-16 rounded-md border overflow-hidden bg-muted/30">
+                                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                                            <img
+                                                src={word.imageUrl}
+                                                alt=""
+                                                className="w-full h-full object-cover"
+                                                loading="lazy"
+                                                onError={(e) => { e.currentTarget.style.display = "none"; }}
+                                            />
+                                        </div>
+                                    )}
+                                    <div className="min-w-0">
                                     <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap mb-1">
                                         <span className="font-semibold text-sm sm:text-base break-words">{word.word}</span>
                                         {word.partOfSpeech && (
@@ -199,6 +213,7 @@ function SortableLesson({
                                             className="mt-1.5"
                                         />
                                     )}
+                                    </div>
                                 </div>
                                 <div className="flex gap-0.5 sm:gap-1 flex-shrink-0 flex-wrap">
                                     {word.audioUrl && (
@@ -559,6 +574,7 @@ export default function ManageCourseDetailPage({ params }: { params: Promise<{ i
                                 src={course.coverImageUrl}
                                 alt={course.name}
                                 className="w-full h-full object-cover"
+                                loading="lazy"
                                 onError={(e) => {
                                     const target = e.target as HTMLImageElement;
                                     target.style.display = 'none';

@@ -139,7 +139,7 @@ export default function WordFormDialog({
 
     return (
         <Dialog open={isOpen} onOpenChange={handleClose}>
-            <DialogContent className="max-w-lg w-[calc(100vw-1.5rem)] sm:w-full max-h-[85vh] overflow-y-auto overflow-x-hidden mx-auto">
+            <DialogContent className="max-w-lg w-[calc(100vw-1.5rem)] sm:w-full max-h-[85vh] overflow-y-auto overflow-x-hidden mx-auto" onOpenAutoFocus={(e) => word ? e.preventDefault() : undefined}>
                 <form onSubmit={handleSubmit} className="min-w-0">
                     <DialogHeader>
                         <DialogTitle className="text-lg sm:text-xl">{title}</DialogTitle>
@@ -372,6 +372,7 @@ export default function WordFormDialog({
                                             src={formData.imageUrl}
                                             alt="Preview"
                                             className="w-full h-full object-contain"
+                                            loading="lazy"
                                             onError={() => setImageLoadError(true)}
                                             onLoad={() => setImageLoadError(false)}
                                         />

@@ -107,6 +107,7 @@ export default function CourseFormDialog({
                                             src={formData.coverImageUrl}
                                             alt="Cover preview"
                                             className="w-full h-full object-cover"
+                                            loading="lazy"
                                             onError={(e) => {
                                                 const target = e.target as HTMLImageElement;
                                                 target.style.display = 'none';

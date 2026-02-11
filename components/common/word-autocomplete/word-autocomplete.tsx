@@ -99,6 +99,7 @@ export function WordAutocomplete({
                                                     src={item.imageUrl}
                                                     alt=""
                                                     className="w-full h-full object-cover"
+                                                    loading="lazy"
                                                 />
                                             </span>
                                         )}
