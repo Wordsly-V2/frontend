@@ -135,7 +135,7 @@ export default function MoveWordDialog({
                     )}
                 </div>
 
-                <DialogFooter className="gap-2 sm:gap-0">
+                <DialogFooter className="gap-2">
                     <Button variant="outline" onClick={handleClose} disabled={isLoading} className="w-full sm:w-auto text-sm">
                         Cancel
                     </Button>

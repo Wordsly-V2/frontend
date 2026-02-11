@@ -148,7 +148,7 @@ export default function LessonFormDialog({
                         </div>
                     </div>
 
-                    <DialogFooter className="gap-2 sm:gap-0">
+                    <DialogFooter className="gap-2">
                         <Button type="button" variant="outline" onClick={handleClose} disabled={isLoading} className="w-full sm:w-auto text-sm">
                             Cancel
                         </Button>

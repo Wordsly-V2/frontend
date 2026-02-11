@@ -41,7 +41,7 @@ export default function ConfirmDialog({
                     <AlertDialogTitle className="text-lg sm:text-xl">{title}</AlertDialogTitle>
                     <AlertDialogDescription className="text-sm sm:text-base">{description}</AlertDialogDescription>
                 </AlertDialogHeader>
-                <AlertDialogFooter className="gap-2 sm:gap-0">
+                <AlertDialogFooter className="gap-2">
                     <AlertDialogCancel disabled={isLoading} className="w-full sm:w-auto text-sm">{cancelText}</AlertDialogCancel>
                     <AlertDialogAction
                         onClick={(e) => {

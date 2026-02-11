@@ -9,6 +9,7 @@ import ConfirmDialog from "@/components/common/confirm-dialog/confirm-dialog";
 import LoadingSection from "@/components/common/loading-section/loading-section";
 import { LearningProgressSection, WordProgressBadge, WordProgressStatsInline } from "@/components/common/word-progress-stats";
 import CourseFormDialog from "@/components/features/manage/course-form-dialog";
+import ExportWordsDialog from "@/components/features/manage/export-words-dialog";
 import LessonFormDialog from "@/components/features/manage/lesson-form-dialog";
 import MoveWordDialog from "@/components/features/manage/move-word-dialog";
 import WordFormDialog from "@/components/features/manage/word-form-dialog";
@@ -35,7 +36,7 @@ import {
     verticalListSortingStrategy
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { ArrowLeft, ArrowRightLeft, ChevronDown, ChevronRight, Edit, GripVertical, Plus, Trash2, Volume2, X } from "lucide-react";
+import { ArrowLeft, ArrowRightLeft, ChevronDown, ChevronRight, Download, Edit, GripVertical, Plus, Trash2, Volume2, X } from "lucide-react";
 import { toast } from "sonner";
 
 function SortableLesson({
@@ -285,6 +286,7 @@ export default function ManageCourseDetailPage({ params }: { params: Promise<{ i
     const [activeLesson, setActiveLesson] = useState<ILesson | undefined>();
     const [deleteConfirm, setDeleteConfirm] = useState<{ type: 'lesson' | 'word' | 'bulk-words'; item: ILesson | IWord | null; lessonId?: string } | null>(null);
     const [moveWordDialog, setMoveWordDialog] = useState<{ words: IWord[]; sourceLesson: ILesson } | null>(null);
+    const [exportWordsDialogOpen, setExportWordsDialogOpen] = useState(false);
 
     const { data: course, isLoading, isError, refetch: loadCourseDetail } = useGetCourseDetailByIdQuery(id, !!id);
     const { mutationUpdateMyCourse, mutationDeleteMyCourse } = useCourses();
@@ -597,6 +599,17 @@ export default function ManageCourseDetailPage({ params }: { params: Promise<{ i
                             <div className="flex flex-wrap gap-2">
                                 <Button
                                     variant="outline"
+                                    onClick={() => setExportWordsDialogOpen(true)}
+                                    size="sm"
+                                    className="text-xs sm:text-sm"
+                                    disabled={!course?.lessons?.length}
+                                >
+                                    <Download className="h-3.5 w-3.5 sm:h-4 sm:w-4 sm:mr-2" />
+                                    <span className="hidden sm:inline">Export words</span>
+                                    <span className="sm:hidden">Export</span>
+                                </Button>
+                                <Button
+                                    variant="outline"
                                     onClick={() => setCourseFormOpen(true)}
                                     size="sm"
                                     className="text-xs sm:text-sm"
@@ -848,6 +861,13 @@ export default function ManageCourseDetailPage({ params }: { params: Promise<{ i
                 words={moveWordDialog?.words || []}
                 currentLesson={moveWordDialog?.sourceLesson || null}
                 availableLessons={course?.lessons?.filter((l: ILesson) => l.id !== moveWordDialog?.sourceLesson.id) || []}
+            />
+
+            <ExportWordsDialog
+                isOpen={exportWordsDialogOpen}
+                onClose={() => setExportWordsDialogOpen(false)}
+                lessons={course?.lessons || []}
+                courseName={course?.name ?? ""}
             />
         </main>
     );
