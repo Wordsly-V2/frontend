@@ -391,6 +391,23 @@ export default function LearnCourseDetailPage({ params }: { params: Promise<{ id
                                                         className="flex-shrink-0"
                                                     />
 
+                                                    {word.imageUrl && (
+                                                        <div className="relative w-12 h-12 sm:w-14 sm:h-14 rounded-lg overflow-hidden bg-muted flex-shrink-0">
+                                                            <Image
+                                                                src={word.imageUrl}
+                                                                alt={word.word}
+                                                                fill
+                                                                loading="lazy"
+                                                                className="object-cover"
+                                                                sizes="(max-width: 640px) 48px, 56px"
+                                                                onError={(e) => {
+                                                                    const target = e.target as HTMLImageElement;
+                                                                    target.style.display = "none";
+                                                                }}
+                                                            />
+                                                        </div>
+                                                    )}
+
                                                     <div className="flex-1 min-w-0">
                                                         <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
                                                             <span className="font-semibold text-sm sm:text-base break-words">{word.word}</span>

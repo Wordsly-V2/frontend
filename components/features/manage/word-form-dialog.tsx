@@ -11,6 +11,7 @@ import { useDebounce } from "@/hooks/useDebounce";
 import { useFetchWordDetailsDictionaryQuery } from "@/queries/dictionary.query";
 import { IWord } from "@/types/courses/courses.type";
 import { Check, ImageIcon, Plus, Trash2, Volume2, VolumeX } from "lucide-react";
+import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 
 interface WordFormDialogProps {
@@ -363,16 +364,16 @@ export default function WordFormDialog({
                                 className="text-sm sm:text-base"
                             />
                             {formData.imageUrl.trim() && (
-                                <div className="rounded-md border overflow-hidden bg-muted/30 max-w-[200px] aspect-video flex items-center justify-center">
+                                <div className="relative rounded-md border overflow-hidden bg-muted/30 max-w-[200px] aspect-video flex items-center justify-center">
                                     {imageLoadError ? (
                                         <span className="text-xs text-muted-foreground px-2 text-center">Could not load image</span>
                                     ) : (
-                                        // eslint-disable-next-line @next/next/no-img-element -- User-provided URL preview; domain unknown
-                                        <img
+                                        <Image
                                             src={formData.imageUrl}
                                             alt="Preview"
-                                            className="w-full h-full object-contain"
+                                            fill
                                             loading="lazy"
+                                            className="object-contain"
                                             onError={() => setImageLoadError(true)}
                                             onLoad={() => setImageLoadError(false)}
                                         />

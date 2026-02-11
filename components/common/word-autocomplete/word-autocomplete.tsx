@@ -6,6 +6,7 @@ import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useSearchWordsQuery } from "@/queries/dictionary.query";
 import { IWordSearchResult } from "@/types/courses/courses.type";
+import Image from "next/image";
 import { useRef, useState } from "react";
 
 export interface WordAutocompleteProps {
@@ -93,13 +94,14 @@ export function WordAutocomplete({
                                         onClick={() => handleSelect(item)}
                                     >
                                         {item.imageUrl && (
-                                            <span className="flex-shrink-0 w-10 h-10 sm:w-11 sm:h-11 rounded-md overflow-hidden bg-muted border">
-                                                {/* eslint-disable-next-line @next/next/no-img-element -- External API URL; domain unknown */}
-                                                <img
+                                            <span className="relative flex-shrink-0 w-10 h-10 sm:w-11 sm:h-11 rounded-md overflow-hidden bg-muted border">
+                                                <Image
                                                     src={item.imageUrl}
                                                     alt=""
-                                                    className="w-full h-full object-cover"
+                                                    fill
                                                     loading="lazy"
+                                                    className="object-cover"
+                                                    sizes="(max-width: 640px) 40px, 44px"
                                                 />
                                             </span>
                                         )}

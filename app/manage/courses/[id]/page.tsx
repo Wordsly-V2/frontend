@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { use, useState } from "react";
 
@@ -97,14 +98,15 @@ function SortableLesson({
                 </button>
                 {lesson.coverImageUrl && (
                     <div className="relative w-12 h-12 sm:w-16 sm:h-16 rounded-lg overflow-hidden bg-muted flex-shrink-0">
-                        <img
+                        <Image
                             src={lesson.coverImageUrl}
                             alt={lesson.name}
-                            className="w-full h-full object-cover"
+                            fill
                             loading="lazy"
+                            className="object-cover"
+                            sizes="(max-width: 640px) 48px, 64px"
                             onError={(e) => {
-                                const target = e.target as HTMLImageElement;
-                                target.style.display = 'none';
+                                e.currentTarget.style.display = "none";
                             }}
                         />
                     </div>
@@ -181,13 +183,14 @@ function SortableLesson({
                                 />
                                 <div className="flex-1 min-w-0 flex items-start gap-2 sm:gap-3">
                                     {word.imageUrl && (
-                                        <div className="flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 lg:w-16 lg:h-16 rounded-md border overflow-hidden bg-muted/30">
-                                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                                            <img
+                                        <div className="relative flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 lg:w-16 lg:h-16 rounded-md border overflow-hidden bg-muted/30">
+                                            <Image
                                                 src={word.imageUrl}
                                                 alt=""
-                                                className="w-full h-full object-cover"
+                                                fill
                                                 loading="lazy"
+                                                className="object-cover"
+                                                sizes="(max-width: 640px) 40px, (max-width: 768px) 48px, (max-width: 1024px) 56px, 64px"
                                                 onError={(e) => { e.currentTarget.style.display = "none"; }}
                                             />
                                         </div>
@@ -570,14 +573,15 @@ export default function ManageCourseDetailPage({ params }: { params: Promise<{ i
                 <div className="bg-card border-2 border-border rounded-2xl overflow-hidden mb-6 sm:mb-8">
                     {course.coverImageUrl && (
                         <div className="relative w-full h-40 sm:h-48 bg-muted">
-                            <img
+                            <Image
                                 src={course.coverImageUrl}
                                 alt={course.name}
-                                className="w-full h-full object-cover"
+                                fill
                                 loading="lazy"
+                                className="object-cover"
+                                sizes="(max-width: 640px) 100vw, 1024px"
                                 onError={(e) => {
-                                    const target = e.target as HTMLImageElement;
-                                    target.style.display = 'none';
+                                    e.currentTarget.style.display = "none";
                                 }}
                             />
                         </div>
