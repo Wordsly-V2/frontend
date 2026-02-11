@@ -1,15 +1,16 @@
 "use client";
 
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useState, useEffect, useRef } from "react";
-import { IWord } from "@/types/courses/courses.type";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
-import { Volume2, VolumeX, Search, Check, Plus, Trash2, ImageIcon } from "lucide-react";
 import { useAudio } from "@/hooks/useAudio.hook";
-import { useWords } from "@/hooks/useWords.hook";
+import { useDebounce } from "@/hooks/useDebounce";
+import { useFetchWordDetailsDictionaryQuery, useSearchWordsQuery } from "@/queries/dictionary.query";
+import { IWord } from "@/types/courses/courses.type";
+import { Check, ImageIcon, Plus, Trash2, Volume2, VolumeX } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 
 interface WordFormDialogProps {
     isLoading: boolean;
@@ -38,9 +39,11 @@ export default function WordFormDialog({
         examples: [] as string[],
     });
     const { isPlaying, error: audioError, play, stop, clearError } = useAudio();
-    const { mutationFetchWordDetailsDictionary } = useWords();
-    const [availableAudioUrls, setAvailableAudioUrls] = useState<string[]>([]);
-    const [fetchError, setFetchError] = useState<string>("");
+
+    const debouncedWord = useDebounce(formData.word.trim(), 1000);
+    const { data: pronunciations, isLoading: isFetchingPronunciations, error: fetchErrorPronunciations } = useFetchWordDetailsDictionaryQuery(debouncedWord, !!debouncedWord);
+    const { data: searchWords, isLoading: isSearchWordsLoading } = useSearchWordsQuery( debouncedWord, !!debouncedWord);
+
     const [imageLoadError, setImageLoadError] = useState(false);
     const [exampleIds, setExampleIds] = useState<string[]>([]);
     const exampleIdRef = useRef(0);
@@ -95,8 +98,6 @@ export default function WordFormDialog({
     const handleClose = () => {
         stop();
         clearError();
-        setAvailableAudioUrls([]);
-        setFetchError("");
         setImageLoadError(false);
         setFormData({
             word: "",
@@ -115,32 +116,6 @@ export default function WordFormDialog({
         play(formData.audioUrl);
     };
 
-    const handleFetchAudioUrls = async () => {
-        if (!formData.word.trim()) {
-            setFetchError("Please enter a word first");
-            return;
-        }
-
-        setFetchError("");
-        setAvailableAudioUrls([]);
-
-        mutationFetchWordDetailsDictionary.mutate(formData.word.trim(), {
-            onSuccess: (pronunciations) => {
-                const audioUrls = pronunciations
-                    .map(p => p.url)
-                    .filter((url): url is string => !!url && url.trim() !== "");
-
-                if (audioUrls.length === 0) {
-                    setFetchError("No audio found for this word");
-                } else {
-                    setAvailableAudioUrls(audioUrls);
-                }
-            },
-            onError: () => {
-                setFetchError("Could not fetch audio. Please check the word or try again later.");
-            }
-        });
-    };
 
     const handleSelectAudioUrl = (url: string) => {
         setFormData({ ...formData, audioUrl: url });
@@ -171,8 +146,6 @@ export default function WordFormDialog({
                                     value={formData.word}
                                     onChange={(e) => {
                                         setFormData({ ...formData, word: e.target.value });
-                                        setAvailableAudioUrls([]);
-                                        setFetchError("");
                                     }}
                                     required
                                     className="text-sm sm:text-base"
@@ -247,53 +220,41 @@ export default function WordFormDialog({
                                         <Volume2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                                     )}
                                 </Button>
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    size="icon"
-                                    onClick={handleFetchAudioUrls}
-                                    disabled={!formData.word.trim() || mutationFetchWordDetailsDictionary.isPending}
-                                    title="Fetch audio from dictionary"
-                                    className="flex-shrink-0 h-9 w-9 sm:h-10 sm:w-10"
-                                >
-                                    {mutationFetchWordDetailsDictionary.isPending ? (
-                                        <LoadingSpinner size="sm" showLabel={false} />
-                                    ) : (
-                                        <Search className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                                    )}
-                                </Button>
                             </div>
                             {audioError ? (
                                 <p className="text-xs text-destructive">{audioError}</p>
-                            ) : fetchError ? (
-                                <p className="text-xs text-destructive">{fetchError}</p>
+                            ) : fetchErrorPronunciations ? (
+                                <p className="text-xs text-destructive">{fetchErrorPronunciations.message}</p>
                             ) : (
                                 <p className="text-xs text-muted-foreground">
                                     URL to pronunciation audio file
                                 </p>
                             )}
 
-                            {availableAudioUrls.length > 0 && (
+                            {isFetchingPronunciations && (
+                                <LoadingSpinner size="sm" />)}
+
+                            {!isFetchingPronunciations && pronunciations && pronunciations.length > 0 && (
                                 <div className="mt-2 sm:mt-3 w-full min-w-0 overflow-hidden rounded-md border p-2 sm:p-3 bg-muted/30">
                                     <p className="text-xs sm:text-sm font-medium">Available pronunciations:</p>
                                     <div className="mt-2 space-y-2 max-h-40 sm:max-h-48 overflow-y-auto overflow-x-hidden">
-                                        {availableAudioUrls.map((url) => (
+                                        {pronunciations.map((audio) => (
                                             <div
-                                                key={url}
+                                                key={audio.url}
                                                 className="flex items-center gap-1.5 sm:gap-2 rounded-md border bg-background p-2 min-w-0 w-full"
                                             >
                                                 <span
                                                     className="flex-1 min-w-0 truncate text-xs text-muted-foreground"
-                                                    title={url}
+                                                    title={audio.url}
                                                 >
-                                                    {url}
+                                                    {audio.url}
                                                 </span>
                                                 <div className="flex gap-1 sm:gap-2 flex-shrink-0">
                                                     <Button
                                                         type="button"
                                                         variant="outline"
                                                         size="sm"
-                                                        onClick={() => handlePlayPreviewAudio(url)}
+                                                        onClick={() => handlePlayPreviewAudio(audio.url)}
                                                         disabled={isPlaying}
                                                         title="Play audio"
                                                         className="h-7 w-7 min-w-7 p-0 sm:h-8 sm:w-8 sm:min-w-8"
@@ -302,13 +263,13 @@ export default function WordFormDialog({
                                                     </Button>
                                                     <Button
                                                         type="button"
-                                                        variant={formData.audioUrl === url ? "default" : "outline"}
+                                                        variant={formData.audioUrl === audio.url ? "default" : "outline"}
                                                         size="sm"
-                                                        onClick={() => handleSelectAudioUrl(url)}
+                                                        onClick={() => handleSelectAudioUrl(audio.url)}
                                                         title="Use this audio"
                                                         className="h-7 min-w-[2.5rem] px-2 text-xs sm:h-8 sm:min-w-10"
                                                     >
-                                                        {formData.audioUrl === url ? (
+                                                        {formData.audioUrl === audio.url ? (
                                                             <>
                                                                 <Check className="h-3 w-3 mr-1 shrink-0" />
                                                                 <span className="hidden sm:inline">Selected</span>

@@ -1,5 +1,5 @@
 import axiosInstance from "@/lib/axios";
-import { CreateMyWord, IWord, IWordPronunciation } from "@/types/courses/courses.type";
+import { CreateMyWord, IWord, IWordPronunciation, IWordSearchResult } from "@/types/courses/courses.type";
 import { AxiosError } from "axios";
 
 export const createMyWord = async (courseId: string, lessonId: string, word: CreateMyWord): Promise<{ success: boolean }> => {
@@ -60,20 +60,6 @@ export const getWordsByIds = async (courseId: string, wordIds: string[]): Promis
     try {
         const response = await axiosInstance.get<IWord[]>(`/courses/me/my-courses/${courseId}/words`, { params: { ids: wordIds.join(",") } });
         return response.data;
-    } catch (error) {
-        throw (error as AxiosError).response?.data || error;
-    }
-}
-
-export const fetchWordDetailsDictionary = async (word: string): Promise<IWordPronunciation[]> => {
-    try {
-        const response = await axiosInstance.get<IWordPronunciation[]>(`/words/pronunciation/${word}`);
-        const seen = new Set<string>();
-        return response.data.filter((p) => {
-            if (seen.has(p.url)) return false;
-            seen.add(p.url);
-            return true;
-        });
     } catch (error) {
         throw (error as AxiosError).response?.data || error;
     }

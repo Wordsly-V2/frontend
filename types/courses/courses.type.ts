@@ -75,3 +75,10 @@ export interface IWordPronunciation {
   type: string;
   url: string;
 }
+
+export interface IWordSearchResult {
+  word: string;
+  meaning: string;
+  partOfSpeech: string;
+  imageUrl: string;
+}
