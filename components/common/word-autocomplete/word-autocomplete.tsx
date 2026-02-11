@@ -78,8 +78,7 @@ export function WordAutocomplete({
                 <div className="absolute top-full left-0 right-0 z-50 mt-1 rounded-md border bg-popover shadow-md max-h-56 overflow-y-auto">
                     {isSearchWordsLoading && (
                         <div className="flex items-center justify-center gap-2 p-3 text-sm text-muted-foreground">
-                            <LoadingSpinner size="sm" />
-                            <span>Searching...</span>
+                            <LoadingSpinner size="sm" label="Searching..." />
                         </div>
                     )}
                     {!isSearchWordsLoading && searchWords && searchWords.length > 0 && (
