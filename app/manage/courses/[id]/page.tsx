@@ -37,7 +37,8 @@ import {
     verticalListSortingStrategy
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { ArrowLeft, ArrowRightLeft, ChevronDown, ChevronRight, Download, Edit, GripVertical, Plus, Search, Trash2, Volume2, X } from "lucide-react";
+import WordDetailDialog from "@/components/features/manage/word-detail-dialog";
+import { ArrowLeft, ArrowRightLeft, ChevronDown, ChevronRight, Download, Edit, Eye, GripVertical, Plus, Search, Trash2, Volume2, X } from "lucide-react";
 import { toast } from "sonner";
 
 function SortableLesson({
@@ -50,6 +51,7 @@ function SortableLesson({
     onEditWord,
     onDeleteWord,
     onMoveWord,
+    onViewWord,
     selectedWords,
     onToggleWordSelection,
     onSelectAllWords,
@@ -64,6 +66,7 @@ function SortableLesson({
     onEditWord: (word: IWord) => void;
     onDeleteWord: (word: IWord) => void;
     onMoveWord: (word: IWord) => void;
+    onViewWord: (word: IWord) => void;
     selectedWords: Set<string>;
     onToggleWordSelection: (lessonId: string, wordId: string) => void;
     onSelectAllWords: (lessonId: string, selectAll: boolean) => void;
@@ -176,91 +179,107 @@ function SortableLesson({
                     {words.map((word) => {
                         const isSelected = selectedWords.has(`${lesson.id}-${word.id}`);
                         return (
-                            <div 
-                                key={word.id} 
-                                className={`flex items-start gap-2 sm:gap-3 p-3 sm:p-4 bg-background border rounded-lg transition-colors ${
-                                    isSelected 
-                                        ? 'border-primary bg-primary/5' 
-                                        : 'border-border hover:border-primary/50'
-                                }`}
+                            <div
+                                key={word.id}
+                                className={`flex flex-col gap-2 p-3 sm:p-4 bg-background border rounded-lg transition-colors ${isSelected
+                                    ? 'border-primary bg-primary/5'
+                                    : 'border-border hover:border-primary/50'
+                                    }`}
                             >
-                                <Checkbox
-                                    checked={isSelected}
-                                    onCheckedChange={() => onToggleWordSelection(lesson.id, word.id)}
-                                    className="mt-0.5 sm:mt-1 data-[state=checked]:bg-primary data-[state=checked]:border-primary flex-shrink-0"
-                                />
-                                <div className="flex-1 min-w-0 flex items-start gap-2 sm:gap-3">
+                                <div className="flex items-start gap-2 sm:gap-3 flex-1 min-w-0">
+                                    <Checkbox
+                                        checked={isSelected}
+                                        onCheckedChange={() => onToggleWordSelection(lesson.id, word.id)}
+                                        className="mt-0.5 sm:mt-1 data-[state=checked]:bg-primary data-[state=checked]:border-primary flex-shrink-0"
+                                    />
                                     {word.imageUrl && (
-                                        <div className="relative flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 lg:w-16 lg:h-16 rounded-md border overflow-hidden bg-muted/30">
+                                        <div className="relative w-12 h-12 sm:w-14 sm:h-14 rounded-lg overflow-hidden bg-muted/30 flex-shrink-0 border border-border">
                                             <Image
                                                 src={word.imageUrl}
                                                 alt=""
                                                 fill
                                                 loading="lazy"
                                                 className="object-cover"
-                                                sizes="(max-width: 640px) 40px, (max-width: 768px) 48px, (max-width: 1024px) 56px, 64px"
+                                                sizes="(max-width: 640px) 48px, 56px"
                                                 onError={(e) => { e.currentTarget.style.display = "none"; }}
                                             />
                                         </div>
                                     )}
-                                    <div className="min-w-0">
-                                    <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap mb-1">
-                                        <span className="font-semibold text-sm sm:text-base break-words">{word.word}</span>
-                                        {word.partOfSpeech && (
-                                            <span className="text-xs px-1.5 sm:px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium flex-shrink-0">
-                                                {word.partOfSpeech}
-                                            </span>
+                                    <div className="min-w-0 flex-1">
+                                        <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap mb-1">
+                                            <span className="font-semibold text-sm sm:text-base break-words">{word.word}</span>
+                                            {word.partOfSpeech && (
+                                                <span className="text-xs px-1.5 sm:px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium flex-shrink-0">
+                                                    {word.partOfSpeech}
+                                                </span>
+                                            )}
+                                        </div>
+                                        <p className="text-xs sm:text-sm text-foreground mb-1 break-words">{word.meaning}</p>
+                                        {word.pronunciation && (
+                                            <p className="text-xs text-muted-foreground break-all">
+                                                {word.pronunciation}
+                                            </p>
+                                        )}
+                                        {word.wordProgress && (
+                                            <WordProgressBadge
+                                                progress={word.wordProgress}
+                                                className="mt-1.5"
+                                            />
                                         )}
                                     </div>
-                                    <p className="text-xs sm:text-sm text-foreground mb-1 break-words">{word.meaning}</p>
-                                    {word.pronunciation && (
-                                        <p className="text-xs text-muted-foreground break-all">
-                                            {word.pronunciation}
-                                        </p>
-                                    )}
-                                    {word.wordProgress && (
-                                        <WordProgressBadge
-                                            progress={word.wordProgress}
-                                            className="mt-1.5"
-                                        />
-                                    )}
-                                    </div>
                                 </div>
-                                <div className="flex gap-0.5 sm:gap-1 flex-shrink-0 flex-wrap">
-                                    {word.audioUrl && (
+                                <div className="flex justify-between items-center gap-2 border-t border-border/50 pt-2 -mb-0.5">
+                                    <div className="flex gap-0.5 sm:gap-1">
                                         <Button
                                             size="sm"
                                             variant="ghost"
                                             onClick={(e) => {
                                                 e.stopPropagation();
-                                                const audio = new Audio(word.audioUrl);
-                                                audio.play().catch(console.error);
+                                                onMoveWord(word);
                                             }}
-                                            className="text-primary hover:text-primary h-7 w-7 p-0 sm:h-8 sm:w-8"
+                                            title="Move to another lesson"
+                                            className="h-7 w-7 p-0 sm:h-8 sm:w-8"
                                         >
-                                            <Volume2 className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+                                            <ArrowRightLeft className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
                                         </Button>
-                                    )}
-                                    <Button
-                                        size="sm"
-                                        variant="ghost"
-                                        onClick={() => onMoveWord(word)}
-                                        title="Move to another lesson"
-                                        className="h-7 w-7 p-0 sm:h-8 sm:w-8"
-                                    >
-                                        <ArrowRightLeft className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
-                                    </Button>
-                                    <Button size="sm" variant="ghost" onClick={() => onEditWord(word)} className="h-7 w-7 p-0 sm:h-8 sm:w-8">
-                                        <Edit className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
-                                    </Button>
-                                    <Button
-                                        size="sm"
-                                        variant="ghost"
-                                        onClick={() => onDeleteWord(word)}
-                                        className="text-destructive hover:text-destructive h-7 w-7 p-0 sm:h-8 sm:w-8"
-                                    >
-                                        <Trash2 className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
-                                    </Button>
+                                        <Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); onEditWord(word); }} className="h-7 w-7 p-0 sm:h-8 sm:w-8" title="Edit word">
+                                            <Edit className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+                                        </Button>
+                                        <Button
+                                            size="sm"
+                                            variant="ghost"
+                                            onClick={(e) => { e.stopPropagation(); onDeleteWord(word); }}
+                                            className="text-destructive hover:text-destructive h-7 w-7 p-0 sm:h-8 sm:w-8"
+                                            title="Delete word"
+                                        >
+                                            <Trash2 className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+                                        </Button>
+                                    </div>
+                                    <div className="flex gap-0.5 sm:gap-1">
+                                        <Button
+                                            size="sm"
+                                            variant="ghost"
+                                            onClick={(e) => { e.stopPropagation(); onViewWord(word); }}
+                                            className="h-7 w-7 p-0 sm:h-8 sm:w-8"
+                                            title="View word detail"
+                                        >
+                                            <Eye className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+                                        </Button>
+                                        {word.audioUrl && (
+                                            <Button
+                                                size="sm"
+                                                variant="ghost"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    const audio = new Audio(word.audioUrl);
+                                                    audio.play().catch(console.error);
+                                                }}
+                                                className="text-primary hover:text-primary h-7 w-7 p-0 sm:h-8 sm:w-8"
+                                            >
+                                                <Volume2 className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+                                            </Button>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
                         );
@@ -295,6 +314,7 @@ export default function ManageCourseDetailPage({ params }: { params: Promise<{ i
     const [deleteConfirm, setDeleteConfirm] = useState<{ type: 'lesson' | 'word' | 'bulk-words'; item: ILesson | IWord | null; lessonId?: string } | null>(null);
     const [moveWordDialog, setMoveWordDialog] = useState<{ words: IWord[]; sourceLesson: ILesson } | null>(null);
     const [exportWordsDialogOpen, setExportWordsDialogOpen] = useState(false);
+    const [viewingWord, setViewingWord] = useState<IWord | null>(null);
 
     const { data: course, isLoading, isError, refetch: loadCourseDetail } = useGetCourseDetailByIdQuery(id, !!id);
     const { mutationUpdateMyCourse, mutationDeleteMyCourse } = useCourses();
@@ -466,7 +486,7 @@ export default function ManageCourseDetailPage({ params }: { params: Promise<{ i
     const handleMoveMyWord = (targetLessonId: string) => {
         if (moveWordDialog) {
             const { words, sourceLesson } = moveWordDialog;
-            
+
             // Bulk move
             if (words.length > 1) {
                 const wordIds = words.map(w => w.id);
@@ -502,10 +522,10 @@ export default function ManageCourseDetailPage({ params }: { params: Promise<{ i
         if (deleteConfirm && deleteConfirm.type === 'bulk-words' && deleteConfirm.lessonId) {
             const lesson = course?.lessons?.find((l: ILesson) => l.id === deleteConfirm.lessonId);
             if (!lesson) return;
-            
+
             const lessonSelectedWords = lesson.words?.filter((w: IWord) => selectedWords.has(`${lesson.id}-${w.id}`)) || [];
             const wordIds = lessonSelectedWords.map((w: IWord) => w.id);
-            
+
             mutationBulkDeleteMyWords.mutate({ courseId: id, lessonId: lesson.id, wordIds }, {
                 onSuccess: () => {
                     loadCourseDetail();
@@ -534,7 +554,7 @@ export default function ManageCourseDetailPage({ params }: { params: Promise<{ i
     const selectAllWordsInLesson = (lessonId: string, selectAll: boolean) => {
         const lesson = course?.lessons?.find((l: ILesson) => l.id === lessonId);
         if (!lesson) return;
-        
+
         const newSelected = new Set(selectedWords);
         lesson.words?.forEach(word => {
             const key = `${lessonId}-${word.id}`;
@@ -581,11 +601,11 @@ export default function ManageCourseDetailPage({ params }: { params: Promise<{ i
         !q
             ? course.lessons ?? []
             : (course.lessons ?? [])
-                  .map((lesson) => ({
-                      ...lesson,
-                      words: (lesson.words ?? []).filter(wordMatchesSearch),
-                  }))
-                  .filter((lesson) => lesson.words!.length > 0);
+                .map((lesson) => ({
+                    ...lesson,
+                    words: (lesson.words ?? []).filter(wordMatchesSearch),
+                }))
+                .filter((lesson) => lesson.words!.length > 0);
 
     return (
         <main className="min-h-screen bg-background">
@@ -693,7 +713,7 @@ export default function ManageCourseDetailPage({ params }: { params: Promise<{ i
                 )}
 
                 {/* Lessons List */}
-                {course?.lessons?.length === 0 ? (
+                {course?.lessons?.length === 0 && (
                     <div className="text-center py-12 sm:py-16 border-2 border-dashed border-border rounded-xl sm:rounded-2xl bg-muted/30 px-4">
                         <div className="inline-flex items-center justify-center w-12 h-12 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl bg-muted mb-3 sm:mb-4">
                             <Plus className="h-6 w-6 sm:h-8 sm:w-8 text-muted-foreground" />
@@ -705,52 +725,61 @@ export default function ManageCourseDetailPage({ params }: { params: Promise<{ i
                             Create First Lesson
                         </Button>
                     </div>
-                ) : filteredLessons.length === 0 ? (
-                    <div className="text-center py-12 sm:py-16 border-2 border-dashed border-border rounded-xl sm:rounded-2xl bg-muted/30 px-4">
-                        <p className="text-sm sm:text-base text-muted-foreground">No words match your search</p>
-                    </div>
-                ) : (
-                    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-                        <SortableContext items={course?.lessons?.map((l: ILesson) => l.id) || []} strategy={verticalListSortingStrategy}>
-                            <div className="space-y-3 sm:space-y-4">
-                                {filteredLessons.map((lesson: ILesson) => (
-                                    <SortableLesson
-                                        key={lesson.id}
-                                        lesson={lesson}
-                                        dragDisabled={!!q}
-                                        isExpanded={expandedLessons.has(lesson.id)}
-                                        onToggle={() => toggleLesson(lesson.id)}
-                                        onEdit={() => {
-                                            setEditingLesson(lesson);
-                                            setLessonFormOpen(true);
-                                        }}
-                                        onDelete={() => setDeleteConfirm({ type: 'lesson', item: lesson })}
-                                        onAddWord={() => {
-                                            setActiveLesson(lesson);
-                                            setEditingWord(undefined);
-                                            setWordFormOpen(true);
-                                        }}
-                                        onEditWord={(word) => {
-                                            setActiveLesson(lesson);
-                                            setEditingWord(word);
-                                            setWordFormOpen(true);
-                                        }}
-                                        onDeleteWord={(word) => {
-                                            setActiveLesson(lesson);
-                                            setDeleteConfirm({ type: 'word', item: word });
-                                        }}
-                                        onMoveWord={(word) => {
-                                            setMoveWordDialog({ words: [word], sourceLesson: lesson });
-                                        }}
-                                        selectedWords={selectedWords}
-                                        onToggleWordSelection={toggleWordSelection}
-                                        onSelectAllWords={selectAllWordsInLesson}
-                                    />
-                                ))}
-                            </div>
-                        </SortableContext>
-                    </DndContext>
                 )}
+
+                {
+                    course?.lessons?.length && filteredLessons.length === 0 && (
+                        <div className="text-center py-12 sm:py-16 border-2 border-dashed border-border rounded-xl sm:rounded-2xl bg-muted/30 px-4">
+                            <p className="text-sm sm:text-base text-muted-foreground">No words match your search</p>
+                        </div>
+                    )
+                }
+
+                {
+                    course?.lessons?.length && filteredLessons.length && (
+                        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                            <SortableContext items={course?.lessons?.map((l: ILesson) => l.id) || []} strategy={verticalListSortingStrategy}>
+                                <div className="space-y-3 sm:space-y-4">
+                                    {filteredLessons.map((lesson: ILesson) => (
+                                        <SortableLesson
+                                            key={lesson.id}
+                                            lesson={lesson}
+                                            dragDisabled={!!q}
+                                            isExpanded={expandedLessons.has(lesson.id)}
+                                            onToggle={() => toggleLesson(lesson.id)}
+                                            onEdit={() => {
+                                                setEditingLesson(lesson);
+                                                setLessonFormOpen(true);
+                                            }}
+                                            onDelete={() => setDeleteConfirm({ type: 'lesson', item: lesson })}
+                                            onAddWord={() => {
+                                                setActiveLesson(lesson);
+                                                setEditingWord(undefined);
+                                                setWordFormOpen(true);
+                                            }}
+                                            onEditWord={(word) => {
+                                                setActiveLesson(lesson);
+                                                setEditingWord(word);
+                                                setWordFormOpen(true);
+                                            }}
+                                            onDeleteWord={(word) => {
+                                                setActiveLesson(lesson);
+                                                setDeleteConfirm({ type: 'word', item: word });
+                                            }}
+                                            onMoveWord={(word) => {
+                                                setMoveWordDialog({ words: [word], sourceLesson: lesson });
+                                            }}
+                                            onViewWord={(word) => setViewingWord(word)}
+                                            selectedWords={selectedWords}
+                                            onToggleWordSelection={toggleWordSelection}
+                                            onSelectAllWords={selectAllWordsInLesson}
+                                        />
+                                    ))}
+                                </div>
+                            </SortableContext>
+                        </DndContext>
+                    )
+                }
             </div>
 
             {/* Floating Bulk Actions Bar */}
@@ -762,9 +791,9 @@ export default function ManageCourseDetailPage({ params }: { params: Promise<{ i
                         selectedByLesson.set(lesson.id, selectedInLesson);
                     }
                 });
-                
+
                 const totalSelected = Array.from(selectedByLesson.values()).reduce((sum, words) => sum + words.length, 0);
-                
+
                 return (
                     <div className="fixed bottom-8 left-1/2 -translate-x-1/2 bg-card border-2 border-border rounded-2xl shadow-2xl p-4 flex items-center gap-4 z-50 min-w-[400px]">
                         <div className="flex-1">
@@ -913,6 +942,7 @@ export default function ManageCourseDetailPage({ params }: { params: Promise<{ i
                 lessons={course?.lessons || []}
                 courseName={course?.name ?? ""}
             />
+            <WordDetailDialog word={viewingWord} isOpen={!!viewingWord} onClose={() => setViewingWord(null)} />
         </main>
     );
 }

@@ -8,7 +8,8 @@ import { Input } from "@/components/ui/input";
 import { useGetCourseDetailByIdQuery } from "@/queries/courses.query";
 import { useGetDueWordIdsQuery } from "@/queries/word-progress.query";
 import { ILesson, IWord } from "@/types/courses/courses.type";
-import { ArrowLeft, Brain, ChevronDown, ChevronRight, Play, Search, Volume2 } from "lucide-react";
+import WordDetailDialog from "@/components/features/manage/word-detail-dialog";
+import { ArrowLeft, Brain, ChevronDown, ChevronRight, Eye, Play, Search, Volume2 } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { use, useEffect, useState } from "react";
@@ -34,6 +35,7 @@ export default function LearnCourseDetailPage({ params }: { params: Promise<{ id
     const [selectedWords, setSelectedWords] = useState<Set<string>>(new Set());
     const [dueWordsLimit, setDueWordsLimit] = useState(0);
     const [searchQuery, setSearchQuery] = useState("");
+    const [viewingWord, setViewingWord] = useState<IWord | null>(null);
 
     // Hydrate due-words limit from localStorage after mount (client-only; SSR has no access)
     useEffect(() => {
@@ -411,7 +413,7 @@ export default function LearnCourseDetailPage({ params }: { params: Promise<{ id
                                                     key={word.id}
                                                     role="button"
                                                     tabIndex={0}
-                                                    className="flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 bg-background rounded-lg border border-border hover:border-primary/50 transition-colors cursor-pointer"
+                                                    className="flex flex-col gap-2 p-2.5 sm:p-3 bg-background rounded-lg border border-border hover:border-primary/50 transition-colors cursor-pointer"
                                                     onClick={() => toggleWord(word.id)}
                                                     onKeyDown={(e) => {
                                                         if (e.key === "Enter" || e.key === " ") {
@@ -420,65 +422,80 @@ export default function LearnCourseDetailPage({ params }: { params: Promise<{ id
                                                         }
                                                     }}
                                                 >
-                                                    <Checkbox
-                                                        checked={selectedWords.has(word.id)}
-                                                        onCheckedChange={() => toggleWord(word.id)}
-                                                        onClick={(e) => e.stopPropagation()}
-                                                        className="flex-shrink-0"
-                                                    />
-
-                                                    {word.imageUrl && (
-                                                        <div className="relative w-12 h-12 sm:w-14 sm:h-14 rounded-lg overflow-hidden bg-muted flex-shrink-0">
-                                                            <Image
-                                                                src={word.imageUrl}
-                                                                alt={word.word}
-                                                                fill
-                                                                loading="lazy"
-                                                                className="object-cover"
-                                                                sizes="(max-width: 640px) 48px, 56px"
-                                                                onError={(e) => {
-                                                                    const target = e.target as HTMLImageElement;
-                                                                    target.style.display = "none";
-                                                                }}
-                                                            />
-                                                        </div>
-                                                    )}
-
-                                                    <div className="flex-1 min-w-0">
-                                                        <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
-                                                            <span className="font-semibold text-sm sm:text-base break-words">{word.word}</span>
-                                                            {word.partOfSpeech && (
-                                                                <span className="text-xs px-1.5 sm:px-2 py-0.5 rounded-full bg-primary/10 text-primary flex-shrink-0">
-                                                                    {word.partOfSpeech}
-                                                                </span>
+                                                    <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
+                                                        <Checkbox
+                                                            checked={selectedWords.has(word.id)}
+                                                            onCheckedChange={() => toggleWord(word.id)}
+                                                            onClick={(e) => e.stopPropagation()}
+                                                            className="flex-shrink-0"
+                                                        />
+                                                        {word.imageUrl && (
+                                                            <div className="relative w-12 h-12 sm:w-14 sm:h-14 rounded-lg overflow-hidden bg-muted flex-shrink-0">
+                                                                <Image
+                                                                    src={word.imageUrl}
+                                                                    alt={word.word}
+                                                                    fill
+                                                                    loading="lazy"
+                                                                    className="object-cover"
+                                                                    sizes="(max-width: 640px) 48px, 56px"
+                                                                    onError={(e) => {
+                                                                        const target = e.target as HTMLImageElement;
+                                                                        target.style.display = "none";
+                                                                    }}
+                                                                />
+                                                            </div>
+                                                        )}
+                                                        <div className="flex-1 min-w-0">
+                                                            <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+                                                                <span className="font-semibold text-sm sm:text-base break-words">{word.word}</span>
+                                                                {word.partOfSpeech && (
+                                                                    <span className="text-xs px-1.5 sm:px-2 py-0.5 rounded-full bg-primary/10 text-primary flex-shrink-0">
+                                                                        {word.partOfSpeech}
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                            <p className="text-xs sm:text-sm text-muted-foreground break-words">
+                                                                {word.meaning}
+                                                            </p>
+                                                            {word.pronunciation && (
+                                                                <p className="text-xs text-muted-foreground mt-0.5 sm:mt-1 break-all">
+                                                                    {word.pronunciation}
+                                                                </p>
+                                                            )}
+                                                            {word.wordProgress && (
+                                                                <WordProgressBadge
+                                                                    progress={word.wordProgress}
+                                                                    className="mt-1.5"
+                                                                />
                                                             )}
                                                         </div>
-                                                        <p className="text-xs sm:text-sm text-muted-foreground break-words">
-                                                            {word.meaning}
-                                                        </p>
-                                                        {word.pronunciation && (
-                                                            <p className="text-xs text-muted-foreground mt-0.5 sm:mt-1 break-all">
-                                                                {word.pronunciation}
-                                                            </p>
-                                                        )}
-                                                        {word.wordProgress && (
-                                                            <WordProgressBadge
-                                                                progress={word.wordProgress}
-                                                                className="mt-1.5"
-                                                            />
-                                                        )}
                                                     </div>
-
-                                                    {word.audioUrl && (
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="icon"
-                                                            onClick={(e) => handlePlayAudio(word.audioUrl, e)}
-                                                            className="h-7 w-7 sm:h-8 sm:w-8 flex-shrink-0"
-                                                        >
-                                                            <Volume2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                                                        </Button>
-                                                    )}
+                                                    <div className="flex justify-end items-center gap-0.5 sm:gap-1 border-t border-border/50 pt-2 -mb-0.5">
+                                                        <div className="flex gap-0.5 sm:gap-1">
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="icon"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    setViewingWord(word);
+                                                                }}
+                                                                className="h-7 w-7 sm:h-8 sm:w-8 flex-shrink-0"
+                                                                title="View word detail"
+                                                            >
+                                                                <Eye className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                                                            </Button>
+                                                            {word.audioUrl && (
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="icon"
+                                                                    onClick={(e) => handlePlayAudio(word.audioUrl, e)}
+                                                                    className="h-7 w-7 sm:h-8 sm:w-8 flex-shrink-0"
+                                                                >
+                                                                    <Volume2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                                                                </Button>
+                                                            )}
+                                                        </div>
+                                                    </div>
                                                 </div>
                                             ))}
                                         </div>
@@ -497,6 +514,7 @@ export default function LearnCourseDetailPage({ params }: { params: Promise<{ id
                     )}
                 </div>
             </div>
+            <WordDetailDialog word={viewingWord} isOpen={!!viewingWord} onClose={() => setViewingWord(null)} />
         </main>
     );
 }
