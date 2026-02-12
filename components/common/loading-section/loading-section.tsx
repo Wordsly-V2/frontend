@@ -22,7 +22,7 @@ export default function LoadingSection({
 }) {
     if (isLoading) {
         return (
-            <main className='min-h-screen bg-slate-50 flex items-center justify-center px-4'>
+            <main className='min-h-dvh bg-slate-50 flex items-center justify-center px-4'>
                 <LoadingSpinner size='lg' label={loadingLabel} />
             </main>
         );
@@ -30,7 +30,7 @@ export default function LoadingSection({
 
     if (error) {
         return (
-            <main className='min-h-screen bg-slate-50 flex items-center justify-center px-4'>
+            <main className='min-h-dvh bg-slate-50 flex items-center justify-center px-4'>
                 <div>
                     <div className='text-center text-sm text-muted-foreground'>{errorLabel}: {error}</div>
                 </div>
@@ -47,7 +47,7 @@ export default function LoadingSection({
 
     if (isDataNotFound) {
         return (
-            <main className='min-h-screen bg-slate-50 flex items-center justify-center px-4'>
+            <main className='min-h-dvh bg-slate-50 flex items-center justify-center px-4'>
                 <div className='text-center text-sm text-muted-foreground'>{dataNotFoundLabel}</div>
             </main>
         );

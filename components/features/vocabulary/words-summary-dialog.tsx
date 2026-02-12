@@ -28,7 +28,7 @@ export default function WordsSummaryDialog({
 
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
-            <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col">
+            <DialogContent className="max-w-2xl max-h-[85dvh] flex flex-col">
                 <DialogHeader>
                     <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">

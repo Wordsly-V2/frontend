@@ -25,7 +25,7 @@ export default function RedirectContent() {
 
     if (errorParam) {
         return (
-            <main className="min-h-screen flex items-center justify-center px-4 bg-gradient-to-br from-primary/10 via-secondary/10 to-accent/10">
+            <main className="min-h-dvh flex items-center justify-center px-4 bg-gradient-to-br from-primary/10 via-secondary/10 to-accent/10">
                 <div className="w-full max-w-md rounded-2xl border border-border bg-card p-6 shadow-lg animate-fade-up">
                     <div className="flex items-center gap-3">
                         <div className="flex h-10 w-10 items-center justify-center rounded-full bg-destructive/10 text-destructive">
@@ -60,7 +60,7 @@ export default function RedirectContent() {
     }
 
     return (
-        <main className="min-h-screen flex items-center justify-center px-4 bg-gradient-to-br from-primary/10 via-secondary/10 to-accent/10">
+        <main className="min-h-dvh flex items-center justify-center px-4 bg-gradient-to-br from-primary/10 via-secondary/10 to-accent/10">
             <div className="text-center space-y-4">
                 <LoadingSpinner size="lg" />
                 <p className="text-sm text-muted-foreground animate-pulse">

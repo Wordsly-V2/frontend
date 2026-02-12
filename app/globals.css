@@ -160,6 +160,20 @@
 }
 
 @layer utilities {
+  /* Dynamic viewport height - adapts when mobile keyboard opens (keyboard-open compatible) */
+  .min-h-dvh {
+    min-height: 100dvh;
+  }
+  .min-h-dvh-screen {
+    min-height: 100dvh;
+  }
+  .max-h-dvh-90 {
+    max-height: 90dvh;
+  }
+  .max-h-dvh-85 {
+    max-height: 85dvh;
+  }
+
   /* Mobile safe area support */
   .pb-safe {
     padding-bottom: env(safe-area-inset-bottom);
@@ -167,6 +181,11 @@
   
   .pt-safe {
     padding-top: env(safe-area-inset-top);
+  }
+
+  /* Fixed bottom bar: stay above safe area and avoid overlapping keyboard on mobile */
+  .bottom-keyboard-safe {
+    bottom: max(0.5rem, env(safe-area-inset-bottom));
   }
   
   /* Learning App Specific Utilities */

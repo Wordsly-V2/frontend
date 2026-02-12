@@ -43,7 +43,7 @@ export default function ManagePage() {
     };
 
     return (
-        <main className="min-h-screen bg-background">
+        <main className="min-h-dvh bg-background">
             <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 md:py-8 max-w-7xl">
                 {/* Header */}
                 <div className="mb-6 sm:mb-8">

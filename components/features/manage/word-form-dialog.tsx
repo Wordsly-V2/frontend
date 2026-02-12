@@ -140,7 +140,7 @@ export default function WordFormDialog({
 
     return (
         <Dialog open={isOpen} onOpenChange={handleClose}>
-            <DialogContent className="max-w-lg w-[calc(100vw-1.5rem)] sm:w-full max-h-[85vh] overflow-y-auto overflow-x-hidden mx-auto" onOpenAutoFocus={(e) => word ? e.preventDefault() : undefined}>
+            <DialogContent className="max-w-lg w-[calc(100vw-1.5rem)] sm:w-full max-h-[85dvh] overflow-y-auto overflow-x-hidden mx-auto" onOpenAutoFocus={(e) => word ? e.preventDefault() : undefined}>
                 <form onSubmit={handleSubmit} className="min-w-0">
                     <DialogHeader>
                         <DialogTitle className="text-lg sm:text-xl">{title}</DialogTitle>
@@ -173,6 +173,8 @@ export default function WordFormDialog({
                                     onChange={(e) => setFormData({ ...formData, meaning: e.target.value })}
                                     required
                                     className="text-sm sm:text-base"
+                                    inputMode="text"
+                                    autoComplete="off"
                                 />
                             </div>
                         </div>
@@ -214,6 +216,8 @@ export default function WordFormDialog({
                                         clearError();
                                     }}
                                     className={`flex-1 min-w-0 text-sm sm:text-base ${audioError ? 'border-destructive' : ''}`}
+                                    inputMode="url"
+                                    autoComplete="url"
                                 />
                                 <Button
                                     type="button"

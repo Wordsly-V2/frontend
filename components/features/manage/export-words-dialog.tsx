@@ -133,7 +133,7 @@ export default function ExportWordsDialog({
 
     return (
         <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
-            <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden flex flex-col sm:mx-auto">
+            <DialogContent className="max-w-2xl max-h-[90dvh] overflow-hidden flex flex-col sm:mx-auto">
                 <DialogHeader>
                     <DialogTitle className="text-lg sm:text-xl">Export words to JSON</DialogTitle>
                 </DialogHeader>

@@ -54,7 +54,7 @@ export default function PracticePage() {
 
     if (!words || words.length === 0) {
         return (
-            <main className="min-h-screen bg-background flex items-center justify-center">
+            <main className="min-h-dvh bg-background flex items-center justify-center">
                 <div className="text-center">
                     <h2 className="text-2xl font-bold mb-4">No words selected</h2>
                     <Button onClick={handleBackToCourse}>

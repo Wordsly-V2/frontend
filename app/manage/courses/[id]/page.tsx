@@ -579,7 +579,7 @@ export default function ManageCourseDetailPage({ params }: { params: Promise<{ i
 
     if (!course) {
         return (
-            <main className="min-h-screen bg-background flex items-center justify-center">
+            <main className="min-h-dvh bg-background flex items-center justify-center">
                 <div className="text-center">
                     <h2 className="text-2xl font-bold mb-4">Course not found</h2>
                     <Button onClick={() => router.push('/manage')}>
@@ -608,7 +608,7 @@ export default function ManageCourseDetailPage({ params }: { params: Promise<{ i
                 .filter((lesson) => lesson.words!.length > 0);
 
     return (
-        <main className="min-h-screen bg-background">
+        <main className="min-h-dvh bg-background">
             <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 md:py-8 max-w-5xl">
                 <Button variant="ghost" onClick={() => router.push('/manage')} className="mb-4 sm:mb-6 text-sm sm:text-base" size="sm">
                     <ArrowLeft className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-2" />
@@ -703,6 +703,7 @@ export default function ManageCourseDetailPage({ params }: { params: Promise<{ i
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
                         <Input
                             type="search"
+                            inputMode="search"
                             placeholder="Search by word, meaning, or pronunciation..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
@@ -795,7 +796,7 @@ export default function ManageCourseDetailPage({ params }: { params: Promise<{ i
                 const totalSelected = Array.from(selectedByLesson.values()).reduce((sum, words) => sum + words.length, 0);
 
                 return (
-                    <div className="fixed bottom-8 left-1/2 -translate-x-1/2 bg-card border-2 border-border rounded-2xl shadow-2xl p-4 flex items-center gap-4 z-50 min-w-[400px]">
+                    <div className="fixed bottom-keyboard-safe left-4 right-4 sm:left-1/2 sm:right-auto sm:-translate-x-1/2 sm:bottom-8 bg-card border-2 border-border rounded-2xl shadow-2xl p-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4 z-50 w-[calc(100vw-2rem)] sm:w-auto sm:min-w-[400px] max-w-lg sm:max-w-none mx-auto">
                         <div className="flex-1">
                             <p className="text-sm font-semibold">{totalSelected} word{totalSelected !== 1 ? 's' : ''} selected</p>
                             <p className="text-xs text-muted-foreground">

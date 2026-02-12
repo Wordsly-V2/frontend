@@ -39,7 +39,7 @@ export default function WordDetailDialog({ word, isOpen, onClose }: WordDetailDi
 
     return (
         <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-            <DialogContent className="sm:max-w-md flex max-h-[90vh] flex-col p-0">
+            <DialogContent className="sm:max-w-md flex max-h-[90dvh] flex-col p-0">
                 <DialogHeader className="flex-shrink-0 px-6 pt-6 pb-2">
                     <DialogTitle className="flex items-center gap-2 flex-wrap">
                         <span>{word.word}</span>

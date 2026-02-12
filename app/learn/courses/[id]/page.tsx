@@ -52,7 +52,7 @@ export default function LearnCourseDetailPage({ params }: { params: Promise<{ id
 
     if (!course) {
         return (
-            <main className="min-h-screen bg-background flex items-center justify-center">
+            <main className="min-h-dvh bg-background flex items-center justify-center">
                 <div className="text-center">
                     <h2 className="text-2xl font-bold mb-4">Course not found</h2>
                     <Button onClick={() => router.push('/learn')}>
@@ -161,7 +161,7 @@ export default function LearnCourseDetailPage({ params }: { params: Promise<{ id
     };
 
     return (
-        <main className="min-h-screen bg-background">
+        <main className="min-h-dvh bg-background">
             <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 md:py-8 max-w-5xl">
                 {/* Back Button */}
                 <Button
@@ -220,6 +220,7 @@ export default function LearnCourseDetailPage({ params }: { params: Promise<{ id
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
                         <Input
                             type="search"
+                            inputMode="search"
                             placeholder="Search by word, meaning, or pronunciation..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}

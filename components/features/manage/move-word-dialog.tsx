@@ -47,7 +47,7 @@ export default function MoveWordDialog({
 
     return (
         <Dialog open={isOpen} onOpenChange={handleClose}>
-            <DialogContent className="max-w-md max-h-[85vh] overflow-y-auto sm:mx-auto">
+            <DialogContent className="max-w-md max-h-[85dvh] overflow-y-auto sm:mx-auto">
                 <DialogHeader>
                     <DialogTitle className="text-lg sm:text-xl">
                         {isBulk ? `Move ${words.length} Words to Another Lesson` : 'Move Word to Another Lesson'}

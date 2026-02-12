@@ -11,7 +11,7 @@ export default function ProfilePage() {
 
   if (isLoading) {
     return (
-      <main className="min-h-screen bg-slate-50 flex items-center justify-center px-4">
+      <main className="min-h-dvh bg-slate-50 flex items-center justify-center px-4">
         <LoadingSpinner size="lg" label="Đang tải thông tin tài khoản…" />
       </main>
     );
@@ -19,7 +19,7 @@ export default function ProfilePage() {
 
   if (error) {
       return (
-          <main className="min-h-screen bg-slate-50 flex items-center justify-center px-4">
+          <main className="min-h-dvh bg-slate-50 flex items-center justify-center px-4">
               <div>Error: {error}</div>
               <Button onClick={() => {
                   fetchProfile();
@@ -29,7 +29,7 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-pink-50 dark:from-purple-950/20 dark:via-blue-950/20 dark:to-pink-950/20 pt-8 p-4 md:p-8">
+    <div className="min-h-dvh bg-gradient-to-br from-purple-50 via-blue-50 to-pink-50 dark:from-purple-950/20 dark:via-blue-950/20 dark:to-pink-950/20 pt-8 p-4 md:p-8">
       <div className="max-w-2xl mx-auto space-y-6">
         {/* Header */}
         <div className="text-center space-y-2">

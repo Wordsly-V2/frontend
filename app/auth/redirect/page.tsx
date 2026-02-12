@@ -7,7 +7,7 @@ export default function RedirectPage() {
     return (
         <Suspense
             fallback={
-                <main className="min-h-screen bg-slate-50 flex items-center justify-center px-4">
+                <main className="min-h-dvh bg-slate-50 flex items-center justify-center px-4">
                     <LoadingSpinner size="lg" />
                 </main>
             }
