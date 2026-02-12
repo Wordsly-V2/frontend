@@ -4,10 +4,11 @@ import LoadingSection from "@/components/common/loading-section/loading-section"
 import { LearningProgressSection, WordProgressBadge, WordProgressStatsInline } from "@/components/common/word-progress-stats";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
 import { useGetCourseDetailByIdQuery } from "@/queries/courses.query";
 import { useGetDueWordIdsQuery } from "@/queries/word-progress.query";
 import { ILesson, IWord } from "@/types/courses/courses.type";
-import { ArrowLeft, Brain, ChevronDown, ChevronRight, Play, Volume2 } from "lucide-react";
+import { ArrowLeft, Brain, ChevronDown, ChevronRight, Play, Search, Volume2 } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { use, useEffect, useState } from "react";
@@ -32,6 +33,7 @@ export default function LearnCourseDetailPage({ params }: { params: Promise<{ id
     const [expandedLessons, setExpandedLessons] = useState<Set<string>>(new Set());
     const [selectedWords, setSelectedWords] = useState<Set<string>>(new Set());
     const [dueWordsLimit, setDueWordsLimit] = useState(0);
+    const [searchQuery, setSearchQuery] = useState("");
 
     // Hydrate due-words limit from localStorage after mount (client-only; SSR has no access)
     useEffect(() => {
@@ -67,6 +69,23 @@ export default function LearnCourseDetailPage({ params }: { params: Promise<{ id
             allWords.push(...lesson.words);
         }
     });
+
+    const q = searchQuery.trim().toLowerCase();
+    const wordMatchesSearch = (w: IWord) =>
+        !q ||
+        [w.word, w.meaning, w.pronunciation].some(
+            (v) => v && String(v).toLowerCase().includes(q)
+        );
+    const filteredLessons: ILesson[] =
+        !q
+            ? course.lessons ?? []
+            : (course.lessons ?? [])
+                  .map((lesson) => ({
+                      ...lesson,
+                      words: (lesson.words ?? []).filter(wordMatchesSearch),
+                  }))
+                  .filter((lesson) => lesson.words!.length > 0);
+    const filteredWordIds = new Set(filteredLessons.flatMap((l) => (l.words ?? []).map((w) => w.id)));
 
     const toggleLesson = (lessonId: string) => {
         const newExpanded = new Set(expandedLessons);
@@ -106,8 +125,8 @@ export default function LearnCourseDetailPage({ params }: { params: Promise<{ id
     };
 
     const selectAllWords = () => {
-        const allWordIds = new Set(allWords.map((w) => w.id));
-        setSelectedWords(allWordIds);
+        const ids = searchQuery.trim() ? filteredWordIds : new Set(allWords.map((w) => w.id));
+        setSelectedWords(new Set(ids));
     };
 
     const deselectAllWords = () => {
@@ -193,6 +212,21 @@ export default function LearnCourseDetailPage({ params }: { params: Promise<{ id
                     className="mb-6 sm:mb-8"
                 />
 
+                {/* Search */}
+                {totalWords > 0 && (
+                    <div className="relative mb-4 sm:mb-6">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                        <Input
+                            type="search"
+                            placeholder="Search by word, meaning, or pronunciation..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="pl-9 h-9 sm:h-10"
+                            aria-label="Search words"
+                        />
+                    </div>
+                )}
+
                 {/* Selection Actions */}
                 {totalWords > 0 && (
                     <div className="flex flex-col sm:flex-row flex-wrap gap-3 items-start sm:items-center justify-between mb-4 sm:mb-6">
@@ -277,12 +311,14 @@ export default function LearnCourseDetailPage({ params }: { params: Promise<{ id
 
                 {/* Expandable Lessons List */}
                 <div className="space-y-2 sm:space-y-3">
-                    {course.lessons?.length === 0 ? (
+                    {filteredLessons.length === 0 ? (
                         <div className="text-center py-12 border-2 border-dashed border-border rounded-xl bg-muted/30">
-                            <p className="text-sm sm:text-base text-muted-foreground">No lessons yet</p>
+                            <p className="text-sm sm:text-base text-muted-foreground">
+                                {course.lessons?.length === 0 ? "No lessons yet" : searchQuery.trim() ? "No words match your search" : "No lessons yet"}
+                            </p>
                         </div>
                     ) : (
-                        course.lessons?.map((lesson: ILesson, index: number) => {
+                        filteredLessons.map((lesson: ILesson, index: number) => {
                             const isExpanded = expandedLessons.has(lesson.id);
                             const lessonWords = lesson.words || [];
                             const lessonWordIds = lessonWords.map((w: IWord) => w.id);

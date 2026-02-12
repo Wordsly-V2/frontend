@@ -14,6 +14,7 @@ import LessonFormDialog from "@/components/features/manage/lesson-form-dialog";
 import MoveWordDialog from "@/components/features/manage/move-word-dialog";
 import WordFormDialog from "@/components/features/manage/word-form-dialog";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
 import { useCourses } from "@/hooks/useCourses.hook";
 import { useLessons } from "@/hooks/useLessons.hook";
 import { useLoadingOverlay } from "@/hooks/useLoadingOverlay.hook";
@@ -36,7 +37,7 @@ import {
     verticalListSortingStrategy
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { ArrowLeft, ArrowRightLeft, ChevronDown, ChevronRight, Download, Edit, GripVertical, Plus, Trash2, Volume2, X } from "lucide-react";
+import { ArrowLeft, ArrowRightLeft, ChevronDown, ChevronRight, Download, Edit, GripVertical, Plus, Search, Trash2, Volume2, X } from "lucide-react";
 import { toast } from "sonner";
 
 function SortableLesson({
@@ -52,6 +53,7 @@ function SortableLesson({
     selectedWords,
     onToggleWordSelection,
     onSelectAllWords,
+    dragDisabled = false,
 }: {
     lesson: ILesson;
     isExpanded: boolean;
@@ -65,6 +67,7 @@ function SortableLesson({
     selectedWords: Set<string>;
     onToggleWordSelection: (lessonId: string, wordId: string) => void;
     onSelectAllWords: (lessonId: string, selectAll: boolean) => void;
+    dragDisabled?: boolean;
 }) {
     const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
         id: lesson.id,
@@ -84,9 +87,13 @@ function SortableLesson({
         <div ref={setNodeRef} style={style} className="bg-card border-2 border-border rounded-xl sm:rounded-2xl overflow-hidden">
             {/* Lesson Header */}
             <div className="p-3 sm:p-4 bg-muted/30 flex items-center gap-2 sm:gap-3">
-                <button className="cursor-grab active:cursor-grabbing touch-none flex-shrink-0" {...attributes} {...listeners}>
-                    <GripVertical className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground" />
-                </button>
+                {!dragDisabled ? (
+                    <button className="cursor-grab active:cursor-grabbing touch-none flex-shrink-0" {...attributes} {...listeners}>
+                        <GripVertical className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground" />
+                    </button>
+                ) : (
+                    <span className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" aria-hidden />
+                )}
                 <button
                     onClick={onToggle}
                     className="text-muted-foreground hover:text-foreground transition-colors flex-shrink-0"
@@ -275,6 +282,7 @@ export default function ManageCourseDetailPage({ params }: { params: Promise<{ i
     const router = useRouter();
     const [expandedLessons, setExpandedLessons] = useState<Set<string>>(new Set());
     const [selectedWords, setSelectedWords] = useState<Set<string>>(new Set());
+    const [searchQuery, setSearchQuery] = useState("");
 
     // Dialog states
     const [courseFormOpen, setCourseFormOpen] = useState(false);
@@ -563,6 +571,22 @@ export default function ManageCourseDetailPage({ params }: { params: Promise<{ i
         );
     }
 
+    const q = searchQuery.trim().toLowerCase();
+    const wordMatchesSearch = (w: IWord) =>
+        !q ||
+        [w.word, w.meaning, w.pronunciation].some(
+            (v) => v && String(v).toLowerCase().includes(q)
+        );
+    const filteredLessons: ILesson[] =
+        !q
+            ? course.lessons ?? []
+            : (course.lessons ?? [])
+                  .map((lesson) => ({
+                      ...lesson,
+                      words: (lesson.words ?? []).filter(wordMatchesSearch),
+                  }))
+                  .filter((lesson) => lesson.words!.length > 0);
+
     return (
         <main className="min-h-screen bg-background">
             <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 md:py-8 max-w-5xl">
@@ -653,6 +677,21 @@ export default function ManageCourseDetailPage({ params }: { params: Promise<{ i
                     />
                 )}
 
+                {/* Search */}
+                {(course?.lessons?.reduce((sum, l) => sum + (l.words?.length || 0), 0) ?? 0) > 0 && (
+                    <div className="relative mb-4 sm:mb-6">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                        <Input
+                            type="search"
+                            placeholder="Search by word, meaning, or pronunciation..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="pl-9 h-9 sm:h-10"
+                            aria-label="Search words"
+                        />
+                    </div>
+                )}
+
                 {/* Lessons List */}
                 {course?.lessons?.length === 0 ? (
                     <div className="text-center py-12 sm:py-16 border-2 border-dashed border-border rounded-xl sm:rounded-2xl bg-muted/30 px-4">
@@ -666,14 +705,19 @@ export default function ManageCourseDetailPage({ params }: { params: Promise<{ i
                             Create First Lesson
                         </Button>
                     </div>
+                ) : filteredLessons.length === 0 ? (
+                    <div className="text-center py-12 sm:py-16 border-2 border-dashed border-border rounded-xl sm:rounded-2xl bg-muted/30 px-4">
+                        <p className="text-sm sm:text-base text-muted-foreground">No words match your search</p>
+                    </div>
                 ) : (
                     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
                         <SortableContext items={course?.lessons?.map((l: ILesson) => l.id) || []} strategy={verticalListSortingStrategy}>
                             <div className="space-y-3 sm:space-y-4">
-                                {course?.lessons?.map((lesson: ILesson) => (
+                                {filteredLessons.map((lesson: ILesson) => (
                                     <SortableLesson
                                         key={lesson.id}
                                         lesson={lesson}
+                                        dragDisabled={!!q}
                                         isExpanded={expandedLessons.has(lesson.id)}
                                         onToggle={() => toggleLesson(lesson.id)}
                                         onEdit={() => {
