@@ -1,5 +1,5 @@
-import { getUserProfile } from '@/apis/users.api';
 import { logout as logoutApi } from '@/apis/auth.api';
+import { getUserProfile } from '@/apis/users.api';
 import { IUserProfile } from '@/types/users/users.type';
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
 
@@ -25,7 +25,7 @@ export const fetchProfile = createAsyncThunk('user/fetchProfile', async (_, { re
 
 export const logout = createAsyncThunk('user/logout', async ({ isLoggedOutFromAllDevices }: { isLoggedOutFromAllDevices?: boolean }, { rejectWithValue }) => {
     try {
-        return  logoutApi(isLoggedOutFromAllDevices);
+        return logoutApi(isLoggedOutFromAllDevices);
     } catch (error) {
         return rejectWithValue(error);
     }
@@ -34,16 +34,7 @@ export const logout = createAsyncThunk('user/logout', async ({ isLoggedOutFromAl
 const userSlice = createSlice({
     name: 'user',
     initialState,
-    reducers: {
-        initProfileFromLocalStorage: (state) => {
-            const userProfile = localStorage.getItem('userProfile');
-            if (userProfile) {
-                state.profile = JSON.parse(userProfile);
-            }
-            state.error = undefined;
-            state.isLoading = false;
-        },
-    },
+    reducers: {},
     extraReducers: (builder) => {
         // Fetch profile
         builder.addCase(fetchProfile.pending, (state) => {
@@ -53,13 +44,11 @@ const userSlice = createSlice({
         builder.addCase(fetchProfile.fulfilled, (state, action) => {
             state.profile = action.payload;
             state.isLoading = false;
-            localStorage.setItem('userProfile', JSON.stringify(action.payload));
         });
         builder.addCase(fetchProfile.rejected, (state, action) => {
             state.error = action.error.message;
             state.profile = null;
             state.isLoading = false;
-            localStorage.removeItem('userProfile');
         });
 
         // Logout
@@ -70,7 +59,6 @@ const userSlice = createSlice({
         builder.addCase(logout.fulfilled, (state, action) => {
             state.profile = null;
             state.isLoading = false;
-            localStorage.removeItem('userProfile');
         });
         builder.addCase(logout.rejected, (state, action) => {
             state.error = action.error.message;
@@ -79,8 +67,5 @@ const userSlice = createSlice({
         });
     },
 })
-
-export const { initProfileFromLocalStorage } =
-    userSlice.actions
 
 export default userSlice.reducer
