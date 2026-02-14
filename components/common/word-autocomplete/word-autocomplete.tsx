@@ -118,11 +118,6 @@ export function WordAutocomplete({
                                                     {item.meaning}
                                                 </p>
                                             )}
-                                            {item.examples?.[0] && (
-                                                <p className="mt-1 text-xs text-muted-foreground/90 italic line-clamp-1">
-                                                    e.g. {item.examples[0]}
-                                                </p>
-                                            )}
                                         </span>
                                     </button>
                                 </li>

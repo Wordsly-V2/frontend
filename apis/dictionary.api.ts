@@ -25,3 +25,12 @@ export const searchWords = async (query: string): Promise<IWordSearchResult[]> =
         throw (error as AxiosError).response?.data || error;
     }
 }
+
+export const getWordExamples = async (word: string): Promise<string[]> => {
+    try {
+        const response = await axiosInstance.get<string[]>(`/dictionary/examples/${word}`);
+        return response.data;
+    } catch (error) {
+        throw (error as AxiosError).response?.data || error;
+    }
+}

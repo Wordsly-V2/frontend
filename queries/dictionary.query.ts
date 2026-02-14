@@ -1,4 +1,4 @@
-import { fetchWordDetailsDictionary, searchWords } from "@/apis/dictionary.api";
+import { fetchWordDetailsDictionary, getWordExamples, searchWords } from "@/apis/dictionary.api";
 import { useQuery } from "@tanstack/react-query";
 
 export const useFetchWordDetailsDictionaryQuery = (word: string, enabled: boolean = true) => useQuery({
@@ -13,3 +13,8 @@ export const useSearchWordsQuery = (query: string, enabled: boolean = true) => u
     enabled,
 });
 
+export const useGetWordExamplesQuery = (word: string, enabled: boolean = true) => useQuery({
+    queryKey: ['words', 'examples', word],
+    queryFn: () => getWordExamples(word),
+    enabled,
+});

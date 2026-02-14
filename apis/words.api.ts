@@ -1,5 +1,5 @@
 import axiosInstance from "@/lib/axios";
-import { CreateMyWord, IWord, IWordPronunciation, IWordSearchResult } from "@/types/courses/courses.type";
+import { CreateMyWord, IWord } from "@/types/courses/courses.type";
 import { AxiosError } from "axios";
 
 export const createMyWord = async (courseId: string, lessonId: string, word: CreateMyWord): Promise<{ success: boolean }> => {

@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { useAudio } from "@/hooks/useAudio.hook";
 import { useDebounce } from "@/hooks/useDebounce";
-import { useFetchWordDetailsDictionaryQuery } from "@/queries/dictionary.query";
+import { useFetchWordDetailsDictionaryQuery, useGetWordExamplesQuery } from "@/queries/dictionary.query";
 import { IWord } from "@/types/courses/courses.type";
 import { Check, ImageIcon, Plus, Trash2, Volume2, VolumeX } from "lucide-react";
 import Image from "next/image";
@@ -44,6 +44,7 @@ export default function WordFormDialog({
 
     const debouncedWord = useDebounce(formData.word.trim(), 1000);
     const { data: pronunciations, isLoading: isFetchingPronunciations, error: fetchErrorPronunciations } = useFetchWordDetailsDictionaryQuery(debouncedWord, !!debouncedWord);
+    const { data: examples, isLoading: isFetchingExamples, error: fetchErrorExamples } = useGetWordExamplesQuery(debouncedWord, !!debouncedWord);
 
     const [imageLoadError, setImageLoadError] = useState(false);
     const [exampleIds, setExampleIds] = useState<string[]>([]);
@@ -127,14 +128,13 @@ export default function WordFormDialog({
         play(url);
     };
 
-    const handleSelectWordSuggestion = (item: { word: string; meaning?: string; partOfSpeech?: string; imageUrl?: string, examples?: string[] }) => {
+    const handleSelectWordSuggestion = (item: { word: string; meaning?: string; partOfSpeech?: string; imageUrl?: string }) => {
         setFormData((prev) => ({
             ...prev,
             word: item.word,
             ...(item.meaning != null && item.meaning !== "" && { meaning: item.meaning }),
             ...(item.partOfSpeech != null && item.partOfSpeech !== "" && { partOfSpeech: item.partOfSpeech }),
             ...(item.imageUrl != null && item.imageUrl !== "" && { imageUrl: item.imageUrl }),
-            ...(item.examples != null && item.examples.length > 0 && { examples: item.examples }),
         }));
     };
 
