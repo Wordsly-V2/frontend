@@ -54,10 +54,11 @@ export default function LessonFormDialog({
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         if (formData.name.trim()) {
+            const maxWordsValue = formData.maxWords.trim();
             onSubmit({
                 name: formData.name.trim(),
                 coverImageUrl: formData.coverImageUrl.trim() || undefined,
-                maxWords: formData.maxWords ? parseInt(formData.maxWords) : undefined,
+                maxWords: maxWordsValue ? Number.parseInt(maxWordsValue, 10) : null,
             });
         }
     };
@@ -100,13 +101,13 @@ export default function LessonFormDialog({
                                 id="maxWords"
                                 type="number"
                                 min="1"
-                                placeholder="e.g., 20"
+                                placeholder="No limit"
                                 value={formData.maxWords}
                                 onChange={(e) => setFormData({ ...formData, maxWords: e.target.value })}
                                 className="text-sm sm:text-base"
                             />
                             <p className="text-xs text-muted-foreground">
-                                Maximum number of vocabulary words for this lesson
+                                Leave empty for no limit. Set a number to cap vocabulary words in this lesson.
                             </p>
                         </div>
 

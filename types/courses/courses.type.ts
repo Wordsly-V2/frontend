@@ -65,7 +65,7 @@ export interface ICourseTotalStats {
   totalWords: number;
 }
 
-export type CreateMyLesson = Pick<ILesson, 'name' | 'coverImageUrl' | 'maxWords' | 'orderIndex'>;
+export type CreateMyLesson = Omit<Pick<ILesson, 'name' | 'coverImageUrl' | 'maxWords' | 'orderIndex'>, 'maxWords'> & { maxWords?: number | null };
 
 export type CreateUpdateMyCourse = Pick<ILesson, 'name' | 'coverImageUrl'>;
 
