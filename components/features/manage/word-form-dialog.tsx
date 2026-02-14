@@ -138,6 +138,14 @@ export default function WordFormDialog({
         }));
     };
 
+    const handleAddExampleSuggestion = (exampleText: string) => {
+        const trimmed = exampleText.trim();
+        if (!trimmed) return;
+        const id = `ex-${++exampleIdRef.current}`;
+        setFormData((prev) => ({ ...prev, examples: [...prev.examples, trimmed] }));
+        setExampleIds((prev) => [...prev, id]);
+    };
+
     return (
         <Dialog open={isOpen} onOpenChange={handleClose}>
             <DialogContent className="max-w-lg w-[calc(100vw-1.5rem)] sm:w-full max-h-[85dvh] overflow-y-auto overflow-x-hidden mx-auto" onOpenAutoFocus={(e) => word ? e.preventDefault() : undefined}>
@@ -349,6 +357,50 @@ export default function WordFormDialog({
                                     Add example
                                 </Button>
                             </div>
+
+                            {isFetchingExamples && <LoadingSpinner size="sm" />}
+                            {fetchErrorExamples && (
+                                <p className="text-xs text-destructive">{fetchErrorExamples.message}</p>
+                            )}
+                            {!isFetchingExamples && examples && examples.length > 0 && (
+                                <div className="mt-2 sm:mt-3 w-full min-w-0 overflow-hidden rounded-md border p-2 sm:p-3 bg-muted/30">
+                                    <p className="text-xs sm:text-sm font-medium">Suggested examples:</p>
+                                    <div className="mt-2 space-y-2 max-h-40 sm:max-h-48 overflow-y-auto overflow-x-hidden">
+                                        {examples.map((exampleText) => {
+                                            const isAdded = formData.examples.some((ex) => ex.trim() === exampleText.trim());
+                                            return (
+                                                <div
+                                                    key={exampleText}
+                                                    className="flex items-center gap-1.5 sm:gap-2 rounded-md border bg-background p-2 min-w-0 w-full"
+                                                >
+                                                    <span className="flex-1 min-w-0 text-xs sm:text-sm">
+                                                        {exampleText}
+                                                    </span>
+                                                    <Button
+                                                        type="button"
+                                                        variant={isAdded ? "secondary" : "outline"}
+                                                        size="sm"
+                                                        onClick={() => !isAdded && handleAddExampleSuggestion(exampleText)}
+                                                        disabled={isAdded}
+                                                        title={isAdded ? "Already added" : "Add to examples"}
+                                                        className="h-7 min-w-[2.5rem] px-2 text-xs sm:h-8 sm:min-w-10 flex-shrink-0"
+                                                    >
+                                                        {isAdded ? (
+                                                            <>
+                                                                <Check className="h-3 w-3 mr-1 shrink-0" />
+                                                                <span className="hidden sm:inline">Added</span>
+                                                                <span className="sm:hidden">✓</span>
+                                                            </>
+                                                        ) : (
+                                                            "Add"
+                                                        )}
+                                                    </Button>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            )}
                         </div>
 
                         <div className="space-y-2 min-w-0">
