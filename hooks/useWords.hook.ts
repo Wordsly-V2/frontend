@@ -16,7 +16,7 @@ export const useWords = () => {
     });
 
     const mutationMoveMyWord = useMutation({
-        mutationFn: ({ courseId, lessonId, wordId, targetLessonId }: { courseId: string, lessonId: string, wordId: string, targetLessonId: string }) => moveMyWord(courseId, lessonId, wordId, targetLessonId),
+        mutationFn: ({ courseId, lessonId, wordId, targetLessonId, targetCourseId }: { courseId: string, lessonId: string, wordId: string, targetLessonId: string, targetCourseId?: string }) => moveMyWord(courseId, lessonId, wordId, targetLessonId, targetCourseId),
     });
 
     const mutationBulkDeleteMyWords = useMutation({
@@ -24,7 +24,7 @@ export const useWords = () => {
     });
 
     const mutationBulkMoveMyWords = useMutation({
-        mutationFn: ({ courseId, lessonId, wordIds, targetLessonId }: { courseId: string, lessonId: string, wordIds: string[], targetLessonId: string }) => bulkMoveMyWords(courseId, lessonId, wordIds, targetLessonId),
+        mutationFn: ({ courseId, lessonId, wordIds, targetLessonId, targetCourseId }: { courseId: string, lessonId: string, wordIds: string[], targetLessonId: string, targetCourseId?: string }) => bulkMoveMyWords(courseId, lessonId, wordIds, targetLessonId, targetCourseId),
     });
 
     return { mutationCreateMyWord, mutationUpdateMyWord, mutationDeleteMyWord, mutationMoveMyWord, mutationBulkDeleteMyWords, mutationBulkMoveMyWords };

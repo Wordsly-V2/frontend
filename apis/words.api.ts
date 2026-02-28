@@ -40,9 +40,16 @@ export const deleteMyWord = async (courseId: string, lessonId: string, wordId: s
     }
 }
 
-export const moveMyWord = async (courseId: string, lessonId: string, wordId: string, targetLessonId: string): Promise<{ success: boolean }> => {
+export const moveMyWord = async (
+    courseId: string,
+    lessonId: string,
+    wordId: string,
+    targetLessonId: string,
+    targetCourseId?: string
+): Promise<{ success: boolean }> => {
     try {
-        const response = await axiosInstance.put<{ success: boolean }>(`/courses/me/my-courses/${courseId}/lessons/${lessonId}/words/${wordId}/move`, { targetLessonId });
+        const body = targetCourseId ? { targetLessonId, targetCourseId } : { targetLessonId };
+        const response = await axiosInstance.put<{ success: boolean }>(`/courses/me/my-courses/${courseId}/lessons/${lessonId}/words/${wordId}/move`, body);
         return response.data;
     } catch (error) {
         throw (error as AxiosError).response?.data || error;
@@ -58,9 +65,16 @@ export const bulkDeleteMyWords = async (courseId: string, lessonId: string, word
     }
 }
 
-export const bulkMoveMyWords = async (courseId: string, lessonId: string, wordIds: string[], targetLessonId: string): Promise<{ success: boolean }> => {
+export const bulkMoveMyWords = async (
+    courseId: string,
+    lessonId: string,
+    wordIds: string[],
+    targetLessonId: string,
+    targetCourseId?: string
+): Promise<{ success: boolean }> => {
     try {
-        const response = await axiosInstance.put<{ success: boolean }>(`/courses/me/my-courses/${courseId}/lessons/${lessonId}/words/bulk-move`, { wordIds, targetLessonId });
+        const body = targetCourseId ? { wordIds, targetLessonId, targetCourseId } : { wordIds, targetLessonId };
+        const response = await axiosInstance.put<{ success: boolean }>(`/courses/me/my-courses/${courseId}/lessons/${lessonId}/words/bulk-move`, body);
         return response.data;
     } catch (error) {
         throw (error as AxiosError).response?.data || error;

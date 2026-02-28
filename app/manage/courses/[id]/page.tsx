@@ -19,7 +19,9 @@ import { useCourses } from "@/hooks/useCourses.hook";
 import { useLessons } from "@/hooks/useLessons.hook";
 import { useLoadingOverlay } from "@/hooks/useLoadingOverlay.hook";
 import { useWords } from "@/hooks/useWords.hook";
-import { useGetCourseDetailByIdQuery } from "@/queries/courses.query";
+import { getCourseDetailById } from "@/apis/courses.api";
+import { useGetCourseDetailByIdQuery, useGetMyCoursesQuery } from "@/queries/courses.query";
+import { useQueries } from "@tanstack/react-query";
 import { CreateMyLesson, CreateMyWord, ICourse, ILesson, IWord } from "@/types/courses/courses.type";
 import {
     closestCenter,
@@ -321,6 +323,29 @@ export default function ManageCourseDetailPage({ params }: { params: Promise<{ i
     const { data: course, isLoading, isError, refetch: loadCourseDetail } = useGetCourseDetailByIdQuery(id, !!id);
     const { mutationUpdateMyCourse, mutationDeleteMyCourse } = useCourses();
 
+    // When move dialog is open, fetch other courses and their lessons for cross-course move
+    const { data: coursesList } = useGetMyCoursesQuery(50, 1, "name", "asc", "", !!moveWordDialog);
+    const otherCourseIds = moveWordDialog
+        ? (coursesList?.items ?? []).filter((c: ICourse) => c.id !== id).map((c: ICourse) => c.id)
+        : [];
+    const otherCoursesDetailsQueries = useQueries({
+        queries: otherCourseIds.map((courseId: string) => ({
+            queryKey: ["courses", "get", "course-detail", courseId],
+            queryFn: () => getCourseDetailById(courseId),
+            enabled: !!moveWordDialog && !!courseId,
+        })),
+    });
+    const otherCoursesWithLessons: { courseId: string; courseName: string; lessons: ILesson[] }[] =
+        otherCoursesDetailsQueries
+            .map((q, i) => ({ courseId: otherCourseIds[i], data: q.data as ICourse | undefined }))
+            .filter(({ data }) => data != null)
+            .map(({ courseId, data }) => ({
+                courseId,
+                courseName: data!.name,
+                lessons: data!.lessons ?? [],
+            }));
+    const isLoadingOtherCourses = otherCoursesDetailsQueries.some((q) => q.isLoading);
+
     // When opening from nav word search: apply URL params to state (fill search, expand lesson)
     const urlWord = searchParams.get("word");
     const urlLessonId = searchParams.get("lessonId");
@@ -517,40 +542,46 @@ export default function ManageCourseDetailPage({ params }: { params: Promise<{ i
         }
     }
 
-    const handleMoveMyWord = (targetLessonId: string) => {
+    const handleMoveMyWord = (targetLessonId: string, targetCourseId?: string) => {
         if (moveWordDialog) {
             const { words, sourceLesson } = moveWordDialog;
 
             // Bulk move
             if (words.length > 1) {
-                const wordIds = words.map(w => w.id);
-                mutationBulkMoveMyWords.mutate({ courseId: id, lessonId: sourceLesson.id, wordIds, targetLessonId }, {
-                    onSuccess: () => {
-                        loadCourseDetail();
-                        setMoveWordDialog(null);
-                        setSelectedWords(new Set());
-                        toast.success(`${words.length} words moved successfully`);
-                    },
-                    onError: (err) => {
-                        toast.error('Failed to move words: ' + err.message);
-                    },
-                });
+                const wordIds = words.map((w) => w.id);
+                mutationBulkMoveMyWords.mutate(
+                    { courseId: id, lessonId: sourceLesson.id, wordIds, targetLessonId, targetCourseId },
+                    {
+                        onSuccess: () => {
+                            loadCourseDetail();
+                            setMoveWordDialog(null);
+                            setSelectedWords(new Set());
+                            toast.success(`${words.length} words moved successfully`);
+                        },
+                        onError: (err) => {
+                            toast.error("Failed to move words: " + err.message);
+                        },
+                    }
+                );
             } else {
                 // Single move
-                mutationMoveMyWord.mutate({ courseId: id, lessonId: sourceLesson.id, wordId: words[0].id, targetLessonId }, {
-                    onSuccess: () => {
-                        loadCourseDetail();
-                        setMoveWordDialog(null);
-                        setSelectedWords(new Set());
-                        toast.success('Word moved successfully');
-                    },
-                    onError: (err) => {
-                        toast.error('Failed to move word: ' + err.message);
-                    },
-                });
+                mutationMoveMyWord.mutate(
+                    { courseId: id, lessonId: sourceLesson.id, wordId: words[0].id, targetLessonId, targetCourseId },
+                    {
+                        onSuccess: () => {
+                            loadCourseDetail();
+                            setMoveWordDialog(null);
+                            setSelectedWords(new Set());
+                            toast.success("Word moved successfully");
+                        },
+                        onError: (err) => {
+                            toast.error("Failed to move word: " + err.message);
+                        },
+                    }
+                );
             }
         }
-    }
+    };
 
     const handleBulkDeleteWords = () => {
         if (deleteConfirm && deleteConfirm.type === 'bulk-words' && deleteConfirm.lessonId) {
@@ -667,7 +698,7 @@ export default function ManageCourseDetailPage({ params }: { params: Promise<{ i
                         </div>
                     )}
                     <div className="p-4 sm:p-6">
-                        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3 sm:gap-4">
+                        <div className="flex flex-col lg:flex-row lg:justify-between lg:items-start gap-3 lg:gap-4">
                             <div className="flex-1 min-w-0">
                                 <h1 className="text-2xl sm:text-3xl font-bold mb-1 sm:mb-2 break-words">{course.name}</h1>
                                 <p className="text-sm sm:text-base text-muted-foreground">
@@ -968,7 +999,9 @@ export default function ManageCourseDetailPage({ params }: { params: Promise<{ i
                 onConfirm={handleMoveMyWord}
                 words={moveWordDialog?.words || []}
                 currentLesson={moveWordDialog?.sourceLesson || null}
-                availableLessons={course?.lessons?.filter((l: ILesson) => l.id !== moveWordDialog?.sourceLesson.id) || []}
+                availableLessons={course?.lessons?.filter((l: ILesson) => l.id !== moveWordDialog?.sourceLesson?.id) ?? []}
+                otherCoursesWithLessons={otherCoursesWithLessons}
+                isLoadingOtherCourses={isLoadingOtherCourses}
             />
 
             <ExportWordsDialog
