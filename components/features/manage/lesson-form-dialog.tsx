@@ -58,7 +58,7 @@ export default function LessonFormDialog({
             onSubmit({
                 name: formData.name.trim(),
                 coverImageUrl: formData.coverImageUrl.trim() || undefined,
-                maxWords: maxWordsValue ? Number.parseInt(maxWordsValue, 10) : null,
+                maxWords: maxWordsValue ? Number.parseInt(maxWordsValue, 10) : undefined,
             });
         }
     };
