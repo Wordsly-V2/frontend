@@ -82,3 +82,15 @@ export interface IWordSearchResult {
   partOfSpeech: string;
   imageUrl: string;
 }
+
+export interface IUserWordSearchResult {
+  id: string;
+  word: string;
+  meaning: string;
+  partOfSpeech: string | null;
+  imageUrl: string | null;
+  lessonId: string;
+  lessonName: string;
+  courseId: string;
+  courseName: string;
+}

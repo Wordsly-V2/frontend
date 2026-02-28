@@ -2,8 +2,8 @@
 
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
-import { use, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { use, useEffect, useRef, useState } from "react";
 
 import ConfirmDialog from "@/components/common/confirm-dialog/confirm-dialog";
 import LoadingSection from "@/components/common/loading-section/loading-section";
@@ -87,7 +87,7 @@ function SortableLesson({
     const allWordsSelected = words.length > 0 && lessonSelectedWords.length === words.length;
 
     return (
-        <div ref={setNodeRef} style={style} className="bg-card border-2 border-border rounded-xl sm:rounded-2xl overflow-hidden">
+        <div ref={setNodeRef} id={`lesson-${lesson.id}`} style={style} className="bg-card border-2 border-border rounded-xl sm:rounded-2xl overflow-hidden scroll-mt-24">
             {/* Lesson Header */}
             <div className="p-3 sm:p-4 bg-muted/30 flex items-center gap-2 sm:gap-3">
                 {!dragDisabled ? (
@@ -230,6 +230,9 @@ function SortableLesson({
                                 </div>
                                 <div className="flex justify-between items-center gap-2 border-t border-border/50 pt-2 -mb-0.5">
                                     <div className="flex gap-0.5 sm:gap-1">
+                                        <Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); onEditWord(word); }} className="h-7 w-7 p-0 sm:h-8 sm:w-8" title="Edit word">
+                                            <Edit className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+                                        </Button>
                                         <Button
                                             size="sm"
                                             variant="ghost"
@@ -241,9 +244,6 @@ function SortableLesson({
                                             className="h-7 w-7 p-0 sm:h-8 sm:w-8"
                                         >
                                             <ArrowRightLeft className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
-                                        </Button>
-                                        <Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); onEditWord(word); }} className="h-7 w-7 p-0 sm:h-8 sm:w-8" title="Edit word">
-                                            <Edit className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
                                         </Button>
                                         <Button
                                             size="sm"
@@ -299,6 +299,8 @@ function SortableLesson({
 export default function ManageCourseDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = use(params);
     const router = useRouter();
+    const searchParams = useSearchParams();
+    const appliedFocusRef = useRef(false);
     const [expandedLessons, setExpandedLessons] = useState<Set<string>>(new Set());
     const [selectedWords, setSelectedWords] = useState<Set<string>>(new Set());
     const [searchQuery, setSearchQuery] = useState("");
@@ -318,6 +320,38 @@ export default function ManageCourseDetailPage({ params }: { params: Promise<{ i
 
     const { data: course, isLoading, isError, refetch: loadCourseDetail } = useGetCourseDetailByIdQuery(id, !!id);
     const { mutationUpdateMyCourse, mutationDeleteMyCourse } = useCourses();
+
+    // When opening from nav word search: apply URL params to state (fill search, expand lesson)
+    const urlWord = searchParams.get("word");
+    const urlLessonId = searchParams.get("lessonId");
+    useEffect(() => {
+        function applyUrlParams() {
+            if (!course || !urlWord || !urlLessonId) return;
+            const lessonExists = course.lessons?.some((l: ILesson) => l.id === urlLessonId);
+            if (!lessonExists) return;
+            setSearchQuery(urlWord);
+            setExpandedLessons((prev) => new Set(prev).add(urlLessonId));
+        }
+        applyUrlParams();
+    }, [course, urlWord, urlLessonId]);
+
+    // Scroll to lesson after state has been applied and DOM has the lesson element
+    useEffect(() => {
+        if (!course || !urlWord || !urlLessonId || appliedFocusRef.current) return;
+        if (searchQuery !== urlWord || !expandedLessons.has(urlLessonId)) return;
+        appliedFocusRef.current = true;
+
+        function tryScroll(attempt: number) {
+            const el = document.getElementById(`lesson-${urlLessonId}`);
+            if (el) {
+                el.scrollIntoView({ behavior: "smooth", block: "start" });
+                return;
+            }
+            if (attempt < 20) setTimeout(() => tryScroll(attempt + 1), 100);
+        }
+        const t = setTimeout(() => tryScroll(0), 50);
+        return () => clearTimeout(t);
+    }, [course, urlWord, urlLessonId, searchQuery, expandedLessons]);
     const { mutationCreateMyCourseLesson, mutationUpdateMyCourseLesson, mutationDeleteMyCourseLesson, mutationReorderMyCourseLessons } = useLessons();
     const { mutationCreateMyWord, mutationUpdateMyWord, mutationDeleteMyWord, mutationMoveMyWord, mutationBulkDeleteMyWords, mutationBulkMoveMyWords } = useWords();
 

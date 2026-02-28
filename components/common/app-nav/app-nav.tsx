@@ -5,6 +5,9 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { BookOpen, GraduationCap, Settings, User, LogOut, LogIn, Smartphone } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { MyWordsSearch } from "@/components/common/my-words-search";
+import UserWordViewDialog from "@/components/features/manage/user-word-view-dialog";
+import { IUserWordSearchResult } from "@/types/courses/courses.type";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -33,6 +36,13 @@ export default function AppNav() {
     const { profile, isLoading, logout } = useUser();
     const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
     const [isLoggingOut, setIsLoggingOut] = useState(false);
+    const [viewWord, setViewWord] = useState<IUserWordSearchResult | null>(null);
+    const [wordViewDialogOpen, setWordViewDialogOpen] = useState(false);
+
+    const handleWordSearchSelect = (item: IUserWordSearchResult) => {
+        setViewWord(item);
+        setWordViewDialogOpen(true);
+    };
 
     const isManageMode = pathname?.startsWith('/manage');
     const isLearnMode = pathname?.startsWith('/learn');
@@ -171,9 +181,10 @@ export default function AppNav() {
                         <span className="hidden xs:inline">Wordsly</span>
                     </Link>
 
-                    {/* Center - Mode Toggle */}
+                    {/* Center - Search + Mode Toggle */}
                     {!isAuthPage && profile && (
-                        <div className="hidden md:flex items-center gap-2 absolute left-1/2 transform -translate-x-1/2">
+                        <div className="hidden md:flex items-center gap-3 absolute left-1/2 transform -translate-x-1/2">
+                            <MyWordsSearch onSelect={handleWordSearchSelect} />
                             <Link href="/learn">
                                 <Button
                                     variant={isLearnMode ? "default" : "ghost"}
@@ -199,9 +210,10 @@ export default function AppNav() {
 
                     {/* Right - User Menu */}
                     <div className="flex items-center gap-1.5 sm:gap-3">
-                        {/* Mobile Mode Toggle */}
+                        {/* Mobile: Search + Mode Toggle */}
                         {!isAuthPage && profile && (
                             <div className="flex md:hidden items-center gap-1">
+                                <MyWordsSearch onSelect={handleWordSearchSelect} className="max-w-[140px]" />
                                 <Link href="/learn">
                                     <Button
                                         variant={isLearnMode ? "default" : "ghost"}
@@ -228,6 +240,14 @@ export default function AppNav() {
                     </div>
                 </div>
             </div>
+            <UserWordViewDialog
+                word={viewWord}
+                isOpen={wordViewDialogOpen}
+                onClose={() => {
+                    setWordViewDialogOpen(false);
+                    setViewWord(null);
+                }}
+            />
         </nav>
     );
 }

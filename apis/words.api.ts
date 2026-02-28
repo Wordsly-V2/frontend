@@ -1,6 +1,17 @@
 import axiosInstance from "@/lib/axios";
-import { CreateMyWord, IWord } from "@/types/courses/courses.type";
+import { CreateMyWord, IUserWordSearchResult, IWord } from "@/types/courses/courses.type";
 import { AxiosError } from "axios";
+
+export const searchMyWords = async (word: string): Promise<IUserWordSearchResult[]> => {
+    try {
+        const response = await axiosInstance.get<IUserWordSearchResult[]>(
+            `/dictionary/my-words/search/${encodeURIComponent(word.trim())}`
+        );
+        return response.data;
+    } catch (error) {
+        throw (error as AxiosError).response?.data || error;
+    }
+};
 
 export const createMyWord = async (courseId: string, lessonId: string, word: CreateMyWord): Promise<{ success: boolean }> => {
     try {

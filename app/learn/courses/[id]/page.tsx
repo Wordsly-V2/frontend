@@ -11,8 +11,8 @@ import { ILesson, IWord } from "@/types/courses/courses.type";
 import WordDetailDialog from "@/components/features/manage/word-detail-dialog";
 import { ArrowLeft, Brain, ChevronDown, ChevronRight, Eye, Play, Search, Volume2 } from "lucide-react";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
-import { use, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { use, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 const DUE_WORDS_LIMIT_OPTIONS = [5, 10, 15, 20] as const;
@@ -31,6 +31,8 @@ function getStoredDueWordsLimit(): number {
 export default function LearnCourseDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = use(params);
     const router = useRouter();
+    const searchParams = useSearchParams();
+    const appliedFocusRef = useRef(false);
     const [expandedLessons, setExpandedLessons] = useState<Set<string>>(new Set());
     const [selectedWords, setSelectedWords] = useState<Set<string>>(new Set());
     const [dueWordsLimit, setDueWordsLimit] = useState(0);
@@ -44,6 +46,38 @@ export default function LearnCourseDetailPage({ params }: { params: Promise<{ id
     }, []);
 
     const { data: course, isLoading, isError, refetch: loadCourseDetail } = useGetCourseDetailByIdQuery(id, !!id);
+
+    // When opening from nav word search: apply URL params to state (fill search, expand lesson)
+    const urlWord = searchParams.get("word");
+    const urlLessonId = searchParams.get("lessonId");
+    useEffect(() => {
+        function applyUrlParams() {
+        if (!course || !urlWord || !urlLessonId) return;
+            const lessonExists = course.lessons?.some((l: ILesson) => l.id === urlLessonId);
+            if (!lessonExists) return;
+            setSearchQuery(urlWord);
+            setExpandedLessons((prev) => new Set(prev).add(urlLessonId));
+        }
+        applyUrlParams();
+    }, [course, urlWord, urlLessonId]);
+
+    // Scroll to lesson after state has been applied and DOM has the lesson element
+    useEffect(() => {
+        if (!course || !urlWord || !urlLessonId || appliedFocusRef.current) return;
+        if (searchQuery !== urlWord || !expandedLessons.has(urlLessonId)) return;
+        appliedFocusRef.current = true;
+
+        function tryScroll(attempt: number) {
+            const el = document.getElementById(`lesson-${urlLessonId}`);
+            if (el) {
+                el.scrollIntoView({ behavior: "smooth", block: "start" });
+                return;
+            }
+            if (attempt < 20) setTimeout(() => tryScroll(attempt + 1), 100);
+        }
+        const t = setTimeout(() => tryScroll(0), 50);
+        return () => clearTimeout(t);
+    }, [course, urlWord, urlLessonId, searchQuery, expandedLessons]);
     const { data: dueWordIds, isLoading: isDueWordIdsLoading } = useGetDueWordIdsQuery(id, undefined, dueWordsLimit, true, !!id && dueWordsLimit > 0);
 
     if (isLoading || isError) {
@@ -331,7 +365,8 @@ export default function LearnCourseDetailPage({ params }: { params: Promise<{ id
                             return (
                                 <div
                                     key={lesson.id}
-                                    className="bg-card border-2 border-border rounded-xl overflow-hidden transition-all hover:border-primary/50"
+                                    id={`lesson-${lesson.id}`}
+                                    className="bg-card border-2 border-border rounded-xl overflow-hidden transition-all hover:border-primary/50 scroll-mt-24"
                                 >
                                     {/* Lesson Header */}
                                     <div
