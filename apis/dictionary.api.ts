@@ -52,3 +52,29 @@ export const getWordExamples = async (word: string): Promise<string[]> => {
         throw (error as AxiosError).response?.data || error;
     }
 };
+
+/** Structured word details from GET word-details (extracted in vocabulary-service). */
+export interface LangeekWordDetailsResponse {
+    word: string;
+    meaning: string;
+    partOfSpeech: string;
+    pronunciation: string;
+    audioUrl: string;
+    examples: string[];
+}
+
+export const getLangeekWordDetails = async (
+    langeekWordId: number,
+    entry: string
+): Promise<LangeekWordDetailsResponse | null> => {
+    try {
+        const params = new URLSearchParams({ entry: entry.trim() });
+        const response = await axiosInstance.get<LangeekWordDetailsResponse | null>(
+            `/dictionary/word-details/${langeekWordId}?${params}`
+        );
+        return response.data;
+    } catch (error) {
+        if ((error as AxiosError).response?.status === 404) return null;
+        throw (error as AxiosError).response?.data || error;
+    }
+};

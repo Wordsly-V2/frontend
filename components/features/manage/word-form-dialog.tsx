@@ -7,10 +7,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { useAudio } from "@/hooks/useAudio.hook";
-import { useDebounce } from "@/hooks/useDebounce";
-import { useFetchWordDetailsDictionaryQuery, useGetWordExamplesQuery } from "@/queries/dictionary.query";
-import { IWord } from "@/types/courses/courses.type";
-import { Check, ImageIcon, Plus, Trash2, Volume2, VolumeX } from "lucide-react";
+import { useLangeekWordDetailsQuery } from "@/queries/dictionary.query";
+import { IWord, IWordSearchResult } from "@/types/courses/courses.type";
+import { ImageIcon, Plus, Trash2, Volume2, VolumeX } from "lucide-react";
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 
@@ -42,11 +41,19 @@ export default function WordFormDialog({
     });
     const { isPlaying, error: audioError, play, stop, clearError } = useAudio();
 
-    const debouncedWord = useDebounce(formData.word.trim(), 1000);
-    const { data: pronunciationData, isLoading: isFetchingPronunciations, error: fetchErrorPronunciations } = useFetchWordDetailsDictionaryQuery(debouncedWord, !!debouncedWord);
-    const pronunciations = pronunciationData?.pronunciation ?? [];
-    const ipasByPos = pronunciationData?.ipas ?? [];
-    const { data: examples, isLoading: isFetchingExamples, error: fetchErrorExamples } = useGetWordExamplesQuery(debouncedWord, !!debouncedWord);
+    const [pendingWordDetails, setPendingWordDetails] = useState<{
+        langeekWordId: number;
+        entry: string;
+    } | null>(null);
+    const {
+        data: langeekWordDetails,
+        isLoading: isFetchingLangeekDetails,
+        isSuccess: langeekDetailsSuccess,
+    } = useLangeekWordDetailsQuery(
+        pendingWordDetails?.langeekWordId ?? null,
+        pendingWordDetails?.entry ?? "",
+        !!pendingWordDetails
+    );
 
     const [imageLoadError, setImageLoadError] = useState(false);
     const [exampleIds, setExampleIds] = useState<string[]>([]);
@@ -84,6 +91,42 @@ export default function WordFormDialog({
         _setFormData();
     }, [word, isOpen]);
 
+    useEffect(() => {
+        if (!pendingWordDetails || !langeekDetailsSuccess || !langeekWordDetails) return;
+        const patch = langeekWordDetails;
+
+        const id = setTimeout(() => {
+            setPendingWordDetails(null);
+            const hasPatch =
+                patch.word ||
+                patch.meaning ||
+                patch.partOfSpeech ||
+                patch.pronunciation ||
+                patch.audioUrl ||
+                patch.examples.length > 0;
+            if (hasPatch) {
+                setFormData((prev) => ({
+                    ...prev,
+                    ...(patch.word && { word: patch.word }),
+                    ...(patch.meaning && { meaning: patch.meaning }),
+                    ...(patch.partOfSpeech && { partOfSpeech: patch.partOfSpeech }),
+                    ...(patch.pronunciation && { pronunciation: patch.pronunciation }),
+                    ...(patch.audioUrl && { audioUrl: patch.audioUrl }),
+                    ...(patch.examples.length > 0 && {
+                        examples: [...new Set([...prev.examples, ...patch.examples])],
+                    }),
+                }));
+                if (patch.examples.length > 0) {
+                    setExampleIds((prev) => [
+                        ...prev,
+                        ...patch.examples.map(() => `ex-${++exampleIdRef.current}`),
+                    ]);
+                }
+            }
+        }, 0);
+        return () => clearTimeout(id);
+    }, [langeekDetailsSuccess, pendingWordDetails, langeekWordDetails]);
+
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         if (formData.word.trim() && formData.meaning.trim()) {
@@ -103,6 +146,7 @@ export default function WordFormDialog({
         stop();
         clearError();
         setImageLoadError(false);
+        setPendingWordDetails(null);
         setFormData({
             word: "",
             meaning: "",
@@ -121,24 +165,7 @@ export default function WordFormDialog({
     };
 
 
-    const handleSelectAudioUrl = (url: string) => {
-        setFormData({ ...formData, audioUrl: url });
-        clearError();
-    };
-
-    const handleSelectIpa = (ipa: string, partOfSpeech?: string) => {
-        setFormData((prev) => ({
-            ...prev,
-            pronunciation: ipa,
-            ...(partOfSpeech && partOfSpeech !== '—' && { partOfSpeech }),
-        }));
-    };
-
-    const handlePlayPreviewAudio = (url: string) => {
-        play(url);
-    };
-
-    const handleSelectWordSuggestion = (item: { word: string; meaning?: string; partOfSpeech?: string; imageUrl?: string }) => {
+    const handleSelectWordSuggestion = (item: IWordSearchResult) => {
         setFormData((prev) => ({
             ...prev,
             word: item.word,
@@ -146,14 +173,9 @@ export default function WordFormDialog({
             ...(item.partOfSpeech != null && item.partOfSpeech !== "" && { partOfSpeech: item.partOfSpeech }),
             ...(item.imageUrl != null && item.imageUrl !== "" && { imageUrl: item.imageUrl }),
         }));
-    };
-
-    const handleAddExampleSuggestion = (exampleText: string) => {
-        const trimmed = exampleText.trim();
-        if (!trimmed) return;
-        const id = `ex-${++exampleIdRef.current}`;
-        setFormData((prev) => ({ ...prev, examples: [...prev.examples, trimmed] }));
-        setExampleIds((prev) => [...prev, id]);
+        if (item.langeekWordId != null && item.word.trim()) {
+            setPendingWordDetails({ langeekWordId: item.langeekWordId, entry: item.word.trim() });
+        }
     };
 
     return (
@@ -166,19 +188,27 @@ export default function WordFormDialog({
 
                     <div className="space-y-3 sm:space-y-4 py-3 sm:py-4">
                         <div className="grid grid-cols-1 gap-3 sm:gap-4">
-                            <WordAutocomplete
-                                id="word"
-                                label={
-                                    <>
-                                        Word <span className="text-destructive">*</span>
-                                    </>
-                                }
-                                placeholder="e.g., hello"
-                                value={formData.word}
-                                onChange={(word) => setFormData({ ...formData, word })}
-                                onSelect={handleSelectWordSuggestion}
-                                required
-                            />
+                            <div className="space-y-1">
+                                <WordAutocomplete
+                                    id="word"
+                                    label={
+                                        <>
+                                            Word <span className="text-destructive">*</span>
+                                        </>
+                                    }
+                                    placeholder="e.g., hello"
+                                    value={formData.word}
+                                    onChange={(word) => setFormData({ ...formData, word })}
+                                    onSelect={handleSelectWordSuggestion}
+                                    required
+                                />
+                                {isFetchingLangeekDetails && (
+                                    <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+                                        <LoadingSpinner size="sm" />
+                                        Loading word details…
+                                    </p>
+                                )}
+                            </div>
 
                             <div className="space-y-2">
                                 <Label htmlFor="meaning" className="text-sm">
@@ -196,66 +226,6 @@ export default function WordFormDialog({
                                 />
                             </div>
                         </div>
-                        <div className="grid grid-cols-1 gap-3 sm:gap-4">
-                            <Label htmlFor="pronunciation" className="text-sm">Pronunciation (IPA)</Label>
-                            <Input
-                                id="pronunciation"
-                                placeholder="e.g., həˈloʊ"
-                                value={formData.pronunciation}
-                                onChange={(e) => setFormData({ ...formData, pronunciation: e.target.value })}
-                                className="text-sm sm:text-base"
-                            />
-                            {isFetchingPronunciations && <LoadingSpinner size="sm" />}
-                                {!isFetchingPronunciations && ipasByPos.length > 0 && (
-                                    <div className="mt-2 w-full min-w-0 overflow-hidden rounded-md border p-2 sm:p-3 bg-muted/30">
-                                        <p className="text-xs sm:text-sm font-medium">Suggested IPA by part of speech:</p>
-                                        <div className="mt-2 space-y-3 max-h-48 overflow-y-auto">
-                                            {ipasByPos.map((item) => (
-                                                <div key={`${item.partOfSpeech}-${item.uk ?? ''}-${item.us ?? ''}`} className="space-y-1.5 rounded-md border bg-background p-2 min-w-0">
-                                                    <span className="text-xs font-medium text-muted-foreground capitalize">
-                                                        {item.partOfSpeech === '—' ? 'Pronunciation' : item.partOfSpeech}
-                                                    </span>
-                                                    <div className="flex flex-wrap gap-2">
-                                                        {item.uk && (
-                                                            <div className="flex items-center gap-1.5 min-w-0 flex-1">
-                                                                <span className="text-xs text-muted-foreground flex-shrink-0">UK</span>
-                                                                <span className="min-w-0 text-sm font-mono truncate" title={item.uk}>{item.uk}</span>
-                                                                <Button
-                                                                    type="button"
-                                                                    variant={formData.pronunciation === item.uk ? "default" : "outline"}
-                                                                    size="sm"
-                                                                    onClick={() => handleSelectIpa(item.uk!, item.partOfSpeech)}
-                                                                    title="Use UK IPA"
-                                                                    className="h-6 min-w-[2rem] px-1.5 text-xs flex-shrink-0"
-                                                                >
-                                                                    {formData.pronunciation === item.uk ? <Check className="h-3 w-3" /> : "Use"}
-                                                                </Button>
-                                                            </div>
-                                                        )}
-                                                        {item.us && (
-                                                            <div className="flex items-center gap-1.5 min-w-0 flex-1">
-                                                                <span className="text-xs text-muted-foreground flex-shrink-0">US</span>
-                                                                <span className="min-w-0 text-sm font-mono truncate" title={item.us}>{item.us}</span>
-                                                                <Button
-                                                                    type="button"
-                                                                    variant={formData.pronunciation === item.us ? "default" : "outline"}
-                                                                    size="sm"
-                                                                    onClick={() => handleSelectIpa(item.us!, item.partOfSpeech)}
-                                                                    title="Use US IPA"
-                                                                    className="h-6 min-w-[2rem] px-1.5 text-xs flex-shrink-0"
-                                                                >
-                                                                    {formData.pronunciation === item.us ? <Check className="h-3 w-3" /> : "Use"}
-                                                                </Button>
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                )}
-                        </div>
-
 
                         <div className="grid grid-cols-1 gap-3 sm:gap-4">
                             <Label htmlFor="partOfSpeech" className="text-sm">Part of Speech</Label>
@@ -264,6 +234,17 @@ export default function WordFormDialog({
                                 placeholder="e.g., noun, verb"
                                 value={formData.partOfSpeech}
                                 onChange={(e) => setFormData({ ...formData, partOfSpeech: e.target.value })}
+                                className="text-sm sm:text-base"
+                            />
+                        </div>
+
+                        <div className="grid grid-cols-1 gap-3 sm:gap-4">
+                            <Label htmlFor="pronunciation" className="text-sm">Pronunciation (IPA)</Label>
+                            <Input
+                                id="pronunciation"
+                                placeholder="e.g., həˈloʊ"
+                                value={formData.pronunciation}
+                                onChange={(e) => setFormData({ ...formData, pronunciation: e.target.value })}
                                 className="text-sm sm:text-base"
                             />
                         </div>
@@ -302,67 +283,10 @@ export default function WordFormDialog({
                             </div>
                             {audioError ? (
                                 <p className="text-xs text-destructive">{audioError}</p>
-                            ) : fetchErrorPronunciations ? (
-                                <p className="text-xs text-destructive">{fetchErrorPronunciations.message}</p>
                             ) : (
                                 <p className="text-xs text-muted-foreground">
-                                    URL to pronunciation audio file
+                                    URL to pronunciation audio file (from word details when you select a word)
                                 </p>
-                            )}
-
-                            {isFetchingPronunciations && (
-                                <LoadingSpinner size="sm" />)}
-
-                            {!isFetchingPronunciations && pronunciations && pronunciations.length > 0 && (
-                                <div className="mt-2 sm:mt-3 w-full min-w-0 overflow-hidden rounded-md border p-2 sm:p-3 bg-muted/30">
-                                    <p className="text-xs sm:text-sm font-medium">Available pronunciations:</p>
-                                    <div className="mt-2 space-y-2 max-h-40 sm:max-h-48 overflow-y-auto overflow-x-hidden">
-                                        {pronunciations.map((audio) => (
-                                            <div
-                                                key={audio.url}
-                                                className="flex items-center gap-1.5 sm:gap-2 rounded-md border bg-background p-2 min-w-0 w-full"
-                                            >
-                                                <span
-                                                    className="flex-1 min-w-0 truncate text-xs text-muted-foreground"
-                                                    title={audio.url}
-                                                >
-                                                    {audio.url}
-                                                </span>
-                                                <div className="flex gap-1 sm:gap-2 flex-shrink-0">
-                                                    <Button
-                                                        type="button"
-                                                        variant="outline"
-                                                        size="sm"
-                                                        onClick={() => handlePlayPreviewAudio(audio.url)}
-                                                        disabled={isPlaying}
-                                                        title="Play audio"
-                                                        className="h-7 w-7 min-w-7 p-0 sm:h-8 sm:w-8 sm:min-w-8"
-                                                    >
-                                                        <Volume2 className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
-                                                    </Button>
-                                                    <Button
-                                                        type="button"
-                                                        variant={formData.audioUrl === audio.url ? "default" : "outline"}
-                                                        size="sm"
-                                                        onClick={() => handleSelectAudioUrl(audio.url)}
-                                                        title="Use this audio"
-                                                        className="h-7 min-w-[2.5rem] px-2 text-xs sm:h-8 sm:min-w-10"
-                                                    >
-                                                        {formData.audioUrl === audio.url ? (
-                                                            <>
-                                                                <Check className="h-3 w-3 mr-1 shrink-0" />
-                                                                <span className="hidden sm:inline">Selected</span>
-                                                                <span className="sm:hidden">✓</span>
-                                                            </>
-                                                        ) : (
-                                                            "Use"
-                                                        )}
-                                                    </Button>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
                             )}
                         </div>
 
@@ -414,50 +338,6 @@ export default function WordFormDialog({
                                     Add example
                                 </Button>
                             </div>
-
-                            {isFetchingExamples && <LoadingSpinner size="sm" />}
-                            {fetchErrorExamples && (
-                                <p className="text-xs text-destructive">{fetchErrorExamples.message}</p>
-                            )}
-                            {!isFetchingExamples && examples && examples.length > 0 && (
-                                <div className="mt-2 sm:mt-3 w-full min-w-0 overflow-hidden rounded-md border p-2 sm:p-3 bg-muted/30">
-                                    <p className="text-xs sm:text-sm font-medium">Suggested examples:</p>
-                                    <div className="mt-2 space-y-2 max-h-40 sm:max-h-48 overflow-y-auto overflow-x-hidden">
-                                        {examples.map((exampleText) => {
-                                            const isAdded = formData.examples.some((ex) => ex.trim() === exampleText.trim());
-                                            return (
-                                                <div
-                                                    key={exampleText}
-                                                    className="flex items-center gap-1.5 sm:gap-2 rounded-md border bg-background p-2 min-w-0 w-full"
-                                                >
-                                                    <span className="flex-1 min-w-0 text-xs sm:text-sm">
-                                                        {exampleText}
-                                                    </span>
-                                                    <Button
-                                                        type="button"
-                                                        variant={isAdded ? "secondary" : "outline"}
-                                                        size="sm"
-                                                        onClick={() => !isAdded && handleAddExampleSuggestion(exampleText)}
-                                                        disabled={isAdded}
-                                                        title={isAdded ? "Already added" : "Add to examples"}
-                                                        className="h-7 min-w-[2.5rem] px-2 text-xs sm:h-8 sm:min-w-10 flex-shrink-0"
-                                                    >
-                                                        {isAdded ? (
-                                                            <>
-                                                                <Check className="h-3 w-3 mr-1 shrink-0" />
-                                                                <span className="hidden sm:inline">Added</span>
-                                                                <span className="sm:hidden">✓</span>
-                                                            </>
-                                                        ) : (
-                                                            "Add"
-                                                        )}
-                                                    </Button>
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
-                                </div>
-                            )}
                         </div>
 
                         <div className="space-y-2 min-w-0">

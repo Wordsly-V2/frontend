@@ -85,7 +85,7 @@ export function WordAutocomplete({
                         <ul className="py-1">
                             {searchWords.map((item, idx) => (
                                 <li
-                                    key={`${item.word}-${item.meaning ?? ""}-${item.partOfSpeech ?? ""}-${idx}`}
+                                    key={`${item.langeekWordId}-${item.word}-${item.partOfSpeech ?? ""}-${idx}`}
                                 >
                                     <button
                                         type="button"

@@ -77,6 +77,7 @@ export interface IWordPronunciation {
 }
 
 export interface IWordSearchResult {
+  langeekWordId: number;
   word: string;
   meaning: string;
   partOfSpeech: string;
