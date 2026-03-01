@@ -61,6 +61,7 @@ export interface LangeekWordDetailsResponse {
     pronunciation: string;
     audioUrl: string;
     examples: string[];
+    imageUrl: string;
 }
 
 export const getLangeekWordDetails = async (

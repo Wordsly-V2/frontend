@@ -103,7 +103,8 @@ export default function WordFormDialog({
                 patch.partOfSpeech ||
                 patch.pronunciation ||
                 patch.audioUrl ||
-                patch.examples.length > 0;
+                patch.examples.length > 0 ||
+                patch.imageUrl;
             if (hasPatch) {
                 setFormData((prev) => ({
                     ...prev,
