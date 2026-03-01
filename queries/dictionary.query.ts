@@ -27,11 +27,11 @@ export const useGetWordExamplesQuery = (word: string, enabled: boolean = true) =
 
 export const useLangeekWordDetailsQuery = (
     langeekWordId: number | null,
-    entry: string,
+    partOfSpeech: string,
     enabled: boolean
 ) =>
     useQuery({
-        queryKey: ['words', 'langeek-details', langeekWordId, entry],
-        queryFn: () => getLangeekWordDetails(langeekWordId!, entry),
-        enabled: enabled && langeekWordId != null && entry.trim().length > 0,
+        queryKey: ['words', 'langeek-details', langeekWordId, partOfSpeech],
+        queryFn: () => getLangeekWordDetails(langeekWordId!, partOfSpeech),
+        enabled: enabled && langeekWordId != null && partOfSpeech.trim().length > 0,
     });

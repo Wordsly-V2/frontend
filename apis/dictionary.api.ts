@@ -66,12 +66,11 @@ export interface LangeekWordDetailsResponse {
 
 export const getLangeekWordDetails = async (
     langeekWordId: number,
-    entry: string
+    partOfSpeech: string
 ): Promise<LangeekWordDetailsResponse | null> => {
     try {
-        const params = new URLSearchParams({ entry: entry.trim() });
         const response = await axiosInstance.get<LangeekWordDetailsResponse | null>(
-            `/dictionary/word-details/${langeekWordId}?${params}`
+            `/dictionary/word-details/${langeekWordId}/${partOfSpeech}`
         );
         return response.data;
     } catch (error) {
