@@ -1,4 +1,13 @@
-import { bulkDeleteMyWords, bulkMoveMyWords, createMyWord, deleteMyWord, moveMyWord, updateMyWord } from "@/apis/words.api";
+import {
+    bulkDeleteMyWords,
+    bulkDeleteMyWordsFromCourse,
+    bulkMoveMyWords,
+    bulkMoveMyWordsFromCourse,
+    createMyWord,
+    deleteMyWord,
+    moveMyWord,
+    updateMyWord,
+} from "@/apis/words.api";
 import { CreateMyWord } from "@/types/courses/courses.type";
 import { useMutation } from "@tanstack/react-query";
 
@@ -27,5 +36,22 @@ export const useWords = () => {
         mutationFn: ({ courseId, lessonId, wordIds, targetLessonId, targetCourseId }: { courseId: string, lessonId: string, wordIds: string[], targetLessonId: string, targetCourseId?: string }) => bulkMoveMyWords(courseId, lessonId, wordIds, targetLessonId, targetCourseId),
     });
 
-    return { mutationCreateMyWord, mutationUpdateMyWord, mutationDeleteMyWord, mutationMoveMyWord, mutationBulkDeleteMyWords, mutationBulkMoveMyWords };
+    const mutationBulkDeleteMyWordsFromCourse = useMutation({
+        mutationFn: ({ courseId, wordIds }: { courseId: string; wordIds: string[] }) => bulkDeleteMyWordsFromCourse(courseId, wordIds),
+    });
+
+    const mutationBulkMoveMyWordsFromCourse = useMutation({
+        mutationFn: ({ courseId, wordIds, targetLessonId }: { courseId: string; wordIds: string[]; targetLessonId: string }) => bulkMoveMyWordsFromCourse(courseId, wordIds, targetLessonId),
+    });
+
+    return {
+        mutationCreateMyWord,
+        mutationUpdateMyWord,
+        mutationDeleteMyWord,
+        mutationMoveMyWord,
+        mutationBulkDeleteMyWords,
+        mutationBulkMoveMyWords,
+        mutationBulkDeleteMyWordsFromCourse,
+        mutationBulkMoveMyWordsFromCourse,
+    };
 };

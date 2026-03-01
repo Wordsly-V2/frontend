@@ -4,7 +4,7 @@ import LoadingSection from "@/components/common/loading-section/loading-section"
 import { WordsIntro } from "@/components/common/words-intro";
 import VocabularyPractice, { WordResult } from "@/components/features/vocabulary/vocabulary-practice";
 import { Button } from "@/components/ui/button";
-import { useRecordAnswerMutation } from "@/queries/word-progress.query";
+import { recordAnswerBulk } from "@/apis/word-progress.api";
 import { useGetWordsByIdsQuery } from "@/queries/words.query";
 import { ArrowLeft } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -25,19 +25,21 @@ export default function PracticePage() {
     }
 
     const { data: words, isLoading: isWordsLoading, isError: isWordsError, refetch: refetchWords } = useGetWordsByIdsQuery(courseId, wordIds.split(","), !!courseId && !!wordIds);
-    const recordAnswerMutation = useRecordAnswerMutation();
-
-    const handleWordComplete = useCallback(
-        (result: WordResult) => {
-            recordAnswerMutation.mutate({ wordId: result.wordId, quality: result.quality });
-        },
-        [recordAnswerMutation]
-    );
 
     const handleComplete = useCallback(
-        async () => {
-            toast.success("Practice completed! Your progress has been saved.");
-            router.replace(`/learn/courses/${courseId}`);
+        async (_score: number, wordResults: WordResult[]) => {
+            try {
+                if (wordResults.length > 0) {
+                    await recordAnswerBulk({
+                        answers: wordResults.map((r) => ({ wordId: r.wordId, quality: r.quality })),
+                    });
+                }
+                toast.success("Practice completed! Your progress has been saved.");
+            } catch {
+                toast.error("Failed to save some progress. Your answers may not have been recorded.");
+            } finally {
+                router.replace(`/learn/courses/${courseId}`);
+            }
         },
         [courseId, router]
     );
@@ -91,7 +93,6 @@ export default function PracticePage() {
                     ) : (
                         <VocabularyPractice
                             words={words}
-                            onWordComplete={handleWordComplete}
                             onComplete={handleComplete}
                         />
                     )}

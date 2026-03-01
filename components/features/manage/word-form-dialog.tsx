@@ -43,7 +43,9 @@ export default function WordFormDialog({
     const { isPlaying, error: audioError, play, stop, clearError } = useAudio();
 
     const debouncedWord = useDebounce(formData.word.trim(), 1000);
-    const { data: pronunciations, isLoading: isFetchingPronunciations, error: fetchErrorPronunciations } = useFetchWordDetailsDictionaryQuery(debouncedWord, !!debouncedWord);
+    const { data: pronunciationData, isLoading: isFetchingPronunciations, error: fetchErrorPronunciations } = useFetchWordDetailsDictionaryQuery(debouncedWord, !!debouncedWord);
+    const pronunciations = pronunciationData?.pronunciation ?? [];
+    const ipasByPos = pronunciationData?.ipas ?? [];
     const { data: examples, isLoading: isFetchingExamples, error: fetchErrorExamples } = useGetWordExamplesQuery(debouncedWord, !!debouncedWord);
 
     const [imageLoadError, setImageLoadError] = useState(false);
@@ -124,6 +126,14 @@ export default function WordFormDialog({
         clearError();
     };
 
+    const handleSelectIpa = (ipa: string, partOfSpeech?: string) => {
+        setFormData((prev) => ({
+            ...prev,
+            pronunciation: ipa,
+            ...(partOfSpeech && partOfSpeech !== '—' && { partOfSpeech }),
+        }));
+    };
+
     const handlePlayPreviewAudio = (url: string) => {
         play(url);
     };
@@ -186,29 +196,76 @@ export default function WordFormDialog({
                                 />
                             </div>
                         </div>
+                        <div className="grid grid-cols-1 gap-3 sm:gap-4">
+                            <Label htmlFor="pronunciation" className="text-sm">Pronunciation (IPA)</Label>
+                            <Input
+                                id="pronunciation"
+                                placeholder="e.g., həˈloʊ"
+                                value={formData.pronunciation}
+                                onChange={(e) => setFormData({ ...formData, pronunciation: e.target.value })}
+                                className="text-sm sm:text-base"
+                            />
+                            {isFetchingPronunciations && <LoadingSpinner size="sm" />}
+                                {!isFetchingPronunciations && ipasByPos.length > 0 && (
+                                    <div className="mt-2 w-full min-w-0 overflow-hidden rounded-md border p-2 sm:p-3 bg-muted/30">
+                                        <p className="text-xs sm:text-sm font-medium">Suggested IPA by part of speech:</p>
+                                        <div className="mt-2 space-y-3 max-h-48 overflow-y-auto">
+                                            {ipasByPos.map((item) => (
+                                                <div key={`${item.partOfSpeech}-${item.uk ?? ''}-${item.us ?? ''}`} className="space-y-1.5 rounded-md border bg-background p-2 min-w-0">
+                                                    <span className="text-xs font-medium text-muted-foreground capitalize">
+                                                        {item.partOfSpeech === '—' ? 'Pronunciation' : item.partOfSpeech}
+                                                    </span>
+                                                    <div className="flex flex-wrap gap-2">
+                                                        {item.uk && (
+                                                            <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                                                                <span className="text-xs text-muted-foreground flex-shrink-0">UK</span>
+                                                                <span className="min-w-0 text-sm font-mono truncate" title={item.uk}>{item.uk}</span>
+                                                                <Button
+                                                                    type="button"
+                                                                    variant={formData.pronunciation === item.uk ? "default" : "outline"}
+                                                                    size="sm"
+                                                                    onClick={() => handleSelectIpa(item.uk!, item.partOfSpeech)}
+                                                                    title="Use UK IPA"
+                                                                    className="h-6 min-w-[2rem] px-1.5 text-xs flex-shrink-0"
+                                                                >
+                                                                    {formData.pronunciation === item.uk ? <Check className="h-3 w-3" /> : "Use"}
+                                                                </Button>
+                                                            </div>
+                                                        )}
+                                                        {item.us && (
+                                                            <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                                                                <span className="text-xs text-muted-foreground flex-shrink-0">US</span>
+                                                                <span className="min-w-0 text-sm font-mono truncate" title={item.us}>{item.us}</span>
+                                                                <Button
+                                                                    type="button"
+                                                                    variant={formData.pronunciation === item.us ? "default" : "outline"}
+                                                                    size="sm"
+                                                                    onClick={() => handleSelectIpa(item.us!, item.partOfSpeech)}
+                                                                    title="Use US IPA"
+                                                                    className="h-6 min-w-[2rem] px-1.5 text-xs flex-shrink-0"
+                                                                >
+                                                                    {formData.pronunciation === item.us ? <Check className="h-3 w-3" /> : "Use"}
+                                                                </Button>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                        </div>
 
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                            <div className="space-y-2">
-                                <Label htmlFor="pronunciation" className="text-sm">Pronunciation (IPA)</Label>
-                                <Input
-                                    id="pronunciation"
-                                    placeholder="e.g., həˈloʊ"
-                                    value={formData.pronunciation}
-                                    onChange={(e) => setFormData({ ...formData, pronunciation: e.target.value })}
-                                    className="text-sm sm:text-base"
-                                />
-                            </div>
 
-                            <div className="space-y-2">
-                                <Label htmlFor="partOfSpeech" className="text-sm">Part of Speech</Label>
-                                <Input
-                                    id="partOfSpeech"
-                                    placeholder="e.g., noun, verb"
-                                    value={formData.partOfSpeech}
-                                    onChange={(e) => setFormData({ ...formData, partOfSpeech: e.target.value })}
-                                    className="text-sm sm:text-base"
-                                />
-                            </div>
+                        <div className="grid grid-cols-1 gap-3 sm:gap-4">
+                            <Label htmlFor="partOfSpeech" className="text-sm">Part of Speech</Label>
+                            <Input
+                                id="partOfSpeech"
+                                placeholder="e.g., noun, verb"
+                                value={formData.partOfSpeech}
+                                onChange={(e) => setFormData({ ...formData, partOfSpeech: e.target.value })}
+                                className="text-sm sm:text-base"
+                            />
                         </div>
 
                         <div className="space-y-2 min-w-0">

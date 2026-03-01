@@ -3,19 +3,37 @@ import { IWordPronunciation } from "@/types/courses/courses.type";
 import { AxiosError } from "axios";
 import { IWordSearchResult } from "@/types/courses/courses.type";
 
-export const fetchWordDetailsDictionary = async (word: string): Promise<IWordPronunciation[]> => {
+export type IpaByPos = {
+    partOfSpeech: string;
+    uk: string | null;
+    us: string | null;
+};
+
+export type WordPronunciationResponse = {
+    pronunciation: IWordPronunciation[];
+    ipas: IpaByPos[];
+};
+
+export const fetchWordDetailsDictionary = async (word: string): Promise<WordPronunciationResponse> => {
     try {
-        const response = await axiosInstance.get<IWordPronunciation[]>(`/dictionary/pronunciation/${word}`);
+        const response = await axiosInstance.get<WordPronunciationResponse>(
+            `/dictionary/pronunciation/${encodeURIComponent(word.trim())}`
+        );
+        const data = response.data;
         const seen = new Set<string>();
-        return response.data.filter((p) => {
+        const pronunciation = (data.pronunciation ?? []).filter((p) => {
             if (seen.has(p.url)) return false;
             seen.add(p.url);
             return true;
         });
+        return {
+            pronunciation,
+            ipas: Array.isArray(data.ipas) ? data.ipas : [],
+        };
     } catch (error) {
         throw (error as AxiosError).response?.data || error;
     }
-}
+};
 
 export const searchWords = async (query: string): Promise<IWordSearchResult[]> => {
     try {
@@ -33,4 +51,4 @@ export const getWordExamples = async (word: string): Promise<string[]> => {
     } catch (error) {
         throw (error as AxiosError).response?.data || error;
     }
-}
+};

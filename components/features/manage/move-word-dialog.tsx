@@ -20,8 +20,9 @@ interface MoveWordDialogProps {
     onClose: () => void;
     onConfirm: (targetLessonId: string, targetCourseId?: string) => void;
     words: IWord[];
+    /** When moving from a single lesson, the source lesson; null when moving from multiple lessons */
     currentLesson: ILesson | null;
-    /** Lessons in the current course (excluding source lesson) */
+    /** Lessons in the current course (excluding source lesson when currentLesson is set) */
     availableLessons: ILesson[];
     /** Other courses with their lessons for cross-course move */
     otherCoursesWithLessons?: IOtherCourseLessons[];
@@ -64,7 +65,7 @@ export default function MoveWordDialog({
     const isSelected = (lessonId: string, courseId?: string) =>
         selectedLessonId === lessonId && (courseId === undefined ? !selectedCourseId : selectedCourseId === courseId);
 
-    if (words.length === 0 || !currentLesson) return null;
+    if (words.length === 0) return null;
 
     const isBulk = words.length > 1;
     const confirmLabel = isBulk ? `Move ${words.length} Words` : "Move Word";
@@ -110,10 +111,12 @@ export default function MoveWordDialog({
                         </div>
                     )}
 
-                    {/* Current Lesson */}
+                    {/* Current Lesson (or "multiple lessons") */}
                     <div className="flex items-center gap-2 text-xs sm:text-sm text-muted-foreground">
                         <span>From:</span>
-                        <span className="font-medium text-foreground truncate">{currentLesson.name}</span>
+                        <span className="font-medium text-foreground truncate">
+                            {currentLesson ? currentLesson.name : (words.length > 1 ? "multiple lessons" : "—")}
+                        </span>
                     </div>
 
                     {/* Target Lesson Selection */}

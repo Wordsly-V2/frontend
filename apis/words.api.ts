@@ -2,6 +2,22 @@ import axiosInstance from "@/lib/axios";
 import { CreateMyWord, IUserWordSearchResult, IWord } from "@/types/courses/courses.type";
 import { AxiosError } from "axios";
 
+export const createMyWordsBulk = async (
+    courseId: string,
+    lessonId: string,
+    words: CreateMyWord[]
+): Promise<{ success: boolean; count?: number }> => {
+    try {
+        const response = await axiosInstance.post<{ success: boolean; count?: number }>(
+            `/courses/me/my-courses/${courseId}/lessons/${lessonId}/words/bulk`,
+            { words }
+        );
+        return response.data;
+    } catch (error) {
+        throw (error as AxiosError).response?.data || error;
+    }
+};
+
 export const searchMyWords = async (word: string): Promise<IUserWordSearchResult[]> => {
     try {
         const response = await axiosInstance.get<IUserWordSearchResult[]>(
@@ -79,7 +95,37 @@ export const bulkMoveMyWords = async (
     } catch (error) {
         throw (error as AxiosError).response?.data || error;
     }
-}
+};
+
+/** Delete multiple words from a course (words can be from any lesson). */
+export const bulkDeleteMyWordsFromCourse = async (courseId: string, wordIds: string[]): Promise<{ count: number }> => {
+    try {
+        const response = await axiosInstance.delete<{ count: number }>(
+            `/courses/me/my-courses/${courseId}/words/bulk-delete`,
+            { data: { wordIds } }
+        );
+        return response.data;
+    } catch (error) {
+        throw (error as AxiosError).response?.data || error;
+    }
+};
+
+/** Move multiple words to a target lesson (words can be from any lesson in the course; target can be in another course). */
+export const bulkMoveMyWordsFromCourse = async (
+    courseId: string,
+    wordIds: string[],
+    targetLessonId: string
+): Promise<{ count: number }> => {
+    try {
+        const response = await axiosInstance.put<{ count: number }>(
+            `/courses/me/my-courses/${courseId}/words/bulk-move`,
+            { wordIds, targetLessonId }
+        );
+        return response.data;
+    } catch (error) {
+        throw (error as AxiosError).response?.data || error;
+    }
+};
 
 export const getWordsByIds = async (courseId: string, wordIds: string[]): Promise<IWord[]> => {
     try {

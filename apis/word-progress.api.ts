@@ -17,14 +17,18 @@ export const recordAnswer = async (data: IRecordAnswerDto): Promise<IWordProgres
     }
 }
 
-export const recordAnswers = async (data: IBulkRecordAnswersDto): Promise<IWordProgressResponse[]> => {
+/** Record multiple answers in one request (bulk). Accepted for async processing. */
+export const recordAnswerBulk = async (data: IBulkRecordAnswersDto): Promise<{ accepted: boolean }> => {
     try {
-        const response = await axiosInstance.post<IWordProgressResponse[]>('/word-progress/record-answers', data);
+        const response = await axiosInstance.post<{ accepted: boolean }>(
+            '/word-progress/record-answer/bulk',
+            data
+        );
         return response.data;
     } catch (error) {
         throw (error as AxiosError).response?.data || error;
     }
-}
+};
 
 export const getDueWords = async (
     courseId?: string,
@@ -101,4 +105,16 @@ export const resetProgress = async (wordId: string): Promise<{ success: boolean 
     } catch (error) {
         throw (error as AxiosError).response?.data || error;
     }
-}
+};
+
+export const resetProgressBulk = async (wordIds: string[]): Promise<{ count: number }> => {
+    try {
+        const response = await axiosInstance.delete<{ count: number }>(
+            '/word-progress/words/bulk-reset',
+            { data: { wordIds } }
+        );
+        return response.data;
+    } catch (error) {
+        throw (error as AxiosError).response?.data || error;
+    }
+};
