@@ -26,12 +26,12 @@ export const useGetWordExamplesQuery = (word: string, enabled: boolean = true) =
 });
 
 export const useLangeekWordDetailsQuery = (
-    langeekWordId: number | null,
+    word: string,
     partOfSpeech: string,
     enabled: boolean
 ) =>
     useQuery({
-        queryKey: ['words', 'langeek-details', langeekWordId, partOfSpeech],
-        queryFn: () => getLangeekWordDetails(langeekWordId!, partOfSpeech),
-        enabled: enabled && langeekWordId != null && partOfSpeech.trim().length > 0,
+        queryKey: ['words', 'langeek-details', word, partOfSpeech],
+        queryFn: () => getLangeekWordDetails(word, partOfSpeech),
+        enabled: enabled && word.trim().length > 0 && partOfSpeech.trim().length > 0,
     });

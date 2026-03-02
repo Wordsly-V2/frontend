@@ -42,15 +42,16 @@ export default function WordFormDialog({
     const { isPlaying, error: audioError, play, stop, clearError } = useAudio();
 
     const [pendingWordDetails, setPendingWordDetails] = useState<{
-        langeekWordId: number;
+        word: string;
         partOfSpeech: string;
     } | null>(null);
+
     const {
         data: langeekWordDetails,
         isLoading: isFetchingLangeekDetails,
         isSuccess: langeekDetailsSuccess,
     } = useLangeekWordDetailsQuery(
-        pendingWordDetails?.langeekWordId ?? null,
+        pendingWordDetails?.word ?? "",
         pendingWordDetails?.partOfSpeech ?? "",
         !!pendingWordDetails
     );
@@ -175,7 +176,7 @@ export default function WordFormDialog({
             ...(item.imageUrl != null && item.imageUrl !== "" && { imageUrl: item.imageUrl }),
         }));
         if (item.langeekWordId != null && item.word.trim()) {
-            setPendingWordDetails({ langeekWordId: item.langeekWordId, partOfSpeech: item.partOfSpeech.trim() });
+            setPendingWordDetails({ word: item.word, partOfSpeech: item.partOfSpeech.trim() });
         }
     };
 
