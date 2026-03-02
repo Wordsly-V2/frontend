@@ -133,12 +133,12 @@ export default function WordFormDialog({
         e.preventDefault();
         if (formData.word.trim() && formData.meaning.trim()) {
             onSubmit({
-                word: formData.word.trim(),
+                word: formData.word.trim() ,
                 meaning: formData.meaning.trim(),
-                pronunciation: formData.pronunciation.trim() || undefined,
-                partOfSpeech: formData.partOfSpeech.trim() || undefined,
-                audioUrl: formData.audioUrl.trim() || undefined,
-                imageUrl: formData.imageUrl.trim() || undefined,
+                pronunciation: formData.pronunciation.trim() || '',
+                partOfSpeech: formData.partOfSpeech.trim() || '',
+                audioUrl: formData.audioUrl.trim() || '',
+                imageUrl: formData.imageUrl.trim() || '',
                 example: JSON.stringify(formData.examples.map((ex) => ex.trim()).filter(Boolean))
             });
         }
