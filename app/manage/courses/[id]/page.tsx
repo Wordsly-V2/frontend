@@ -991,7 +991,9 @@ export default function ManageCourseDetailPage({ params }: { params: Promise<{ i
                 lessons={course?.lessons || []}
                 courseName={course?.name ?? ""}
             />
-            <WordDetailDialog word={viewingWord} isOpen={!!viewingWord} onClose={() => setViewingWord(null)} />
+            {viewingWord && (
+                <WordDetailDialog word={viewingWord} isOpen={!!viewingWord} onClose={() => setViewingWord(null)} />
+            )}
         </main>
     );
 }

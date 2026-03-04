@@ -237,15 +237,17 @@ export function MyWordsSearch({
                     )}
                 </div>
             )}
-            <WordDetailDialog
-                word={dialogWord}
-                isOpen={dialogOpen}
-                onClose={closeDialog}
-                courseId={dialogCourseId}
-                lessonId={dialogLessonId}
-                isLoading={dialogLoadingSpinner}
-                isNotFound={dialogNotFound}
-            />
+            {dialogWord && (
+                <WordDetailDialog
+                    word={dialogWord}
+                    isOpen={dialogOpen}
+                    onClose={closeDialog}
+                    courseId={dialogCourseId}
+                    lessonId={dialogLessonId}
+                    isLoading={dialogLoadingSpinner}
+                    isNotFound={dialogNotFound}
+                />
+            )}
         </div>
     );
 }

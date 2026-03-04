@@ -23,7 +23,7 @@ function getWordExamples(word: WordDetailView): string[] {
 }
 
 interface WordDetailDialogProps {
-    readonly word: WordDetailView | null;
+    readonly word: WordDetailView;
     readonly isOpen: boolean;
     readonly onClose: () => void;
     /** When set, show "Open in Manage" / "Open in Learn" (e.g. when opened from search). */
