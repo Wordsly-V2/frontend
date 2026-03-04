@@ -2,15 +2,37 @@
 
 import { Input } from "@/components/ui/input";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import WordDetailDialog from "@/components/features/manage/word-detail-dialog";
 import { useDebounce } from "@/hooks/useDebounce";
-import { useSearchMyWordsQuery } from "@/queries/words.query";
-import { IUserWordSearchResult } from "@/types/courses/courses.type";
+import { useLangeekWordDetailsQuery, useSearchWordsQuery } from "@/queries/dictionary.query";
+import { useGetWordsByIdsQuery, useSearchMyWordsQuery } from "@/queries/words.query";
+import { IUserWordSearchResult, IWordSearchResult, WordDetailView } from "@/types/courses/courses.type";
 import { Search } from "lucide-react";
 import Image from "next/image";
 import { useRef, useState } from "react";
 
+function langeekToWordDetailView(d: {
+    word: string;
+    meaning: string;
+    partOfSpeech: string;
+    pronunciation: string;
+    audioUrl: string;
+    examples: string[];
+    imageUrl: string;
+}): WordDetailView {
+    return {
+        word: d.word,
+        meaning: d.meaning,
+        partOfSpeech: d.partOfSpeech,
+        pronunciation: d.pronunciation || undefined,
+        audioUrl: d.audioUrl || undefined,
+        imageUrl: d.imageUrl || undefined,
+        example: d.examples?.length ? JSON.stringify(d.examples) : undefined,
+    };
+}
+
 export interface MyWordsSearchProps {
-    onSelect: (item: IUserWordSearchResult) => void;
+    onSelect?: (item: IUserWordSearchResult) => void;
     placeholder?: string;
     className?: string;
     inputClassName?: string;
@@ -24,14 +46,62 @@ export function MyWordsSearch({
 }: Readonly<MyWordsSearchProps>) {
     const [value, setValue] = useState("");
     const debouncedQuery = useDebounce(value.trim(), 300);
-    const { data: results, isLoading } = useSearchMyWordsQuery(debouncedQuery, true);
+    const { data: myWords, isLoading: isMyWordsLoading } = useSearchMyWordsQuery(debouncedQuery, true);
+    const { data: dictWords, isLoading: isDictLoading } = useSearchWordsQuery(debouncedQuery, true);
     const [open, setOpen] = useState(false);
     const containerRef = useRef<HTMLDivElement>(null);
 
-    const showList = open && value.trim().length > 0 && (isLoading || results !== undefined);
+    const [detailUserWord, setDetailUserWord] = useState<IUserWordSearchResult | null>(null);
+    const [detailDictWord, setDetailDictWord] = useState<IWordSearchResult | null>(null);
 
-    const handleSelect = (item: IUserWordSearchResult) => {
-        onSelect(item);
+    const { data: fullUserWord } = useGetWordsByIdsQuery(
+        detailUserWord?.courseId ?? "",
+        detailUserWord ? [detailUserWord.id] : [],
+        !!detailUserWord
+    );
+    const { data: langeekDetails, isSuccess: isLangeekSuccess } = useLangeekWordDetailsQuery(
+        detailDictWord?.word ?? "",
+        detailDictWord?.partOfSpeech ?? "",
+        !!detailDictWord
+    );
+
+    const hasQuery = value.trim().length > 0;
+    const isLoading = isMyWordsLoading || isDictLoading;
+    const hasMyWords = (myWords?.length ?? 0) > 0;
+    const hasDictWords = (dictWords?.length ?? 0) > 0;
+    const showList = open && hasQuery && (isLoading || hasMyWords || hasDictWords || (myWords !== undefined && dictWords !== undefined));
+
+    const dialogOpen = !!detailUserWord || !!detailDictWord;
+    const dialogNotFound = !!detailDictWord && isLangeekSuccess && langeekDetails == null;
+    const dialogWord: WordDetailView | null = (() => {
+        if (detailUserWord && fullUserWord?.[0]) {
+            return { ...fullUserWord[0], courseId: detailUserWord.courseId, lessonId: detailUserWord.lessonId };
+        }
+        if (detailDictWord && langeekDetails) {
+            return langeekToWordDetailView(langeekDetails);
+        }
+        return null;
+    })();
+    const dialogLoadingSpinner = (!!detailUserWord && !fullUserWord?.length) || (!!detailDictWord && !isLangeekSuccess && !dialogNotFound);
+    const dialogCourseId = detailUserWord?.courseId;
+    const dialogLessonId = detailUserWord?.lessonId;
+
+    const closeDialog = () => {
+        setDetailUserWord(null);
+        setDetailDictWord(null);
+    };
+
+    const handleSelectUserWord = (item: IUserWordSearchResult) => {
+        onSelect?.(item);
+        setDetailUserWord(item);
+        setDetailDictWord(null);
+        setValue("");
+        setOpen(false);
+    };
+
+    const handleSelectDictWord = (item: IWordSearchResult) => {
+        setDetailDictWord(item);
+        setDetailUserWord(null);
         setValue("");
         setOpen(false);
     };
@@ -60,55 +130,122 @@ export function MyWordsSearch({
                             <LoadingSpinner size="sm" label="Searching..." />
                         </div>
                     )}
-                    {!isLoading && results && results.length > 0 && (
-                        <ul className="py-1">
-                            {results.map((item) => (
-                                <li key={item.id}>
-                                    <button
-                                        type="button"
-                                        className="w-full px-3 py-2.5 text-left text-sm hover:bg-muted focus:bg-muted focus:outline-none border-b border-border/50 last:border-b-0 flex gap-2.5"
-                                        onClick={() => handleSelect(item)}
-                                    >
-                                        {item.imageUrl && (
-                                            <span className="relative flex-shrink-0 w-9 h-9 rounded-md overflow-hidden bg-muted border">
-                                                <Image
-                                                    src={item.imageUrl}
-                                                    alt=""
-                                                    fill
-                                                    loading="lazy"
-                                                    className="object-cover"
-                                                    sizes="36px"
-                                                />
-                                            </span>
-                                        )}
-                                        <span className="min-w-0 flex-1">
-                                            <div className="flex items-baseline gap-2 flex-wrap">
-                                                <span className="font-medium">{item.word}</span>
-                                                {item.partOfSpeech && (
-                                                    <span className="text-xs text-muted-foreground italic">
-                                                        {item.partOfSpeech}
+                    {!isLoading && (
+                        <>
+                            {/* Your words section */}
+                            <div className="py-1">
+                                <p className="px-3 py-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider border-b border-border/50">
+                                    Your words
+                                </p>
+                                {hasMyWords ? (
+                                    <ul>
+                                        {myWords!.map((item) => (
+                                            <li key={item.id}>
+                                                <button
+                                                    type="button"
+                                                    className="w-full px-3 py-2.5 text-left text-sm hover:bg-muted focus:bg-muted focus:outline-none border-b border-border/50 last:border-b-0 flex gap-2.5"
+                                                    onClick={() => handleSelectUserWord(item)}
+                                                >
+                                                    {item.imageUrl && (
+                                                        <span className="relative flex-shrink-0 w-9 h-9 rounded-md overflow-hidden bg-muted border">
+                                                            <Image
+                                                                src={item.imageUrl}
+                                                                alt=""
+                                                                fill
+                                                                loading="lazy"
+                                                                className="object-cover"
+                                                                sizes="36px"
+                                                            />
+                                                        </span>
+                                                    )}
+                                                    <span className="min-w-0 flex-1">
+                                                        <div className="flex items-baseline gap-2 flex-wrap">
+                                                            <span className="font-medium">{item.word}</span>
+                                                            {item.partOfSpeech && (
+                                                                <span className="text-xs text-muted-foreground italic">
+                                                                    {item.partOfSpeech}
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                        {item.meaning && (
+                                                            <p className="mt-0.5 text-muted-foreground text-xs line-clamp-2">
+                                                                {item.meaning}
+                                                            </p>
+                                                        )}
+                                                        <p className="mt-1 text-xs text-muted-foreground/80">
+                                                            {item.courseName} · {item.lessonName}
+                                                        </p>
                                                     </span>
-                                                )}
-                                            </div>
-                                            {item.meaning && (
-                                                <p className="mt-0.5 text-muted-foreground text-xs line-clamp-2">
-                                                    {item.meaning}
-                                                </p>
-                                            )}
-                                            <p className="mt-1 text-xs text-muted-foreground/80">
-                                                {item.courseName} · {item.lessonName}
-                                            </p>
-                                        </span>
-                                    </button>
-                                </li>
-                            ))}
-                        </ul>
-                    )}
-                    {!isLoading && results?.length === 0 && (
-                        <div className="px-3 py-3 text-sm text-muted-foreground">No words found</div>
+                                                </button>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                ) : (
+                                    <div className="px-3 py-2 text-sm text-muted-foreground">No words found</div>
+                                )}
+                            </div>
+                            {/* Dictionary section */}
+                            <div className="py-1">
+                                <p className="px-3 py-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider border-b border-border/50">
+                                    Dictionary
+                                </p>
+                                {hasDictWords ? (
+                                    <ul>
+                                        {dictWords!.map((item, idx) => (
+                                            <li key={`${item.langeekWordId}-${idx}`}>
+                                                <button
+                                                    type="button"
+                                                    className="w-full px-3 py-2.5 text-left text-sm hover:bg-muted focus:bg-muted focus:outline-none border-b border-border/50 last:border-b-0 flex gap-2.5"
+                                                    onClick={() => handleSelectDictWord(item)}
+                                                >
+                                                    {item.imageUrl && (
+                                                        <span className="relative flex-shrink-0 w-9 h-9 rounded-md overflow-hidden bg-muted border">
+                                                            <Image
+                                                                src={item.imageUrl}
+                                                                alt=""
+                                                                fill
+                                                                loading="lazy"
+                                                                className="object-cover"
+                                                                sizes="36px"
+                                                            />
+                                                        </span>
+                                                    )}
+                                                    <span className="min-w-0 flex-1">
+                                                        <div className="flex items-baseline gap-2 flex-wrap">
+                                                            <span className="font-medium">{item.word}</span>
+                                                            {item.partOfSpeech && (
+                                                                <span className="text-xs text-muted-foreground italic">
+                                                                    {item.partOfSpeech}
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                        {item.meaning && (
+                                                            <p className="mt-0.5 text-muted-foreground text-xs line-clamp-2">
+                                                                {item.meaning}
+                                                            </p>
+                                                        )}
+                                                    </span>
+                                                </button>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                ) : (
+                                    <div className="px-3 py-2 text-sm text-muted-foreground">No results</div>
+                                )}
+                            </div>
+                        </>
                     )}
                 </div>
             )}
+            <WordDetailDialog
+                word={dialogWord}
+                isOpen={dialogOpen}
+                onClose={closeDialog}
+                courseId={dialogCourseId}
+                lessonId={dialogLessonId}
+                isLoading={dialogLoadingSpinner}
+                isNotFound={dialogNotFound}
+            />
         </div>
     );
 }

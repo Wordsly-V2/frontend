@@ -71,6 +71,13 @@ export type CreateUpdateMyCourse = Pick<ILesson, 'name' | 'coverImageUrl'>;
 
 export type CreateMyWord = Pick<IWord, 'word' | 'meaning' | 'pronunciation' | 'partOfSpeech' | 'audioUrl' | 'imageUrl' | 'example'>;
 
+/** Display payload for word detail dialog (IWord or dictionary-sourced data). */
+export type WordDetailView = Pick<IWord, 'word' | 'meaning' | 'pronunciation' | 'partOfSpeech' | 'audioUrl' | 'imageUrl' | 'example'> & {
+    id?: string;
+    courseId?: string;
+    lessonId?: string;
+};
+
 export interface IWordPronunciation {
   type: string;
   url: string;
