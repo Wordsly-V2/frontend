@@ -3,6 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { IWord } from "@/types/courses/courses.type";
 import { Play, Volume2 } from "lucide-react";
+import Image from "next/image";
 
 export interface WordsIntroProps {
     words: IWord[];
@@ -40,6 +41,22 @@ export default function WordsIntro({
                         <span className="flex-shrink-0 w-7 h-7 rounded-full bg-primary/10 text-primary flex items-center justify-center text-sm font-semibold">
                             {i + 1}
                         </span>
+                        {word.imageUrl && (
+                            <div className="relative w-12 h-12 sm:w-14 sm:h-14 rounded-lg overflow-hidden bg-muted flex-shrink-0">
+                                <Image
+                                    src={word.imageUrl}
+                                    alt={word.word}
+                                    fill
+                                    loading="lazy"
+                                    className="object-cover"
+                                    sizes="(max-width: 640px) 48px, 56px"
+                                    onError={(e) => {
+                                        const target = e.target as HTMLImageElement;
+                                        target.style.display = "none";
+                                    }}
+                                />
+                            </div>
+                        )}
                         <div className="flex-1 min-w-0">
                             <p className="font-semibold text-foreground">{word.word}</p>
                             {word.partOfSpeech && (
