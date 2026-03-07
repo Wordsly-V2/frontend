@@ -1,10 +1,28 @@
 "use client";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Suspense } from "react";
+import { useUser } from "@/hooks/useUser.hook";
+import { useRouter } from "next/navigation";
+import { Suspense, useEffect } from "react";
 
 function LoginContent() {
+  const router = useRouter();
+  const { profile, isLoading } = useUser();
   const googleAuthUrl = `${process.env.NEXT_PUBLIC_API_URL}/auth/google`;
+
+  useEffect(() => {
+    if (!isLoading && profile) {
+      router.replace("/profile");
+    }
+  }, [profile, isLoading, router]);
+
+  if (isLoading || profile) {
+    return (
+      <div className="min-h-dvh flex items-center justify-center">
+        <div className="animate-pulse text-muted-foreground">Loading...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-dvh flex items-center justify-center bg-gradient-to-br from-primary/10 via-secondary/10 to-accent/10 p-4">
