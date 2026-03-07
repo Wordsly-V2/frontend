@@ -785,7 +785,7 @@ export default function ManageCourseDetailPage({ params }: { params: Promise<{ i
                 )}
 
                 {
-                    course?.lessons?.length && filteredLessons.length === 0 && (
+                    !!(course?.lessons?.length && filteredLessons.length === 0) && (
                         <div className="text-center py-12 sm:py-16 border-2 border-dashed border-border rounded-xl sm:rounded-2xl bg-muted/30 px-4">
                             <p className="text-sm sm:text-base text-muted-foreground">No words match your search</p>
                         </div>
@@ -793,7 +793,7 @@ export default function ManageCourseDetailPage({ params }: { params: Promise<{ i
                 }
 
                 {
-                    course?.lessons?.length && filteredLessons.length && (
+                    !!(course?.lessons?.length && filteredLessons.length) && (
                         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
                             <SortableContext items={course?.lessons?.map((l: ILesson) => l.id) || []} strategy={verticalListSortingStrategy}>
                                 <div className="space-y-3 sm:space-y-4">
