@@ -9,7 +9,7 @@ import { useGetCourseDetailByIdQuery } from "@/queries/courses.query";
 import { useGetDueWordIdsQuery } from "@/queries/word-progress.query";
 import { ILesson, IWord } from "@/types/courses/courses.type";
 import WordDetailDialog from "@/components/features/manage/word-detail-dialog";
-import { ArrowLeft, Brain, ChevronDown, ChevronRight, Eye, Play, Search, Volume2 } from "lucide-react";
+import { ArrowLeft, Brain, ChevronDown, ChevronRight, Eye, List, Play, Search, Volume2 } from "lucide-react";
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 import { use, useEffect, useRef, useState } from "react";
@@ -332,6 +332,21 @@ export default function LearnCourseDetailPage({ params }: { params: Promise<{ id
                                         ? `Review Due (${dueWordIds.wordIds.length})`
                                         : "No Due Words"
                                 }
+                            </Button>
+                            <Button
+                                variant="outline"
+                                onClick={() => {
+                                    const wordIds = Array.from(selectedWords).join(",");
+                                    router.push(
+                                        `/learn/words-details?courseId=${id}&courseName=${encodeURIComponent(course.name)}&wordIds=${wordIds}`
+                                    );
+                                }}
+                                disabled={selectedWords.size === 0}
+                                className="text-xs sm:text-sm flex-1 sm:flex-initial"
+                                size="sm"
+                            >
+                                <List className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-2" />
+                                View selected words details
                             </Button>
                             <Button
                                 onClick={handleStartPractice}
