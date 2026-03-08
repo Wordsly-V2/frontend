@@ -385,7 +385,7 @@ export default function WordFormDialog({
                         </Button>
                         <Button type="submit" disabled={isLoading} className="w-full sm:w-auto text-sm">
                             {
-                                isLoading ? (
+                                (isLoading || isFetchingLangeekDetails) ? (
                                     <LoadingSpinner size="sm" />
                                 ) : (
                                     word ? 'Update Word' : 'Add Word'
