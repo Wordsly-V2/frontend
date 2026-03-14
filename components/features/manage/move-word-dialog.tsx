@@ -1,11 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { ILesson, IWord } from "@/types/courses/courses.type";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, ChevronDown, ChevronRight } from "lucide-react";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 
 export interface IOtherCourseLessons {
@@ -42,6 +42,16 @@ export default function MoveWordDialog({
 }: Readonly<MoveWordDialogProps>) {
     const [selectedLessonId, setSelectedLessonId] = useState<string>("");
     const [selectedCourseId, setSelectedCourseId] = useState<string | undefined>(undefined);
+    const [expandedCourseIds, setExpandedCourseIds] = useState<Set<string>>(new Set());
+
+    const toggleCourse = useCallback((courseId: string) => {
+        setExpandedCourseIds((prev) => {
+            const next = new Set(prev);
+            if (next.has(courseId)) next.delete(courseId);
+            else next.add(courseId);
+            return next;
+        });
+    }, []);
 
     const handleConfirm = () => {
         if (selectedLessonId) {
@@ -157,39 +167,61 @@ export default function MoveWordDialog({
                                 </div>
                             )}
 
-                            {/* Other courses */}
-                            {otherCoursesWithLessons.map(({ courseId, courseName, lessons }) => (
-                                <div key={courseId} className="space-y-1.5">
-                                    <p className="text-xs font-medium text-muted-foreground sticky top-0 bg-background py-0.5">{courseName}</p>
-                                    {lessons.map((lesson) => {
-                                        const isDisabled = !!(lesson.maxWords && (lesson.words?.length ?? 0) >= lesson.maxWords);
-                                        return (
-                                            <button
-                                                key={lesson.id}
-                                                disabled={isDisabled}
-                                                onClick={() => selectLesson(lesson.id, courseId)}
-                                                className={`w-full p-2.5 sm:p-3 text-left rounded-lg border-2 transition-all ${isSelected(lesson.id, courseId)
-                                                    ? "border-primary bg-primary/5"
-                                                    : "border-border hover:border-primary/50 bg-background"
-                                                    } ${isDisabled ? "opacity-50 cursor-not-allowed" : ""}`}
-                                            >
-                                                <div className="flex items-center justify-between gap-2">
-                                                    <div className="flex-1 min-w-0">
-                                                        <div className="font-medium text-sm sm:text-base truncate">{lesson.name}</div>
-                                                        <div className="text-xs text-muted-foreground mt-0.5 sm:mt-1">
-                                                            {lesson.words?.length || 0} words
-                                                            {lesson.maxWords && ` • Max: ${lesson.maxWords}`}
-                                                        </div>
-                                                    </div>
-                                                    {isSelected(lesson.id, courseId) && (
-                                                        <ArrowRight className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary flex-shrink-0" />
-                                                    )}
-                                                </div>
-                                            </button>
-                                        );
-                                    })}
-                                </div>
-                            ))}
+                            {/* Other courses — expandable */}
+                            {otherCoursesWithLessons.map(({ courseId, courseName, lessons }) => {
+                                const isExpanded = expandedCourseIds.has(courseId);
+                                const courseWordCount = lessons.reduce((sum, l) => sum + (l.words?.length ?? 0), 0);
+                                return (
+                                    <div key={courseId} className="space-y-1.5">
+                                        <button
+                                            type="button"
+                                            onClick={() => toggleCourse(courseId)}
+                                            className="w-full flex items-center gap-2 p-2.5 sm:p-3 text-left rounded-lg border-2 border-border hover:border-primary/50 bg-background transition-all"
+                                        >
+                                            {isExpanded ? (
+                                                <ChevronDown className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                                            ) : (
+                                                <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                                            )}
+                                            <span className="text-xs font-medium text-muted-foreground flex-1 truncate">{courseName}</span>
+                                            <span className="text-xs text-muted-foreground flex-shrink-0">
+                                                {lessons.length} lesson{lessons.length !== 1 ? "s" : ""} · {courseWordCount} word{courseWordCount !== 1 ? "s" : ""}
+                                            </span>
+                                        </button>
+                                        {isExpanded && (
+                                            <div className="pl-4 sm:pl-5 space-y-1.5 border-l-2 border-border ml-2">
+                                                {lessons.map((lesson) => {
+                                                    const isDisabled = !!(lesson.maxWords && (lesson.words?.length ?? 0) >= lesson.maxWords);
+                                                    return (
+                                                        <button
+                                                            key={lesson.id}
+                                                            disabled={isDisabled}
+                                                            onClick={() => selectLesson(lesson.id, courseId)}
+                                                            className={`w-full p-2.5 sm:p-3 text-left rounded-lg border-2 transition-all ${isSelected(lesson.id, courseId)
+                                                                ? "border-primary bg-primary/5"
+                                                                : "border-border hover:border-primary/50 bg-background"
+                                                                } ${isDisabled ? "opacity-50 cursor-not-allowed" : ""}`}
+                                                        >
+                                                            <div className="flex items-center justify-between gap-2">
+                                                                <div className="flex-1 min-w-0">
+                                                                    <div className="font-medium text-sm sm:text-base truncate">{lesson.name}</div>
+                                                                    <div className="text-xs text-muted-foreground mt-0.5 sm:mt-1">
+                                                                        {lesson.words?.length || 0} words
+                                                                        {lesson.maxWords && ` • Max: ${lesson.maxWords}`}
+                                                                    </div>
+                                                                </div>
+                                                                {isSelected(lesson.id, courseId) && (
+                                                                    <ArrowRight className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary flex-shrink-0" />
+                                                                )}
+                                                            </div>
+                                                        </button>
+                                                    );
+                                                })}
+                                            </div>
+                                        )}
+                                    </div>
+                                );
+                            })}
 
                             {isLoadingOtherCourses && (
                                 <div className="flex items-center gap-2 py-2 text-xs text-muted-foreground">
