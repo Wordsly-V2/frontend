@@ -32,6 +32,19 @@ export interface ILesson {
   wordProgressStats: IWordProgressStats;
 }
 
+/** Lightweight lesson for lists (no word details). */
+export interface ILessonSummary {
+  id: string;
+  name: string;
+  coverImageUrl?: string | null;
+  maxWords?: number | null;
+  orderIndex?: number | null;
+  courseId: string;
+  createdAt: string;
+  updatedAt: string;
+  wordsCount: number;
+}
+
 export interface IWordProgress {
   id: string;
   wordId: string;

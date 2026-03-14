@@ -1,6 +1,15 @@
 import axiosInstance from "@/lib/axios";
-import { CreateMyLesson } from "@/types/courses/courses.type";
+import { CreateMyLesson, ILessonSummary } from "@/types/courses/courses.type";
 import { AxiosError } from "axios";
+
+export const getLessonsByCourseId = async (courseId: string): Promise<ILessonSummary[]> => {
+    try {
+        const response = await axiosInstance.get<ILessonSummary[]>(`/courses/me/my-courses/${courseId}/lessons`);
+        return response.data;
+    } catch (error) {
+        throw (error as AxiosError).response?.data || error;
+    }
+};
 
 export const createMyCourseLesson = async (courseId: string, lesson: CreateMyLesson): Promise<{ success: boolean }> => {
     try {

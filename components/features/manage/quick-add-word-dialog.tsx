@@ -10,9 +10,12 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { useWords } from "@/hooks/useWords.hook";
-import { useGetCourseDetailByIdQuery, useGetMyCoursesQuery } from "@/queries/courses.query";
-import { CreateMyWord, ICourse, ILesson, WordDetailView } from "@/types/courses/courses.type";
-import { useCallback, useEffect, useState } from "react";
+import {
+    useGetLessonsByCourseIdQuery,
+    useGetMyCoursesInfiniteQuery,
+} from "@/queries/courses.query";
+import { CreateMyWord, ICourse, ILessonSummary, WordDetailView } from "@/types/courses/courses.type";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import WordFormDialog from "./word-form-dialog";
 
@@ -31,43 +34,65 @@ export default function QuickAddWordDialog({
     const [selectedCourseId, setSelectedCourseId] = useState<string>("");
     const [selectedLessonId, setSelectedLessonId] = useState<string>("");
     const [wordFormOpen, setWordFormOpen] = useState(false);
+    const coursesListRef = useRef<HTMLDivElement>(null);
 
-    const { data: coursesPage } = useGetMyCoursesQuery(100, 1, "name", "asc", "", isOpen);
-    const courses: ICourse[] = coursesPage?.items ?? [];
+    const {
+        data: coursesInfinite,
+        fetchNextPage: fetchNextCoursesPage,
+        hasNextPage: hasNextCoursesPage,
+        isFetchingNextPage: isFetchingNextCourses,
+    } = useGetMyCoursesInfiniteQuery("name", "asc", "", isOpen);
+    const courses: ICourse[] =
+        coursesInfinite?.pages.flatMap((p) => p.items) ?? [];
 
-    const { data: selectedCourse } = useGetCourseDetailByIdQuery(
+    const { data: lessonsData } = useGetLessonsByCourseIdQuery(
         selectedCourseId,
         isOpen && !!selectedCourseId
     );
-    const lessons: ILesson[] = selectedCourse?.lessons ?? [];
+    const lessons: ILessonSummary[] = lessonsData ?? [];
 
-    useEffect(() => {
-        const initial = () => {
-            if (!isOpen) {
+    const selectedLessonValue =
+        lessons.some((l) => l.id === selectedLessonId) ? selectedLessonId : "";
+
+    const handleOpenChange = useCallback(
+        (open: boolean) => {
+            if (!open) {
                 setSelectedCourseId("");
                 setSelectedLessonId("");
                 setWordFormOpen(false);
+                onClose();
             }
-        }
-        initial();
-    }, [isOpen]);
+        },
+        [onClose]
+    );
 
     useEffect(() => {
-        const initial = () => {
-            if (!selectedCourseId || !lessons.some((l) => l.id === selectedLessonId)) {
+        if (!isOpen) {
+            const id = setTimeout(() => {
+                setSelectedCourseId("");
                 setSelectedLessonId("");
-            }
+                setWordFormOpen(false);
+            }, 0);
+            return () => clearTimeout(id);
         }
-        initial();
-    }, [selectedCourseId, lessons, selectedLessonId]);
+    }, [isOpen]);
+
+    const handleCoursesListScroll = useCallback(() => {
+        const el = coursesListRef.current;
+        if (!el || !hasNextCoursesPage || isFetchingNextCourses) return;
+        const { scrollTop, scrollHeight, clientHeight } = el;
+        if (scrollTop + clientHeight >= scrollHeight - 20) {
+            fetchNextCoursesPage();
+        }
+    }, [hasNextCoursesPage, isFetchingNextCourses, fetchNextCoursesPage]);
 
     const { mutationCreateMyWord } = useWords();
 
     const handleSubmitWord = useCallback(
         (wordData: CreateMyWord) => {
-            if (!selectedCourseId || !selectedLessonId) return;
+            if (!selectedCourseId || !selectedLessonValue) return;
             mutationCreateMyWord.mutate(
-                { courseId: selectedCourseId, lessonId: selectedLessonId, word: wordData },
+                { courseId: selectedCourseId, lessonId: selectedLessonValue, word: wordData },
                 {
                     onSuccess: () => {
                         setWordFormOpen(false);
@@ -75,12 +100,13 @@ export default function QuickAddWordDialog({
                         toast.success("Word added successfully");
                     },
                     onError: (err) => {
-                        toast.error("Failed to add word: " + (err as Error).message);
+                        const message = err instanceof Error ? err.message : String(err);
+                        toast.error("Failed to add word: " + message);
                     },
                 }
             );
         },
-        [selectedCourseId, selectedLessonId, mutationCreateMyWord, onClose]
+        [selectedCourseId, selectedLessonValue, mutationCreateMyWord, onClose]
     );
 
     const handleOpenWordForm = () => {
@@ -89,12 +115,12 @@ export default function QuickAddWordDialog({
 
     if (!initialWord) return null;
 
-    const canAdd = !!selectedCourseId && !!selectedLessonId;
+    const canAdd = !!selectedCourseId && !!selectedLessonValue;
     const isLoadingCreate = mutationCreateMyWord.isPending;
 
     return (
         <>
-            <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+            <Dialog open={isOpen} onOpenChange={handleOpenChange}>
                 <DialogContent className="max-w-md max-h-[85dvh] overflow-y-auto">
                     <DialogHeader>
                         <DialogTitle className="text-lg sm:text-xl">Add word to course</DialogTitle>
@@ -105,21 +131,37 @@ export default function QuickAddWordDialog({
                     <div className="space-y-4 py-2">
                         <div className="space-y-2">
                             <Label htmlFor="quick-add-course">Course</Label>
-                            <select
-                                id="quick-add-course"
-                                value={selectedCourseId}
-                                onChange={(e) => setSelectedCourseId(e.target.value)}
-                                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                            <div
+                                ref={coursesListRef}
+                                onScroll={handleCoursesListScroll}
+                                className="flex max-h-[180px] w-full flex-col overflow-y-auto rounded-md border border-input bg-transparent py-1 text-sm shadow-sm"
                             >
-                                <option value="">Select course</option>
+                                <button
+                                    type="button"
+                                    onClick={() => setSelectedCourseId("")}
+                                    className={`px-3 py-2 text-left hover:bg-accent ${selectedCourseId === "" ? "bg-accent" : ""}`}
+                                >
+                                    Select course
+                                </button>
                                 {courses.map((c) => (
-                                    <option key={c.id} value={c.id}>
+                                    <button
+                                        key={c.id}
+                                        type="button"
+                                        onClick={() => {
+                                            setSelectedCourseId(c.id);
+                                            setSelectedLessonId("");
+                                        }}
+                                        className={`px-3 py-2 text-left hover:bg-accent ${selectedCourseId === c.id ? "bg-accent" : ""}`}
+                                    >
                                         {c.name}
                                         {c.totalWordsCount != null ? ` (${c.totalWordsCount} words)` : ""}
-                                    </option>
+                                    </button>
                                 ))}
-                            </select>
-                            {courses.length === 0 && (
+                                {isFetchingNextCourses && (
+                                    <p className="px-3 py-2 text-xs text-muted-foreground">Loading more…</p>
+                                )}
+                            </div>
+                            {courses.length === 0 && isFetchingNextCourses === false && (
                                 <p className="text-xs text-muted-foreground">No courses yet. Create one in Manage.</p>
                             )}
                         </div>
@@ -127,7 +169,7 @@ export default function QuickAddWordDialog({
                             <Label htmlFor="quick-add-lesson">Lesson</Label>
                             <select
                                 id="quick-add-lesson"
-                                value={selectedLessonId}
+                                value={selectedLessonValue}
                                 onChange={(e) => setSelectedLessonId(e.target.value)}
                                 disabled={!selectedCourseId}
                                 className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
@@ -135,7 +177,7 @@ export default function QuickAddWordDialog({
                                 <option value="">Select lesson</option>
                                 {lessons.map((l) => (
                                     <option key={l.id} value={l.id}>
-                                        {l.name} ({(l.words?.length ?? 0)} words)
+                                        {l.name} ({l.wordsCount} words)
                                     </option>
                                 ))}
                             </select>
