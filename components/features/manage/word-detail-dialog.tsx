@@ -10,7 +10,7 @@ import {
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { getPlayPhraseSearchUrl } from "@/lib/playphrase";
 import { WordDetailView } from "@/types/courses/courses.type";
-import { BookOpen, ExternalLink, Film, Volume2 } from "lucide-react";
+import { BookOpen, ExternalLink, Film, Plus, Volume2 } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 
@@ -34,9 +34,11 @@ interface WordDetailDialogProps {
     readonly isLoading?: boolean;
     /** True when fetch finished but no word (e.g. 404). Show "details not available" and close. */
     readonly isNotFound?: boolean;
+    /** When set and word is not in my words (no courseId/lessonId), show "Quick add word" button. */
+    readonly onQuickAdd?: (word: WordDetailView) => void;
 }
 
-export default function WordDetailDialog({ word, isOpen, onClose, courseId, lessonId, isLoading, isNotFound }: WordDetailDialogProps) {
+export default function WordDetailDialog({ word, isOpen, onClose, courseId, lessonId, isLoading, isNotFound, onQuickAdd }: WordDetailDialogProps) {
     const router = useRouter();
     const canNavigate = !!(courseId && lessonId);
 
@@ -157,6 +159,14 @@ export default function WordDetailDialog({ word, isOpen, onClose, courseId, less
                             <Button variant="outline" size="sm" onClick={handleGoToLearn} className="gap-2">
                                 <BookOpen className="h-4 w-4" />
                                 Open in Learn
+                            </Button>
+                        </div>
+                    )}
+                    {!canNavigate && onQuickAdd && (
+                        <div className="flex flex-wrap gap-2 pt-2 border-t">
+                            <Button variant="default" size="sm" onClick={() => onQuickAdd(word!)} className="gap-2">
+                                <Plus className="h-4 w-4" />
+                                Quick add word
                             </Button>
                         </div>
                     )}

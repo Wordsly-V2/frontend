@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { useAudio } from "@/hooks/useAudio.hook";
 import { useLangeekWordDetailsQuery } from "@/queries/dictionary.query";
-import { IWord, IWordSearchResult } from "@/types/courses/courses.type";
+import { IWord, IWordSearchResult, WordDetailView } from "@/types/courses/courses.type";
 import { ImageIcon, Plus, Trash2, Volume2, VolumeX } from "lucide-react";
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
@@ -19,7 +19,18 @@ interface WordFormDialogProps {
     onClose: () => void;
     onSubmit: (word: Omit<IWord, 'id' | 'lessonId' | 'createdAt' | 'updatedAt'>) => void;
     word?: IWord;
+    /** Pre-fill form when in add mode (no word). Applied once when dialog opens. */
+    initialData?: WordDetailView | null;
     title: string;
+}
+
+function getExamplesArray(example: string | undefined): string[] {
+    try {
+        const ex = JSON.parse(example ?? "[]");
+        return Array.isArray(ex) ? ex.filter((e): e is string => typeof e === "string") : [];
+    } catch {
+        return [];
+    }
 }
 
 export default function WordFormDialog({
@@ -28,6 +39,7 @@ export default function WordFormDialog({
     onClose,
     onSubmit,
     word,
+    initialData,
     title,
 }: Readonly<WordFormDialogProps>) {
     const [formData, setFormData] = useState({
@@ -59,38 +71,52 @@ export default function WordFormDialog({
     const [imageLoadError, setImageLoadError] = useState(false);
     const [exampleIds, setExampleIds] = useState<string[]>([]);
     const exampleIdRef = useRef(0);
+    const appliedInitialDataRef = useRef(false);
 
     useEffect(() => {
-        const _setFormData = () => {
-            if (word) {
-                setFormData({
-                    word: word.word,
-                    meaning: word.meaning,
-                    pronunciation: word.pronunciation || "",
-                    partOfSpeech: word.partOfSpeech || "",
-                    audioUrl: word.audioUrl || "",
-                    imageUrl: word.imageUrl || "",
-                    examples: JSON.parse(word.example || "[]"),
-                });
-                setExampleIds(
-                    JSON.parse(word.example || "[]").map(() => `ex-${++exampleIdRef.current}`)
-                );
-            } else {
-                setFormData({
-                    word: "",
-                    meaning: "",
-                    pronunciation: "",
-                    partOfSpeech: "",
-                    audioUrl: "",
-                    imageUrl: "",
-                    examples: [],
-                });
-                setExampleIds([]);
-            }
+        if (!isOpen) {
+            appliedInitialDataRef.current = false;
+            return;
         }
-
-        _setFormData();
-    }, [word, isOpen]);
+        if (word) {
+            appliedInitialDataRef.current = false;
+            setFormData({
+                word: word.word,
+                meaning: word.meaning,
+                pronunciation: word.pronunciation || "",
+                partOfSpeech: word.partOfSpeech || "",
+                audioUrl: word.audioUrl || "",
+                imageUrl: word.imageUrl || "",
+                examples: getExamplesArray(word.example),
+            });
+            setExampleIds(getExamplesArray(word.example).map(() => `ex-${++exampleIdRef.current}`));
+        } else if (initialData && !appliedInitialDataRef.current) {
+            appliedInitialDataRef.current = true;
+            const examples = getExamplesArray(initialData.example);
+            setFormData({
+                word: initialData.word,
+                meaning: initialData.meaning,
+                pronunciation: initialData.pronunciation || "",
+                partOfSpeech: initialData.partOfSpeech || "",
+                audioUrl: initialData.audioUrl || "",
+                imageUrl: initialData.imageUrl || "",
+                examples,
+            });
+            setExampleIds(examples.map(() => `ex-${++exampleIdRef.current}`));
+        } else if (!initialData) {
+            appliedInitialDataRef.current = false;
+            setFormData({
+                word: "",
+                meaning: "",
+                pronunciation: "",
+                partOfSpeech: "",
+                audioUrl: "",
+                imageUrl: "",
+                examples: [],
+            });
+            setExampleIds([]);
+        }
+    }, [word, initialData, isOpen]);
 
     useEffect(() => {
         if (!pendingWordDetails || !langeekDetailsSuccess || !langeekWordDetails) return;

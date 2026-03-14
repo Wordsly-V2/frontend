@@ -2,6 +2,7 @@
 
 import { Input } from "@/components/ui/input";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import QuickAddWordDialog from "@/components/features/manage/quick-add-word-dialog";
 import WordDetailDialog from "@/components/features/manage/word-detail-dialog";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useLangeekWordDetailsQuery, useSearchWordsQuery } from "@/queries/dictionary.query";
@@ -53,6 +54,7 @@ export function MyWordsSearch({
 
     const [detailUserWord, setDetailUserWord] = useState<IUserWordSearchResult | null>(null);
     const [detailDictWord, setDetailDictWord] = useState<IWordSearchResult | null>(null);
+    const [quickAddWord, setQuickAddWord] = useState<WordDetailView | null>(null);
 
     const { data: fullUserWord } = useGetWordsByIdsQuery(
         detailUserWord?.courseId ?? "",
@@ -246,8 +248,21 @@ export function MyWordsSearch({
                     lessonId={dialogLessonId}
                     isLoading={dialogLoadingSpinner}
                     isNotFound={dialogNotFound}
+                    onQuickAdd={
+                        detailDictWord
+                            ? (word) => {
+                                  closeDialog();
+                                  setQuickAddWord(word);
+                              }
+                            : undefined
+                    }
                 />
             )}
+            <QuickAddWordDialog
+                isOpen={!!quickAddWord}
+                onClose={() => setQuickAddWord(null)}
+                initialWord={quickAddWord}
+            />
         </div>
     );
 }
