@@ -1,5 +1,6 @@
 "use client";
 
+import WordProgressBadge from "@/components/common/word-progress-stats/word-progress-badge";
 import { Button } from "@/components/ui/button";
 import { IWord } from "@/types/courses/courses.type";
 import { ChevronLeft, ChevronRight } from "lucide-react";
@@ -105,6 +106,13 @@ export default function WordDetailsCarousel({
                     <ChevronRight className="h-5 w-5 sm:ml-1" />
                 </Button>
             </div>
+
+            {/* Word progress stats (when available) */}
+            {word?.wordProgress && (
+                <div className="shrink-0 flex justify-center">
+                    <WordProgressBadge progress={word.wordProgress} />
+                </div>
+            )}
 
             {/* Card: flex-1 min-h-0 so content fits in view; only examples scroll inside card */}
             <div className="flex-1 min-h-0 overflow-hidden flex flex-col" key={effectiveIndex}>

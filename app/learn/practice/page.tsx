@@ -1,20 +1,21 @@
 "use client";
 
 import LoadingSection from "@/components/common/loading-section/loading-section";
-import { WordsIntro } from "@/components/common/words-intro";
+import WordDetailsCarousel from "@/components/features/vocabulary/word-details-carousel";
 import VocabularyPractice, { WordResult } from "@/components/features/vocabulary/vocabulary-practice";
 import { Button } from "@/components/ui/button";
 import { recordAnswerBulk } from "@/apis/word-progress.api";
 import { useGetWordsByIdsQuery } from "@/queries/words.query";
 import { ArrowLeft } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 
 export default function PracticePage() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const [phase, setPhase] = useState<"intro" | "practice">("intro");
+    const [introIndex, setIntroIndex] = useState(0);
 
     const courseName = searchParams.get("courseName") || "";
     const courseId = searchParams.get("courseId") || "";
@@ -49,6 +50,14 @@ export default function PracticePage() {
         router.push(`/learn/courses/${courseId}`);
     };
 
+    useEffect(() => {
+        if (phase !== "intro") return;
+        const onKeyDown = (e: KeyboardEvent) => {
+            if (e.key === "Enter") setPhase("practice");
+        };
+        globalThis.addEventListener("keydown", onKeyDown);
+        return () => globalThis.removeEventListener("keydown", onKeyDown);
+    }, [phase]);
 
     if(isWordsLoading || isWordsError) {
         return <LoadingSection isLoading={isWordsLoading} error={isWordsError ? 'Error loading words' : null} refetch={refetchWords} />;
@@ -68,28 +77,49 @@ export default function PracticePage() {
         );
     }
 
+    const handleStartLearning = () => setPhase("practice");
+
     return (
-        <main className="bg-background flex flex-col">
-            <div className="container mx-auto px-3 sm:px-4 py-3 sm:py-6 max-w-4xl flex flex-col">
+        <main className={phase === "intro" ? "min-h-dvh bg-gradient-to-b from-background via-background to-muted/30" : "bg-background flex flex-col"}>
+            <div className="container mx-auto px-3 sm:px-4 py-3 sm:py-6 max-w-4xl flex flex-col min-h-dvh">
                 <Button
                     variant="ghost"
                     onClick={handleBackToCourse}
-                    className="mb-3 sm:mb-4 self-start flex-shrink-0"
+                    className="mb-3 sm:mb-4 self-start flex-shrink-0 text-muted-foreground hover:text-foreground"
+                    size="sm"
                 >
                     <ArrowLeft className="h-4 w-4 mr-2" />
                     Back to Course
                 </Button>
                 <div className="text-center mb-4 sm:mb-6 flex-shrink-0">
-                    <h1 className="text-xl sm:text-2xl md:text-3xl font-bold mb-2">
+                    <h1 className="text-xl sm:text-2xl md:text-3xl font-bold mb-2 tracking-tight">
                         {phase === "intro" ? "New Words" : "Practice Vocabulary"}
                     </h1>
                     <p className="text-sm sm:text-base text-muted-foreground">
-                        {courseName} • {words.length} words
+                        {courseName} • {words.length} word{words.length === 1 ? "" : "s"}
                     </p>
                 </div>
-                <div className="flex-1 pb-4">
+                <div className="flex-1 pb-4 flex flex-col min-h-0">
                     {phase === "intro" ? (
-                        <WordsIntro words={words} onStart={() => setPhase("practice")} />
+                        <>
+                            <section className="flex-1 flex flex-col min-h-0">
+                                <WordDetailsCarousel
+                                    words={words}
+                                    onIndexChange={setIntroIndex}
+                                    headerSlot={
+                                        <span className="text-sm font-medium tabular-nums text-muted-foreground">
+                                            {introIndex + 1} / {words.length}
+                                        </span>
+                                    }
+                                    className="flex-1"
+                                />
+                            </section>
+                            <div className="flex-shrink-0 pt-4 sm:pt-6 flex justify-center">
+                                <Button size="lg" onClick={handleStartLearning}>
+                                    Start learning
+                                </Button>
+                            </div>
+                        </>
                     ) : (
                         <VocabularyPractice
                             words={words}
