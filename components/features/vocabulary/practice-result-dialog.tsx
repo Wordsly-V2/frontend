@@ -2,7 +2,8 @@
 
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogFooter, DialogTitle } from "@/components/ui/dialog";
-import { CheckCircle2, XCircle, Volume2, Timer } from "lucide-react";
+import { getPlayPhraseSearchUrl } from "@/lib/playphrase";
+import { CheckCircle2, Film, Timer, Volume2, XCircle } from "lucide-react";
 import Image from "next/image";
 import { useEffect } from "react";
 
@@ -161,17 +162,36 @@ export default function PracticeResultDialog({
                                             </p>
                                         )}
                                     </div>
-                                    {audioUrl && (
+                                    <div className="flex items-center gap-1 shrink-0">
                                         <Button
                                             type="button"
                                             variant="ghost"
                                             size="icon"
-                                            onClick={handlePlayAudio}
-                                            className={`h-8 w-8 sm:h-9 sm:w-9 shrink-0 rounded-full ${isCorrectTheme ? "hover:bg-green-100 text-green-700" : "hover:bg-red-100 text-red-700"}`}
+                                            asChild
+                                            className={`h-8 w-8 sm:h-9 sm:w-9 rounded-full ${isCorrectTheme ? "hover:bg-green-100 text-green-700" : "hover:bg-red-100 text-red-700"}`}
+                                            aria-label="Watch movie clips with this word"
                                         >
-                                            <Volume2 className="h-4 w-4 sm:h-5 sm:w-5" />
+                                            <a
+                                                href={getPlayPhraseSearchUrl(correctAnswer)}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                            >
+                                                <Film className="h-4 w-4 sm:h-5 sm:w-5" />
+                                            </a>
                                         </Button>
-                                    )}
+                                        {audioUrl && (
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="icon"
+                                                onClick={handlePlayAudio}
+                                                className={`h-8 w-8 sm:h-9 sm:w-9 rounded-full ${isCorrectTheme ? "hover:bg-green-100 text-green-700" : "hover:bg-red-100 text-red-700"}`}
+                                                aria-label="Play pronunciation"
+                                            >
+                                                <Volume2 className="h-4 w-4 sm:h-5 sm:w-5" />
+                                            </Button>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
                         </div>

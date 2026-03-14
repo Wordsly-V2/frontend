@@ -8,8 +8,9 @@ import {
     DialogTitle,
 } from "@/components/ui/dialog";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { getPlayPhraseSearchUrl } from "@/lib/playphrase";
 import { WordDetailView } from "@/types/courses/courses.type";
-import { BookOpen, ExternalLink, Volume2 } from "lucide-react";
+import { BookOpen, ExternalLink, Film, Volume2 } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 
@@ -128,14 +129,25 @@ export default function WordDetailDialog({ word, isOpen, onClose, courseId, less
                             </ul>
                         </div>
                     )}
-                    {word!.audioUrl && (
-                        <div className="flex justify-end">
+                    <div className="flex flex-wrap gap-2 justify-end">
+                        <Button variant="outline" size="sm" asChild>
+                            <a
+                                href={getPlayPhraseSearchUrl(word!.word)}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="gap-2"
+                            >
+                                <Film className="h-4 w-4" />
+                                Watch movie clips
+                            </a>
+                        </Button>
+                        {word!.audioUrl && (
                             <Button variant="outline" size="sm" onClick={handlePlayAudio}>
                                 <Volume2 className="h-4 w-4 mr-2" />
                                 Play audio
                             </Button>
-                        </div>
-                    )}
+                        )}
+                    </div>
                     {canNavigate && (
                         <div className="flex flex-wrap gap-2 pt-2 border-t">
                             <Button variant="default" size="sm" onClick={handleGoToManage} className="gap-2">

@@ -1,8 +1,9 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { getPlayPhraseSearchUrl } from "@/lib/playphrase";
 import { IWord } from "@/types/courses/courses.type";
-import { Volume2 } from "lucide-react";
+import { Film, Volume2 } from "lucide-react";
 import Image from "next/image";
 
 export function getWordExamples(word: Pick<IWord, "example">): string[] {
@@ -102,19 +103,39 @@ export default function WordDetailCard({
                                 </p>
                             )}
                         </div>
-                        {word.audioUrl && (
+                        <div className="flex items-center gap-2 shrink-0">
                             <Button
                                 type="button"
                                 variant="outline"
                                 size={isCompact ? "icon" : "default"}
-                                onClick={handlePlayAudio}
-                                className="shrink-0 rounded-full"
-                                aria-label="Play pronunciation"
+                                asChild
+                                className="rounded-full"
+                                aria-label="Watch movie clips with this word"
                             >
-                                <Volume2 className={isCompact ? "h-4 w-4" : "h-5 w-5 sm:mr-2"} />
-                                {!isCompact && <span className="hidden sm:inline">Listen</span>}
+                                <a
+                                    href={getPlayPhraseSearchUrl(word.word)}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center gap-2"
+                                >
+                                    <Film className={isCompact ? "h-4 w-4" : "h-5 w-5 sm:mr-2"} />
+                                    {!isCompact && <span className="hidden sm:inline">Watch clips</span>}
+                                </a>
                             </Button>
-                        )}
+                            {word.audioUrl && (
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size={isCompact ? "icon" : "default"}
+                                    onClick={handlePlayAudio}
+                                    className="shrink-0 rounded-full"
+                                    aria-label="Play pronunciation"
+                                >
+                                    <Volume2 className={isCompact ? "h-4 w-4" : "h-5 w-5 sm:mr-2"} />
+                                    {!isCompact && <span className="hidden sm:inline">Listen</span>}
+                                </Button>
+                            )}
+                        </div>
                     </div>
                     <p
                         className={`mt-2 sm:mt-3 text-foreground/90 ${textSize} ${constrainHeight ? "line-clamp-2" : ""}`}
