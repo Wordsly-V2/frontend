@@ -37,6 +37,7 @@ export const fetchWordDetailsDictionary = async (word: string): Promise<WordPron
 
 export const searchWords = async (query: string): Promise<IWordSearchResult[]> => {
     try {
+        if (query.trim().length === 0) return [];
         const response = await axiosInstance.get<IWordSearchResult[]>(`/dictionary/search/${query}`);
         return response.data;
     } catch (error) {
