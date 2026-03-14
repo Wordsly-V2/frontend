@@ -5,13 +5,15 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Sparkles, Keyboard, CheckSquare, Volume2 } from "lucide-react";
+import { Sparkles, Keyboard, CheckSquare, Volume2, MessageSquare } from "lucide-react";
 
 export type PracticeMode = "flashcard" | "typing" | "multiple-choice" | "listening";
 
 export interface PracticeSettings {
     mode: PracticeMode;
     autoCheck: boolean;
+    /** When true, show example sentences with the word replaced by *** to help guess. */
+    showExampleHints: boolean;
 }
 
 interface PracticeSettingsDialogProps {
@@ -29,6 +31,7 @@ export default function PracticeSettingsDialog({
 }: Readonly<PracticeSettingsDialogProps>) {
     const [tempMode, setTempMode] = useState<PracticeMode>(currentSettings.mode);
     const [tempAutoCheck, setTempAutoCheck] = useState(currentSettings.autoCheck);
+    const [tempShowExampleHints, setTempShowExampleHints] = useState(currentSettings.showExampleHints);
 
     // Update temp settings when dialog opens with current settings
     useEffect(() => {
@@ -36,6 +39,7 @@ export default function PracticeSettingsDialog({
             if (isOpen) {
                 setTempMode(currentSettings.mode);
                 setTempAutoCheck(currentSettings.autoCheck);
+                setTempShowExampleHints(currentSettings.showExampleHints);
             }
         }
 
@@ -46,6 +50,7 @@ export default function PracticeSettingsDialog({
         const newSettings: PracticeSettings = {
             mode: tempMode,
             autoCheck: tempAutoCheck,
+            showExampleHints: tempShowExampleHints,
         };
         onSave(newSettings);
         onClose();
@@ -55,6 +60,7 @@ export default function PracticeSettingsDialog({
         // Reset temp settings to current settings
         setTempMode(currentSettings.mode);
         setTempAutoCheck(currentSettings.autoCheck);
+        setTempShowExampleHints(currentSettings.showExampleHints);
         onClose();
     };
 
@@ -151,6 +157,27 @@ export default function PracticeSettingsDialog({
                             </div>
                         </div>
                     )}
+
+                    {/* Example hints — applies to all modes */}
+                    <div className="space-y-3 pt-4 border-t border-border">
+                        <div className="flex items-start justify-between gap-4">
+                            <div className="flex-1">
+                                <Label htmlFor="show-example-hints" className="text-sm font-medium flex items-center gap-2">
+                                    <MessageSquare className="h-4 w-4 text-muted-foreground" />
+                                    Example hints
+                                </Label>
+                                <p className="text-xs text-muted-foreground mt-1">
+                                    Show example sentences with the word hidden (***) to help you guess
+                                </p>
+                            </div>
+                            <Switch
+                                id="show-example-hints"
+                                checked={tempShowExampleHints}
+                                onCheckedChange={setTempShowExampleHints}
+                                className="data-[state=checked]:bg-green-500"
+                            />
+                        </div>
+                    </div>
                 </div>
 
                 <DialogFooter className="gap-2">

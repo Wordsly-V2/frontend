@@ -37,12 +37,39 @@ const loadSettings = (): PracticeSettings => {
     try {
         const savedSettings = localStorage.getItem(SETTINGS_STORAGE_KEY);
         if (savedSettings) {
-            return JSON.parse(savedSettings);
+            const parsed = JSON.parse(savedSettings);
+            return {
+                mode: parsed.mode ?? "flashcard",
+                autoCheck: parsed.autoCheck ?? true,
+                showExampleHints: parsed.showExampleHints ?? true,
+            };
         }
     } catch (error) {
         console.error("Failed to load practice settings:", error);
     }
-    return { mode: "flashcard", autoCheck: true };
+    return { mode: "flashcard", autoCheck: true, showExampleHints: true };
+};
+
+const MASK_PLACEHOLDER = "***";
+
+/** Parse word.example JSON and return array of example strings. */
+const getWordExamples = (word: IWord): string[] => {
+    try {
+        const ex = JSON.parse(word.example ?? "[]");
+        return Array.isArray(ex) ? ex.filter((e): e is string => typeof e === "string") : [];
+    } catch {
+        return [];
+    }
+};
+
+/** Keep only examples that contain the word, then replace the word (case-insensitive) with ***. */
+const maskWordInExamples = (word: string, examples: string[]): string[] => {
+    if (!word.trim()) return [];
+    const escaped = word.replace(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`);
+    const re = new RegExp(escaped, "gi");
+    return examples
+        .filter((s) => re.test(s))
+        .map((s) => s.replaceAll(new RegExp(escaped, "gi"), MASK_PLACEHOLDER));
 };
 
 export default function VocabularyPractice({
@@ -57,6 +84,7 @@ export default function VocabularyPractice({
     const [correctCount, setCorrectCount] = useState(0);
     const [mode, setMode] = useState<PracticeMode>(() => loadSettings().mode);
     const [autoCheck, setAutoCheck] = useState(() => loadSettings().autoCheck);
+    const [showExampleHints, setShowExampleHints] = useState(() => loadSettings().showExampleHints);
     const [typingResult, setTypingResult] = useState<"correct" | "incorrect" | null>(null);
     const [showSettings, setShowSettings] = useState(false);
     const [showResultDialog, setShowResultDialog] = useState(false);
@@ -79,6 +107,12 @@ export default function VocabularyPractice({
 
     const currentWord = shuffledWords[currentIndex];
     const progress = ((currentIndex + 1) / shuffledWords.length) * 100;
+
+    const rawExamples = useMemo(() => (currentWord ? getWordExamples(currentWord) : []), [currentWord]);
+    const maskedExamples = useMemo(
+        () => (currentWord && showExampleHints && rawExamples.length > 0 ? maskWordInExamples(currentWord.word, rawExamples) : []),
+        [currentWord, showExampleHints, rawExamples]
+    );
 
     const normalize = (value: string) =>
         value.trim().toLowerCase().replaceAll(/\s+/g, " ");
@@ -109,6 +143,7 @@ export default function VocabularyPractice({
     const currentSettings: PracticeSettings = {
         mode,
         autoCheck,
+        showExampleHints,
     };
 
     // Generate multiple choice options
@@ -175,6 +210,7 @@ export default function VocabularyPractice({
     const handleSaveSettings = (newSettings: PracticeSettings) => {
         setMode(newSettings.mode);
         setAutoCheck(newSettings.autoCheck);
+        setShowExampleHints(newSettings.showExampleHints);
 
         // Save to localStorage
         try {
@@ -429,6 +465,16 @@ export default function VocabularyPractice({
                             {currentWord.partOfSpeech}
                         </span>
                     )}
+                    {maskedExamples.length > 0 && !showAnswer && (
+                        <div className="mt-4 sm:mt-6 pt-4 sm:pt-6 border-t border-border/50 text-left max-w-xl mx-auto">
+                            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Example sentences</p>
+                            <ul className="space-y-1.5 text-sm sm:text-base text-muted-foreground max-h-24 sm:max-h-32 overflow-y-auto overscroll-contain pr-1">
+                                {maskedExamples.map((s) => (
+                                    <li key={s} className="italic">&ldquo;{s}&rdquo;</li>
+                                ))}
+                            </ul>
+                        </div>
+                    )}
                 </div>
 
                 {showAnswer && (
@@ -480,6 +526,16 @@ export default function VocabularyPractice({
                     <span className="inline-block px-3 sm:px-4 py-1 sm:py-1.5 rounded-full bg-gradient-to-r from-primary/10 to-primary/5 text-primary text-xs sm:text-sm font-semibold border border-primary/20">
                         {currentWord.partOfSpeech}
                     </span>
+                )}
+                {maskedExamples.length > 0 && (
+                    <div className="mt-4 sm:mt-6 pt-4 sm:pt-6 border-t border-border/50 text-left max-w-xl mx-auto">
+                        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Example sentences</p>
+                        <ul className="space-y-1.5 text-sm sm:text-base text-muted-foreground max-h-24 sm:max-h-32 overflow-y-auto overscroll-contain pr-1">
+                            {maskedExamples.map((s) => (
+                                <li key={s} className="italic">&ldquo;{s}&rdquo;</li>
+                            ))}
+                        </ul>
+                    </div>
                 )}
             </div>
 
@@ -562,6 +618,16 @@ export default function VocabularyPractice({
                     <span className="inline-block px-3 sm:px-4 py-1 sm:py-1.5 rounded-full bg-gradient-to-r from-primary/10 to-primary/5 text-primary text-xs sm:text-sm font-semibold border border-primary/20">
                         {currentWord.partOfSpeech}
                     </span>
+                )}
+                {maskedExamples.length > 0 && (
+                    <div className="mt-4 sm:mt-6 pt-4 sm:pt-6 border-t border-border/50 text-left max-w-xl mx-auto">
+                        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Example sentences</p>
+                        <ul className="space-y-1.5 text-sm sm:text-base text-muted-foreground max-h-24 sm:max-h-32 overflow-y-auto overscroll-contain pr-1">
+                            {maskedExamples.map((s) => (
+                                <li key={s} className="italic">&ldquo;{s}&rdquo;</li>
+                            ))}
+                        </ul>
+                    </div>
                 )}
             </div>
 
@@ -669,6 +735,16 @@ export default function VocabularyPractice({
                     <span className="inline-block px-3 sm:px-4 py-1 sm:py-1.5 rounded-full bg-gradient-to-r from-primary/10 to-primary/5 text-primary text-xs sm:text-sm font-semibold border border-primary/20">
                         {currentWord.partOfSpeech}
                     </span>
+                )}
+                {maskedExamples.length > 0 && (
+                    <div className="mt-4 sm:mt-6 pt-4 sm:pt-6 border-t border-border/50 text-left max-w-xl mx-auto">
+                        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Example sentences</p>
+                        <ul className="space-y-1.5 text-sm sm:text-base text-muted-foreground max-h-24 sm:max-h-32 overflow-y-auto overscroll-contain pr-1">
+                            {maskedExamples.map((s) => (
+                                <li key={s} className="italic">&ldquo;{s}&rdquo;</li>
+                            ))}
+                        </ul>
+                    </div>
                 )}
             </div>
 
