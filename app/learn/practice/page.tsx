@@ -4,9 +4,10 @@ import LoadingSection from "@/components/common/loading-section/loading-section"
 import WordDetailsCarousel from "@/components/features/vocabulary/word-details-carousel";
 import VocabularyPractice, { WordResult } from "@/components/features/vocabulary/vocabulary-practice";
 import { Button } from "@/components/ui/button";
-import { recordAnswerBulk } from "@/apis/word-progress.api";
 import { useGetWordsByIdsQuery } from "@/queries/words.query";
+import { useRecordAnswerMutation } from "@/queries/word-progress.query";
 import { ArrowLeft } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -26,24 +27,32 @@ export default function PracticePage() {
     }
 
     const { data: words, isLoading: isWordsLoading, isError: isWordsError, refetch: refetchWords } = useGetWordsByIdsQuery(courseId, wordIds.split(","), !!courseId && !!wordIds);
+    const queryClient = useQueryClient();
+    const { mutate: recordWordAnswer } = useRecordAnswerMutation();
 
-    const handleComplete = useCallback(
-        async (_score: number, wordResults: WordResult[]) => {
-            try {
-                if (wordResults.length > 0) {
-                    await recordAnswerBulk({
-                        answers: wordResults.map((r) => ({ wordId: r.wordId, quality: r.quality })),
-                    });
+    const handleWordComplete = useCallback(
+        (result: WordResult) => {
+            recordWordAnswer(
+                { wordId: result.wordId, quality: result.quality },
+                {
+                    onSuccess: () => {
+                        queryClient.invalidateQueries({ queryKey: ["word-progress"] });
+                        queryClient.invalidateQueries({ queryKey: ["due-words"] });
+                        queryClient.invalidateQueries({ queryKey: ["due-word-ids"] });
+                    },
+                    onError: () => {
+                        toast.error("Could not save progress for this word.");
+                    },
                 }
-                toast.success("Practice completed! Your progress has been saved.");
-            } catch {
-                toast.error("Failed to save some progress. Your answers may not have been recorded.");
-            } finally {
-                router.replace(`/learn/courses/${courseId}`);
-            }
+            );
         },
-        [courseId, router]
+        [queryClient, recordWordAnswer]
     );
+
+    const handleComplete = useCallback(() => {
+        toast.success("Practice completed!");
+        router.replace(`/learn/courses/${courseId}`);
+    }, [courseId, router]);
 
     const handleBackToCourse = () => {
         const courseId = searchParams.get("courseId");
@@ -124,6 +133,7 @@ export default function PracticePage() {
                         <VocabularyPractice
                             words={words}
                             onComplete={handleComplete}
+                            onWordComplete={handleWordComplete}
                         />
                     )}
                 </div>
