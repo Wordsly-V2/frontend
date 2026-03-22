@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import Image from "next/image";
 import { IWord } from "@/types/courses/courses.type";
 import { Button } from "@/components/ui/button";
 import { Volume2, ChevronRight, CheckCircle2, XCircle, Settings2, Sparkles, Lightbulb, List, Play } from "lucide-react";
@@ -42,12 +43,13 @@ const loadSettings = (): PracticeSettings => {
                 mode: parsed.mode ?? "flashcard",
                 autoCheck: parsed.autoCheck ?? true,
                 showExampleHints: parsed.showExampleHints ?? true,
+                showImageHints: parsed.showImageHints ?? true,
             };
         }
     } catch (error) {
         console.error("Failed to load practice settings:", error);
     }
-    return { mode: "flashcard", autoCheck: true, showExampleHints: true };
+    return { mode: "flashcard", autoCheck: true, showExampleHints: true, showImageHints: true };
 };
 
 const MASK_PLACEHOLDER = "***";
@@ -72,6 +74,54 @@ const maskWordInExamples = (word: string, examples: string[]): string[] => {
         .map((s) => s.replaceAll(new RegExp(escaped, "gi"), MASK_PLACEHOLDER));
 };
 
+function WordPracticeHints({
+    maskedExamples,
+    imageUrl,
+    showImageHints,
+}: Readonly<{
+    maskedExamples: string[];
+    imageUrl?: string;
+    showImageHints: boolean;
+}>) {
+    const showImage = showImageHints && Boolean(imageUrl?.trim());
+    const showExamples = maskedExamples.length > 0;
+    if (!showImage && !showExamples) {
+        return null;
+    }
+
+    return (
+        <div className="mt-4 sm:mt-6 pt-4 sm:pt-6 border-t border-border/50 mx-auto w-full">
+            <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 items-start text-left">
+                {showExamples && (
+                    <div className="flex-1 min-w-0 w-full">
+                        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Example sentences</p>
+                        <ul className="space-y-1.5 text-sm sm:text-base text-muted-foreground max-h-24 sm:max-h-32 overflow-y-auto overscroll-contain pr-1">
+                            {maskedExamples.map((s) => (
+                                <li key={s} className="italic">&ldquo;{s}&rdquo;</li>
+                            ))}
+                        </ul>
+                    </div>
+                )}
+                {showImage && imageUrl && (
+                    <div className="shrink-0 w-full sm:w-40">
+                        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Image hint</p>
+                        <div className="rounded-xl overflow-hidden bg-muted border border-border aspect-square max-h-40 sm:max-h-44 mx-auto sm:mx-0 w-full sm:w-40">
+                            <Image
+                                src={imageUrl}
+                                alt=""
+                                width={160}
+                                height={160}
+                                className="w-full h-full object-cover"
+                                unoptimized
+                            />
+                        </div>
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+}
+
 export default function VocabularyPractice({
     words,
     onWordComplete,
@@ -85,6 +135,7 @@ export default function VocabularyPractice({
     const [mode, setMode] = useState<PracticeMode>(() => loadSettings().mode);
     const [autoCheck, setAutoCheck] = useState(() => loadSettings().autoCheck);
     const [showExampleHints, setShowExampleHints] = useState(() => loadSettings().showExampleHints);
+    const [showImageHints, setShowImageHints] = useState(() => loadSettings().showImageHints);
     const [typingResult, setTypingResult] = useState<"correct" | "incorrect" | null>(null);
     const [showSettings, setShowSettings] = useState(false);
     const [showResultDialog, setShowResultDialog] = useState(false);
@@ -144,6 +195,7 @@ export default function VocabularyPractice({
         mode,
         autoCheck,
         showExampleHints,
+        showImageHints,
     };
 
     // Generate multiple choice options
@@ -211,6 +263,7 @@ export default function VocabularyPractice({
         setMode(newSettings.mode);
         setAutoCheck(newSettings.autoCheck);
         setShowExampleHints(newSettings.showExampleHints);
+        setShowImageHints(newSettings.showImageHints);
 
         // Save to localStorage
         try {
@@ -465,15 +518,12 @@ export default function VocabularyPractice({
                             {currentWord.partOfSpeech}
                         </span>
                     )}
-                    {maskedExamples.length > 0 && !showAnswer && (
-                        <div className="mt-4 sm:mt-6 pt-4 sm:pt-6 border-t border-border/50 text-left max-w-xl mx-auto">
-                            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Example sentences</p>
-                            <ul className="space-y-1.5 text-sm sm:text-base text-muted-foreground max-h-24 sm:max-h-32 overflow-y-auto overscroll-contain pr-1">
-                                {maskedExamples.map((s) => (
-                                    <li key={s} className="italic">&ldquo;{s}&rdquo;</li>
-                                ))}
-                            </ul>
-                        </div>
+                    {!showAnswer && (
+                        <WordPracticeHints
+                            maskedExamples={maskedExamples}
+                            imageUrl={currentWord.imageUrl}
+                            showImageHints={showImageHints}
+                        />
                     )}
                 </div>
 
@@ -527,16 +577,11 @@ export default function VocabularyPractice({
                         {currentWord.partOfSpeech}
                     </span>
                 )}
-                {maskedExamples.length > 0 && (
-                    <div className="mt-4 sm:mt-6 pt-4 sm:pt-6 border-t border-border/50 text-left max-w-xl mx-auto">
-                        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Example sentences</p>
-                        <ul className="space-y-1.5 text-sm sm:text-base text-muted-foreground max-h-24 sm:max-h-32 overflow-y-auto overscroll-contain pr-1">
-                            {maskedExamples.map((s) => (
-                                <li key={s} className="italic">&ldquo;{s}&rdquo;</li>
-                            ))}
-                        </ul>
-                    </div>
-                )}
+                <WordPracticeHints
+                    maskedExamples={maskedExamples}
+                    imageUrl={currentWord.imageUrl}
+                    showImageHints={showImageHints}
+                />
             </div>
 
             <div className="space-y-4 sm:space-y-6">
@@ -619,16 +664,11 @@ export default function VocabularyPractice({
                         {currentWord.partOfSpeech}
                     </span>
                 )}
-                {maskedExamples.length > 0 && (
-                    <div className="mt-4 sm:mt-6 pt-4 sm:pt-6 border-t border-border/50 text-left max-w-xl mx-auto">
-                        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Example sentences</p>
-                        <ul className="space-y-1.5 text-sm sm:text-base text-muted-foreground max-h-24 sm:max-h-32 overflow-y-auto overscroll-contain pr-1">
-                            {maskedExamples.map((s) => (
-                                <li key={s} className="italic">&ldquo;{s}&rdquo;</li>
-                            ))}
-                        </ul>
-                    </div>
-                )}
+                <WordPracticeHints
+                    maskedExamples={maskedExamples}
+                    imageUrl={currentWord.imageUrl}
+                    showImageHints={showImageHints}
+                />
             </div>
 
             <div className="space-y-4 sm:space-y-6">
@@ -736,16 +776,11 @@ export default function VocabularyPractice({
                         {currentWord.partOfSpeech}
                     </span>
                 )}
-                {maskedExamples.length > 0 && (
-                    <div className="mt-4 sm:mt-6 pt-4 sm:pt-6 border-t border-border/50 text-left max-w-xl mx-auto">
-                        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Example sentences</p>
-                        <ul className="space-y-1.5 text-sm sm:text-base text-muted-foreground max-h-24 sm:max-h-32 overflow-y-auto overscroll-contain pr-1">
-                            {maskedExamples.map((s) => (
-                                <li key={s} className="italic">&ldquo;{s}&rdquo;</li>
-                            ))}
-                        </ul>
-                    </div>
-                )}
+                <WordPracticeHints
+                    maskedExamples={maskedExamples}
+                    imageUrl={currentWord.imageUrl}
+                    showImageHints={showImageHints}
+                />
             </div>
 
             <div className="space-y-4 sm:space-y-6">
@@ -821,7 +856,7 @@ export default function VocabularyPractice({
     }
 
     return (
-        <div className="max-w-3xl mx-auto pb-safe">
+        <div className="max-w-4xl pb-safe">
             {/* Progress Bar */}
             <div className="mb-4 sm:mb-6">
                 <div className="flex items-center justify-between text-xs sm:text-sm font-medium text-muted-foreground mb-2">

@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Sparkles, Keyboard, CheckSquare, Volume2, MessageSquare } from "lucide-react";
+import { Sparkles, Keyboard, CheckSquare, Volume2, MessageSquare, ImageIcon } from "lucide-react";
 
 export type PracticeMode = "flashcard" | "typing" | "multiple-choice" | "listening";
 
@@ -14,6 +14,8 @@ export interface PracticeSettings {
     autoCheck: boolean;
     /** When true, show example sentences with the word replaced by *** to help guess. */
     showExampleHints: boolean;
+    /** When true, show the word's image (if any) next to example hints. */
+    showImageHints: boolean;
 }
 
 interface PracticeSettingsDialogProps {
@@ -32,6 +34,7 @@ export default function PracticeSettingsDialog({
     const [tempMode, setTempMode] = useState<PracticeMode>(currentSettings.mode);
     const [tempAutoCheck, setTempAutoCheck] = useState(currentSettings.autoCheck);
     const [tempShowExampleHints, setTempShowExampleHints] = useState(currentSettings.showExampleHints);
+    const [tempShowImageHints, setTempShowImageHints] = useState(currentSettings.showImageHints);
 
     // Update temp settings when dialog opens with current settings
     useEffect(() => {
@@ -40,6 +43,7 @@ export default function PracticeSettingsDialog({
                 setTempMode(currentSettings.mode);
                 setTempAutoCheck(currentSettings.autoCheck);
                 setTempShowExampleHints(currentSettings.showExampleHints);
+                setTempShowImageHints(currentSettings.showImageHints);
             }
         }
 
@@ -51,6 +55,7 @@ export default function PracticeSettingsDialog({
             mode: tempMode,
             autoCheck: tempAutoCheck,
             showExampleHints: tempShowExampleHints,
+            showImageHints: tempShowImageHints,
         };
         onSave(newSettings);
         onClose();
@@ -61,6 +66,7 @@ export default function PracticeSettingsDialog({
         setTempMode(currentSettings.mode);
         setTempAutoCheck(currentSettings.autoCheck);
         setTempShowExampleHints(currentSettings.showExampleHints);
+        setTempShowImageHints(currentSettings.showImageHints);
         onClose();
     };
 
@@ -174,6 +180,23 @@ export default function PracticeSettingsDialog({
                                 id="show-example-hints"
                                 checked={tempShowExampleHints}
                                 onCheckedChange={setTempShowExampleHints}
+                                className="data-[state=checked]:bg-green-500"
+                            />
+                        </div>
+                        <div className="flex items-start justify-between gap-4">
+                            <div className="flex-1">
+                                <Label htmlFor="show-image-hints" className="text-sm font-medium flex items-center gap-2">
+                                    <ImageIcon className="h-4 w-4 text-muted-foreground" />
+                                    Image hints
+                                </Label>
+                                <p className="text-xs text-muted-foreground mt-1">
+                                    Show a picture for the word next to example hints when available
+                                </p>
+                            </div>
+                            <Switch
+                                id="show-image-hints"
+                                checked={tempShowImageHints}
+                                onCheckedChange={setTempShowImageHints}
                                 className="data-[state=checked]:bg-green-500"
                             />
                         </div>
