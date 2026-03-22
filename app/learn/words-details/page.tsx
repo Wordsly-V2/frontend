@@ -66,8 +66,8 @@ export default function WordsDetailsPage() {
     }
 
     return (
-        <main className="min-h-dvh bg-gradient-to-b from-background via-background to-muted/30">
-            <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 md:py-8 max-w-3xl flex flex-col min-h-dvh">
+        <main className="bg-gradient-to-b from-background via-background to-muted/30">
+            <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 md:py-8 max-w-3xl flex flex-col">
                 <Button
                     variant="ghost"
                     onClick={handleBackToCourse}

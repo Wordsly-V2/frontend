@@ -89,8 +89,8 @@ export default function PracticePage() {
     const handleStartLearning = () => setPhase("practice");
 
     return (
-        <main className={phase === "intro" ? "min-h-dvh bg-gradient-to-b from-background via-background to-muted/30" : "bg-background flex flex-col"}>
-            <div className="container mx-auto px-3 sm:px-4 py-3 sm:py-6 max-w-4xl flex flex-col min-h-dvh">
+        <main className={phase === "intro" ? "bg-gradient-to-b from-background via-background to-muted/30" : "bg-background flex flex-col"}>
+            <div className="container mx-auto px-3 sm:px-4 py-3 sm:py-6 max-w-4xl flex flex-col">
                 <Button
                     variant="ghost"
                     onClick={handleBackToCourse}
