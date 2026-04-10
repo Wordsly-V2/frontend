@@ -168,6 +168,10 @@ export default function VocabularyPractice({
     const normalize = (value: string) =>
         value.trim().toLowerCase().replaceAll(/\s+/g, " ");
 
+    /** Like normalize but only trims leading whitespace so trailing spaces still count toward prefix match (needed for hints on multi-word answers). */
+    const normalizeForHintPrefix = (value: string) =>
+        value.trimStart().toLowerCase().replaceAll(/\s+/g, " ");
+
     // Helper function to calculate answer quality based on correctness and hints
     const calculateAnswerQuality = (isCorrect: boolean, hintsUsed: number = 0): AnswerQuality => {
         if (!isCorrect) {
@@ -223,8 +227,8 @@ export default function VocabularyPractice({
 
     // Calculate next hint
     const getNextHint = (): string => {
-        const correctWord = normalize(currentWord.word);
-        const currentInput = normalize(userAnswer);
+        const correctWord = normalizeForHintPrefix(currentWord.word.trim());
+        const currentInput = normalizeForHintPrefix(userAnswer);
 
         // Find the longest correct prefix
         let correctPrefixLength = 0;
