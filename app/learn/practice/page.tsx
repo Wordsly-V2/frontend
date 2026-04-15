@@ -6,6 +6,7 @@ import VocabularyPractice, { WordResult } from "@/components/features/vocabulary
 import { Button } from "@/components/ui/button";
 import { useGetWordsByIdsQuery } from "@/queries/words.query";
 import { useRecordAnswerMutation } from "@/queries/word-progress.query";
+import { fireCelebrationConfetti } from "@/lib/confetti";
 import { ArrowLeft } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -50,6 +51,7 @@ export default function PracticePage() {
     );
 
     const handleComplete = useCallback(() => {
+        fireCelebrationConfetti();
         toast.success("Practice completed!");
         router.replace(`/learn/courses/${courseId}`);
     }, [courseId, router]);

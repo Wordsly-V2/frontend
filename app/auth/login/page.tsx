@@ -25,10 +25,10 @@ function LoginContent() {
   }
 
   return (
-    <div className="min-h-dvh flex items-center justify-center bg-gradient-to-br from-primary/10 via-secondary/10 to-accent/10 p-4">
+    <div className="min-h-dvh flex items-center justify-center p-4 sm:p-6">
       <div className="w-full max-w-md animate-fade-up">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl gradient-brand mb-4 shadow-lg shadow-primary/30">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl gradient-brand mb-4 shadow-lg shadow-primary/25">
             <svg
               className="w-8 h-8 text-white"
               fill="none"
@@ -43,15 +43,15 @@ function LoginContent() {
               />
             </svg>
           </div>
-          <h1 className="text-4xl font-bold tracking-tight bg-gradient-to-r from-purple-600 to-blue-600 dark:from-purple-400 dark:to-blue-400 bg-clip-text text-transparent mb-2">
+          <h1 className="text-4xl font-bold tracking-tight text-foreground mb-2">
             Wordsly
           </h1>
           <p className="text-muted-foreground">
-            Welcome to Wordsly
+            Sign in to sync your courses and progress
           </p>
         </div>
 
-        <Card className="border-border shadow-2xl shadow-primary/10 backdrop-blur-sm bg-card/95">
+        <Card className="border-border/80 shadow-xl shadow-primary/5 bg-card/95 backdrop-blur-sm">
           <CardHeader className="space-y-1 pb-6">
             <CardTitle className="text-2xl font-semibold text-center">
               Sign In
@@ -63,10 +63,10 @@ function LoginContent() {
           <CardContent className="space-y-4">
             <a
               href={googleAuthUrl}
-              className="w-full h-11 text-base font-medium rounded-lg border-2 border-border hover:border-primary hover:bg-primary/5 transition-all duration-200 group inline-flex items-center justify-center gap-2"
+              className="w-full h-12 text-base font-medium rounded-xl border border-border/90 bg-background/80 hover:border-primary/40 hover:bg-primary/5 transition-colors duration-200 group inline-flex items-center justify-center gap-2"
             >
               <svg
-                className="h-5 w-5 transition-transform group-hover:scale-110"
+                className="h-5 w-5 text-muted-foreground group-hover:text-foreground transition-colors"
                 aria-hidden="true"
                 focusable="false"
                 xmlns="http://www.w3.org/2000/svg"

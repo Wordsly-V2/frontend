@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { BookOpen, GraduationCap, Settings, User, LogOut, LogIn, Smartphone } from "lucide-react";
+import { BookOpen, GraduationCap, Settings, User, LogOut, LogIn, Smartphone, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { MyWordsSearch } from "@/components/common/my-words-search";
 import {
@@ -27,6 +27,10 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useUser } from "@/hooks/useUser.hook";
 import { ChangeThemeToggle } from "@/components/common/change-theme-toggle/change-theme-toggle";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
+
+function openCommandPalette() {
+    globalThis.document.dispatchEvent(new Event("wordsly:open-command-palette"));
+}
 
 export default function AppNav() {
     const pathname = usePathname();
@@ -62,9 +66,9 @@ export default function AppNav() {
                         <DropdownMenuTrigger asChild>
                             <Button
                                 variant="ghost"
-                                className="relative h-8 w-8 sm:h-9 sm:w-9 rounded-full ring-2 ring-offset-2 ring-offset-background ring-primary/20 hover:ring-primary/40 transition-all hover:scale-110 p-0"
+                                className="relative h-9 w-9 sm:h-10 sm:w-10 rounded-full ring-2 ring-offset-2 ring-offset-background ring-primary/15 hover:ring-primary/35 transition-all p-0"
                             >
-                                <Avatar className="h-8 w-8 sm:h-9 sm:w-9">
+                                <Avatar className="h-9 w-9 sm:h-10 sm:w-10">
                                     <AvatarImage
                                         src={profile.pictureUrl ?? ''}
                                         alt={profile.displayName ?? ''}
@@ -152,7 +156,7 @@ export default function AppNav() {
 
         return (
             <Link href="/auth/login">
-                <Button size="sm" className="gap-1.5 sm:gap-2 rounded-lg gradient-brand text-white hover:opacity-90 transition-opacity shadow-lg shadow-primary/30 h-8 sm:h-9 px-2 sm:px-3">
+                <Button size="sm" className="gap-1.5 sm:gap-2 rounded-xl gradient-brand text-white hover:opacity-95 transition-opacity shadow-md h-9 sm:h-10 px-3 sm:px-4">
                     <LogIn className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                     <span className="text-xs sm:text-sm">Login</span>
                 </Button>
@@ -161,76 +165,96 @@ export default function AppNav() {
     };
 
     return (
-        <nav className="border-b border-border bg-card/80 backdrop-blur-md sticky top-0 z-50 shadow-sm">
-            <div className="container mx-auto px-3 sm:px-4">
-                <div className="flex items-center justify-between h-14 sm:h-16">
-                    {/* Logo */}
-                    <Link href="/" className="flex items-center gap-1.5 sm:gap-2 font-bold text-lg sm:text-xl hover:opacity-80 transition-opacity">
-                        <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg sm:rounded-xl gradient-brand flex items-center justify-center shadow-lg shadow-primary/30">
-                            <GraduationCap className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
-                        </div>
-                        <span className="hidden xs:inline">Wordsly</span>
-                    </Link>
+        <header className="sticky top-0 z-50 pt-safe">
+            <nav className="border-b border-border/60 bg-background/90 backdrop-blur-xl md:border-b-0 md:bg-transparent md:backdrop-blur-none">
+                <div className="container mx-auto px-3 sm:px-4 md:px-5 md:pt-3 md:pb-2">
+                    <div className="flex min-h-[3.25rem] sm:min-h-[3.5rem] items-center justify-between gap-2 md:rounded-2xl md:border md:border-border/60 md:bg-card/85 md:px-3 md:py-2 md:shadow-[0_12px_40px_-12px_rgba(15,23,42,0.12)] dark:md:shadow-[0_12px_40px_-12px_rgba(0,0,0,0.45)]">
+                        {/* Logo */}
+                        <Link
+                            href="/"
+                            className="flex min-w-0 shrink items-center gap-2 font-semibold text-base sm:text-lg tracking-tight hover:opacity-85 transition-opacity"
+                        >
+                            <div className="flex h-9 w-9 sm:h-10 sm:w-10 shrink-0 items-center justify-center rounded-xl gradient-brand shadow-md shadow-primary/20">
+                                <GraduationCap className="h-[1.15rem] w-[1.15rem] sm:h-5 sm:w-5 text-primary-foreground" />
+                            </div>
+                            <span className="hidden min-[380px]:inline truncate">Wordsly</span>
+                        </Link>
 
-                    {/* Center - Search + Mode Toggle */}
-                    {!isAuthPage && profile && (
-                        <div className="hidden md:flex items-center gap-3 absolute left-1/2 transform -translate-x-1/2">
-                            <MyWordsSearch />
-                            <Link href="/learn">
-                                <Button
-                                    variant={isLearnMode ? "default" : "ghost"}
-                                    size="sm"
-                                    className="gap-2 rounded-lg transition-all hover:scale-105"
-                                >
-                                    <BookOpen className="h-4 w-4" />
-                                    <span>Learn</span>
-                                </Button>
-                            </Link>
-                            <Link href="/manage">
-                                <Button
-                                    variant={isManageMode ? "default" : "ghost"}
-                                    size="sm"
-                                    className="gap-2 rounded-lg transition-all hover:scale-105"
-                                >
-                                    <Settings className="h-4 w-4" />
-                                    <span>Manage</span>
-                                </Button>
-                            </Link>
-                        </div>
-                    )}
-
-                    {/* Right - User Menu */}
-                    <div className="flex items-center gap-1.5 sm:gap-3">
-                        {/* Mobile: Search + Mode Toggle */}
+                        {/* Center - Search + Mode Toggle (desktop) */}
                         {!isAuthPage && profile && (
-                            <div className="flex md:hidden items-center gap-1">
-                                <MyWordsSearch className="max-w-[140px]" />
-                                <Link href="/learn">
-                                    <Button
-                                        variant={isLearnMode ? "default" : "ghost"}
-                                        size="sm"
-                                        className="h-8 w-8 p-0"
-                                    >
-                                        <BookOpen className="h-4 w-4" />
-                                    </Button>
-                                </Link>
-                                <Link href="/manage">
-                                    <Button
-                                        variant={isManageMode ? "default" : "ghost"}
-                                        size="sm"
-                                        className="h-8 w-8 p-0"
-                                    >
-                                        <Settings className="h-4 w-4" />
-                                    </Button>
-                                </Link>
+                            <div className="hidden min-[900px]:flex absolute left-1/2 -translate-x-1/2 items-center gap-2">
+                                <MyWordsSearch />
+                                <div className="flex items-center rounded-xl border border-border/70 bg-muted/40 p-0.5 dark:bg-muted/25">
+                                    <Link href="/learn">
+                                        <Button
+                                            variant={isLearnMode ? "default" : "ghost"}
+                                            size="sm"
+                                            className={`gap-1.5 rounded-lg px-3 ${isLearnMode ? "shadow-sm" : ""}`}
+                                        >
+                                            <BookOpen className="h-4 w-4" />
+                                            <span>Learn</span>
+                                        </Button>
+                                    </Link>
+                                    <Link href="/manage">
+                                        <Button
+                                            variant={isManageMode ? "default" : "ghost"}
+                                            size="sm"
+                                            className={`gap-1.5 rounded-lg px-3 ${isManageMode ? "shadow-sm" : ""}`}
+                                        >
+                                            <Settings className="h-4 w-4" />
+                                            <span>Manage</span>
+                                        </Button>
+                                    </Link>
+                                </div>
                             </div>
                         )}
 
-                        {/* User Profile or Login */}
-                        {renderUserSection()}
+                        {/* Right + mobile center */}
+                        <div className="flex items-center gap-1 sm:gap-2">
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                className="h-9 gap-1.5 rounded-xl text-muted-foreground hover:text-foreground cursor-pointer"
+                                onClick={openCommandPalette}
+                                aria-label="Open command palette"
+                            >
+                                <Search className="h-4 w-4 shrink-0" />
+                                <kbd className="pointer-events-none hidden sm:inline-flex h-6 select-none items-center rounded-md border border-border/80 bg-muted/80 px-1.5 font-mono text-[10px] font-medium text-muted-foreground">
+                                    ⌘K
+                                </kbd>
+                            </Button>
+                            {!isAuthPage && profile && (
+                                <div className="flex min-[900px]:hidden items-center gap-1">
+                                    <MyWordsSearch className="max-w-[min(42vw,11rem)] sm:max-w-[200px]" />
+                                    <Link href="/learn" className="shrink-0">
+                                        <Button
+                                            variant={isLearnMode ? "default" : "ghost"}
+                                            size="sm"
+                                            className="h-9 w-9 p-0 rounded-xl"
+                                            aria-current={isLearnMode ? "page" : undefined}
+                                        >
+                                            <BookOpen className="h-4 w-4" />
+                                        </Button>
+                                    </Link>
+                                    <Link href="/manage" className="shrink-0">
+                                        <Button
+                                            variant={isManageMode ? "default" : "ghost"}
+                                            size="sm"
+                                            className="h-9 w-9 p-0 rounded-xl"
+                                            aria-current={isManageMode ? "page" : undefined}
+                                        >
+                                            <Settings className="h-4 w-4" />
+                                        </Button>
+                                    </Link>
+                                </div>
+                            )}
+
+                            {renderUserSection()}
+                        </div>
                     </div>
                 </div>
-            </div>
-        </nav>
+            </nav>
+        </header>
     );
 }

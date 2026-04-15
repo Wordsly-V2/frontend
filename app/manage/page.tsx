@@ -43,13 +43,15 @@ export default function ManagePage() {
     };
 
     return (
-        <main className="min-h-dvh bg-background">
-            <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 md:py-8 max-w-7xl">
-                {/* Header */}
-                <div className="mb-6 sm:mb-8">
-                    <h1 className="text-2xl sm:text-3xl font-bold tracking-tight mb-1 sm:mb-2">Management Dashboard</h1>
-                    <p className="text-sm sm:text-base text-muted-foreground">
-                        Create, edit, and organize your learning content
+        <main className="min-h-dvh">
+            <div className="container mx-auto max-w-7xl px-3 pb-10 pt-5 sm:px-4 sm:pb-12 sm:pt-6 md:py-8">
+                <div className="mb-8 sm:mb-10">
+                    <p className="mb-1 text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+                        Studio
+                    </p>
+                    <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">Manage</h1>
+                    <p className="mt-2 max-w-2xl text-sm text-muted-foreground sm:text-base">
+                        Create courses, edit lessons, and organize your vocabulary.
                     </p>
                 </div>
 

@@ -1,64 +1,36 @@
-'use client';
+"use client";
 
-import { getLocalStorageItem, setLocalStorageItem, THEME_STORAGE_KEY } from '@/lib/local-storage';
-import { useState, useEffect } from 'react';
+import { useTheme as useNextThemes } from "next-themes";
+import { useEffect, useState } from "react";
 
-type Theme = 'light' | 'dark';
+type Theme = "light" | "dark";
 
+/**
+ * Wraps next-themes for compatibility with existing components (mounted, isDark, toggle).
+ */
 export function useTheme() {
-    const [theme, setTheme] = useState<Theme>('light');
+    const { theme, setTheme, resolvedTheme } = useNextThemes();
     const [mounted, setMounted] = useState(false);
 
     useEffect(() => {
-        setTimeout(() => {
-            setMounted(true);
-            // Check initial theme from localStorage or system preference
-            const raw = getLocalStorageItem(THEME_STORAGE_KEY);
-            const storedTheme =
-                raw === 'dark' || raw === 'light' ? (raw as Theme) : null;
-            const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-            const initialTheme = storedTheme || systemTheme;
-            
-            setTheme(initialTheme);
-            
-            if (initialTheme === 'dark') {
-                document.documentElement.classList.add('dark');
-            } else {
-                document.documentElement.classList.remove('dark');
-            }
-        }, 0);
+        setMounted(true);
     }, []);
 
+    const isDark = resolvedTheme === "dark";
+
     const toggleTheme = () => {
-        const newTheme = theme === 'dark' ? 'light' : 'dark';
-        setTheme(newTheme);
-        
-        if (newTheme === 'dark') {
-            document.documentElement.classList.add('dark');
-        } else {
-            document.documentElement.classList.remove('dark');
-        }
-        
-        setLocalStorageItem(THEME_STORAGE_KEY, newTheme);
+        setTheme(isDark ? "light" : "dark");
     };
 
     const setThemeMode = (newTheme: Theme) => {
         setTheme(newTheme);
-        
-        if (newTheme === 'dark') {
-            document.documentElement.classList.add('dark');
-        } else {
-            document.documentElement.classList.remove('dark');
-        }
-        
-        setLocalStorageItem(THEME_STORAGE_KEY, newTheme);
     };
 
     return {
-        theme,
+        theme: (resolvedTheme === "dark" || resolvedTheme === "light" ? resolvedTheme : theme) as Theme | undefined,
         toggleTheme,
         setTheme: setThemeMode,
         mounted,
-        isDark: theme === 'dark',
+        isDark,
     };
 }

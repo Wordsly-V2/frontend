@@ -22,7 +22,7 @@ export default function CourseCard({ course }: Readonly<CourseCardProps>) {
 
     return (
         <Link href={`/learn/courses/${course.id}`} className="block group">
-            <div className="bg-card rounded-xl shadow-sm overflow-hidden border border-border card-hover">
+            <div className="bg-card rounded-2xl overflow-hidden border border-border/80 card-hover shadow-sm">
                 {/* Image */}
                 <div className="relative h-40 sm:h-48 w-full overflow-hidden bg-muted">
                     {course.coverImageUrl ? (
@@ -30,7 +30,7 @@ export default function CourseCard({ course }: Readonly<CourseCardProps>) {
                             src={course.coverImageUrl}
                             alt={course.name}
                             fill
-                            className="object-cover group-hover:scale-105 transition-transform duration-300"
+                            className="object-cover transition duration-300 group-hover:brightness-[0.97]"
                         />
                     ) : (
                         <div className="w-full h-full flex items-center justify-center gradient-brand">
@@ -82,7 +82,7 @@ export default function CourseCard({ course }: Readonly<CourseCardProps>) {
                         </div>
                         <div className="h-1.5 bg-muted rounded-full overflow-hidden">
                             <div
-                                className="h-full bg-gradient-to-r from-primary to-purple-600 rounded-full transition-all duration-500"
+                                className="h-full rounded-full bg-gradient-to-r from-primary to-[var(--brand-accent)] transition-all duration-500"
                                 style={{ width: `${progressPercent}%` }}
                             />
                         </div>

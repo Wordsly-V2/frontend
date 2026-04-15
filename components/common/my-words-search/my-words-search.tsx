@@ -8,9 +8,16 @@ import { useDebounce } from "@/hooks/useDebounce";
 import { useLangeekWordDetailsQuery, useSearchWordsQuery } from "@/queries/dictionary.query";
 import { useGetWordsByIdsQuery, useSearchMyWordsQuery } from "@/queries/words.query";
 import { IUserWordSearchResult, IWordSearchResult, WordDetailView } from "@/types/courses/courses.type";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import { Search } from "lucide-react";
 import Image from "next/image";
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
+
+type SearchResultRow =
+    | { t: "h"; id: string; label: string }
+    | { t: "u"; id: string; item: IUserWordSearchResult }
+    | { t: "d"; id: string; item: IWordSearchResult; idx: number }
+    | { t: "e"; id: string; message: string };
 
 function langeekToWordDetailView(d: {
     word: string;
@@ -51,6 +58,7 @@ export function MyWordsSearch({
     const { data: dictWords, isLoading: isDictLoading } = useSearchWordsQuery(debouncedQuery, true);
     const [open, setOpen] = useState(false);
     const containerRef = useRef<HTMLDivElement>(null);
+    const scrollParentRef = useRef<HTMLDivElement>(null);
 
     const [detailUserWord, setDetailUserWord] = useState<IUserWordSearchResult | null>(null);
     const [detailDictWord, setDetailDictWord] = useState<IWordSearchResult | null>(null);
@@ -108,6 +116,43 @@ export function MyWordsSearch({
         setOpen(false);
     };
 
+    const resultRows = useMemo((): SearchResultRow[] => {
+        if (isLoading || myWords === undefined || dictWords === undefined) {
+            return [];
+        }
+        const out: SearchResultRow[] = [];
+        out.push({ t: "h", id: "sec-your", label: "Your words" });
+        if (hasMyWords && myWords) {
+            for (const item of myWords) {
+                out.push({ t: "u", id: item.id, item });
+            }
+        } else {
+            out.push({ t: "e", id: "empty-your", message: "No words found" });
+        }
+        out.push({ t: "h", id: "sec-dict", label: "Dictionary" });
+        if (hasDictWords && dictWords) {
+            dictWords.forEach((item, idx) => {
+                out.push({ t: "d", id: `${item.langeekWordId}-${idx}`, item, idx });
+            });
+        } else {
+            out.push({ t: "e", id: "empty-dict", message: "No results" });
+        }
+        return out;
+    }, [hasMyWords, hasDictWords, myWords, dictWords, isLoading]);
+
+    const rowVirtualizer = useVirtualizer({
+        count: resultRows.length,
+        getScrollElement: () => scrollParentRef.current,
+        estimateSize: (index) => {
+            const row = resultRows[index];
+            if (!row) return 48;
+            if (row.t === "h") return 30;
+            if (row.t === "e") return 40;
+            return 84;
+        },
+        overscan: 8,
+    });
+
     return (
         <div className={`relative min-w-0 max-w-[220px] sm:max-w-[280px] ${className ?? ""}`} ref={containerRef}>
             <div className="relative">
@@ -126,32 +171,54 @@ export function MyWordsSearch({
                 />
             </div>
             {showList && (
-                <div className="absolute top-full left-0 right-0 z-50 mt-1 rounded-lg border bg-popover shadow-lg max-h-72 overflow-y-auto">
+                <div className="absolute top-full left-0 right-0 z-50 mt-1 rounded-lg border bg-popover shadow-lg">
                     {isLoading && (
                         <div className="flex items-center justify-center gap-2 p-4 text-sm text-muted-foreground">
                             <LoadingSpinner size="sm" label="Searching..." />
                         </div>
                     )}
                     {!isLoading && (
-                        <>
-                            {/* Your words section */}
-                            <div className="py-1">
-                                <p className="px-3 py-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider border-b border-border/50">
-                                    Your words
-                                </p>
-                                {hasMyWords ? (
-                                    <ul>
-                                        {myWords!.map((item) => (
-                                            <li key={item.id}>
+                        <div
+                            ref={scrollParentRef}
+                            className="max-h-72 overflow-y-auto overscroll-contain py-1"
+                        >
+                            <div
+                                className="relative w-full"
+                                style={{ height: `${rowVirtualizer.getTotalSize()}px` }}
+                            >
+                                {rowVirtualizer.getVirtualItems().map((virtualRow) => {
+                                    const row = resultRows[virtualRow.index];
+                                    if (!row) return null;
+                                    return (
+                                        <div
+                                            key={virtualRow.key}
+                                            data-index={virtualRow.index}
+                                            ref={rowVirtualizer.measureElement}
+                                            className="absolute top-0 left-0 w-full border-b border-border/40 last:border-b-0"
+                                            style={{
+                                                transform: `translateY(${virtualRow.start}px)`,
+                                            }}
+                                        >
+                                            {row.t === "h" && (
+                                                <p className="px-3 py-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                                                    {row.label}
+                                                </p>
+                                            )}
+                                            {row.t === "e" && (
+                                                <div className="px-3 py-2 text-sm text-muted-foreground">
+                                                    {row.message}
+                                                </div>
+                                            )}
+                                            {row.t === "u" && (
                                                 <button
                                                     type="button"
-                                                    className="w-full px-3 py-2.5 text-left text-sm hover:bg-muted focus:bg-muted focus:outline-none border-b border-border/50 last:border-b-0 flex gap-2.5"
-                                                    onClick={() => handleSelectUserWord(item)}
+                                                    className="w-full px-3 py-2.5 text-left text-sm hover:bg-muted focus:bg-muted focus:outline-none flex gap-2.5 cursor-pointer"
+                                                    onClick={() => handleSelectUserWord(row.item)}
                                                 >
-                                                    {item.imageUrl && (
+                                                    {row.item.imageUrl && (
                                                         <span className="relative flex-shrink-0 w-9 h-9 rounded-md overflow-hidden bg-muted border">
                                                             <Image
-                                                                src={item.imageUrl}
+                                                                src={row.item.imageUrl}
                                                                 alt=""
                                                                 fill
                                                                 loading="lazy"
@@ -162,48 +229,34 @@ export function MyWordsSearch({
                                                     )}
                                                     <span className="min-w-0 flex-1">
                                                         <div className="flex items-baseline gap-2 flex-wrap">
-                                                            <span className="font-medium">{item.word}</span>
-                                                            {item.partOfSpeech && (
+                                                            <span className="font-medium">{row.item.word}</span>
+                                                            {row.item.partOfSpeech && (
                                                                 <span className="text-xs text-muted-foreground italic">
-                                                                    {item.partOfSpeech}
+                                                                    {row.item.partOfSpeech}
                                                                 </span>
                                                             )}
                                                         </div>
-                                                        {item.meaning && (
+                                                        {row.item.meaning && (
                                                             <p className="mt-0.5 text-muted-foreground text-xs line-clamp-2">
-                                                                {item.meaning}
+                                                                {row.item.meaning}
                                                             </p>
                                                         )}
                                                         <p className="mt-1 text-xs text-muted-foreground/80">
-                                                            {item.courseName} · {item.lessonName}
+                                                            {row.item.courseName} · {row.item.lessonName}
                                                         </p>
                                                     </span>
                                                 </button>
-                                            </li>
-                                        ))}
-                                    </ul>
-                                ) : (
-                                    <div className="px-3 py-2 text-sm text-muted-foreground">No words found</div>
-                                )}
-                            </div>
-                            {/* Dictionary section */}
-                            <div className="py-1">
-                                <p className="px-3 py-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider border-b border-border/50">
-                                    Dictionary
-                                </p>
-                                {hasDictWords ? (
-                                    <ul>
-                                        {dictWords!.map((item, idx) => (
-                                            <li key={`${item.langeekWordId}-${idx}`}>
+                                            )}
+                                            {row.t === "d" && (
                                                 <button
                                                     type="button"
-                                                    className="w-full px-3 py-2.5 text-left text-sm hover:bg-muted focus:bg-muted focus:outline-none border-b border-border/50 last:border-b-0 flex gap-2.5"
-                                                    onClick={() => handleSelectDictWord(item)}
+                                                    className="w-full px-3 py-2.5 text-left text-sm hover:bg-muted focus:bg-muted focus:outline-none flex gap-2.5 cursor-pointer"
+                                                    onClick={() => handleSelectDictWord(row.item)}
                                                 >
-                                                    {item.imageUrl && (
+                                                    {row.item.imageUrl && (
                                                         <span className="relative flex-shrink-0 w-9 h-9 rounded-md overflow-hidden bg-muted border">
                                                             <Image
-                                                                src={item.imageUrl}
+                                                                src={row.item.imageUrl}
                                                                 alt=""
                                                                 fill
                                                                 loading="lazy"
@@ -214,28 +267,26 @@ export function MyWordsSearch({
                                                     )}
                                                     <span className="min-w-0 flex-1">
                                                         <div className="flex items-baseline gap-2 flex-wrap">
-                                                            <span className="font-medium">{item.word}</span>
-                                                            {item.partOfSpeech && (
+                                                            <span className="font-medium">{row.item.word}</span>
+                                                            {row.item.partOfSpeech && (
                                                                 <span className="text-xs text-muted-foreground italic">
-                                                                    {item.partOfSpeech}
+                                                                    {row.item.partOfSpeech}
                                                                 </span>
                                                             )}
                                                         </div>
-                                                        {item.meaning && (
+                                                        {row.item.meaning && (
                                                             <p className="mt-0.5 text-muted-foreground text-xs line-clamp-2">
-                                                                {item.meaning}
+                                                                {row.item.meaning}
                                                             </p>
                                                         )}
                                                     </span>
                                                 </button>
-                                            </li>
-                                        ))}
-                                    </ul>
-                                ) : (
-                                    <div className="px-3 py-2 text-sm text-muted-foreground">No results</div>
-                                )}
+                                            )}
+                                        </div>
+                                    );
+                                })}
                             </div>
-                        </>
+                        </div>
                     )}
                 </div>
             )}

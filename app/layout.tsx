@@ -1,8 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import { THEME_STORAGE_KEY } from "@/lib/local-storage";
-import Script from "next/script";
 import AppNav from "@/components/common/app-nav/app-nav";
 import { Providers } from "./Providers";
 import { Toaster } from "@/components/ui/sonner";
@@ -36,25 +34,8 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <head>
-        <Script
-          id="theme-script"
-          strategy="beforeInteractive"
-          dangerouslySetInnerHTML={{
-            __html: `
-              try {
-                if (localStorage.getItem('${THEME_STORAGE_KEY}') === 'dark' || (!('${THEME_STORAGE_KEY}' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-                  document.documentElement.classList.add('dark')
-                } else {
-                  document.documentElement.classList.remove('dark')
-                }
-              } catch (_) {}
-            `,
-          }}
-        />
-      </head>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} mesh-page-bg min-h-dvh`}
       >
         <Providers>
           <AppNav />

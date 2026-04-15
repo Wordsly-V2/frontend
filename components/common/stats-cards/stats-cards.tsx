@@ -43,7 +43,7 @@ export function getCourseTotalStatsItems(
             label: "Words",
             value: stats?.totalWords ?? 0,
             icon: <MessageSquare className="text-white" />,
-            iconClassName: "bg-gradient-to-br from-green-500 to-emerald-600",
+            iconClassName: "gradient-success",
         },
     ];
 }
@@ -91,7 +91,8 @@ export default function StatsCards({
                         </div>
                     </div>
                 );
-                const cardClassName = "w-full text-left bg-card border-2 border-border rounded-xl sm:rounded-2xl p-4 sm:p-6 hover:border-primary/50 transition-all cursor-pointer card-hover";
+                const cardClassName =
+                    "w-full text-left bg-card border border-border/80 rounded-2xl p-4 sm:p-6 hover:border-primary/30 transition-all cursor-pointer card-hover shadow-sm";
                 return onCardClick ? (
                     <button
                         key={item.id}

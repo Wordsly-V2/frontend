@@ -37,7 +37,7 @@ export function ChangeThemeToggle() {
             <Switch
                 checked={isDark}
                 onCheckedChange={toggleTheme}
-                aria-label={isDark ? 'Chuyển sang chế độ sáng' : 'Chuyển sang chế độ tối'}
+                aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
             />
 
             {/* Moon icon - Dark mode indicator */}

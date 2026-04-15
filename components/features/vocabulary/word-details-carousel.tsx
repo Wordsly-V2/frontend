@@ -1,13 +1,18 @@
 'use client';
 
 import WordProgressBadge from '@/components/common/word-progress-stats/word-progress-badge';
+import { WordPlaybackSettings } from '@/components/features/vocabulary/word-playback-settings';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+} from '@/components/ui/tooltip';
+import type { WordDetailsAutoNextFormValues } from '@/lib/schemas/word-details-auto-next';
 import { IWord } from '@/types/courses/courses.type';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, SlidersHorizontal } from 'lucide-react';
 import { getLocalStorageItem, setLocalStorageItem } from '@/lib/local-storage';
+import { motion, useReducedMotion } from 'motion/react';
 import { startTransition, useCallback, useEffect, useRef, useState } from 'react';
 import type { Swiper as SwiperType } from 'swiper';
 import { Keyboard } from 'swiper/modules';
@@ -102,6 +107,8 @@ export default function WordDetailsCarousel({
     const delayBetweenWordsSec = autoNextSettings.delaySec;
     const autoAdvanceRef = useRef(false);
     const swiperRef = useRef<SwiperType | null>(null);
+    const reduceMotion = useReducedMotion();
+    const [playbackOpen, setPlaybackOpen] = useState(false);
     const count = words.length;
     const effectiveIndex = count > 0 ? Math.min(index, count - 1) : 0;
     const word = count > 0 ? words[effectiveIndex] : null;
@@ -112,6 +119,13 @@ export default function WordDetailsCarousel({
 
     const goPrev = useCallback(() => {
         swiperRef.current?.slidePrev();
+    }, []);
+
+    const handlePlaybackSave = useCallback((next: WordDetailsAutoNextFormValues) => {
+        setAutoNextSettings({
+            enabled: next.enabled,
+            delaySec: clampDelayBetweenWordsSec(next.delaySec),
+        });
     }, []);
 
     const handleSlideChange = useCallback((swiper: SwiperType) => {
@@ -205,79 +219,87 @@ export default function WordDetailsCarousel({
         <div className={`flex flex-col min-h-0 flex-1 gap-4 ${className}`}>
             {/* Nav + optional header — shrink-0 so card gets remaining space */}
             <div className='flex items-center justify-between gap-4 flex-wrap shrink-0'>
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <Button
+                            type='button'
+                            variant='outline'
+                            size={navVariant === 'minimal' ? 'icon' : 'default'}
+                            onClick={goPrev}
+                            aria-label='Previous word'
+                            className='shrink-0 cursor-pointer'
+                        >
+                            <ChevronLeft className='h-5 w-5 sm:mr-1' />
+                            {navVariant !== 'minimal' && (
+                                <span className='hidden sm:inline'>Previous</span>
+                            )}
+                        </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side='bottom'>Previous word (←)</TooltipContent>
+                </Tooltip>
+                {headerSlot ? (
+                    <motion.div
+                        key={effectiveIndex}
+                        initial={reduceMotion ? false : { opacity: 0.65, y: 4 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={
+                            reduceMotion ? { duration: 0 } : { duration: 0.22, ease: [0.22, 1, 0.36, 1] }
+                        }
+                        className='min-w-0 flex-1 flex justify-center'
+                    >
+                        {headerSlot}
+                    </motion.div>
+                ) : (
+                    <div className='min-w-0 flex-1' aria-hidden />
+                )}
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <Button
+                            type='button'
+                            variant='outline'
+                            size={navVariant === 'minimal' ? 'icon' : 'default'}
+                            onClick={goNext}
+                            aria-label='Next word'
+                            className='shrink-0 cursor-pointer'
+                        >
+                            {navVariant !== 'minimal' && (
+                                <span className='hidden sm:inline'>Next</span>
+                            )}
+                            <ChevronRight className='h-5 w-5 sm:ml-1' />
+                        </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side='bottom'>Next word (→)</TooltipContent>
+                </Tooltip>
+            </div>
+
+            <div className='flex flex-wrap items-center justify-center gap-3 shrink-0'>
+                <p className='text-sm text-muted-foreground tabular-nums'>
+                    {autoAdvanceNext
+                        ? `Auto on · ${delayBetweenWordsSec}s pause`
+                        : 'Auto next off'}
+                </p>
                 <Button
                     type='button'
                     variant='outline'
-                    size={navVariant === 'minimal' ? 'icon' : 'default'}
-                    onClick={goPrev}
-                    aria-label='Previous word'
-                    className='shrink-0'
+                    size='sm'
+                    className='cursor-pointer gap-1.5'
+                    onClick={() => setPlaybackOpen(true)}
+                    aria-label='Open playback settings'
                 >
-                    <ChevronLeft className='h-5 w-5 sm:mr-1' />
-                    {navVariant !== 'minimal' && (
-                        <span className='hidden sm:inline'>Previous</span>
-                    )}
-                </Button>
-                {headerSlot}
-                <Button
-                    type='button'
-                    variant='outline'
-                    size={navVariant === 'minimal' ? 'icon' : 'default'}
-                    onClick={goNext}
-                    aria-label='Next word'
-                    className='shrink-0'
-                >
-                    {navVariant !== 'minimal' && (
-                        <span className='hidden sm:inline'>Next</span>
-                    )}
-                    <ChevronRight className='h-5 w-5 sm:ml-1' />
+                    <SlidersHorizontal className='h-4 w-4' />
+                    Playback
                 </Button>
             </div>
 
-            <div className='flex flex-wrap items-center justify-center gap-x-4 gap-y-2 shrink-0'>
-                <div className='flex items-center gap-2'>
-                    <Switch
-                        id='word-details-auto-next'
-                        checked={autoAdvanceNext}
-                        onCheckedChange={(checked) =>
-                            setAutoNextSettings((s) => ({ ...s, enabled: checked }))
-                        }
-                        aria-label='Automatically go to the next word'
-                    />
-                    <Label
-                        htmlFor='word-details-auto-next'
-                        className='text-sm font-normal text-muted-foreground cursor-pointer'
-                    >
-                        Auto next
-                    </Label>
-                </div>
-                <div className='flex items-center gap-2'>
-                    <Label
-                        htmlFor='word-details-delay-sec'
-                        className='text-sm font-normal text-muted-foreground whitespace-nowrap'
-                    >
-                        Delay (sec)
-                    </Label>
-                    <Input
-                        id='word-details-delay-sec'
-                        type='number'
-                        min={DELAY_BETWEEN_WORDS_MIN_SEC}
-                        max={DELAY_BETWEEN_WORDS_MAX_SEC}
-                        step={1}
-                        value={delayBetweenWordsSec}
-                        onChange={(e) => {
-                            const n = Number.parseInt(e.target.value, 10);
-                            if (Number.isNaN(n)) return;
-                            setAutoNextSettings((s) => ({
-                                ...s,
-                                delaySec: clampDelayBetweenWordsSec(n),
-                            }));
-                        }}
-                        className='h-9 w-[4.5rem] tabular-nums'
-                        aria-label='Seconds to wait before the next word when there is no audio'
-                    />
-                </div>
-            </div>
+            <WordPlaybackSettings
+                open={playbackOpen}
+                onOpenChange={setPlaybackOpen}
+                value={{
+                    enabled: autoAdvanceNext,
+                    delaySec: delayBetweenWordsSec,
+                }}
+                onSave={handlePlaybackSave}
+            />
 
             {/* Word progress stats (when available) */}
             {word?.wordProgress && (

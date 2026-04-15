@@ -6,12 +6,14 @@ import { Button } from "@/components/ui/button";
 import { useGetWordsByIdsQuery } from "@/queries/words.query";
 import { ArrowLeft, BookOpen } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { motion, useReducedMotion } from "motion/react";
 import { useEffect, useState } from "react";
 
 export default function WordsDetailsPage() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const [currentIndex, setCurrentIndex] = useState(0);
+    const reduceMotion = useReducedMotion();
 
     const courseName = searchParams.get("courseName") ?? "";
     const courseId = searchParams.get("courseId") ?? "";
@@ -79,16 +81,30 @@ export default function WordsDetailsPage() {
                 </Button>
 
                 <header className="text-center mb-6 sm:mb-8 flex-shrink-0">
-                    <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
+                    <motion.h1
+                        className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground"
+                        initial={reduceMotion ? false : { opacity: 0, y: 6 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={
+                            reduceMotion ? { duration: 0 } : { duration: 0.28, ease: [0.22, 1, 0.36, 1] }
+                        }
+                    >
                         Word details
-                    </h1>
-                    <p className="mt-1.5 text-sm sm:text-base text-muted-foreground">
+                    </motion.h1>
+                    <motion.p
+                        className="mt-1.5 text-sm sm:text-base text-muted-foreground"
+                        initial={reduceMotion ? false : { opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={
+                            reduceMotion ? { duration: 0 } : { duration: 0.28, delay: 0.05 }
+                        }
+                    >
                         {courseName && (
                             <span className="font-medium text-foreground/80">{courseName}</span>
                         )}
                         {courseName && " · "}
                         <span>{words.length} word{words.length === 1 ? "" : "s"}</span>
-                    </p>
+                    </motion.p>
                 </header>
 
                 <section className="flex-1 flex flex-col min-h-0">

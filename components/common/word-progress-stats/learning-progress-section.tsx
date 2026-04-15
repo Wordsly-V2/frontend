@@ -66,7 +66,7 @@ export default function LearningProgressSection({
         displayStats.totalWords > 0 ? (startedCount / displayStats.totalWords) * 100 : 0;
 
     const cardHoverClass = isClickable
-        ? "cursor-pointer hover:shadow-md hover:scale-[1.02] transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded-lg sm:rounded-xl"
+        ? "cursor-pointer hover:shadow-md hover:border-primary/25 transition-[box-shadow,border-color] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded-xl"
         : "";
 
     const CardWrapper = isClickable ? "button" : "div";
@@ -76,80 +76,68 @@ export default function LearningProgressSection({
 
     return (
         <div className={sectionClassName}>
-            <div className="flex items-center gap-2 mb-4 sm:mb-6">
-                <Brain className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
-                <h2 className="text-lg sm:text-xl font-semibold">{title}</h2>
+            <div className="mb-4 flex items-center gap-2 sm:mb-6">
+                <Brain className="h-5 w-5 text-primary sm:h-6 sm:w-6" />
+                <h2 className="text-lg font-semibold sm:text-xl">{title}</h2>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-6">
                 <CardWrapper
-                    className={`w-full text-left bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/30 dark:to-blue-900/30 rounded-lg sm:rounded-xl p-3 sm:p-4 border border-blue-200 dark:border-blue-800 ${cardHoverClass}`}
+                    className={`w-full border border-border/70 border-l-4 border-l-primary bg-muted/30 p-3 text-left dark:bg-muted/15 sm:p-4 ${cardHoverClass}`}
                     {...cardWrapperProps}
                 >
-                    <div className="text-xs sm:text-sm font-medium text-blue-700 dark:text-blue-300 mb-1">
-                        Total Words
-                    </div>
-                    <div className="text-blue-900 dark:text-blue-100">
+                    <div className="mb-1 text-xs font-medium text-muted-foreground sm:text-sm">Total words</div>
+                    <div className="text-foreground">
                         <StatValue isLoading={isLoading} isError={isError} value={displayStats.totalWords} />
                     </div>
                 </CardWrapper>
 
                 <CardWrapper
-                    className={`w-full text-left bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950/30 dark:to-green-900/30 rounded-lg sm:rounded-xl p-3 sm:p-4 border border-green-200 dark:border-green-800 ${cardHoverClass}`}
+                    className={`w-full border border-border/70 border-l-4 border-l-emerald-500/90 bg-muted/30 p-3 text-left dark:bg-muted/15 sm:p-4 ${cardHoverClass}`}
                     {...cardWrapperProps}
                 >
-                    <div className="text-xs sm:text-sm font-medium text-green-700 dark:text-green-300 mb-1">
-                        New
-                    </div>
-                    <div className="text-green-900 dark:text-green-100">
+                    <div className="mb-1 text-xs font-medium text-muted-foreground sm:text-sm">New</div>
+                    <div className="text-foreground">
                         <StatValue isLoading={isLoading} isError={isError} value={displayStats.newWords} />
                     </div>
                 </CardWrapper>
 
                 <CardWrapper
-                    className={`w-full text-left bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-950/30 dark:to-orange-900/30 rounded-lg sm:rounded-xl p-3 sm:p-4 border border-orange-200 dark:border-orange-800 ${cardHoverClass}`}
+                    className={`w-full border border-border/70 border-l-4 border-l-amber-500/90 bg-muted/30 p-3 text-left dark:bg-muted/15 sm:p-4 ${cardHoverClass}`}
                     {...cardWrapperProps}
                 >
-                    <div className="text-xs sm:text-sm font-medium text-orange-700 dark:text-orange-300 mb-1">
-                        Learning
-                    </div>
-                    <div className="text-orange-900 dark:text-orange-100">
+                    <div className="mb-1 text-xs font-medium text-muted-foreground sm:text-sm">Learning</div>
+                    <div className="text-foreground">
                         <StatValue isLoading={isLoading} isError={isError} value={displayStats.learningWords} />
                     </div>
                 </CardWrapper>
 
                 <CardWrapper
-                    className={`w-full text-left bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950/30 dark:to-purple-900/30 rounded-lg sm:rounded-xl p-3 sm:p-4 border border-purple-200 dark:border-purple-800 ${cardHoverClass}`}
+                    className={`w-full border border-border/70 border-l-4 border-l-sky-500/90 bg-muted/30 p-3 text-left dark:bg-muted/15 sm:p-4 ${cardHoverClass}`}
                     {...cardWrapperProps}
                 >
-                    <div className="text-xs sm:text-sm font-medium text-purple-700 dark:text-purple-300 mb-1">
-                        Review
-                    </div>
-                    <div className="text-purple-900 dark:text-purple-100">
+                    <div className="mb-1 text-xs font-medium text-muted-foreground sm:text-sm">Review</div>
+                    <div className="text-foreground">
                         <StatValue isLoading={isLoading} isError={isError} value={displayStats.reviewWords} />
                     </div>
                 </CardWrapper>
 
                 <CardWrapper
-                    className={`w-full text-left bg-gradient-to-br from-red-50 to-red-100 dark:from-red-950/30 dark:to-red-900/30 rounded-lg sm:rounded-xl p-3 sm:p-4 border border-red-200 dark:border-red-800 ${cardHoverClass}`}
+                    className={`w-full border border-border/70 border-l-4 border-l-rose-500/90 bg-muted/30 p-3 text-left dark:bg-muted/15 sm:p-4 ${cardHoverClass}`}
                     {...cardWrapperProps}
                 >
-                    <div className="text-xs sm:text-sm font-medium text-red-700 dark:text-red-300 mb-1">
-                        Due Today
-                    </div>
-                    <div className="text-red-900 dark:text-red-100">
+                    <div className="mb-1 text-xs font-medium text-muted-foreground sm:text-sm">Due today</div>
+                    <div className="text-foreground">
                         <StatValue isLoading={isLoading} isError={isError} value={displayStats.dueToday} />
                     </div>
                 </CardWrapper>
 
                 <CardWrapper
-                    className={`w-full text-left bg-gradient-to-br from-teal-50 to-teal-100 dark:from-teal-950/30 dark:to-teal-900/30 rounded-lg sm:rounded-xl p-3 sm:p-4 border border-teal-200 dark:border-teal-800 ${cardHoverClass}`}
+                    className={`w-full border border-border/70 border-l-4 border-l-teal-500/90 bg-muted/30 p-3 text-left dark:bg-muted/15 sm:p-4 ${cardHoverClass}`}
                     {...cardWrapperProps}
                 >
-                    <div className="text-xs sm:text-sm font-medium text-teal-700 dark:text-teal-300 mb-1">
-                        Success Rate
-                    </div>
-                    <div className="text-teal-900 dark:text-teal-100">
+                    <div className="mb-1 text-xs font-medium text-muted-foreground sm:text-sm">Success rate</div>
+                    <div className="text-foreground">
                         <StatValue
                             isLoading={isLoading}
                             isError={isError}
@@ -170,7 +158,7 @@ export default function LearningProgressSection({
                     </div>
                     <div className="h-2 sm:h-3 bg-muted rounded-full overflow-hidden">
                         <div
-                            className="h-full bg-gradient-to-r from-primary to-purple-600 rounded-full transition-all duration-500"
+                            className="h-full rounded-full bg-gradient-to-r from-primary to-[var(--brand-accent)] transition-all duration-500"
                             style={{ width: `${progressPercent}%` }}
                         />
                     </div>
