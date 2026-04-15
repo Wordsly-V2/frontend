@@ -10,7 +10,7 @@ import { Pagination } from "@/components/ui/pagination";
 import { useCourses } from "@/hooks/useCourses.hook";
 import { useGetMyCoursesQuery } from "@/queries/courses.query";
 import { ICourse } from "@/types/courses/courses.type";
-import { Edit, Eye, Plus, Trash2 } from "lucide-react";
+import { BookOpen, Edit, Eye, Plus, Trash2 } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -147,6 +147,18 @@ export default function ManageCourses() {
                 <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
                     <Button
                         size="sm"
+                        variant="default"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            router.push(`/learn/courses/${course.id}`);
+                        }}
+                        className="h-8 text-xs sm:text-sm"
+                    >
+                        <BookOpen className="h-3.5 w-3.5 sm:h-4 sm:w-4 sm:mr-1" />
+                        <span className="hidden sm:inline">Study</span>
+                    </Button>
+                    <Button
+                        size="sm"
                         variant="outline"
                         onClick={(e) => {
                             e.stopPropagation();
@@ -155,7 +167,7 @@ export default function ManageCourses() {
                         className="text-xs sm:text-sm h-8"
                     >
                         <Eye className="h-3.5 w-3.5 sm:h-4 sm:w-4 sm:mr-1" />
-                        <span className="hidden sm:inline">View</span>
+                        <span className="hidden sm:inline">Content</span>
                     </Button>
                     <Button
                         size="sm"
@@ -168,7 +180,7 @@ export default function ManageCourses() {
                         className="text-xs sm:text-sm h-8"
                     >
                         <Edit className="h-3.5 w-3.5 sm:h-4 sm:w-4 sm:mr-1" />
-                        <span className="hidden sm:inline">Edit</span>
+                        <span className="hidden sm:inline">Rename</span>
                     </Button>
                     <Button
                         size="sm"
@@ -191,18 +203,29 @@ export default function ManageCourses() {
     }
 
     return (
-        <main className="min-h-dvh bg-background">
-            <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 md:py-8 max-w-7xl">
-                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6 sm:mb-8">
+        <>
+            <section aria-labelledby="manage-course-library-heading" className="mt-2">
+                <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                     <div>
-                        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight mb-1 sm:mb-2">Manage Courses</h1>
-                        <p className="text-sm sm:text-base text-muted-foreground">
-                            {paginatedData.totalItems} {paginatedData.totalItems === 1 ? 'course' : 'courses'} in your library
+                        <h2
+                            id="manage-course-library-heading"
+                            className="text-xl font-semibold tracking-tight sm:text-2xl"
+                        >
+                            Course library
+                        </h2>
+                        <p className="mt-1 text-sm text-muted-foreground">
+                            {paginatedData.totalItems}{" "}
+                            {paginatedData.totalItems === 1 ? "course" : "courses"} — edit content or open in
+                            Learn to study.
                         </p>
                     </div>
-                    <Button onClick={openCreateDialog} size="default" className="w-full sm:w-auto">
-                        <Plus className="h-4 w-4 mr-2" />
-                        Create Course
+                    <Button
+                        onClick={openCreateDialog}
+                        size="default"
+                        className="h-10 w-full shrink-0 rounded-xl sm:w-auto"
+                    >
+                        <Plus className="h-4 w-4" />
+                        New course
                     </Button>
                 </div>
 
@@ -217,7 +240,7 @@ export default function ManageCourses() {
                     totalPages={paginatedData.totalPages}
                     onPageChange={handlePageChange}
                 />
-            </div>
+            </section>
 
             <CourseFormDialog
                 isLoading={mutationCreateMyCourse.isPending || mutationUpdateMyCourse.isPending}
@@ -243,6 +266,6 @@ export default function ManageCourses() {
                     isLoading={mutationDeleteMyCourse.isPending}
                 />
             )}
-        </main>
+        </>
     );
 }

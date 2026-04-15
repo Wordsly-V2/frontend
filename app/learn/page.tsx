@@ -4,6 +4,7 @@ import LoadingSection from "@/components/common/loading-section/loading-section"
 import { LearningProgressChart } from "@/components/common/learning-progress-chart";
 import { StatsCards } from "@/components/common/stats-cards";
 import LearningProgressSection from "@/components/common/word-progress-stats/learning-progress-section";
+import { LearnQuickActions } from "@/components/features/learn/learn-quick-actions";
 import CourseGrid from "@/components/features/courses/course-grid";
 import CoursesHeader from "@/components/features/courses/courses-header";
 import { Pagination } from "@/components/ui/pagination";
@@ -57,6 +58,8 @@ export default function LearnPage() {
                     </p>
                 </div>
 
+                <LearnQuickActions />
+
                 {/* Stats Section */}
                 <StatsCards
                     items={courseTotalStats}
@@ -84,14 +87,18 @@ export default function LearnPage() {
                     className="mb-6 sm:mb-8"
                 />
 
-                <CoursesHeader
-                    searchQuery={searchQuery}
-                    totalCourses={paginatedData?.totalItems || 0}
-                    onSearch={handleSearch}
-                />
-                {
-                    isLoadingCourses || isErrorCourses || !paginatedData ? (
-                        <LoadingSection isLoading={isLoadingCourses} error={isErrorCourses ? 'Error loading courses' : null} refetch={refetchCourses} />
+                <section id="course-library" className="scroll-mt-24">
+                    <CoursesHeader
+                        searchQuery={searchQuery}
+                        totalCourses={paginatedData?.totalItems || 0}
+                        onSearch={handleSearch}
+                    />
+                    {isLoadingCourses || isErrorCourses || !paginatedData ? (
+                        <LoadingSection
+                            isLoading={isLoadingCourses}
+                            error={isErrorCourses ? "Error loading courses" : null}
+                            refetch={refetchCourses}
+                        />
                     ) : (
                         <>
                             <div className="mt-6 sm:mt-8">
@@ -104,8 +111,8 @@ export default function LearnPage() {
                                 onPageChange={handlePageChange}
                             />
                         </>
-                    )
-                }
+                    )}
+                </section>
 
             </div>
         </main>

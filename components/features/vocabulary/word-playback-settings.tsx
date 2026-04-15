@@ -2,14 +2,14 @@
 
 import { Button } from "@/components/ui/button";
 import {
-    Drawer,
-    DrawerClose,
-    DrawerContent,
-    DrawerDescription,
-    DrawerFooter,
-    DrawerHeader,
-    DrawerTitle,
-} from "@/components/ui/drawer";
+    Dialog,
+    DialogClose,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -52,17 +52,17 @@ export function WordPlaybackSettings({
     });
 
     return (
-        <Drawer open={open} onOpenChange={onOpenChange}>
-            <DrawerContent className="max-h-[90dvh]">
-                <DrawerHeader className="text-left">
-                    <DrawerTitle>Playback</DrawerTitle>
-                    <DrawerDescription>
+        <Dialog open={open} onOpenChange={onOpenChange}>
+            <DialogContent className="max-h-[90dvh] sm:max-w-md">
+                <DialogHeader className="text-left">
+                    <DialogTitle>Playback</DialogTitle>
+                    <DialogDescription>
                         Auto-advance after each word&apos;s audio (or after a delay if there is no audio).
-                    </DrawerDescription>
-                </DrawerHeader>
+                    </DialogDescription>
+                </DialogHeader>
                 <form
                     onSubmit={onSubmit}
-                    className="flex flex-col gap-6 px-4 pb-2"
+                    className="flex flex-col gap-6"
                 >
                     <div className="flex items-center justify-between gap-4 rounded-lg border border-border bg-muted/30 p-3">
                         <div className="space-y-0.5">
@@ -105,18 +105,18 @@ export function WordPlaybackSettings({
                         )}
                     </div>
 
-                    <DrawerFooter className="flex-row gap-2 px-0 pt-0 sm:justify-end">
-                        <DrawerClose asChild>
+                    <DialogFooter className="flex-row gap-2 px-0 pt-0 sm:justify-end">
+                        <DialogClose asChild>
                             <Button type="button" variant="outline" className="cursor-pointer">
                                 Cancel
                             </Button>
-                        </DrawerClose>
+                        </DialogClose>
                         <Button type="submit" className="cursor-pointer">
                             Save
                         </Button>
-                    </DrawerFooter>
+                    </DialogFooter>
                 </form>
-            </DrawerContent>
-        </Drawer>
+            </DialogContent>
+        </Dialog>
     );
 }

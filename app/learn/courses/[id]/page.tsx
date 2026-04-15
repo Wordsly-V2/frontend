@@ -12,21 +12,16 @@ import WordDetailDialog from "@/components/features/manage/word-detail-dialog";
 import { ArrowLeft, Brain, ChevronDown, ChevronRight, Eye, List, Play, Search, Volume2 } from "lucide-react";
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
+import {
+    DEFAULT_DUE_WORDS_LIMIT,
+    DUE_WORDS_LIMIT_OPTIONS,
+    DUE_WORDS_LIMIT_STORAGE_KEY,
+    parseDueWordsLimit,
+} from "@/lib/due-words-limit";
+import { setLastLearnCourse } from "@/lib/learning-session";
 import { getLocalStorageItem, setLocalStorageItem } from "@/lib/local-storage";
 import { use, useEffect, useRef, useState, startTransition } from "react";
 import { toast } from "sonner";
-
-const DUE_WORDS_LIMIT_OPTIONS = [5, 10, 15, 20] as const;
-const DUE_WORDS_LIMIT_STORAGE_KEY = "wordsly-learn-due-words-limit";
-const DEFAULT_DUE_WORDS_LIMIT = 20;
-
-function parseDueWordsLimit(raw: string | null, initial: number): number {
-    if (raw === null) return initial;
-    const parsed = Number(raw);
-    return DUE_WORDS_LIMIT_OPTIONS.includes(parsed as (typeof DUE_WORDS_LIMIT_OPTIONS)[number])
-        ? parsed
-        : initial;
-}
 
 export default function LearnCourseDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = use(params);
@@ -41,6 +36,12 @@ export default function LearnCourseDetailPage({ params }: { params: Promise<{ id
     const [viewingWord, setViewingWord] = useState<IWord | null>(null);
 
     const { data: course, isLoading, isError, refetch: loadCourseDetail } = useGetCourseDetailByIdQuery(id, !!id);
+
+    useEffect(() => {
+        if (course) {
+            setLastLearnCourse({ id: course.id, name: course.name });
+        }
+    }, [course]);
 
     useEffect(() => {
         startTransition(() => {
@@ -177,6 +178,14 @@ export default function LearnCourseDetailPage({ params }: { params: Promise<{ id
         setSelectedWords(new Set());
     };
 
+    const expandAllFilteredLessons = () => {
+        setExpandedLessons(new Set(filteredLessons.map((l) => l.id)));
+    };
+
+    const collapseAllLessonsUi = () => {
+        setExpandedLessons(new Set());
+    };
+
     const handlePlayAudio = (audioUrl: string | undefined, e: React.MouseEvent) => {
         e.stopPropagation();
         if (audioUrl) {
@@ -188,7 +197,9 @@ export default function LearnCourseDetailPage({ params }: { params: Promise<{ id
     const handleStartPractice = () => {
         if (selectedWords.size > 0) {
             const wordIds = Array.from(selectedWords).join(",");
-            router.push(`/learn/practice?courseId=${id}&courseName=${course.name}&wordIds=${wordIds}`);
+            router.push(
+                `/learn/practice?courseId=${id}&courseName=${encodeURIComponent(course.name)}&wordIds=${wordIds}`,
+            );
         }
     };
 
@@ -199,12 +210,14 @@ export default function LearnCourseDetailPage({ params }: { params: Promise<{ id
         }
 
         const wordIds = dueWordIds.wordIds.join(",");
-        router.push(`/learn/practice?courseId=${id}&courseName=${course.name}&wordIds=${wordIds}`);
+        router.push(
+            `/learn/practice?courseId=${id}&courseName=${encodeURIComponent(course.name)}&wordIds=${wordIds}`,
+        );
     };
 
     return (
-        <main className="min-h-dvh bg-background">
-            <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 md:py-8 max-w-5xl">
+        <main className="min-h-dvh">
+            <div className="container mx-auto max-w-5xl px-3 py-4 sm:px-4 sm:py-6 md:py-8">
                 {/* Back Button */}
                 <Button
                     variant="ghost"
@@ -258,51 +271,79 @@ export default function LearnCourseDetailPage({ params }: { params: Promise<{ id
 
                 {/* Search */}
                 {totalWords > 0 && (
-                    <div className="relative mb-4 sm:mb-6">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-                        <Input
-                            type="search"
-                            inputMode="search"
-                            placeholder="Search by word, meaning, or pronunciation..."
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            className="pl-9 h-9 sm:h-10"
-                            aria-label="Search words"
-                        />
+                    <div className="mb-4 flex flex-col gap-2 sm:mb-6 sm:flex-row sm:items-center sm:gap-3">
+                        <div className="relative min-w-0 flex-1">
+                            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                            <Input
+                                type="search"
+                                inputMode="search"
+                                placeholder="Search words, meanings, pronunciation…"
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                className="h-10 pl-9"
+                                aria-label="Search words"
+                            />
+                        </div>
+                        {filteredLessons.length > 0 && (
+                            <div className="flex shrink-0 gap-2 sm:justify-end">
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-9 rounded-xl text-xs"
+                                    onClick={expandAllFilteredLessons}
+                                >
+                                    Expand all
+                                </Button>
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-9 rounded-xl text-xs"
+                                    onClick={collapseAllLessonsUi}
+                                >
+                                    Collapse all
+                                </Button>
+                            </div>
+                        )}
                     </div>
                 )}
 
                 {/* Selection Actions */}
                 {totalWords > 0 && (
-                    <div className="flex flex-col sm:flex-row flex-wrap gap-3 items-start sm:items-center justify-between mb-4 sm:mb-6">
-                        <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+                    <div className="mb-6 flex flex-col gap-4 rounded-2xl border border-border/70 bg-muted/20 p-3 sm:flex-row sm:flex-wrap sm:items-stretch sm:justify-between sm:gap-3 sm:p-4 dark:bg-muted/10">
+                        <div className="flex flex-wrap gap-2">
                             <Button
                                 variant="outline"
                                 size="sm"
                                 onClick={selectAllWords}
-                                className="text-xs sm:text-sm"
+                                className="h-9 rounded-xl text-xs"
                             >
-                                Select All
+                                Select all
                             </Button>
                             <Button
                                 variant="outline"
                                 size="sm"
                                 onClick={deselectAllWords}
                                 disabled={selectedWords.size === 0}
-                                className="text-xs sm:text-sm"
+                                className="h-9 rounded-xl text-xs"
                             >
-                                Clear Selection
+                                Clear selection
                             </Button>
                             {selectedWords.size > 0 && (
-                                <span className="inline-flex items-center px-2 sm:px-3 py-1 rounded-full bg-primary/10 text-primary text-xs sm:text-sm font-semibold">
+                                <span className="inline-flex items-center rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
                                     {selectedWords.size} selected
                                 </span>
                             )}
                         </div>
-                        <div className="flex flex-wrap gap-2 w-full sm:w-auto items-center">
-                            <div className="flex items-center gap-2">
-                                <label htmlFor="due-words-limit" className="text-xs sm:text-sm text-muted-foreground whitespace-nowrap">
-                                    Due words:
+
+                        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+                            <div className="flex flex-wrap items-center gap-2">
+                                <label
+                                    htmlFor="due-words-limit"
+                                    className="text-xs text-muted-foreground whitespace-nowrap sm:text-sm"
+                                >
+                                    Due batch:
                                 </label>
                                 <select
                                     id="due-words-limit"
@@ -311,7 +352,7 @@ export default function LearnCourseDetailPage({ params }: { params: Promise<{ id
                                         const value = Number(e.target.value);
                                         setDueWordsLimit(value);
                                     }}
-                                    className="h-8 rounded-md border border-input bg-background px-2 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                                    className="h-9 rounded-lg border border-input bg-background px-2 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-ring"
                                 >
                                     {DUE_WORDS_LIMIT_OPTIONS.map((n) => (
                                         <option key={n} value={n}>
@@ -319,51 +360,57 @@ export default function LearnCourseDetailPage({ params }: { params: Promise<{ id
                                         </option>
                                     ))}
                                 </select>
-                                {course?.wordProgressStats?.dueToday != null && course.wordProgressStats.dueToday > 0 && (
-                                    <span className="text-xs text-muted-foreground">
-                                        ({course.wordProgressStats.dueToday} due today)
-                                    </span>
-                                )}
+                                {course?.wordProgressStats?.dueToday != null &&
+                                    course.wordProgressStats.dueToday > 0 && (
+                                        <span className="text-xs text-muted-foreground">
+                                            {course.wordProgressStats.dueToday} due today
+                                        </span>
+                                    )}
                             </div>
-                            <Button
-                                variant="outline"
-                                onClick={handlePracticeDueWords}
-                                disabled={isDueWordIdsLoading || !dueWordIds || dueWordIds.wordIds.length === 0}
-                                className="border-2 border-purple-500/20 hover:border-purple-500/40 hover:bg-purple-500/10 text-xs sm:text-sm flex-1 sm:flex-initial"
-                                size="sm"
-                            >
-                                <Brain className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-2" />
-                                {isDueWordIdsLoading
-                                    ? "Loading..."
-                                    : dueWordIds && dueWordIds.wordIds.length > 0
-                                        ? `Review Due (${dueWordIds.wordIds.length})`
-                                        : "No Due Words"
-                                }
-                            </Button>
-                            <Button
-                                variant="outline"
-                                onClick={() => {
-                                    const wordIds = Array.from(selectedWords).join(",");
-                                    router.push(
-                                        `/learn/words-details?courseId=${id}&courseName=${encodeURIComponent(course.name)}&wordIds=${wordIds}`
-                                    );
-                                }}
-                                disabled={selectedWords.size === 0}
-                                className="text-xs sm:text-sm flex-1 sm:flex-initial"
-                                size="sm"
-                            >
-                                <List className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-2" />
-                                View selected words details
-                            </Button>
-                            <Button
-                                onClick={handleStartPractice}
-                                disabled={selectedWords.size === 0}
-                                className="text-xs sm:text-sm flex-1 sm:flex-initial"
-                                size="sm"
-                            >
-                                <Play className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-2" />
-                                Practice Selected
-                            </Button>
+                            <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+                                <Button
+                                    variant="outline"
+                                    onClick={handlePracticeDueWords}
+                                    disabled={
+                                        isDueWordIdsLoading ||
+                                        !dueWordIds ||
+                                        dueWordIds.wordIds.length === 0
+                                    }
+                                    className="h-9 flex-1 rounded-xl border-primary/25 bg-primary/5 text-xs hover:bg-primary/10 sm:flex-initial sm:text-sm"
+                                    size="sm"
+                                >
+                                    <Brain className="mr-2 h-4 w-4" />
+                                    {isDueWordIdsLoading
+                                        ? "Loading…"
+                                        : dueWordIds && dueWordIds.wordIds.length > 0
+                                          ? `Review due (${dueWordIds.wordIds.length})`
+                                          : "No due words"}
+                                </Button>
+                                <Button
+                                    variant="secondary"
+                                    onClick={() => {
+                                        const wordIds = Array.from(selectedWords).join(",");
+                                        router.push(
+                                            `/learn/words-details?courseId=${id}&courseName=${encodeURIComponent(course.name)}&wordIds=${wordIds}`,
+                                        );
+                                    }}
+                                    disabled={selectedWords.size === 0}
+                                    className="h-9 flex-1 rounded-xl text-xs sm:flex-initial sm:text-sm"
+                                    size="sm"
+                                >
+                                    <List className="mr-2 h-4 w-4" />
+                                    Word details
+                                </Button>
+                                <Button
+                                    onClick={handleStartPractice}
+                                    disabled={selectedWords.size === 0}
+                                    className="h-9 flex-1 rounded-xl text-xs sm:flex-initial sm:text-sm"
+                                    size="sm"
+                                >
+                                    <Play className="mr-2 h-4 w-4" />
+                                    Practice selected
+                                </Button>
+                            </div>
                         </div>
                     </div>
                 )}

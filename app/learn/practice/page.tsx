@@ -19,15 +19,27 @@ export default function PracticePage() {
     const [phase, setPhase] = useState<"intro" | "practice">("intro");
     const [introIndex, setIntroIndex] = useState(0);
 
-    const courseName = searchParams.get("courseName") || "";
-    const courseId = searchParams.get("courseId") || "";
-    const wordIds = searchParams.get("wordIds") || "";
+    const courseNameRaw = searchParams.get("courseName") ?? "";
+    const courseId = searchParams.get("courseId") ?? "";
+    const wordIdsParam = searchParams.get("wordIds") ?? "";
+    const paramsValid = Boolean(courseNameRaw && courseId && wordIdsParam);
+    const wordIdList = wordIdsParam ? wordIdsParam.split(",").filter(Boolean) : [];
+    const courseName = (() => {
+        try {
+            return decodeURIComponent(courseNameRaw);
+        } catch {
+            return courseNameRaw;
+        }
+    })();
 
-    if (!courseName  || !courseId || !wordIds) {
-        router.push(`/learn`);
-    }
+    useEffect(() => {
+        if (!paramsValid) {
+            router.replace("/learn");
+        }
+    }, [paramsValid, router]);
 
-    const { data: words, isLoading: isWordsLoading, isError: isWordsError, refetch: refetchWords } = useGetWordsByIdsQuery(courseId, wordIds.split(","), !!courseId && !!wordIds);
+    const { data: words, isLoading: isWordsLoading, isError: isWordsError, refetch: refetchWords } =
+        useGetWordsByIdsQuery(courseId, wordIdList, paramsValid && wordIdList.length > 0);
     const queryClient = useQueryClient();
     const { mutate: recordWordAnswer } = useRecordAnswerMutation();
 
@@ -70,7 +82,15 @@ export default function PracticePage() {
         return () => globalThis.removeEventListener("keydown", onKeyDown);
     }, [phase]);
 
-    if(isWordsLoading || isWordsError) {
+    if (!paramsValid) {
+        return (
+            <main className="flex min-h-dvh items-center justify-center px-4">
+                <p className="text-sm text-muted-foreground">Taking you to Learn…</p>
+            </main>
+        );
+    }
+
+    if (isWordsLoading || isWordsError) {
         return <LoadingSection isLoading={isWordsLoading} error={isWordsError ? 'Error loading words' : null} refetch={refetchWords} />;
     }
 
