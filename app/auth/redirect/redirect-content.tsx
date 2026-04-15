@@ -1,4 +1,5 @@
 "use client";
+import { ACCESS_TOKEN_STORAGE_KEY, setLocalStorageItem } from "@/lib/local-storage";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import Link from "next/link";
 import { redirect, useSearchParams } from "next/navigation";
@@ -19,7 +20,7 @@ export default function RedirectContent() {
             return;
         }
 
-        localStorage.setItem("access_token", accessToken);
+        setLocalStorageItem(ACCESS_TOKEN_STORAGE_KEY, accessToken);
         redirect(redirectPath);
     }, [accessToken, errorParam, redirectPath]);
 

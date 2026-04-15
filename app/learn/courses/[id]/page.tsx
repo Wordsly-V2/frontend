@@ -12,20 +12,20 @@ import WordDetailDialog from "@/components/features/manage/word-detail-dialog";
 import { ArrowLeft, Brain, ChevronDown, ChevronRight, Eye, List, Play, Search, Volume2 } from "lucide-react";
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
-import { use, useEffect, useRef, useState } from "react";
+import { getLocalStorageItem, setLocalStorageItem } from "@/lib/local-storage";
+import { use, useEffect, useRef, useState, startTransition } from "react";
 import { toast } from "sonner";
 
 const DUE_WORDS_LIMIT_OPTIONS = [5, 10, 15, 20] as const;
 const DUE_WORDS_LIMIT_STORAGE_KEY = "wordsly-learn-due-words-limit";
 const DEFAULT_DUE_WORDS_LIMIT = 20;
 
-function getStoredDueWordsLimit(): number {
-    if (globalThis.window === undefined) return DEFAULT_DUE_WORDS_LIMIT;
-    const stored = localStorage.getItem(DUE_WORDS_LIMIT_STORAGE_KEY);
-    const parsed = stored ? Number(stored) : Number.NaN;
+function parseDueWordsLimit(raw: string | null, initial: number): number {
+    if (raw === null) return initial;
+    const parsed = Number(raw);
     return DUE_WORDS_LIMIT_OPTIONS.includes(parsed as (typeof DUE_WORDS_LIMIT_OPTIONS)[number])
         ? parsed
-        : DEFAULT_DUE_WORDS_LIMIT;
+        : initial;
 }
 
 export default function LearnCourseDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -35,17 +35,25 @@ export default function LearnCourseDetailPage({ params }: { params: Promise<{ id
     const appliedFocusRef = useRef(false);
     const [expandedLessons, setExpandedLessons] = useState<Set<string>>(new Set());
     const [selectedWords, setSelectedWords] = useState<Set<string>>(new Set());
-    const [dueWordsLimit, setDueWordsLimit] = useState(0);
+    const [dueWordsLimit, setDueWordsLimit] = useState(DEFAULT_DUE_WORDS_LIMIT);
+    const [dueWordsLimitReady, setDueWordsLimitReady] = useState(false);
     const [searchQuery, setSearchQuery] = useState("");
     const [viewingWord, setViewingWord] = useState<IWord | null>(null);
 
-    // Hydrate due-words limit from localStorage after mount (client-only; SSR has no access)
+    const { data: course, isLoading, isError, refetch: loadCourseDetail } = useGetCourseDetailByIdQuery(id, !!id);
+
     useEffect(() => {
-        // eslint-disable-next-line -- hydrate from external store (localStorage) on mount
-        setDueWordsLimit(getStoredDueWordsLimit());
+        startTransition(() => {
+            const raw = getLocalStorageItem(DUE_WORDS_LIMIT_STORAGE_KEY);
+            setDueWordsLimit(parseDueWordsLimit(raw, DEFAULT_DUE_WORDS_LIMIT));
+            setDueWordsLimitReady(true);
+        });
     }, []);
 
-    const { data: course, isLoading, isError, refetch: loadCourseDetail } = useGetCourseDetailByIdQuery(id, !!id);
+    useEffect(() => {
+        if (!dueWordsLimitReady) return;
+        setLocalStorageItem(DUE_WORDS_LIMIT_STORAGE_KEY, JSON.stringify(dueWordsLimit));
+    }, [dueWordsLimit, dueWordsLimitReady]);
 
     // When opening from nav word search: apply URL params to state (fill search, expand lesson)
     const urlWord = searchParams.get("word");
@@ -302,7 +310,6 @@ export default function LearnCourseDetailPage({ params }: { params: Promise<{ id
                                     onChange={(e) => {
                                         const value = Number(e.target.value);
                                         setDueWordsLimit(value);
-                                        localStorage.setItem(DUE_WORDS_LIMIT_STORAGE_KEY, String(value));
                                     }}
                                     className="h-8 rounded-md border border-input bg-background px-2 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-ring"
                                 >

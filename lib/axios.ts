@@ -1,4 +1,9 @@
 import axios from 'axios';
+import {
+	ACCESS_TOKEN_STORAGE_KEY,
+	getLocalStorageItem,
+	setLocalStorageItem,
+} from '@/lib/local-storage';
 
 const axiosInstance = axios.create({
 	baseURL: process.env.NEXT_PUBLIC_API_URL,
@@ -8,7 +13,7 @@ const axiosInstance = axios.create({
 axiosInstance.interceptors.request.use(
 	(config) => {
 		if (typeof window !== 'undefined') {
-			const token = localStorage.getItem('access_token');
+			const token = getLocalStorageItem(ACCESS_TOKEN_STORAGE_KEY);
 
 			if (token) {
 				config.headers.Authorization = `Bearer ${token}`;
@@ -70,7 +75,7 @@ axiosInstance.interceptors.response.use(
 				});
 				const newToken = res.data.accessToken;
 
-				localStorage.setItem('access_token', newToken);
+				setLocalStorageItem(ACCESS_TOKEN_STORAGE_KEY, newToken);
 
 				processQueue(null, newToken);
 

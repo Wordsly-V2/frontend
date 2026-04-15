@@ -7,13 +7,12 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { IWord } from '@/types/courses/courses.type';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import {
-    startTransition,
-    useCallback,
-    useEffect,
-    useRef,
-    useState,
-} from 'react';
+import { getLocalStorageItem, setLocalStorageItem } from '@/lib/local-storage';
+import { startTransition, useCallback, useEffect, useRef, useState } from 'react';
+import type { Swiper as SwiperType } from 'swiper';
+import { Keyboard } from 'swiper/modules';
+import { Swiper, SwiperSlide } from 'swiper/react';
+import 'swiper/css';
 import WordDetailCard from './word-detail-card';
 
 const WORD_DETAILS_AUTO_NEXT_STORAGE_KEY = 'wordsly.wordDetails.autoNext';
@@ -35,13 +34,17 @@ type WordDetailsAutoNextStored = {
     delaySec: number;
 };
 
-function readAutoNextSettingsFromStorage(): WordDetailsAutoNextStored | null {
-    if (globalThis.window === undefined) return null;
+const DEFAULT_WORD_DETAILS_AUTO_NEXT: WordDetailsAutoNextStored = {
+    enabled: false,
+    delaySec: DELAY_BETWEEN_WORDS_DEFAULT_SEC,
+};
+
+function parseWordDetailsAutoNext(
+    raw: string | null,
+    initial: WordDetailsAutoNextStored,
+): WordDetailsAutoNextStored {
+    if (raw === null) return initial;
     try {
-        const raw = globalThis.localStorage.getItem(
-            WORD_DETAILS_AUTO_NEXT_STORAGE_KEY,
-        );
-        if (raw === null) return null;
         const parsed: unknown = JSON.parse(raw);
         if (parsed === true || parsed === false) {
             return { enabled: parsed, delaySec: DELAY_BETWEEN_WORDS_DEFAULT_SEC };
@@ -57,24 +60,20 @@ function readAutoNextSettingsFromStorage(): WordDetailsAutoNextStored | null {
                 return { enabled, delaySec };
             }
         }
-        return null;
+        return initial;
     } catch {
-        return null;
+        return initial;
     }
 }
 
-function writeAutoNextSettingsToStorage(settings: WordDetailsAutoNextStored) {
-    try {
-        globalThis.localStorage.setItem(
-            WORD_DETAILS_AUTO_NEXT_STORAGE_KEY,
-            JSON.stringify({
-                enabled: settings.enabled,
-                delaySec: clampDelayBetweenWordsSec(settings.delaySec),
-            }),
-        );
-    } catch {
-        // Quota, private mode, or disabled storage — ignore
-    }
+function writeWordDetailsAutoNext(settings: WordDetailsAutoNextStored) {
+    setLocalStorageItem(
+        WORD_DETAILS_AUTO_NEXT_STORAGE_KEY,
+        JSON.stringify({
+            enabled: settings.enabled,
+            delaySec: clampDelayBetweenWordsSec(settings.delaySec),
+        }),
+    );
 }
 
 export interface WordDetailsCarouselProps {
@@ -97,42 +96,40 @@ export default function WordDetailsCarousel({
     className = '',
 }: Readonly<WordDetailsCarouselProps>) {
     const [index, setIndex] = useState(initialIndex);
-    const [autoAdvanceNext, setAutoAdvanceNext] = useState(false);
-    const [delayBetweenWordsSec, setDelayBetweenWordsSec] = useState(
-        DELAY_BETWEEN_WORDS_DEFAULT_SEC,
-    );
+    const [autoNextSettings, setAutoNextSettings] = useState(DEFAULT_WORD_DETAILS_AUTO_NEXT);
     const [autoNextStorageReady, setAutoNextStorageReady] = useState(false);
+    const autoAdvanceNext = autoNextSettings.enabled;
+    const delayBetweenWordsSec = autoNextSettings.delaySec;
     const autoAdvanceRef = useRef(false);
+    const swiperRef = useRef<SwiperType | null>(null);
     const count = words.length;
     const effectiveIndex = count > 0 ? Math.min(index, count - 1) : 0;
     const word = count > 0 ? words[effectiveIndex] : null;
 
     const goNext = useCallback(() => {
-        setIndex((i) => (count > 0 ? (i + 1) % count : 0));
-    }, [count]);
+        swiperRef.current?.slideNext();
+    }, []);
 
     const goPrev = useCallback(() => {
-        setIndex((i) => (count > 0 ? (i - 1 + count) % count : 0));
-    }, [count]);
+        swiperRef.current?.slidePrev();
+    }, []);
+
+    const handleSlideChange = useCallback((swiper: SwiperType) => {
+        setIndex(swiper.activeIndex);
+    }, []);
 
     useEffect(() => {
         startTransition(() => {
-            const stored = readAutoNextSettingsFromStorage();
-            if (stored !== null) {
-                setAutoAdvanceNext(stored.enabled);
-                setDelayBetweenWordsSec(stored.delaySec);
-            }
+            const raw = getLocalStorageItem(WORD_DETAILS_AUTO_NEXT_STORAGE_KEY);
+            setAutoNextSettings(parseWordDetailsAutoNext(raw, DEFAULT_WORD_DETAILS_AUTO_NEXT));
             setAutoNextStorageReady(true);
         });
     }, []);
 
     useEffect(() => {
         if (!autoNextStorageReady) return;
-        writeAutoNextSettingsToStorage({
-            enabled: autoAdvanceNext,
-            delaySec: delayBetweenWordsSec,
-        });
-    }, [autoNextStorageReady, autoAdvanceNext, delayBetweenWordsSec]);
+        writeWordDetailsAutoNext(autoNextSettings);
+    }, [autoNextStorageReady, autoNextSettings]);
 
     useEffect(() => {
         autoAdvanceRef.current = autoAdvanceNext;
@@ -141,6 +138,15 @@ export default function WordDetailsCarousel({
     useEffect(() => {
         onIndexChange?.(effectiveIndex);
     }, [effectiveIndex, onIndexChange]);
+
+    // Keep Swiper in sync when the list shrinks or index is clamped (e.g. data refresh)
+    useEffect(() => {
+        const s = swiperRef.current;
+        if (!s || s.destroyed) return;
+        if (s.activeIndex !== effectiveIndex) {
+            s.slideTo(effectiveIndex, 0, false);
+        }
+    }, [effectiveIndex, count]);
 
     // Auto-play word audio when slide changes; optional auto-advance after audio ends (or after delay if no audio)
     useEffect(() => {
@@ -184,21 +190,6 @@ export default function WordDetailsCarousel({
         autoAdvanceNext,
         delayBetweenWordsSec,
     ]);
-
-    useEffect(() => {
-        if (count === 0) return;
-        const handleKeyDown = (e: KeyboardEvent) => {
-            if (e.key === 'ArrowLeft') {
-                e.preventDefault();
-                goPrev();
-            } else if (e.key === 'ArrowRight') {
-                e.preventDefault();
-                goNext();
-            }
-        };
-        globalThis.addEventListener('keydown', handleKeyDown);
-        return () => globalThis.removeEventListener('keydown', handleKeyDown);
-    }, [count, goPrev, goNext]);
 
     if (count === 0) {
         return (
@@ -248,7 +239,9 @@ export default function WordDetailsCarousel({
                     <Switch
                         id='word-details-auto-next'
                         checked={autoAdvanceNext}
-                        onCheckedChange={setAutoAdvanceNext}
+                        onCheckedChange={(checked) =>
+                            setAutoNextSettings((s) => ({ ...s, enabled: checked }))
+                        }
                         aria-label='Automatically go to the next word'
                     />
                     <Label
@@ -275,7 +268,10 @@ export default function WordDetailsCarousel({
                         onChange={(e) => {
                             const n = Number.parseInt(e.target.value, 10);
                             if (Number.isNaN(n)) return;
-                            setDelayBetweenWordsSec(clampDelayBetweenWordsSec(n));
+                            setAutoNextSettings((s) => ({
+                                ...s,
+                                delaySec: clampDelayBetweenWordsSec(n),
+                            }));
                         }}
                         className='h-9 w-[4.5rem] tabular-nums'
                         aria-label='Seconds to wait before the next word when there is no audio'
@@ -290,17 +286,34 @@ export default function WordDetailsCarousel({
                 </div>
             )}
 
-            {/* Card: flex-1 min-h-0 so content fits in view; only examples scroll inside card */}
-            <div
-                className='flex-1 min-h-0 overflow-hidden flex flex-col'
-                key={effectiveIndex}
-            >
-                <WordDetailCard
-                    word={word!}
-                    layout={cardLayout}
-                    constrainHeight
-                    className='h-full animate-in fade-in duration-200'
-                />
+            {/* Swiper: touch/drag + keyboard; rewind matches circular prev/next */}
+            <div className='flex-1 min-h-0 overflow-hidden flex flex-col min-w-0'>
+                <Swiper
+                    key={words.map((w) => w.id).join('|')}
+                    modules={[Keyboard]}
+                    keyboard={{ enabled: true }}
+                    rewind={count > 1}
+                    slidesPerView={1}
+                    spaceBetween={0}
+                    speed={300}
+                    className='h-full w-full min-h-0 min-w-0 [&_.swiper-wrapper]:h-full [&_.swiper-slide]:h-full [&_.swiper-slide]:flex [&_.swiper-slide]:flex-col [&_.swiper-slide]:min-h-0'
+                    initialSlide={effectiveIndex}
+                    onSwiper={(instance) => {
+                        swiperRef.current = instance;
+                    }}
+                    onSlideChange={handleSlideChange}
+                >
+                    {words.map((w) => (
+                        <SwiperSlide key={w.id} className='box-border'>
+                            <WordDetailCard
+                                word={w}
+                                layout={cardLayout}
+                                constrainHeight
+                                className='h-full animate-in fade-in duration-200'
+                            />
+                        </SwiperSlide>
+                    ))}
+                </Swiper>
             </div>
         </div>
     );

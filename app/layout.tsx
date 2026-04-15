@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import { THEME_STORAGE_KEY } from "@/lib/local-storage";
 import Script from "next/script";
 import AppNav from "@/components/common/app-nav/app-nav";
 import { Providers } from "./Providers";
@@ -42,7 +43,7 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{
             __html: `
               try {
-                if (localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                if (localStorage.getItem('${THEME_STORAGE_KEY}') === 'dark' || (!('${THEME_STORAGE_KEY}' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
                   document.documentElement.classList.add('dark')
                 } else {
                   document.documentElement.classList.remove('dark')

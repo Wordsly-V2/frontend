@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import { getLocalStorageItem, setLocalStorageItem } from "@/lib/local-storage";
+import { useState, useEffect, useRef, useMemo, useCallback, startTransition } from "react";
 import Image from "next/image";
 import { IWord } from "@/types/courses/courses.type";
 import { Button } from "@/components/ui/button";
 import { Volume2, ChevronRight, CheckCircle2, XCircle, Settings2, Sparkles, Lightbulb, List, Play } from "lucide-react";
-import PracticeSettingsDialog, { PracticeMode, PracticeSettings } from "@/components/features/vocabulary/practice-settings-dialog";
+import PracticeSettingsDialog, { PracticeSettings } from "@/components/features/vocabulary/practice-settings-dialog";
 import PracticeResultDialog from "@/components/features/vocabulary/practice-result-dialog";
 import WordsSummaryDialog from "@/components/features/vocabulary/words-summary-dialog";
 import { AnswerQuality } from "@/types/word-progress/word-progress.type";
@@ -23,6 +24,33 @@ interface VocabularyPracticeProps {
 
 const SETTINGS_STORAGE_KEY = "vocabulary-practice-settings";
 
+const DEFAULT_PRACTICE_SETTINGS: PracticeSettings = {
+    mode: "flashcard",
+    autoCheck: true,
+    showExampleHints: true,
+    showImageHints: true,
+};
+
+function parsePracticeSettings(raw: string | null, initial: PracticeSettings): PracticeSettings {
+    if (raw === null) return initial;
+    try {
+        const parsed = JSON.parse(raw) as Partial<PracticeSettings>;
+        return {
+            mode: parsed.mode ?? initial.mode,
+            autoCheck: parsed.autoCheck ?? initial.autoCheck,
+            showExampleHints: parsed.showExampleHints ?? initial.showExampleHints,
+            showImageHints: parsed.showImageHints ?? initial.showImageHints,
+        };
+    } catch {
+        return initial;
+    }
+}
+
+function readPracticeSettingsFromStorage(): PracticeSettings {
+    const raw = getLocalStorageItem(SETTINGS_STORAGE_KEY);
+    return parsePracticeSettings(raw, DEFAULT_PRACTICE_SETTINGS);
+}
+
 // Helper function to shuffle array
 const shuffleArray = <T,>(array: T[]): T[] => {
     const shuffled = [...array];
@@ -31,25 +59,6 @@ const shuffleArray = <T,>(array: T[]): T[] => {
         [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
     }
     return shuffled;
-};
-
-// Helper function to load settings from localStorage
-const loadSettings = (): PracticeSettings => {
-    try {
-        const savedSettings = localStorage.getItem(SETTINGS_STORAGE_KEY);
-        if (savedSettings) {
-            const parsed = JSON.parse(savedSettings);
-            return {
-                mode: parsed.mode ?? "flashcard",
-                autoCheck: parsed.autoCheck ?? true,
-                showExampleHints: parsed.showExampleHints ?? true,
-                showImageHints: parsed.showImageHints ?? true,
-            };
-        }
-    } catch (error) {
-        console.error("Failed to load practice settings:", error);
-    }
-    return { mode: "flashcard", autoCheck: true, showExampleHints: true, showImageHints: true };
 };
 
 const MASK_PLACEHOLDER = "***";
@@ -132,10 +141,9 @@ export default function VocabularyPractice({
     const [showAnswer, setShowAnswer] = useState(false);
     const [userAnswer, setUserAnswer] = useState("");
     const [correctCount, setCorrectCount] = useState(0);
-    const [mode, setMode] = useState<PracticeMode>(() => loadSettings().mode);
-    const [autoCheck, setAutoCheck] = useState(() => loadSettings().autoCheck);
-    const [showExampleHints, setShowExampleHints] = useState(() => loadSettings().showExampleHints);
-    const [showImageHints, setShowImageHints] = useState(() => loadSettings().showImageHints);
+    const [practiceSettings, setPracticeSettings] = useState(DEFAULT_PRACTICE_SETTINGS);
+    const [practiceSettingsReady, setPracticeSettingsReady] = useState(false);
+    const { mode, autoCheck, showExampleHints, showImageHints } = practiceSettings;
     const [typingResult, setTypingResult] = useState<"correct" | "incorrect" | null>(null);
     const [showSettings, setShowSettings] = useState(false);
     const [showResultDialog, setShowResultDialog] = useState(false);
@@ -147,6 +155,22 @@ export default function VocabularyPractice({
     const [timeSpentSeconds, setTimeSpentSeconds] = useState<number | undefined>(undefined);
     const inputRef = useRef<HTMLInputElement>(null);
     const wordStartTimeRef = useRef<number | null>(null);
+
+    useEffect(() => {
+        startTransition(() => {
+            setPracticeSettings(readPracticeSettingsFromStorage());
+            setPracticeSettingsReady(true);
+        });
+    }, []);
+
+    useEffect(() => {
+        if (!practiceSettingsReady) return;
+        try {
+            setLocalStorageItem(SETTINGS_STORAGE_KEY, JSON.stringify(practiceSettings));
+        } catch (error) {
+            console.error("Failed to save practice settings:", error);
+        }
+    }, [practiceSettings, practiceSettingsReady]);
 
     const addWordResult = useCallback(
         (result: WordResult) => {
@@ -264,17 +288,7 @@ export default function VocabularyPractice({
 
     // Handle settings save
     const handleSaveSettings = (newSettings: PracticeSettings) => {
-        setMode(newSettings.mode);
-        setAutoCheck(newSettings.autoCheck);
-        setShowExampleHints(newSettings.showExampleHints);
-        setShowImageHints(newSettings.showImageHints);
-
-        // Save to localStorage
-        try {
-            localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(newSettings));
-        } catch (error) {
-            console.error("Failed to save practice settings:", error);
-        }
+        setPracticeSettings(newSettings);
     };
 
     // Start per-word timer when showing a new word (typing, multiple-choice, listening)

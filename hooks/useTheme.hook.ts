@@ -1,5 +1,6 @@
 'use client';
 
+import { getLocalStorageItem, setLocalStorageItem, THEME_STORAGE_KEY } from '@/lib/local-storage';
 import { useState, useEffect } from 'react';
 
 type Theme = 'light' | 'dark';
@@ -12,7 +13,9 @@ export function useTheme() {
         setTimeout(() => {
             setMounted(true);
             // Check initial theme from localStorage or system preference
-            const storedTheme = localStorage.getItem('theme') as Theme | null;
+            const raw = getLocalStorageItem(THEME_STORAGE_KEY);
+            const storedTheme =
+                raw === 'dark' || raw === 'light' ? (raw as Theme) : null;
             const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
             const initialTheme = storedTheme || systemTheme;
             
@@ -36,7 +39,7 @@ export function useTheme() {
             document.documentElement.classList.remove('dark');
         }
         
-        localStorage.setItem('theme', newTheme);
+        setLocalStorageItem(THEME_STORAGE_KEY, newTheme);
     };
 
     const setThemeMode = (newTheme: Theme) => {
@@ -48,7 +51,7 @@ export function useTheme() {
             document.documentElement.classList.remove('dark');
         }
         
-        localStorage.setItem('theme', newTheme);
+        setLocalStorageItem(THEME_STORAGE_KEY, newTheme);
     };
 
     return {
