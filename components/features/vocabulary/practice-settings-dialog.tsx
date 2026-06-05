@@ -14,6 +14,7 @@ import {
     ImageIcon,
     Shuffle,
     TextCursorInput,
+    Bell,
 } from "lucide-react";
 
 export type PracticeMode =
@@ -29,6 +30,7 @@ export interface PracticeSettings {
     autoCheck: boolean;
     showExampleHints: boolean;
     showImageHints: boolean;
+    soundEnabled: boolean;
 }
 
 interface PracticeSettingsDialogProps {
@@ -51,6 +53,7 @@ function PracticeSettingsForm({
     const [tempAutoCheck, setTempAutoCheck] = useState(currentSettings.autoCheck);
     const [tempShowExampleHints, setTempShowExampleHints] = useState(currentSettings.showExampleHints);
     const [tempShowImageHints, setTempShowImageHints] = useState(currentSettings.showImageHints);
+    const [tempSoundEnabled, setTempSoundEnabled] = useState(currentSettings.soundEnabled);
 
     const handleSave = () => {
         onSave({
@@ -58,6 +61,7 @@ function PracticeSettingsForm({
             autoCheck: tempAutoCheck,
             showExampleHints: tempShowExampleHints,
             showImageHints: tempShowImageHints,
+            soundEnabled: tempSoundEnabled,
         });
         onClose();
     };
@@ -161,6 +165,25 @@ function PracticeSettingsForm({
                         />
                     </div>
                 </div>
+
+                <div className="space-y-3 pt-4 border-t border-border">
+                    <div className="flex items-start justify-between gap-4">
+                        <div className="flex-1">
+                            <Label htmlFor="sound-enabled" className="text-sm font-medium flex items-center gap-2">
+                                <Bell className="h-4 w-4 text-muted-foreground" />
+                                Practice sounds
+                            </Label>
+                            <p className="text-xs text-muted-foreground mt-1">
+                                Short chimes on correct and incorrect answers
+                            </p>
+                        </div>
+                        <Switch
+                            id="sound-enabled"
+                            checked={tempSoundEnabled}
+                            onCheckedChange={setTempSoundEnabled}
+                        />
+                    </div>
+                </div>
             </div>
 
             <DialogFooter className="gap-2">
@@ -181,7 +204,7 @@ export default function PracticeSettingsDialog({
     currentSettings,
     onSave,
 }: Readonly<PracticeSettingsDialogProps>) {
-    const settingsKey = `${currentSettings.mode}-${currentSettings.autoCheck}-${currentSettings.showExampleHints}-${currentSettings.showImageHints}`;
+    const settingsKey = `${currentSettings.mode}-${currentSettings.autoCheck}-${currentSettings.showExampleHints}-${currentSettings.showImageHints}-${currentSettings.soundEnabled}`;
 
     return (
         <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>

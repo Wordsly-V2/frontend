@@ -6,7 +6,8 @@ import {
     type SessionStageCounts,
     type WordLearningStage,
 } from "@/lib/word-progress-stage";
-import { BookOpen, Brain, Sparkles, Timer } from "lucide-react";
+import { formatSessionEstimate } from "@/lib/practice-session-estimate";
+import { BookOpen, Brain, Clock, Sparkles, Timer } from "lucide-react";
 import { useEffect } from "react";
 
 const STAGE_STYLES: Record<
@@ -37,6 +38,7 @@ export function PracticeSessionOverview({
     const stages = (Object.entries(counts) as [WordLearningStage, number][]).filter(
         ([, n]) => n > 0,
     );
+    const timeEstimate = formatSessionEstimate(totalWords, hasIntro, counts);
 
     useEffect(() => {
         const onKeyDown = (e: KeyboardEvent) => {
@@ -61,15 +63,21 @@ export function PracticeSessionOverview({
     return (
         <section className="flex flex-col flex-1 min-h-0 animate-in fade-in duration-300">
             <div className="rounded-2xl border border-border bg-card/80 p-4 sm:p-6 mb-6">
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground mb-3">
-                    Your session
-                </p>
+                <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                        Your session
+                    </p>
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-muted px-2.5 py-1 text-xs text-muted-foreground">
+                        <Clock className="h-3.5 w-3.5" aria-hidden />
+                        {timeEstimate}
+                    </span>
+                </div>
                 <p className="text-sm text-muted-foreground mb-4">
                     {isReviewSession
-                        ? "Review mode — active recall, no hints. Due words come first."
+                        ? "Time to recall — due words first, hints stay off so you really remember."
                         : hasIntro
-                          ? "New words get a quick intro, then practice runs due → learning → new → review."
-                          : "All words have been seen before — straight to active practice."}
+                          ? "A quick peek at new words, then practice in smart order: due → learning → new → review."
+                          : "You have seen these before — straight into active practice."}
                 </p>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                     {stages.map(([stage, count]) => {
@@ -95,6 +103,7 @@ export function PracticeSessionOverview({
                 <Button size="lg" onClick={onStart} className="min-w-[200px] rounded-xl">
                     {hasIntro ? "Preview new words" : "Start practice"}
                 </Button>
+                <p className="sr-only">Press Enter to start</p>
             </div>
         </section>
     );

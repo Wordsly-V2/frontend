@@ -10,6 +10,7 @@ export const DEFAULT_PRACTICE_SETTINGS: PracticeSettings = {
     autoCheck: true,
     showExampleHints: false,
     showImageHints: false,
+    soundEnabled: false,
 };
 
 const SESSION_OVERRIDES: Record<PracticeSessionKind, Partial<PracticeSettings>> = {
@@ -34,6 +35,7 @@ export function parsePracticeSettings(raw: string | null, initial: PracticeSetti
             autoCheck: parsed.autoCheck ?? initial.autoCheck,
             showExampleHints: parsed.showExampleHints ?? initial.showExampleHints,
             showImageHints: parsed.showImageHints ?? initial.showImageHints,
+            soundEnabled: parsed.soundEnabled ?? initial.soundEnabled,
         };
     } catch {
         return initial;
@@ -64,7 +66,8 @@ export const REVIEW_MIXED_MODES = ["typing", "listening", "cloze", "multiple-cho
 export type ActivePracticeMode =
     | (typeof MIXED_PRACTICE_MODES)[number]
     | (typeof NEW_WORD_MIXED_MODES)[number]
-    | "flashcard";
+    | "flashcard"
+    | "cloze-fallback";
 
 function mixedModesForStage(stage: WordLearningStage): readonly string[] {
     switch (stage) {
@@ -87,9 +90,9 @@ export function resolveActiveMode(
     if (settingsMode === "mixed") {
         const modes = mixedModesForStage(stage);
         const mode = modes[wordIndex % modes.length] as ActivePracticeMode;
-        if (mode === "cloze" && !clozeAvailable) return "typing";
+        if (mode === "cloze" && !clozeAvailable) return "cloze-fallback";
         return mode;
     }
-    if (settingsMode === "cloze" && !clozeAvailable) return "typing";
+    if (settingsMode === "cloze" && !clozeAvailable) return "cloze-fallback";
     return settingsMode;
 }

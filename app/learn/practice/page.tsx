@@ -1,6 +1,7 @@
 "use client";
 
 import LoadingSection from "@/components/common/loading-section/loading-section";
+import { SavingOverlay } from "@/components/common/saving-overlay";
 import { PracticeSessionOverview } from "@/components/features/vocabulary/practice-session-overview";
 import WordDetailsCarousel from "@/components/features/vocabulary/word-details-carousel";
 import VocabularyPractice, {
@@ -8,15 +9,25 @@ import VocabularyPractice, {
 } from "@/components/features/vocabulary/vocabulary-practice";
 import { Button } from "@/components/ui/button";
 import { fireCelebrationConfetti } from "@/lib/confetti";
+import { applyOptimisticWordProgress } from "@/lib/optimistic-word-progress";
+import {
+    enqueuePendingPracticeSave,
+    getPendingPracticeSaves,
+    removePendingPracticeSave,
+} from "@/lib/practice-pending-saves";
 import { parsePracticeSessionKind } from "@/lib/practice-session";
 import { waitForWordProgressSync } from "@/lib/wait-for-word-progress-sync";
 import {
     buildLeechWordIds,
     buildPracticeSessionPlan,
+    inferPracticeSessionKind,
 } from "@/lib/word-progress-stage";
 import {
+    recordAnswerBulk,
+    recordAnswerBulkSync,
+} from "@/apis/word-progress.api";
+import {
     useGetProgressByWordIdsQuery,
-    useRecordAnswerBulkMutation,
 } from "@/queries/word-progress.query";
 import { useGetWordsByIdsQuery } from "@/queries/words.query";
 import { ArrowLeft } from "lucide-react";
@@ -27,16 +38,36 @@ import { useQueryClient } from "@tanstack/react-query";
 
 type PracticePhase = "overview" | "intro" | "practice";
 
+async function saveSessionResults(
+    payload: SessionCompletePayload,
+    progressBeforeSave: Record<string, import("@/types/word-progress/word-progress.type").IWordProgressResponse | null> | undefined,
+): Promise<"sync" | "async" | "queued"> {
+    try {
+        await recordAnswerBulkSync({ answers: payload.wordResults });
+        return "sync";
+    } catch {
+        try {
+            await recordAnswerBulk({ answers: payload.wordResults });
+            const wordIds = [...new Set(payload.wordResults.map((r) => r.wordId))];
+            await waitForWordProgressSync(wordIds, progressBeforeSave);
+            return "async";
+        } catch {
+            enqueuePendingPracticeSave({ answers: payload.wordResults });
+            return "queued";
+        }
+    }
+}
+
 export default function PracticePage() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const queryClient = useQueryClient();
-    const sessionKind = parsePracticeSessionKind(searchParams.get("kind"));
-    const isReview = sessionKind === "review";
+    const urlSessionKind = parsePracticeSessionKind(searchParams.get("kind"));
     const [phase, setPhase] = useState<PracticePhase>("overview");
     const [introIndex, setIntroIndex] = useState(0);
     const [savedOnce, setSavedOnce] = useState(false);
     const [isSyncingProgress, setIsSyncingProgress] = useState(false);
+    const [hasUnsavedPractice, setHasUnsavedPractice] = useState(false);
 
     const courseNameRaw = searchParams.get("courseName") ?? "";
     const courseId = searchParams.get("courseId") ?? "";
@@ -76,6 +107,14 @@ export default function PracticePage() {
         refetch: refetchProgress,
     } = useGetProgressByWordIdsQuery(wordIdList, paramsValid && wordIdList.length > 0);
 
+    const sessionKind = useMemo(() => {
+        if (!words?.length) return urlSessionKind;
+        const stages = buildPracticeSessionPlan(words, progressByWordId, urlSessionKind);
+        return inferPracticeSessionKind(stages.counts, urlSessionKind);
+    }, [words, progressByWordId, urlSessionKind]);
+
+    const isReview = sessionKind === "review";
+
     const sessionPlan = useMemo(() => {
         if (!words?.length) return null;
         return buildPracticeSessionPlan(words, progressByWordId, sessionKind);
@@ -86,8 +125,7 @@ export default function PracticePage() {
         [progressByWordId],
     );
 
-    const { mutate: recordBulk, isPending: isSaving } = useRecordAnswerBulkMutation();
-    const isPersisting = isSaving || isSyncingProgress;
+    const isPersisting = isSyncingProgress;
 
     const invalidateProgressQueries = useCallback(async () => {
         await queryClient.invalidateQueries({ queryKey: ["word-progress"] });
@@ -95,55 +133,94 @@ export default function PracticePage() {
         await queryClient.invalidateQueries({ queryKey: ["due-word-ids"] });
     }, [queryClient]);
 
+    const flushPendingSaves = useCallback(async () => {
+        const pending = getPendingPracticeSaves();
+        for (const item of pending) {
+            try {
+                await recordAnswerBulkSync(item.payload);
+                removePendingPracticeSave(item.id);
+            } catch {
+                try {
+                    await recordAnswerBulk(item.payload);
+                    removePendingPracticeSave(item.id);
+                } catch {
+                    break;
+                }
+            }
+        }
+    }, []);
+
+    useEffect(() => {
+        void flushPendingSaves();
+    }, [flushPendingSaves]);
+
+    useEffect(() => {
+        if (!hasUnsavedPractice) return;
+        const onBeforeUnload = (e: BeforeUnloadEvent) => {
+            e.preventDefault();
+            e.returnValue = "";
+        };
+        globalThis.addEventListener("beforeunload", onBeforeUnload);
+        return () => globalThis.removeEventListener("beforeunload", onBeforeUnload);
+    }, [hasUnsavedPractice]);
+
     const persistSession = useCallback(
-        (payload: SessionCompletePayload) => {
+        async (payload: SessionCompletePayload) => {
             if (savedOnce || payload.wordResults.length === 0) {
                 router.replace(`/learn/courses/${courseId}`);
                 return;
             }
             setSavedOnce(true);
-            const wordIds = [...new Set(payload.wordResults.map((r) => r.wordId))];
-            const progressBeforeSave = progressByWordId;
+            setHasUnsavedPractice(false);
+            setIsSyncingProgress(true);
 
-            recordBulk(
+            applyOptimisticWordProgress(
+                queryClient,
+                wordIdList,
+                progressByWordId,
                 { answers: payload.wordResults },
-                {
-                    onSuccess: async () => {
-                        setIsSyncingProgress(true);
-                        try {
-                            const synced = await waitForWordProgressSync(
-                                wordIds,
-                                progressBeforeSave,
-                            );
-                            await invalidateProgressQueries();
-                            fireCelebrationConfetti();
-                            toast.success("Progress saved!");
-                            if (!synced) {
-                                toast.info("Stats may take a moment to fully update.");
-                            }
-                            router.replace(`/learn/courses/${courseId}`);
-                        } catch {
-                            setSavedOnce(false);
-                            toast.error("Could not confirm progress sync.");
-                        } finally {
-                            setIsSyncingProgress(false);
-                        }
-                    },
-                    onError: () => {
-                        setSavedOnce(false);
-                        toast.error("Could not save progress. Try again.");
-                    },
-                },
             );
+
+            try {
+                const outcome = await saveSessionResults(payload, progressByWordId);
+                await invalidateProgressQueries();
+                fireCelebrationConfetti();
+
+                if (outcome === "queued") {
+                    toast.warning("Saved locally — we will sync when you are back online.");
+                } else if (outcome === "async") {
+                    toast.success("Progress saved!");
+                    toast.info("Stats may take a moment to fully update.");
+                } else {
+                    toast.success("Progress saved!");
+                }
+
+                router.replace(`/learn/courses/${courseId}`);
+            } catch {
+                setSavedOnce(false);
+                setHasUnsavedPractice(true);
+                enqueuePendingPracticeSave({ answers: payload.wordResults });
+                toast.error("Could not save progress. It is queued for retry.");
+            } finally {
+                setIsSyncingProgress(false);
+            }
         },
         [
             savedOnce,
-            recordBulk,
             courseId,
             router,
             progressByWordId,
             invalidateProgressQueries,
+            queryClient,
+            wordIdList,
         ],
+    );
+
+    const handlePracticeComplete = useCallback(
+        (payload: SessionCompletePayload) => {
+            void persistSession(payload);
+        },
+        [persistSession],
     );
 
     const handleBackToCourse = () => {
@@ -218,6 +295,7 @@ export default function PracticePage() {
                     : "bg-background flex flex-col"
             }
         >
+            <SavingOverlay open={isPersisting} />
             <div className="container mx-auto px-3 sm:px-4 py-3 sm:py-6 max-w-4xl flex flex-col">
                 <Button
                     variant="ghost"
@@ -235,7 +313,7 @@ export default function PracticePage() {
                     </h1>
                     <p className="text-sm sm:text-base text-muted-foreground">
                         {courseName} • {words.length} word{words.length === 1 ? "" : "s"}
-                        {isReview && phase === "practice" && " • due for review"}
+                        {isReview && phase === "practice" && " • recall mode"}
                     </p>
                 </div>
                 <div className="flex-1 pb-4 flex flex-col min-h-0">
@@ -276,7 +354,8 @@ export default function PracticePage() {
                             stagesByWordId={sessionPlan.stagesByWordId}
                             sessionKind={sessionKind}
                             leechWordIds={leechWordIds}
-                            onComplete={persistSession}
+                            onSummaryReady={() => setHasUnsavedPractice(true)}
+                            onComplete={handlePracticeComplete}
                         />
                     )}
                 </div>

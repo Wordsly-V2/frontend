@@ -304,6 +304,37 @@ export default function LearnCourseDetailPage({ params }: { params: Promise<{ id
                     )}
                 </div>
 
+                {/* Due review banner */}
+                {courseStats?.dueToday != null && courseStats.dueToday > 0 && (
+                    <div className="mb-6 flex flex-col gap-3 rounded-2xl border border-primary/30 bg-primary/5 p-4 sm:flex-row sm:items-center sm:justify-between">
+                        <div className="min-w-0">
+                            <p className="text-sm font-semibold text-foreground">
+                                {courseStats.dueToday} word{courseStats.dueToday === 1 ? "" : "s"} due for review
+                            </p>
+                            <p className="text-xs text-muted-foreground mt-0.5">
+                                Review now while they are fresh — spaced repetition works best on schedule.
+                            </p>
+                        </div>
+                        <Button
+                            type="button"
+                            onClick={handlePracticeDueWords}
+                            disabled={
+                                isDueWordIdsLoading ||
+                                !dueWordIds ||
+                                dueWordIds.wordIds.length === 0
+                            }
+                            className="shrink-0 rounded-xl gap-2"
+                        >
+                            <Brain className="h-4 w-4" aria-hidden />
+                            {isDueWordIdsLoading
+                                ? "Loading…"
+                                : dueWordIds && dueWordIds.wordIds.length > 0
+                                  ? `Review due (${dueWordIds.wordIds.length})`
+                                  : "No due words"}
+                        </Button>
+                    </div>
+                )}
+
                 {/* Word Progress Stats */}
                 <LearningProgressSection
                     stats={courseStats}

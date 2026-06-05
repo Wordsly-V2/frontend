@@ -7,6 +7,7 @@ import type { IDailyHabit } from "@/types/daily-habit/daily-habit.type";
 import { AnswerQuality } from "@/types/word-progress/word-progress.type";
 import { IWord } from "@/types/courses/courses.type";
 import { ArrowRight, Award, Flame, RotateCcw, Sparkles, Target } from "lucide-react";
+import { useEffect } from "react";
 
 export interface SessionWordResult {
     wordId: string;
@@ -41,6 +42,32 @@ export function PracticeSessionSummary({
     const strongCount = wordResults.filter((r) => r.quality >= AnswerQuality.CORRECT_WITH_HESITATION).length;
     const goal = dailyGoalProgress(habitState.wordsToday, habitState.goal);
     const headline = pickSessionCompleteMessage(score, wordResults.length);
+
+    useEffect(() => {
+        const onKeyDown = (e: KeyboardEvent) => {
+            const target = e.target;
+            if (
+                target instanceof HTMLElement &&
+                (target.isContentEditable ||
+                    target.tagName === "INPUT" ||
+                    target.tagName === "TEXTAREA" ||
+                    target.tagName === "SELECT")
+            ) {
+                return;
+            }
+            if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                onContinue();
+                return;
+            }
+            if (e.key.toLowerCase() === "r" && missedWords.length > 0 && onRetryMissed) {
+                e.preventDefault();
+                onRetryMissed();
+            }
+        };
+        globalThis.addEventListener("keydown", onKeyDown);
+        return () => globalThis.removeEventListener("keydown", onKeyDown);
+    }, [onContinue, onRetryMissed, missedWords.length]);
 
     return (
         <div className="animate-in fade-in zoom-in duration-500 text-center py-6 sm:py-10">
@@ -131,11 +158,13 @@ export function PracticeSessionSummary({
                     <Button variant="outline" size="lg" onClick={onRetryMissed} className="gap-2 rounded-xl">
                         <RotateCcw className="h-4 w-4" aria-hidden />
                         Retry missed words
+                        <span className="text-xs text-muted-foreground font-normal">(R)</span>
                     </Button>
                 )}
                 <Button size="lg" onClick={onContinue} className="gap-2 rounded-xl">
                     Continue
                     <ArrowRight className="h-4 w-4" aria-hidden />
+                    <span className="text-xs opacity-80 font-normal">(Enter)</span>
                 </Button>
             </div>
         </div>

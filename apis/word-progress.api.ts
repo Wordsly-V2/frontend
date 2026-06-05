@@ -17,6 +17,21 @@ export const recordAnswer = async (data: IRecordAnswerDto): Promise<IWordProgres
     }
 }
 
+/** Record multiple answers synchronously when available (writes to DB directly). */
+export const recordAnswerBulkSync = async (
+    data: IBulkRecordAnswersDto,
+): Promise<IWordProgressResponse[]> => {
+    try {
+        const response = await axiosInstance.post<IWordProgressResponse[]>(
+            "/word-progress/record-answer/bulk-sync",
+            data,
+        );
+        return response.data;
+    } catch (error) {
+        throw (error as AxiosError).response?.data || error;
+    }
+};
+
 /** Record multiple answers in one request (bulk). Accepted for async processing. */
 export const recordAnswerBulk = async (data: IBulkRecordAnswersDto): Promise<{ accepted: boolean }> => {
     try {

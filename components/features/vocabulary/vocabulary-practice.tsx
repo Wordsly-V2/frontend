@@ -26,6 +26,10 @@ import { playAudioUrl } from "@/lib/practice-audio";
 import { pickMilestoneMessage } from "@/lib/practice-feedback";
 import type { PracticeSessionKind } from "@/lib/practice-session";
 import {
+    playPracticeErrorSound,
+    playPracticeSuccessSound,
+} from "@/lib/practice-sounds";
+import {
     stageHintPolicy,
     stageLabel,
     type WordLearningStage,
@@ -38,6 +42,7 @@ import {
 } from "@/lib/practice-settings";
 import {
     getClozePrompt,
+    getFirstLetterHint,
     getWordExamples,
     maskWordInExamples,
     normalizeAnswer,
@@ -86,6 +91,7 @@ interface VocabularyPracticeProps {
     sessionKind?: PracticeSessionKind;
     leechWordIds?: Set<string>;
     onComplete?: (payload: SessionCompletePayload) => void;
+    onSummaryReady?: () => void;
 }
 
 function WordPracticeHints({
@@ -145,6 +151,7 @@ export default function VocabularyPractice({
     sessionKind = "new",
     leechWordIds,
     onComplete,
+    onSummaryReady,
 }: Readonly<VocabularyPracticeProps>) {
     const [queue, setQueue] = useState(() => practiceQueue ?? shuffleArray(words));
     const [currentIndex, setCurrentIndex] = useState(0);
@@ -155,8 +162,9 @@ export default function VocabularyPractice({
         resolvePracticeSettings(sessionKind),
     );
     const [practiceSettingsReady, setPracticeSettingsReady] = useState(false);
-    const { mode, autoCheck, showExampleHints, showImageHints } = practiceSettings;
+    const { mode, autoCheck, showExampleHints, showImageHints, soundEnabled } = practiceSettings;
     const [typingResult, setTypingResult] = useState<"correct" | "incorrect" | null>(null);
+    const [practicePass, setPracticePass] = useState<"main" | "retry-missed">("main");
     const [showSettings, setShowSettings] = useState(false);
     const [showResultDialog, setShowResultDialog] = useState(false);
     const [showWordsList, setShowWordsList] = useState(false);
@@ -238,7 +246,15 @@ export default function VocabularyPractice({
 
     const commitResult = useCallback(
         (result: WordResult) => {
-            setWordResults((prev) => [...prev, result]);
+            setWordResults((prev) => {
+                const existingIndex = prev.findIndex((r) => r.wordId === result.wordId);
+                if (existingIndex >= 0) {
+                    const next = [...prev];
+                    next[existingIndex] = result;
+                    return next;
+                }
+                return [...prev, result];
+            });
             if (isWeakAnswer(result.quality)) {
                 setSessionStreak(0);
             } else {
@@ -254,6 +270,15 @@ export default function VocabularyPractice({
             }
         },
         [],
+    );
+
+    const playResultSound = useCallback(
+        (isCorrect: boolean) => {
+            if (!soundEnabled) return;
+            if (isCorrect) playPracticeSuccessSound();
+            else playPracticeErrorSound();
+        },
+        [soundEnabled],
     );
 
     const stageResult = useCallback((result: WordResult) => {
@@ -278,6 +303,7 @@ export default function VocabularyPractice({
             setWordResults(results);
             setHabitState(localHabit);
             setPhase("summary");
+            onSummaryReady?.();
 
             recordDailyPractice.mutate(
                 { wordCount, clientDate: localDateString() },
@@ -288,25 +314,50 @@ export default function VocabularyPractice({
                 },
             );
         },
-        [recordDailyPractice],
+        [recordDailyPractice, onSummaryReady],
     );
 
     const handleNextFromDialog = useCallback(() => {
         setShowResultDialog(false);
         const resultToCommit = pendingResult;
-        const nextResults = resultToCommit ? [...wordResults, resultToCommit] : wordResults;
+        setPendingResult(null);
+
+        let mergedResults = wordResults;
         if (resultToCommit) {
+            const existingIndex = wordResults.findIndex((r) => r.wordId === resultToCommit.wordId);
+            mergedResults =
+                existingIndex >= 0
+                    ? wordResults.map((r, i) => (i === existingIndex ? resultToCommit : r))
+                    : [...wordResults, resultToCommit];
             commitResult(resultToCommit);
-            setPendingResult(null);
         }
+
         if (currentIndex < queue.length - 1) {
             setCurrentIndex((i) => i + 1);
             resetWordUi();
             focusPracticeInput();
-        } else {
-            finishSession(nextResults);
-            resetWordUi();
+            return;
         }
+
+        if (practicePass === "main") {
+            const missedIds = new Set(
+                mergedResults.filter((r) => isWeakAnswer(r.quality)).map((r) => r.wordId),
+            );
+            const missed = words.filter((w) => missedIds.has(w.id));
+            if (missed.length > 0) {
+                setPracticePass("retry-missed");
+                setQueue(shuffleArray(missed));
+                setCurrentIndex(0);
+                setWordResults(mergedResults);
+                resetWordUi();
+                toast.info(`One more try — ${missed.length} word${missed.length === 1 ? "" : "s"}`);
+                focusPracticeInput();
+                return;
+            }
+        }
+
+        finishSession(mergedResults);
+        resetWordUi();
     }, [
         pendingResult,
         wordResults,
@@ -316,6 +367,8 @@ export default function VocabularyPractice({
         resetWordUi,
         finishSession,
         focusPracticeInput,
+        practicePass,
+        words,
     ]);
 
     const handleTryAgain = useCallback(() => {
@@ -365,6 +418,7 @@ export default function VocabularyPractice({
         const quality = calculateAnswerQuality(isCorrect, hintsUsed, elapsed);
         stageResult({ wordId: currentWord.id, quality });
         setTypingResult(isCorrect ? "correct" : "incorrect");
+        playResultSound(isCorrect);
         setShowResultDialog(true);
         inputRef.current?.blur();
     };
@@ -398,20 +452,42 @@ export default function VocabularyPractice({
         const quality = calculateAnswerQuality(isCorrect, 0, elapsed);
         stageResult({ wordId: currentWord.id, quality });
         setTypingResult(isCorrect ? "correct" : "incorrect");
+        playResultSound(isCorrect);
         setShowResultDialog(true);
     };
 
     const handleFlashcardRate = (rating: FlashcardRating) => {
         if (!currentWord) return;
         const result = { wordId: currentWord.id, quality: flashcardRatingToQuality(rating) };
-        const nextResults = [...wordResults, result];
+        const existingIndex = wordResults.findIndex((r) => r.wordId === result.wordId);
+        const mergedResults =
+            existingIndex >= 0
+                ? wordResults.map((r, i) => (i === existingIndex ? result : r))
+                : [...wordResults, result];
         commitResult(result);
         if (currentIndex < queue.length - 1) {
             setCurrentIndex((i) => i + 1);
             resetWordUi();
-        } else {
-            finishSession(nextResults);
+            return;
         }
+
+        if (practicePass === "main") {
+            const missedIds = new Set(
+                mergedResults.filter((r) => isWeakAnswer(r.quality)).map((r) => r.wordId),
+            );
+            const missed = words.filter((w) => missedIds.has(w.id));
+            if (missed.length > 0) {
+                setPracticePass("retry-missed");
+                setQueue(shuffleArray(missed));
+                setCurrentIndex(0);
+                setWordResults(mergedResults);
+                resetWordUi();
+                toast.info(`One more try — ${missed.length} word${missed.length === 1 ? "" : "s"}`);
+                return;
+            }
+        }
+
+        finishSession(mergedResults);
     };
 
     const generateMultipleChoiceOptions = (correctWord: IWord, allWords: IWord[]): string[] => {
@@ -430,7 +506,7 @@ export default function VocabularyPractice({
     }, [currentIndex, activeMode, currentWord, queue]);
 
     useEffect(() => {
-        if (["typing", "listening", "cloze", "multiple-choice"].includes(activeMode)) {
+        if (["typing", "listening", "cloze", "cloze-fallback", "multiple-choice"].includes(activeMode)) {
             wordStartTimeRef.current = Date.now();
         }
     }, [currentIndex, activeMode]);
@@ -472,16 +548,70 @@ export default function VocabularyPractice({
                 wordId: currentWord.id,
                 quality: calculateAnswerQuality(true, hintsUsed, elapsed),
             });
+            playResultSound(true);
             setShowResultDialog(true);
             inputRef.current?.blur();
         }
-    }, [autoCheck, currentWord, activeMode, typingResult, showResultDialog, userAnswer, hintsUsed, stageResult]);
+    }, [autoCheck, currentWord, activeMode, typingResult, showResultDialog, userAnswer, hintsUsed, stageResult, playResultSound]);
 
     useEffect(() => {
         if (typingResult || showResultDialog) return;
-        if (!["typing", "listening", "cloze"].includes(activeMode)) return;
+        if (!["typing", "listening", "cloze", "cloze-fallback"].includes(activeMode)) return;
         focusPracticeInput();
     }, [activeMode, typingResult, showResultDialog, currentIndex, hasPlayedAudio, focusPracticeInput]);
+
+    useEffect(() => {
+        if (
+            activeMode !== "multiple-choice" ||
+            typingResult ||
+            showResultDialog ||
+            multipleChoiceOptions.length === 0
+        ) {
+            return;
+        }
+        const onKeyDown = (e: KeyboardEvent) => {
+            const key = e.key.toLowerCase();
+            if (!["a", "b", "c", "d"].includes(key)) return;
+            const target = e.target;
+            if (
+                target instanceof HTMLElement &&
+                (target.tagName === "INPUT" || target.tagName === "TEXTAREA")
+            ) {
+                return;
+            }
+            const index = key.charCodeAt(0) - 97;
+            const option = multipleChoiceOptions[index];
+            if (option) {
+                e.preventDefault();
+                handleMultipleChoiceSelect(option);
+            }
+        };
+        globalThis.addEventListener("keydown", onKeyDown);
+        return () => globalThis.removeEventListener("keydown", onKeyDown);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [activeMode, typingResult, showResultDialog, multipleChoiceOptions, currentIndex]);
+
+    useEffect(() => {
+        if (activeMode !== "flashcard" || !showAnswer) return;
+        const onKeyDown = (e: KeyboardEvent) => {
+            const target = e.target;
+            if (
+                target instanceof HTMLElement &&
+                (target.tagName === "INPUT" || target.tagName === "TEXTAREA")
+            ) {
+                return;
+            }
+            const ratings: FlashcardRating[] = ["easy", "good", "hard", "forgot"];
+            const index = Number.parseInt(e.key, 10) - 1;
+            if (index >= 0 && index < ratings.length) {
+                e.preventDefault();
+                handleFlashcardRate(ratings[index]);
+            }
+        };
+        globalThis.addEventListener("keydown", onKeyDown);
+        return () => globalThis.removeEventListener("keydown", onKeyDown);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [activeMode, showAnswer, currentIndex]);
 
     useEffect(() => {
         if (showResultDialog) {
@@ -495,9 +625,9 @@ export default function VocabularyPractice({
         );
         const missed = words.filter((w) => missedIds.has(w.id));
         if (missed.length === 0) return;
+        setPracticePass("retry-missed");
         setQueue(shuffleArray(missed));
         setCurrentIndex(0);
-        setWordResults([]);
         setPhase("practice");
         resetWordUi();
     };
@@ -546,6 +676,11 @@ export default function VocabularyPractice({
                 {sessionStreak >= 3 && (
                     <p className="text-xs text-primary mt-1.5 font-medium">{sessionStreak} in a row</p>
                 )}
+                {practicePass === "retry-missed" && (
+                    <p className="text-xs text-orange-600 dark:text-orange-400 mt-1.5 font-medium">
+                        Extra round — missed words
+                    </p>
+                )}
             </div>
 
             <div className="flex justify-center gap-2 sm:gap-3 mb-4 sm:mb-6 flex-wrap">
@@ -590,9 +725,30 @@ export default function VocabularyPractice({
             />
 
             {isLeech && (
-                <div className="mb-4 flex items-center gap-2 rounded-xl border border-amber-200/80 bg-amber-50/90 dark:bg-amber-950/30 dark:border-amber-800/50 px-3 py-2 text-sm text-amber-800 dark:text-amber-200">
-                    <AlertTriangle className="h-4 w-4 shrink-0" aria-hidden />
-                    <span>Tricky word — take an extra moment with the examples.</span>
+                <div className="mb-4 rounded-xl border border-amber-200/80 bg-amber-50/90 dark:bg-amber-950/30 dark:border-amber-800/50 px-3 py-3 text-sm text-amber-800 dark:text-amber-200">
+                    <div className="flex items-start gap-2">
+                        <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" aria-hidden />
+                        <div className="min-w-0 text-left space-y-2">
+                            <p className="font-medium">Tricky word — extra help</p>
+                            {rawExamples[0] && (
+                                <p className="text-xs italic text-amber-700/90 dark:text-amber-300/90">
+                                    &ldquo;{rawExamples[0]}&rdquo;
+                                </p>
+                            )}
+                            {currentWord.audioUrl && (
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-8 rounded-lg border-amber-300/60 bg-white/50 dark:bg-transparent"
+                                    onClick={() => playAudioUrl(currentWord.audioUrl)}
+                                >
+                                    <Volume2 className="h-3.5 w-3.5 mr-1.5" aria-hidden />
+                                    Listen again
+                                </Button>
+                            )}
+                        </div>
+                    </div>
                 </div>
             )}
 
@@ -730,6 +886,51 @@ export default function VocabularyPractice({
                     </div>
                 )}
 
+                {activeMode === "cloze-fallback" && (
+                    <div className="space-y-6 text-center">
+                        <p className="text-xs uppercase tracking-widest text-muted-foreground">Fill in the word</p>
+                        <div className="space-y-2">
+                            <p className="text-xs font-medium text-muted-foreground">Meaning</p>
+                            <p className="text-xl sm:text-2xl font-bold px-2">{currentWord.meaning}</p>
+                            {currentWord.partOfSpeech && (
+                                <span className="inline-block px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-semibold">
+                                    {currentWord.partOfSpeech}
+                                </span>
+                            )}
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                            Starts with:{" "}
+                            <span className="font-bold text-foreground uppercase">
+                                {getFirstLetterHint(currentWord.word)}
+                            </span>
+                        </p>
+                        <WordPracticeHints
+                            maskedExamples={maskedExamples}
+                            imageUrl={currentWord.imageUrl}
+                            showImageHints={effectiveImageHints}
+                        />
+                        <input
+                            ref={inputRef}
+                            type="text"
+                            autoFocus
+                            placeholder="Type the word..."
+                            value={userAnswer}
+                            onChange={(e) => setUserAnswer(String(e.target.value).toLowerCase())}
+                            onKeyDown={(e) => submitAnswerOnEnter(e, handleCheckTypingAnswer)}
+                            className="w-full px-4 py-4 text-xl text-center rounded-xl border-2 border-border bg-background focus:border-primary outline-none"
+                        />
+                        <div className="flex justify-center gap-2">
+                            <Button variant="outline" onClick={handleGetHint} className="gap-2 rounded-xl">
+                                <Lightbulb className="h-4 w-4" />
+                                Hint
+                            </Button>
+                            <Button onClick={handleCheckTypingAnswer} disabled={!userAnswer.trim()} className="rounded-xl">
+                                Check
+                            </Button>
+                        </div>
+                    </div>
+                )}
+
                 {activeMode === "multiple-choice" && (
                     <div className="space-y-6">
                         <div className="text-center">
@@ -749,8 +950,13 @@ export default function VocabularyPractice({
                                     disabled={typingResult !== null}
                                     className="min-h-[56px] justify-start text-left rounded-xl"
                                 >
-                                    <span className="font-bold mr-3">{String.fromCharCode(65 + index)}.</span>
+                                    <span className="font-bold mr-3">
+                                        {String.fromCharCode(65 + index)}.
+                                    </span>
                                     {option}
+                                    <span className="ml-auto text-xs text-muted-foreground">
+                                        {String.fromCharCode(65 + index)}
+                                    </span>
                                 </Button>
                             ))}
                         </div>
@@ -809,28 +1015,28 @@ export default function VocabularyPractice({
                         onClick={() => handleFlashcardRate("easy")}
                         className="rounded-xl border-green-200 text-green-700 bg-green-50 hover:bg-green-100"
                     >
-                        Easy
+                        Easy <span className="text-xs opacity-70 ml-1">1</span>
                     </Button>
                     <Button
                         variant="outline"
                         onClick={() => handleFlashcardRate("good")}
                         className="rounded-xl border-teal-200 text-teal-700 bg-teal-50 hover:bg-teal-100"
                     >
-                        Got it
+                        Got it <span className="text-xs opacity-70 ml-1">2</span>
                     </Button>
                     <Button
                         variant="outline"
                         onClick={() => handleFlashcardRate("hard")}
                         className="rounded-xl border-orange-200 text-orange-700 bg-orange-50 hover:bg-orange-100"
                     >
-                        Hard
+                        Hard <span className="text-xs opacity-70 ml-1">3</span>
                     </Button>
                     <Button
                         variant="outline"
                         onClick={() => handleFlashcardRate("forgot")}
                         className="rounded-xl border-red-200 text-red-700 bg-red-50 hover:bg-red-100"
                     >
-                        Forgot
+                        Forgot <span className="text-xs opacity-70 ml-1">4</span>
                     </Button>
                 </div>
             )}

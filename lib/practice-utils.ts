@@ -49,6 +49,13 @@ export function getClozePrompt(word: IWord): ClozePrompt | null {
     return { sentence, answer: target };
 }
 
+/** First visible character for cloze fallback when no example exists. */
+export function getFirstLetterHint(word: string): string {
+    const trimmed = word.trim();
+    if (!trimmed) return "";
+    return trimmed[0].toLowerCase();
+}
+
 export function normalizeAnswer(value: string): string {
     return value.trim().toLowerCase().replaceAll(/\s+/g, " ");
 }

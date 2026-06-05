@@ -10,6 +10,7 @@ import {
     getWordProgress,
     recordAnswer,
     recordAnswerBulk,
+    recordAnswerBulkSync,
     resetProgress
 } from "@/apis/word-progress.api";
 import {
@@ -30,6 +31,12 @@ export const useRecordAnswerMutation = () => {
 export const useRecordAnswerBulkMutation = () => {
     return useMutation<{ accepted: boolean }, Error, IBulkRecordAnswersDto>({
         mutationFn: recordAnswerBulk,
+    });
+};
+
+export const useRecordAnswerBulkSyncMutation = () => {
+    return useMutation<IWordProgressResponse[], Error, IBulkRecordAnswersDto>({
+        mutationFn: recordAnswerBulkSync,
     });
 };
 

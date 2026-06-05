@@ -149,6 +149,16 @@ export function stageLabel(stage: WordLearningStage): string {
     }
 }
 
+/** Prefer review flow when URL is generic but session is mostly recall. */
+export function inferPracticeSessionKind(
+    counts: SessionStageCounts,
+    urlKind: PracticeSessionKind,
+): PracticeSessionKind {
+    if (urlKind === "review") return "review";
+    if (counts.new === 0 && (counts.due > 0 || counts.learning > 0)) return "review";
+    return "new";
+}
+
 export function stageHintPolicy(stage: WordLearningStage): {
     showExampleHints: boolean;
     showImageHints: boolean;

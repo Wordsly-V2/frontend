@@ -53,6 +53,19 @@ export function LearnQuickActions() {
         );
     };
 
+    const handleFinishDailyGoal = () => {
+        if (!last || dueCount === 0 || goal.met) return;
+        const wordsNeeded = Math.min(goal.remaining, dueCount);
+        router.push(
+            buildPracticeUrl({
+                courseId: last.id,
+                courseName: last.name,
+                wordIds: dueIds!.wordIds.slice(0, wordsNeeded),
+                kind: "review",
+            }),
+        );
+    };
+
     const subtitle = goal.met
         ? habit.goalStreak > 0
             ? `${habit.goalStreak}-day goal streak — quick review keeps momentum.`
@@ -91,6 +104,20 @@ export function LearnQuickActions() {
                 <div className="flex min-w-0 w-full flex-col gap-2 sm:flex-row sm:flex-wrap sm:justify-end">
                     {last ? (
                         <>
+                            {!goal.met && dueCount > 0 && (
+                                <Button
+                                    type="button"
+                                    variant="default"
+                                    className="w-full rounded-xl gap-2 sm:w-auto"
+                                    disabled={dueLoading}
+                                    onClick={handleFinishDailyGoal}
+                                >
+                                    <Target className="h-4 w-4" aria-hidden />
+                                    {dueLoading
+                                        ? "Loading…"
+                                        : `Finish today's goal (${Math.min(goal.remaining, dueCount)} words)`}
+                                </Button>
+                            )}
                             <Button
                                 variant="default"
                                 className="min-w-0 max-w-full !shrink justify-between gap-2 overflow-hidden rounded-xl sm:min-w-0"
