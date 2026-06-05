@@ -7,7 +7,7 @@ import { pickCorrectMessage, pickIncorrectMessage } from "@/lib/practice-feedbac
 import { playAudioUrl } from "@/lib/practice-audio";
 import { CheckCircle2, Film, Timer, Volume2, XCircle } from "lucide-react";
 import Image from "next/image";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 
 export interface PracticeResultDialogProps {
     isOpen: boolean;
@@ -45,6 +45,8 @@ export default function PracticeResultDialog({
     isLastWord,
     feedbackSeed = 0,
 }: Readonly<PracticeResultDialogProps>) {
+    const openedAtRef = useRef(0);
+
     // Auto-play audio when dialog opens
     useEffect(() => {
         if (isOpen && audioUrl) {
@@ -56,19 +58,26 @@ export default function PracticeResultDialog({
         }
     }, [isOpen, audioUrl]);
 
-    // Handle Enter key to proceed to next word
+    useEffect(() => {
+        if (isOpen) {
+            openedAtRef.current = Date.now();
+        }
+    }, [isOpen]);
+
+    // Handle Enter key to proceed — ignore the same Enter that may have opened the dialog
     useEffect(() => {
         if (!isOpen) return;
 
         const handleKeyDown = (e: KeyboardEvent) => {
-            if (e.key === "Enter") {
-                e.preventDefault();
-                onNext();
-            }
+            if (e.key !== "Enter") return;
+            if (Date.now() - openedAtRef.current < 150) return;
+            e.preventDefault();
+            e.stopPropagation();
+            onNext();
         };
 
-        globalThis.addEventListener("keydown", handleKeyDown);
-        return () => globalThis.removeEventListener("keydown", handleKeyDown);
+        globalThis.addEventListener("keydown", handleKeyDown, true);
+        return () => globalThis.removeEventListener("keydown", handleKeyDown, true);
     }, [isOpen, onNext]);
 
     const handlePlayAudio = () => playAudioUrl(audioUrl);

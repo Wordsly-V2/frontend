@@ -21,7 +21,11 @@ import { playAudioUrl } from "@/lib/practice-audio";
 import { pickMilestoneMessage } from "@/lib/practice-feedback";
 import type { PracticeSessionKind } from "@/lib/practice-session";
 import {
-    MIXED_PRACTICE_MODES,
+    stageHintPolicy,
+    stageLabel,
+    type WordLearningStage,
+} from "@/lib/word-progress-stage";
+import {
     resolveActiveMode,
     resolvePracticeSettings,
     SETTINGS_STORAGE_KEY,
@@ -69,7 +73,11 @@ export interface SessionCompletePayload {
 }
 
 interface VocabularyPracticeProps {
+    /** All session words (used in summary). */
     words: IWord[];
+    /** Progress-ordered queue; defaults to shuffled `words`. */
+    practiceQueue?: IWord[];
+    stagesByWordId?: Record<string, WordLearningStage>;
     sessionKind?: PracticeSessionKind;
     leechWordIds?: Set<string>;
     onComplete?: (payload: SessionCompletePayload) => void;
@@ -127,11 +135,13 @@ function WordPracticeHints({
 
 export default function VocabularyPractice({
     words,
+    practiceQueue,
+    stagesByWordId,
     sessionKind = "new",
     leechWordIds,
     onComplete,
 }: Readonly<VocabularyPracticeProps>) {
-    const [queue, setQueue] = useState(() => shuffleArray(words));
+    const [queue, setQueue] = useState(() => practiceQueue ?? shuffleArray(words));
     const [currentIndex, setCurrentIndex] = useState(0);
     const [phase, setPhase] = useState<"practice" | "summary">("practice");
     const [showAnswer, setShowAnswer] = useState(false);
@@ -174,12 +184,18 @@ export default function VocabularyPractice({
     }, [practiceSettings, practiceSettingsReady]);
 
     const currentWord = queue[currentIndex];
+    const currentStage: WordLearningStage =
+        currentWord != null ? (stagesByWordId?.[currentWord.id] ?? "new") : "new";
+    const stageHints = stageHintPolicy(currentStage);
+    const effectiveExampleHints = showExampleHints && stageHints.showExampleHints;
+    const effectiveImageHints = showImageHints && stageHints.showImageHints;
+
     const clozePrompt = useMemo(
         () => (currentWord ? getClozePrompt(currentWord) : null),
         [currentWord],
     );
     const activeMode: ActivePracticeMode = currentWord
-        ? resolveActiveMode(mode, currentIndex, clozePrompt != null)
+        ? resolveActiveMode(mode, currentIndex, clozePrompt != null, currentStage)
         : "typing";
 
     const rawExamples = useMemo(
@@ -188,10 +204,10 @@ export default function VocabularyPractice({
     );
     const maskedExamples = useMemo(
         () =>
-            currentWord && showExampleHints && rawExamples.length > 0
+            currentWord && effectiveExampleHints && rawExamples.length > 0
                 ? maskWordInExamples(currentWord.word, rawExamples)
                 : [],
-        [currentWord, showExampleHints, rawExamples],
+        [currentWord, effectiveExampleHints, rawExamples],
     );
 
     const progress = queue.length > 0 ? ((currentIndex + 1) / queue.length) * 100 : 100;
@@ -307,7 +323,7 @@ export default function VocabularyPractice({
     };
 
     const checkTypedAnswer = (expected: string) => {
-        if (!currentWord) return;
+        if (!currentWord || typingResult || showResultDialog) return;
         const elapsed =
             wordStartTimeRef.current != null
                 ? (Date.now() - wordStartTimeRef.current) / 1000
@@ -318,6 +334,20 @@ export default function VocabularyPractice({
         stageResult({ wordId: currentWord.id, quality });
         setTypingResult(isCorrect ? "correct" : "incorrect");
         setShowResultDialog(true);
+        inputRef.current?.blur();
+    };
+
+    const submitAnswerOnEnter = (
+        e: React.KeyboardEvent<HTMLInputElement>,
+        submit: () => void,
+        canSubmit = true,
+    ) => {
+        if (e.key !== "Enter" || !canSubmit || !userAnswer.trim() || typingResult || showResultDialog) {
+            return;
+        }
+        e.preventDefault();
+        e.stopPropagation();
+        submit();
     };
 
     const handleCheckTypingAnswer = () => checkTypedAnswer(currentWord?.word ?? "");
@@ -378,6 +408,7 @@ export default function VocabularyPractice({
             activeMode !== "typing" ||
             !autoCheck ||
             typingResult ||
+            showResultDialog ||
             !currentWord
         ) {
             return;
@@ -394,14 +425,21 @@ export default function VocabularyPractice({
                 quality: calculateAnswerQuality(true, hintsUsed, elapsed),
             });
             setShowResultDialog(true);
+            inputRef.current?.blur();
         }
-    }, [autoCheck, currentWord, activeMode, typingResult, userAnswer, hintsUsed, stageResult]);
+    }, [autoCheck, currentWord, activeMode, typingResult, showResultDialog, userAnswer, hintsUsed, stageResult]);
 
     useEffect(() => {
-        if ((activeMode === "typing" || activeMode === "listening" || activeMode === "cloze") && !typingResult) {
+        if ((activeMode === "typing" || activeMode === "listening" || activeMode === "cloze") && !typingResult && !showResultDialog) {
             inputRef.current?.focus();
         }
-    }, [activeMode, typingResult, currentIndex]);
+    }, [activeMode, typingResult, showResultDialog, currentIndex]);
+
+    useEffect(() => {
+        if (showResultDialog) {
+            inputRef.current?.blur();
+        }
+    }, [showResultDialog]);
 
     const handleRetryMissed = () => {
         const missedIds = new Set(
@@ -440,9 +478,7 @@ export default function VocabularyPractice({
     if (!currentWord) return null;
 
     const modeLabel =
-        mode === "mixed"
-            ? `Mixed · ${MIXED_PRACTICE_MODES[currentIndex % MIXED_PRACTICE_MODES.length]}`
-            : activeMode;
+        mode === "mixed" ? `Mixed · ${activeMode.replace("-", " ")}` : activeMode.replace("-", " ");
 
     return (
         <div className="max-w-4xl pb-safe">
@@ -484,7 +520,10 @@ export default function VocabularyPractice({
                     Words
                 </Button>
                 <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-muted text-xs text-muted-foreground capitalize">
-                    {modeLabel.replace("-", " ")}
+                    {modeLabel}
+                </span>
+                <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-primary/10 text-xs font-medium text-primary">
+                    {stageLabel(currentStage)}
                 </span>
             </div>
 
@@ -539,7 +578,7 @@ export default function VocabularyPractice({
                                     <WordPracticeHints
                                         maskedExamples={maskedExamples}
                                         imageUrl={currentWord.imageUrl}
-                                        showImageHints={showImageHints}
+                                        showImageHints={effectiveImageHints}
                                     />
                                 )}
                             </div>
@@ -574,7 +613,7 @@ export default function VocabularyPractice({
                             <WordPracticeHints
                                 maskedExamples={maskedExamples}
                                 imageUrl={currentWord.imageUrl}
-                                showImageHints={showImageHints}
+                                showImageHints={effectiveImageHints}
                             />
                         </div>
                         <input
@@ -583,9 +622,7 @@ export default function VocabularyPractice({
                             placeholder="Type your answer..."
                             value={userAnswer}
                             onChange={(e) => setUserAnswer(String(e.target.value).toLowerCase())}
-                            onKeyDown={(e) => {
-                                if (e.key === "Enter" && userAnswer.trim()) handleCheckTypingAnswer();
-                            }}
+                            onKeyDown={(e) => submitAnswerOnEnter(e, handleCheckTypingAnswer)}
                             className="w-full px-4 py-4 text-xl text-center rounded-xl border-2 border-border bg-background focus:border-primary outline-none"
                         />
                         <div className="flex flex-wrap justify-center gap-2">
@@ -612,9 +649,7 @@ export default function VocabularyPractice({
                             placeholder="Type the missing word..."
                             value={userAnswer}
                             onChange={(e) => setUserAnswer(String(e.target.value).toLowerCase())}
-                            onKeyDown={(e) => {
-                                if (e.key === "Enter" && userAnswer.trim()) handleCheckClozeAnswer();
-                            }}
+                            onKeyDown={(e) => submitAnswerOnEnter(e, handleCheckClozeAnswer)}
                             className="w-full px-4 py-4 text-xl text-center rounded-xl border-2 border-border bg-background focus:border-primary outline-none"
                         />
                         <div className="flex justify-center gap-2">
@@ -636,7 +671,7 @@ export default function VocabularyPractice({
                             <WordPracticeHints
                                 maskedExamples={maskedExamples}
                                 imageUrl={currentWord.imageUrl}
-                                showImageHints={showImageHints}
+                                showImageHints={effectiveImageHints}
                             />
                         </div>
                         <div className="grid gap-3">
@@ -677,11 +712,9 @@ export default function VocabularyPractice({
                             value={userAnswer}
                             onChange={(e) => setUserAnswer(e.target.value)}
                             disabled={!hasPlayedAudio}
-                            onKeyDown={(e) => {
-                                if (e.key === "Enter" && userAnswer.trim() && hasPlayedAudio) {
-                                    handleCheckListeningAnswer();
-                                }
-                            }}
+                            onKeyDown={(e) =>
+                                submitAnswerOnEnter(e, handleCheckListeningAnswer, hasPlayedAudio)
+                            }
                             className="w-full px-4 py-4 text-xl text-center rounded-xl border-2 border-border bg-background focus:border-primary outline-none disabled:opacity-50"
                         />
                         <div className="flex justify-center gap-2 flex-wrap">

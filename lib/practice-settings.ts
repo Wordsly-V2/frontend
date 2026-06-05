@@ -1,6 +1,7 @@
 import { getLocalStorageItem } from "@/lib/local-storage";
 import type { PracticeSettings } from "@/components/features/vocabulary/practice-settings-dialog";
 import type { PracticeSessionKind } from "@/lib/practice-session";
+import type { WordLearningStage } from "@/lib/word-progress-stage";
 
 export const SETTINGS_STORAGE_KEY = "vocabulary-practice-settings";
 
@@ -56,15 +57,36 @@ export function resolvePracticeSettings(
 /** Modes cycled in mixed sessions — strongest recall patterns first. */
 export const MIXED_PRACTICE_MODES = ["typing", "listening", "multiple-choice", "cloze"] as const;
 
-export type ActivePracticeMode = (typeof MIXED_PRACTICE_MODES)[number] | "flashcard";
+export const NEW_WORD_MIXED_MODES = ["typing", "multiple-choice", "cloze"] as const;
+export const LEARNING_MIXED_MODES = ["typing", "listening", "multiple-choice", "cloze"] as const;
+export const REVIEW_MIXED_MODES = ["typing", "listening", "cloze", "multiple-choice"] as const;
+
+export type ActivePracticeMode =
+    | (typeof MIXED_PRACTICE_MODES)[number]
+    | (typeof NEW_WORD_MIXED_MODES)[number]
+    | "flashcard";
+
+function mixedModesForStage(stage: WordLearningStage): readonly string[] {
+    switch (stage) {
+        case "new":
+            return NEW_WORD_MIXED_MODES;
+        case "learning":
+            return LEARNING_MIXED_MODES;
+        case "due":
+        case "review":
+            return REVIEW_MIXED_MODES;
+    }
+}
 
 export function resolveActiveMode(
     settingsMode: PracticeSettings["mode"],
     wordIndex: number,
     clozeAvailable: boolean,
+    stage: WordLearningStage = "learning",
 ): ActivePracticeMode {
     if (settingsMode === "mixed") {
-        const mode = MIXED_PRACTICE_MODES[wordIndex % MIXED_PRACTICE_MODES.length];
+        const modes = mixedModesForStage(stage);
+        const mode = modes[wordIndex % modes.length] as ActivePracticeMode;
         if (mode === "cloze" && !clozeAvailable) return "typing";
         return mode;
     }

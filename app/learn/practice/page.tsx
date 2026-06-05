@@ -1,6 +1,7 @@
 "use client";
 
 import LoadingSection from "@/components/common/loading-section/loading-section";
+import { PracticeSessionOverview } from "@/components/features/vocabulary/practice-session-overview";
 import WordDetailsCarousel from "@/components/features/vocabulary/word-details-carousel";
 import VocabularyPractice, {
     type SessionCompletePayload,
@@ -8,6 +9,10 @@ import VocabularyPractice, {
 import { Button } from "@/components/ui/button";
 import { fireCelebrationConfetti } from "@/lib/confetti";
 import { parsePracticeSessionKind } from "@/lib/practice-session";
+import {
+    buildLeechWordIds,
+    buildPracticeSessionPlan,
+} from "@/lib/word-progress-stage";
 import {
     useGetProgressByWordIdsQuery,
     useRecordAnswerBulkMutation,
@@ -18,30 +23,14 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
-const LEECH_MIN_REVIEWS = 3;
-const LEECH_MAX_SUCCESS_RATE = 50;
-
-function buildLeechWordIds(
-    wordIds: string[],
-    progress: Record<string, { totalReviews: number; successRate: number } | null> | undefined,
-): Set<string> {
-    const leeches = new Set<string>();
-    if (!progress) return leeches;
-    for (const id of wordIds) {
-        const p = progress[id];
-        if (p && p.totalReviews >= LEECH_MIN_REVIEWS && p.successRate < LEECH_MAX_SUCCESS_RATE) {
-            leeches.add(id);
-        }
-    }
-    return leeches;
-}
+type PracticePhase = "overview" | "intro" | "practice";
 
 export default function PracticePage() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const sessionKind = parsePracticeSessionKind(searchParams.get("kind"));
     const isReview = sessionKind === "review";
-    const [phase, setPhase] = useState<"intro" | "practice">(isReview ? "practice" : "intro");
+    const [phase, setPhase] = useState<PracticePhase>("overview");
     const [introIndex, setIntroIndex] = useState(0);
     const [savedOnce, setSavedOnce] = useState(false);
 
@@ -49,14 +38,19 @@ export default function PracticePage() {
     const courseId = searchParams.get("courseId") ?? "";
     const wordIdsParam = searchParams.get("wordIds") ?? "";
     const paramsValid = Boolean(courseNameRaw && courseId && wordIdsParam);
-    const wordIdList = wordIdsParam ? wordIdsParam.split(",").filter(Boolean) : [];
-    const courseName = (() => {
+
+    const wordIdList = useMemo(
+        () => (wordIdsParam ? wordIdsParam.split(",").filter(Boolean) : []),
+        [wordIdsParam],
+    );
+
+    const courseName = useMemo(() => {
         try {
             return decodeURIComponent(courseNameRaw);
         } catch {
             return courseNameRaw;
         }
-    })();
+    }, [courseNameRaw]);
 
     useEffect(() => {
         if (!paramsValid) {
@@ -71,14 +65,21 @@ export default function PracticePage() {
         refetch: refetchWords,
     } = useGetWordsByIdsQuery(courseId, wordIdList, paramsValid && wordIdList.length > 0);
 
-    const { data: progressByWordId } = useGetProgressByWordIdsQuery(
-        wordIdList,
-        paramsValid && wordIdList.length > 0,
-    );
+    const {
+        data: progressByWordId,
+        isLoading: isProgressLoading,
+        isError: isProgressError,
+        refetch: refetchProgress,
+    } = useGetProgressByWordIdsQuery(wordIdList, paramsValid && wordIdList.length > 0);
+
+    const sessionPlan = useMemo(() => {
+        if (!words?.length) return null;
+        return buildPracticeSessionPlan(words, progressByWordId, sessionKind);
+    }, [words, progressByWordId, sessionKind]);
 
     const leechWordIds = useMemo(
-        () => buildLeechWordIds(wordIdList, progressByWordId),
-        [wordIdList, progressByWordId],
+        () => buildLeechWordIds(progressByWordId),
+        [progressByWordId],
     );
 
     const { mutate: recordBulk, isPending: isSaving } = useRecordAnswerBulkMutation();
@@ -112,6 +113,14 @@ export default function PracticePage() {
         router.push(`/learn/courses/${courseId}`);
     };
 
+    const handleOverviewStart = () => {
+        if (sessionPlan && sessionPlan.introWords.length > 0) {
+            setPhase("intro");
+        } else {
+            setPhase("practice");
+        }
+    };
+
     useEffect(() => {
         if (phase !== "intro") return;
         const onKeyDown = (e: KeyboardEvent) => {
@@ -129,17 +138,23 @@ export default function PracticePage() {
         );
     }
 
-    if (isWordsLoading || isWordsError) {
+    const isLoading = isWordsLoading || isProgressLoading;
+    const isError = isWordsError || isProgressError;
+
+    if (isLoading || isError) {
         return (
             <LoadingSection
-                isLoading={isWordsLoading}
-                error={isWordsError ? "Error loading words" : null}
-                refetch={refetchWords}
+                isLoading={isLoading}
+                error={isError ? "Error loading session" : null}
+                refetch={() => {
+                    refetchWords();
+                    refetchProgress();
+                }}
             />
         );
     }
 
-    if (!words || words.length === 0) {
+    if (!words || words.length === 0 || !sessionPlan) {
         return (
             <main className="min-h-dvh bg-background flex items-center justify-center">
                 <div className="text-center">
@@ -153,12 +168,10 @@ export default function PracticePage() {
         );
     }
 
-    const title =
-        phase === "intro"
-            ? "New Words"
-            : isReview
-              ? "Review"
-              : "Practice";
+    let title = "Practice";
+    if (phase === "overview") title = "Session plan";
+    else if (phase === "intro") title = "New words";
+    else if (isReview) title = "Review";
 
     return (
         <main
@@ -185,19 +198,28 @@ export default function PracticePage() {
                     </h1>
                     <p className="text-sm sm:text-base text-muted-foreground">
                         {courseName} • {words.length} word{words.length === 1 ? "" : "s"}
-                        {isReview && " • due for review"}
+                        {isReview && phase === "practice" && " • due for review"}
                     </p>
                 </div>
                 <div className="flex-1 pb-4 flex flex-col min-h-0">
-                    {phase === "intro" ? (
+                    {phase === "overview" && (
+                        <PracticeSessionOverview
+                            counts={sessionPlan.counts}
+                            totalWords={words.length}
+                            hasIntro={sessionPlan.introWords.length > 0}
+                            isReviewSession={isReview}
+                            onStart={handleOverviewStart}
+                        />
+                    )}
+                    {phase === "intro" && (
                         <>
                             <section className="flex-1 flex flex-col min-h-0">
                                 <WordDetailsCarousel
-                                    words={words}
+                                    words={sessionPlan.introWords}
                                     onIndexChange={setIntroIndex}
                                     headerSlot={
                                         <span className="text-sm font-medium tabular-nums text-muted-foreground">
-                                            {introIndex + 1} / {words.length}
+                                            {introIndex + 1} / {sessionPlan.introWords.length}
                                         </span>
                                     }
                                     className="flex-1"
@@ -209,9 +231,12 @@ export default function PracticePage() {
                                 </Button>
                             </div>
                         </>
-                    ) : (
+                    )}
+                    {phase === "practice" && (
                         <VocabularyPractice
                             words={words}
+                            practiceQueue={sessionPlan.practiceQueue}
+                            stagesByWordId={sessionPlan.stagesByWordId}
                             sessionKind={sessionKind}
                             leechWordIds={leechWordIds}
                             onComplete={persistSession}
