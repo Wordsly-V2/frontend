@@ -10,7 +10,7 @@ import { useGetCourseDetailByIdQuery } from "@/queries/courses.query";
 import { useGetDueWordIdsByWordIdsQuery } from "@/queries/word-progress.query";
 import { ILesson, IWord } from "@/types/courses/courses.type";
 import WordDetailDialog from "@/components/features/manage/word-detail-dialog";
-import { ArrowLeft, Brain, ChevronDown, ChevronRight, Eye, List, Play, Search, Volume2 } from "lucide-react";
+import { ArrowLeft, BookOpen, Brain, ChevronDown, ChevronRight, Eye, GraduationCap, List, Play, Search, Volume2 } from "lucide-react";
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
@@ -249,7 +249,7 @@ export default function LearnCourseDetailPage({ params }: { params: Promise<{ id
 
                 {/* Course Header */}
                 <div className="bg-card rounded-xl sm:rounded-2xl shadow-sm overflow-hidden border border-border mb-6 sm:mb-8">
-                    {course.coverImageUrl && (
+                    {course.coverImageUrl ? (
                         <div className="relative h-48 sm:h-64 w-full">
                             <Image
                                 src={course.coverImageUrl}
@@ -259,15 +259,14 @@ export default function LearnCourseDetailPage({ params }: { params: Promise<{ id
                             />
                             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
                             <div className="absolute bottom-4 sm:bottom-6 left-4 sm:left-6 right-4 sm:right-6">
-                                <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white mb-2">
+                                <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white mb-2 break-words">
                                     {course.name}
                                 </h1>
-                                <div className="flex items-center gap-3 sm:gap-4 text-white/90 text-sm sm:text-base">
+                                <div className="flex flex-wrap items-center gap-3 sm:gap-4 text-white/90 text-sm sm:text-base">
                                     <span className="flex items-center gap-1.5">
-                                        <svg className="h-4 w-4 sm:h-5 sm:w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                                        </svg>
-                                        {course.lessons?.length || 0} lessons
+                                        <BookOpen className="h-4 w-4 sm:h-5 sm:w-5" />
+                                        {course.lessons?.length || 0}{" "}
+                                        {(course.lessons?.length || 0) === 1 ? "lesson" : "lessons"}
                                     </span>
                                     <span className="flex items-center gap-1.5">
                                         <svg className="h-4 w-4 sm:h-5 sm:w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -275,6 +274,32 @@ export default function LearnCourseDetailPage({ params }: { params: Promise<{ id
                                         </svg>
                                         {totalWords} words
                                     </span>
+                                </div>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="p-4 sm:p-6">
+                            <div className="flex items-start gap-4">
+                                <div className="flex h-14 w-14 sm:h-16 sm:w-16 shrink-0 items-center justify-center rounded-xl gradient-brand">
+                                    <GraduationCap className="h-7 w-7 sm:h-8 sm:w-8 text-white/90" />
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                    <h1 className="text-2xl sm:text-3xl font-bold mb-1 sm:mb-2 break-words">
+                                        {course.name}
+                                    </h1>
+                                    <div className="flex flex-wrap items-center gap-3 sm:gap-4 text-sm sm:text-base text-muted-foreground">
+                                        <span className="flex items-center gap-1.5">
+                                            <BookOpen className="h-4 w-4 sm:h-5 sm:w-5" />
+                                            {course.lessons?.length || 0}{" "}
+                                            {(course.lessons?.length || 0) === 1 ? "lesson" : "lessons"}
+                                        </span>
+                                        <span className="flex items-center gap-1.5">
+                                            <svg className="h-4 w-4 sm:h-5 sm:w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
+                                            </svg>
+                                            {totalWords} words
+                                        </span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -385,7 +410,7 @@ export default function LearnCourseDetailPage({ params }: { params: Promise<{ id
                                         </span>
                                     )}
                             </div>
-                            <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+                            <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:gap-2">
                                 <Button
                                     variant="outline"
                                     onClick={handlePracticeDueWords}
@@ -394,7 +419,7 @@ export default function LearnCourseDetailPage({ params }: { params: Promise<{ id
                                         !dueWordIds ||
                                         dueWordIds.wordIds.length === 0
                                     }
-                                    className="h-9 flex-1 rounded-xl border-primary/25 bg-primary/5 text-xs hover:bg-primary/10 sm:flex-initial sm:text-sm"
+                                    className="h-11 flex-1 rounded-xl border-primary/25 bg-primary/5 px-4 py-3 text-sm hover:bg-primary/10 sm:h-9 sm:flex-initial sm:px-3 sm:py-0"
                                     size="sm"
                                 >
                                     <Brain className="mr-2 h-4 w-4" />
@@ -413,7 +438,7 @@ export default function LearnCourseDetailPage({ params }: { params: Promise<{ id
                                         );
                                     }}
                                     disabled={selectedWords.size === 0}
-                                    className="h-9 flex-1 rounded-xl text-xs sm:flex-initial sm:text-sm"
+                                    className="h-11 flex-1 rounded-xl px-4 py-3 text-sm sm:h-9 sm:flex-initial sm:px-3 sm:py-0"
                                     size="sm"
                                 >
                                     <List className="mr-2 h-4 w-4" />
@@ -422,7 +447,7 @@ export default function LearnCourseDetailPage({ params }: { params: Promise<{ id
                                 <Button
                                     onClick={handleStartPractice}
                                     disabled={selectedWords.size === 0}
-                                    className="h-9 flex-1 rounded-xl text-xs sm:flex-initial sm:text-sm"
+                                    className="h-11 flex-1 rounded-xl px-4 py-3 text-sm sm:h-9 sm:flex-initial sm:px-3 sm:py-0"
                                     size="sm"
                                 >
                                     <Play className="mr-2 h-4 w-4" />
