@@ -3,6 +3,7 @@
 import ConfirmDialog from "@/components/common/confirm-dialog/confirm-dialog";
 import DataTable from "@/components/common/data-table/data-table";
 import LoadingSection from "@/components/common/loading-section/loading-section";
+import { SectionHeaderRow } from "@/components/common/section-header-row";
 import { WordProgressStatsInline } from "@/components/common/word-progress-stats";
 import CourseFormDialog from "@/components/features/manage/course-form-dialog";
 import { Button } from "@/components/ui/button";
@@ -10,6 +11,7 @@ import { Pagination } from "@/components/ui/pagination";
 import { useCourses } from "@/hooks/useCourses.hook";
 import { useGetMyCoursesQuery } from "@/queries/courses.query";
 import { useGetProgressStatsByCourseIdsQuery } from "@/queries/word-progress.query";
+import { LONG_TEXT_WRAP } from "@/lib/long-text";
 import { ICourse } from "@/types/courses/courses.type";
 import { BookOpen, Edit, Eye, Plus, Trash2 } from "lucide-react";
 import Image from "next/image";
@@ -122,9 +124,14 @@ export default function ManageCourses() {
             key: 'name' as keyof ICourse,
             label: 'Course Name',
             render: (course: ICourse) => (
-                <div>
-                    <p className="font-semibold text-sm sm:text-base">{course.name}</p>
-                    <p className="text-xs text-muted-foreground">
+                <div className="min-w-0 max-w-xs lg:max-w-md">
+                    <p
+                        className={`font-semibold text-sm sm:text-base line-clamp-2 ${LONG_TEXT_WRAP}`}
+                        title={course.name}
+                    >
+                        {course.name}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
                         {course.totalLessonsCount || 0} lessons • {course.totalWordsCount || 0} words
                     </p>
                 </div>
@@ -214,29 +221,31 @@ export default function ManageCourses() {
     return (
         <>
             <section aria-labelledby="manage-course-library-heading" className="mt-2">
-                <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                    <div>
-                        <h2
-                            id="manage-course-library-heading"
-                            className="text-xl font-semibold tracking-tight sm:text-2xl"
+                <SectionHeaderRow
+                    className="mb-6"
+                    actions={
+                        <Button
+                            onClick={openCreateDialog}
+                            size="default"
+                            className="h-10 w-full shrink-0 rounded-xl"
                         >
-                            Course library
-                        </h2>
-                        <p className="mt-1 text-sm text-muted-foreground">
-                            {paginatedData.totalItems}{" "}
-                            {paginatedData.totalItems === 1 ? "course" : "courses"} — edit content or open in
-                            Learn to study.
-                        </p>
-                    </div>
-                    <Button
-                        onClick={openCreateDialog}
-                        size="default"
-                        className="h-10 w-full shrink-0 rounded-xl sm:w-auto"
+                            <Plus className="h-4 w-4" />
+                            New course
+                        </Button>
+                    }
+                >
+                    <h2
+                        id="manage-course-library-heading"
+                        className={`text-xl font-semibold tracking-tight sm:text-2xl ${LONG_TEXT_WRAP}`}
                     >
-                        <Plus className="h-4 w-4" />
-                        New course
-                    </Button>
-                </div>
+                        Course library
+                    </h2>
+                    <p className={`mt-1 text-sm text-muted-foreground ${LONG_TEXT_WRAP}`}>
+                        {paginatedData.totalItems}{" "}
+                        {paginatedData.totalItems === 1 ? "course" : "courses"} — edit content or open in
+                        Learn to study.
+                    </p>
+                </SectionHeaderRow>
 
                 <DataTable
                     data={paginatedData.items}

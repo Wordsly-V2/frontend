@@ -1,5 +1,7 @@
 "use client";
 
+import { AdaptiveText } from "@/components/common/adaptive-text";
+import { LONG_TEXT_WRAP } from "@/lib/long-text";
 import Image from "next/image";
 
 interface WordPracticeHintsProps {
@@ -27,7 +29,14 @@ export function WordPracticeHints({
                         </p>
                         <ul className="space-y-1.5 text-sm sm:text-base text-muted-foreground max-h-24 sm:max-h-32 overflow-y-auto overscroll-contain pr-1">
                             {maskedExamples.map((s) => (
-                                <li key={s} className="italic">&ldquo;{s}&rdquo;</li>
+                                <li key={s} className={LONG_TEXT_WRAP}>
+                                    <AdaptiveText
+                                        text={`"${s}"`}
+                                        role="example"
+                                        className="italic text-muted-foreground !text-sm sm:!text-base"
+                                        scrollWhenLong={false}
+                                    />
+                                </li>
                             ))}
                         </ul>
                     </div>

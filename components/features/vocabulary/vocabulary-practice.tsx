@@ -1,10 +1,12 @@
 "use client";
 
+import { AdaptiveText } from "@/components/common/adaptive-text";
 import type { PracticeSettings } from "@/components/features/vocabulary/practice-settings-dialog";
 import PracticeResultDialog from "@/components/features/vocabulary/practice-result-dialog";
 import { LeechWordBanner } from "@/components/features/vocabulary/leech-word-banner";
 import { NewWordIntroPanel } from "@/components/features/vocabulary/new-word-intro-panel";
 import { PracticeCardShell } from "@/components/features/vocabulary/practice-card-shell";
+import { PracticeExerciseBody } from "@/components/features/vocabulary/practice-exercise-body";
 import { PracticeProgressHeader } from "@/components/features/vocabulary/practice-progress-header";
 import { PracticeToolbar } from "@/components/features/vocabulary/practice-toolbar";
 import { WordPracticeHints } from "@/components/features/vocabulary/word-practice-hints";
@@ -50,6 +52,7 @@ import {
     shuffleArray,
 } from "@/lib/practice-utils";
 import { useNewWordIntro } from "@/hooks/useNewWordIntro.hook";
+import { LONG_TEXT_WRAP } from "@/lib/long-text";
 import { setLocalStorageItem } from "@/lib/local-storage";
 import type { SessionCompletePayload, WordResult } from "@/types/practice/practice.type";
 import { IWord } from "@/types/courses/courses.type";
@@ -641,25 +644,33 @@ export default function VocabularyPractice({
                 <NewWordIntroPanel word={currentWord} onStartExercise={startExercise} />
             ) : (
             <PracticeCardShell>
+                <PracticeExerciseBody>
                 {activeMode === "flashcard" && (
                     <>
                         <div className="space-y-4 sm:space-y-8 text-center">
                             <div>
-                                <div className="flex items-center justify-center gap-3 mb-3">
-                                    <h2 className="text-3xl sm:text-4xl font-bold">{currentWord.word}</h2>
+                                <div className="flex flex-wrap items-center justify-center gap-3 mb-3 max-w-full">
+                                    <AdaptiveText
+                                        text={currentWord.word}
+                                        role="word"
+                                        as="h2"
+                                        align="center"
+                                    />
                                     {currentWord.audioUrl && (
                                         <Button
                                             variant="outline"
                                             size="icon"
                                             onClick={() => playAudioUrl(currentWord.audioUrl)}
-                                            className="rounded-xl"
+                                            className="rounded-xl shrink-0"
                                         >
                                             <Volume2 className="h-5 w-5" />
                                         </Button>
                                     )}
                                 </div>
                                 {currentWord.pronunciation && (
-                                    <p className="text-muted-foreground text-lg mb-2">{currentWord.pronunciation}</p>
+                                    <p className={`text-muted-foreground text-lg mb-2 ${LONG_TEXT_WRAP}`}>
+                                        {currentWord.pronunciation}
+                                    </p>
                                 )}
                                 {currentWord.partOfSpeech && (
                                     <span className="inline-block px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-semibold">
@@ -676,7 +687,11 @@ export default function VocabularyPractice({
                             </div>
                             {showAnswer && (
                                 <div className="pt-6 border-t-2 border-dashed border-border animate-in fade-in">
-                                    <p className="text-2xl font-semibold">{currentWord.meaning}</p>
+                                    <AdaptiveText
+                                        text={currentWord.meaning}
+                                        role="meaning"
+                                        align="center"
+                                    />
                                 </div>
                             )}
                         </div>
@@ -701,7 +716,12 @@ export default function VocabularyPractice({
                     <div className="space-y-6 text-center">
                         <div>
                             <p className="text-xs uppercase tracking-widest text-muted-foreground mb-3">Translation</p>
-                            <p className="text-2xl font-bold mb-2">{currentWord.meaning}</p>
+                            <AdaptiveText
+                                text={currentWord.meaning}
+                                role="meaning"
+                                align="center"
+                                className="mb-2"
+                            />
                             <WordPracticeHints
                                 maskedExamples={maskedExamples}
                                 imageUrl={currentWord.imageUrl}
@@ -737,16 +757,24 @@ export default function VocabularyPractice({
                         <p className="text-xs uppercase tracking-widest text-muted-foreground">Fill in the blank</p>
                         <div className="space-y-2">
                             <p className="text-xs font-medium text-muted-foreground">Meaning</p>
-                            <p className="text-xl sm:text-2xl font-bold px-2">{currentWord.meaning}</p>
+                            <AdaptiveText
+                                text={currentWord.meaning}
+                                role="meaning"
+                                align="center"
+                                className="px-2"
+                            />
                             {currentWord.partOfSpeech && (
                                 <span className="inline-block px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-semibold">
                                     {currentWord.partOfSpeech}
                                 </span>
                             )}
                         </div>
-                        <p className="text-lg sm:text-xl italic leading-relaxed px-2 text-foreground/90">
-                            &ldquo;{clozePrompt.sentence}&rdquo;
-                        </p>
+                        <AdaptiveText
+                            text={clozePrompt.sentence}
+                            role="sentence"
+                            align="center"
+                            className="px-2 text-foreground/90"
+                        />
                         <WordPracticeHints
                             maskedExamples={maskedExamples}
                             imageUrl={currentWord.imageUrl}
@@ -779,14 +807,19 @@ export default function VocabularyPractice({
                         <p className="text-xs uppercase tracking-widest text-muted-foreground">Fill in the word</p>
                         <div className="space-y-2">
                             <p className="text-xs font-medium text-muted-foreground">Meaning</p>
-                            <p className="text-xl sm:text-2xl font-bold px-2">{currentWord.meaning}</p>
+                            <AdaptiveText
+                                text={currentWord.meaning}
+                                role="meaning"
+                                align="center"
+                                className="px-2"
+                            />
                             {currentWord.partOfSpeech && (
                                 <span className="inline-block px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-semibold">
                                     {currentWord.partOfSpeech}
                                 </span>
                             )}
                         </div>
-                        <p className="text-sm text-muted-foreground">
+                        <p className={`text-sm text-muted-foreground ${LONG_TEXT_WRAP}`}>
                             Starts with:{" "}
                             <span className="font-bold text-foreground uppercase">
                                 {getFirstLetterHint(currentWord.word)}
@@ -822,7 +855,13 @@ export default function VocabularyPractice({
                 {activeMode === "multiple-choice" && (
                     <div className="space-y-6">
                         <div className="text-center">
-                            <h2 className="text-3xl font-bold mb-2">{currentWord.word}</h2>
+                            <AdaptiveText
+                                text={currentWord.word}
+                                role="word"
+                                as="h2"
+                                align="center"
+                                className="mb-2"
+                            />
                             <WordPracticeHints
                                 maskedExamples={maskedExamples}
                                 imageUrl={currentWord.imageUrl}
@@ -836,12 +875,18 @@ export default function VocabularyPractice({
                                     variant="outline"
                                     onClick={() => !typingResult && handleMultipleChoiceSelect(option)}
                                     disabled={typingResult !== null}
-                                    className="min-h-[56px] justify-start text-left rounded-xl"
+                                    className="min-h-[56px] h-auto py-3 justify-start text-left rounded-xl whitespace-normal"
                                 >
-                                    <span className="font-bold mr-3">
+                                    <span className="font-bold mr-3 shrink-0">
                                         {String.fromCharCode(65 + index)}.
                                     </span>
-                                    {option}
+                                    <AdaptiveText
+                                        text={option}
+                                        role="choice"
+                                        as="span"
+                                        className="flex-1"
+                                        scrollWhenLong={false}
+                                    />
                                     <span className="ml-auto text-xs text-muted-foreground">
                                         {String.fromCharCode(65 + index)}
                                     </span>
@@ -894,6 +939,7 @@ export default function VocabularyPractice({
                         </div>
                     </div>
                 )}
+                </PracticeExerciseBody>
             </PracticeCardShell>
             )}
 

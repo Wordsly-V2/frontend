@@ -1,5 +1,6 @@
 "use client";
 
+import { ContinueCourseButton } from "@/components/common/continue-course-button";
 import { Button } from "@/components/ui/button";
 import {
     dailyGoalProgress,
@@ -10,8 +11,7 @@ import { readDueWordsLimitFromStorage } from "@/lib/due-words-limit";
 import { getLastLearnCourse } from "@/lib/learning-session";
 import { useDailyHabitDisplay } from "@/queries/daily-habit.query";
 import { useGetDueWordIdsQuery } from "@/queries/word-progress.query";
-import { BookOpen, Brain, ChevronRight, Library, Target } from "lucide-react";
-import Link from "next/link";
+import { Brain, Library, Target } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { startTransition, useEffect, useState } from "react";
 
@@ -104,25 +104,11 @@ export function LearnQuickActions() {
                                         : `Finish today's goal (${Math.min(goal.remaining, dueCount)} words)`}
                                 </Button>
                             )}
-                            <Button
-                                variant="default"
-                                className="min-w-0 max-w-full !shrink justify-between gap-2 overflow-hidden rounded-xl sm:min-w-0"
-                                asChild
-                            >
-                                <Link
-                                    href={`/learn/courses/${last.id}`}
-                                    title={`Continue: ${last.name}`}
-                                    className="min-w-0 max-w-full"
-                                >
-                                    <span className="flex min-h-0 min-w-0 flex-1 items-center gap-2">
-                                        <BookOpen className="h-4 w-4 shrink-0" aria-hidden />
-                                        <span className="min-w-0 truncate text-left">
-                                            Continue: {last.name}
-                                        </span>
-                                    </span>
-                                    <ChevronRight className="h-4 w-4 shrink-0 opacity-80" aria-hidden />
-                                </Link>
-                            </Button>
+                            <ContinueCourseButton
+                                courseId={last.id}
+                                courseName={last.name}
+                                className="min-w-0 max-w-full justify-between gap-2 sm:max-w-[min(100%,20rem)]"
+                            />
                             <Button
                                 type="button"
                                 variant="outline"

@@ -1,5 +1,6 @@
 "use client";
 
+import { AdaptiveText } from "@/components/common/adaptive-text";
 import { Button } from "@/components/ui/button";
 import { playAudioUrl } from "@/lib/practice-audio";
 import { AlertTriangle, Volume2 } from "lucide-react";
@@ -20,9 +21,11 @@ export function LeechWordBanner({
                 <div className="min-w-0 text-left space-y-2">
                     <p className="font-medium">Tricky word — extra help</p>
                     {example && (
-                        <p className="text-xs italic text-amber-700/90 dark:text-amber-300/90">
-                            &ldquo;{example}&rdquo;
-                        </p>
+                        <AdaptiveText
+                            text={`"${example}"`}
+                            role="example"
+                            className="text-xs italic text-amber-700/90 dark:text-amber-300/90"
+                        />
                     )}
                     {audioUrl && (
                         <Button

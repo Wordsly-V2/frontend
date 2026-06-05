@@ -1,6 +1,9 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { AdaptiveText } from "@/components/common/adaptive-text";
+import { LONG_TEXT_WRAP, SCROLLABLE_BODY } from "@/lib/long-text";
+import { cn } from "@/lib/utils";
 import { getPlayPhraseSearchUrl } from "@/lib/playphrase";
 import { IWord } from "@/types/courses/courses.type";
 import { Film, Volume2 } from "lucide-react";
@@ -48,7 +51,6 @@ export default function WordDetailCard({
 
     const isCompact = variant === "compact";
     const imageSize = isCompact ? "w-24 h-24 sm:w-28 sm:h-28" : "w-28 h-28 sm:w-36 sm:h-36 md:w-44 md:h-44";
-    const textSize = isCompact ? "text-sm" : "text-base sm:text-lg";
 
     return (
         <div
@@ -92,13 +94,17 @@ export default function WordDetailCard({
                     </div>
                 )}
                 <div className={`flex-1 min-w-0 flex flex-col p-4 sm:p-5 md:p-6 ${constrainHeight ? "min-h-0 overflow-hidden" : ""}`}>
-                    <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0">
-                            <h2 className={`font-bold text-foreground ${isCompact ? "text-lg" : "text-xl sm:text-2xl md:text-3xl"}`}>
-                                {word.word}
-                            </h2>
+                    <div className="flex items-start justify-between gap-3 shrink-0">
+                        <div className="min-w-0 flex-1">
+                            <AdaptiveText
+                                text={word.word}
+                                role="word"
+                                as="h2"
+                                scrollWhenLong={false}
+                                className={isCompact ? "!text-lg sm:!text-xl" : undefined}
+                            />
                             {(word.partOfSpeech || word.pronunciation) && (
-                                <p className={`mt-1 text-muted-foreground ${isCompact ? "text-xs" : "text-sm sm:text-base"}`}>
+                                <p className={`mt-1 text-muted-foreground ${LONG_TEXT_WRAP} ${isCompact ? "text-xs" : "text-sm sm:text-base"}`}>
                                     {[word.partOfSpeech, word.pronunciation].filter(Boolean).join(" · ")}
                                 </p>
                             )}
@@ -137,38 +143,31 @@ export default function WordDetailCard({
                             )}
                         </div>
                     </div>
-                    <p
-                        className={`mt-2 sm:mt-3 text-foreground/90 ${textSize} ${constrainHeight ? "line-clamp-2" : ""}`}
-                        title={word.meaning}
-                    >
-                        {word.meaning}
-                    </p>
-                    {examples.length > 0 && (
-                        <div
-                            className={
-                                constrainHeight
-                                    ? "mt-2 sm:mt-3 pt-2 sm:pt-3 border-t border-border/60 min-h-0 flex flex-col shrink-0"
-                                    : "mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-border/60"
-                            }
-                        >
-                            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1 shrink-0">
-                                Examples
-                            </p>
-                            <ul
-                                className={
-                                    constrainHeight
-                                        ? "space-y-1 overflow-y-auto pr-1 max-h-[min(100px,20dvh)]"
-                                        : "space-y-1.5"
-                                }
-                            >
-                                {examples.map((ex) => (
-                                    <li key={ex} className={`text-foreground/90 ${isCompact ? "text-xs sm:text-sm" : "text-sm sm:text-base"}`}>
-                                        &ldquo;{ex}&rdquo;
-                                    </li>
-                                ))}
-                            </ul>
-                        </div>
-                    )}
+                    <div className={constrainHeight ? cn(SCROLLABLE_BODY, "mt-2 sm:mt-3") : "mt-2 sm:mt-3"}>
+                        <AdaptiveText
+                            text={word.meaning}
+                            role="meaning"
+                            className={`text-foreground/90 ${isCompact ? "!text-sm sm:!text-base" : ""}`}
+                        />
+                        {examples.length > 0 && (
+                            <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-border/60">
+                                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1 shrink-0">
+                                    Examples
+                                </p>
+                                <ul className="space-y-1.5">
+                                    {examples.map((ex) => (
+                                        <li key={ex}>
+                                            <AdaptiveText
+                                                text={`"${ex}"`}
+                                                role="example"
+                                                className={`text-foreground/90 italic ${isCompact ? "!text-xs sm:!text-sm" : ""}`}
+                                            />
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                        )}
+                    </div>
                 </div>
             </div>
         </div>

@@ -1,5 +1,6 @@
 "use client";
 
+import { cn } from "@/lib/utils";
 import { ReactNode } from "react";
 
 interface DataTableProps<T> {
@@ -47,7 +48,7 @@ export default function DataTable<T extends { id: string }>({
             {/* Desktop Table View */}
             <div className="hidden md:block overflow-hidden rounded-xl border border-border bg-card shadow-sm">
                 <div className="overflow-x-auto">
-                    <table className="w-full">
+                    <table className="w-full table-fixed">
                         <thead>
                             <tr className="border-b border-border bg-muted/50">
                                 {columns.map((column, index) => (
@@ -70,7 +71,16 @@ export default function DataTable<T extends { id: string }>({
                                     }`}
                                 >
                                     {columns.map((column, colIndex) => (
-                                        <td key={colIndex} className="px-6 py-4 text-sm">
+                                        <td
+                                            key={colIndex}
+                                            className={cn(
+                                                "px-6 py-4 text-sm align-top",
+                                                column.key === "name" && "min-w-0 w-[38%]",
+                                                column.key === "coverImageUrl" && "w-[5.5rem]",
+                                                column.key === "wordProgressStats" && "w-[14rem]",
+                                                column.key === "actions" && "w-[12rem]",
+                                            )}
+                                        >
                                             {column.render
                                                 ? column.render(item)
                                                 : column.key !== 'actions'

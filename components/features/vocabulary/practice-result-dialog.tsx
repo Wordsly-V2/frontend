@@ -1,6 +1,8 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { AdaptiveText } from "@/components/common/adaptive-text";
+import { LONG_TEXT_WRAP, SCROLLABLE_BODY } from "@/lib/long-text";
 import { Dialog, DialogContent, DialogFooter, DialogTitle } from "@/components/ui/dialog";
 import { getPlayPhraseSearchUrl } from "@/lib/playphrase";
 import { pickCorrectMessage, pickIncorrectMessage } from "@/lib/practice-feedback";
@@ -127,9 +129,9 @@ export default function PracticeResultDialog({
                                 {pickIncorrectMessage(feedbackSeed)}
                             </h3>
                             {userAnswer && (
-                                <div className="flex justify-center">
-                                    <div className="inline-block px-3 py-1.5 rounded-lg bg-muted border border-border">
-                                        <p className="text-xs sm:text-sm font-medium text-muted-foreground line-through">
+                                <div className="flex justify-center max-w-full px-2">
+                                    <div className="inline-block max-w-full px-3 py-1.5 rounded-lg bg-muted border border-border">
+                                        <p className={`text-xs sm:text-sm font-medium text-muted-foreground line-through ${LONG_TEXT_WRAP}`}>
                                             Your answer: {userAnswer}
                                         </p>
                                     </div>
@@ -142,11 +144,11 @@ export default function PracticeResultDialog({
                     <div
                         className={
                             isCorrectTheme
-                                ? "mt-2 sm:mt-3 px-3 sm:px-4 py-2.5 sm:py-3 rounded-xl bg-green-50 border-2 border-green-200 text-left min-h-0 flex flex-col"
-                                : "mt-2 sm:mt-3 px-3 sm:px-4 py-2.5 sm:py-3 rounded-xl bg-red-50 border-2 border-red-200 text-left min-h-0 flex flex-col"
+                                ? "mt-2 sm:mt-3 px-3 sm:px-4 py-2.5 sm:py-3 rounded-xl bg-green-50 border-2 border-green-200 text-left min-h-0 flex flex-col max-h-[min(42dvh,360px)]"
+                                : "mt-2 sm:mt-3 px-3 sm:px-4 py-2.5 sm:py-3 rounded-xl bg-red-50 border-2 border-red-200 text-left min-h-0 flex flex-col max-h-[min(42dvh,360px)]"
                         }
                     >
-                        <div className="flex gap-3 sm:gap-4 items-start min-h-0">
+                        <div className={`flex gap-3 sm:gap-4 items-start min-h-0 ${SCROLLABLE_BODY}`}>
                             {imageUrl && (
                                 <div className="shrink-0 w-28 h-28 sm:w-36 sm:h-36 rounded-xl overflow-hidden bg-muted border border-border">
                                     <Image
@@ -161,15 +163,21 @@ export default function PracticeResultDialog({
                             )}
                             <div className="min-w-0 flex-1">
                                 <div className="flex items-start justify-between gap-2">
-                                    <div>
-                                        <p className={`text-base sm:text-lg font-semibold ${isCorrectTheme ? "text-green-900" : "text-red-900"}`}>
-                                            {correctAnswer}
-                                        </p>
-                                <p className={`text-sm mt-1 ${isCorrectTheme ? "text-green-700" : "text-red-700"} line-clamp-2`} title={meaning}>
-                                    {meaning}
-                                </p>
+                                    <div className="min-w-0 flex-1">
+                                        <AdaptiveText
+                                            text={correctAnswer}
+                                            role="word"
+                                            as="p"
+                                            scrollWhenLong={false}
+                                            className={`!text-base sm:!text-lg font-semibold ${isCorrectTheme ? "text-green-900" : "text-red-900"}`}
+                                        />
+                                        <AdaptiveText
+                                            text={meaning}
+                                            role="meaning"
+                                            className={`mt-1 ${isCorrectTheme ? "text-green-700" : "text-red-700"}`}
+                                        />
                                         {(partOfSpeech || pronunciation) && (
-                                            <p className={`text-xs mt-0.5 ${isCorrectTheme ? "text-green-600" : "text-red-600"}`}>
+                                            <p className={`text-xs mt-0.5 ${LONG_TEXT_WRAP} ${isCorrectTheme ? "text-green-600" : "text-red-600"}`}>
                                                 {[partOfSpeech, pronunciation].filter(Boolean).join(" · ")}
                                             </p>
                                         )}
@@ -212,8 +220,13 @@ export default function PracticeResultDialog({
                                 <p className={`text-xs font-medium mb-1 shrink-0 ${isCorrectTheme ? "text-green-800" : "text-red-800"}`}>Examples</p>
                                 <ul className="space-y-1 overflow-y-auto max-h-[min(100px,20dvh)] pr-1">
                                     {examples.map((ex) => (
-                                        <li key={ex} className={`text-xs sm:text-sm ${isCorrectTheme ? "text-green-700" : "text-red-700"}`}>
-                                            &ldquo;{ex}&rdquo;
+                                        <li key={ex}>
+                                            <AdaptiveText
+                                                text={`"${ex}"`}
+                                                role="example"
+                                                className={`text-xs sm:text-sm italic ${isCorrectTheme ? "text-green-700" : "text-red-700"}`}
+                                                scrollWhenLong={false}
+                                            />
                                         </li>
                                     ))}
                                 </ul>
