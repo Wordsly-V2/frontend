@@ -20,7 +20,9 @@ import { useLessons } from "@/hooks/useLessons.hook";
 import { useLoadingOverlay } from "@/hooks/useLoadingOverlay.hook";
 import { useWords } from "@/hooks/useWords.hook";
 import { getCourseDetailById } from "@/apis/courses.api";
+import { useCourseWordProgress } from "@/hooks/useCourseWordProgress.hook";
 import { useGetCourseDetailByIdQuery, useGetMyCoursesQuery } from "@/queries/courses.query";
+import type { IWordProgressResponse, IWordProgressStats } from "@/types/word-progress/word-progress.type";
 import { useQueries } from "@tanstack/react-query";
 import { CreateMyLesson, CreateMyWord, ICourse, ILesson, IWord } from "@/types/courses/courses.type";
 import {
@@ -58,6 +60,8 @@ function SortableLesson({
     onToggleWordSelection,
     onSelectAllWords,
     dragDisabled = false,
+    lessonWordProgressStats,
+    wordProgressByWordId = {},
 }: {
     lesson: ILesson;
     isExpanded: boolean;
@@ -73,6 +77,8 @@ function SortableLesson({
     onToggleWordSelection: (lessonId: string, wordId: string) => void;
     onSelectAllWords: (lessonId: string, selectAll: boolean) => void;
     dragDisabled?: boolean;
+    lessonWordProgressStats?: IWordProgressStats;
+    wordProgressByWordId?: Record<string, IWordProgressResponse | null>;
 }) {
     const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
         id: lesson.id,
@@ -129,9 +135,9 @@ function SortableLesson({
                     <p className="text-xs sm:text-sm text-muted-foreground">
                         {words.length} words {lesson.maxWords && `• Max: ${lesson.maxWords}`}
                     </p>
-                    {lesson.wordProgressStats && words.length > 0 && (
+                    {lessonWordProgressStats && words.length > 0 && (
                         <WordProgressStatsInline
-                            stats={lesson.wordProgressStats}
+                            stats={lessonWordProgressStats}
                             totalWords={words.length}
                             className="mt-1.5"
                         />
@@ -222,9 +228,9 @@ function SortableLesson({
                                                 {word.pronunciation}
                                             </p>
                                         )}
-                                        {word.wordProgress && (
+                                        {wordProgressByWordId[word.id] && (
                                             <WordProgressBadge
-                                                progress={word.wordProgress}
+                                                progress={wordProgressByWordId[word.id]!}
                                                 className="mt-1.5"
                                             />
                                         )}
@@ -321,6 +327,11 @@ export default function ManageCourseDetailPage({ params }: { params: Promise<{ i
     const [viewingWord, setViewingWord] = useState<IWord | null>(null);
 
     const { data: course, isLoading, isError, refetch: loadCourseDetail } = useGetCourseDetailByIdQuery(id, !!id);
+    const {
+        courseStats,
+        lessonStatsByLessonId,
+        wordProgressByWordId,
+    } = useCourseWordProgress(course, !!course);
     const { mutationUpdateMyCourse, mutationDeleteMyCourse } = useCourses();
 
     // When move dialog is open, fetch other courses and their lessons for cross-course move
@@ -745,9 +756,9 @@ export default function ManageCourseDetailPage({ params }: { params: Promise<{ i
                 </div>
 
                 {/* Course word-progress stats */}
-                {course.wordProgressStats && (
+                {courseStats && (
                     <LearningProgressSection
-                        stats={course.wordProgressStats}
+                        stats={courseStats}
                         title="Learning Progress"
                         className="mb-6 sm:mb-8"
                     />
@@ -830,6 +841,8 @@ export default function ManageCourseDetailPage({ params }: { params: Promise<{ i
                                             selectedWords={selectedWords}
                                             onToggleWordSelection={toggleWordSelection}
                                             onSelectAllWords={selectAllWordsInLesson}
+                                            lessonWordProgressStats={lessonStatsByLessonId[lesson.id]}
+                                            wordProgressByWordId={wordProgressByWordId}
                                         />
                                     ))}
                                 </div>

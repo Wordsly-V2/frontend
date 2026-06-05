@@ -1,11 +1,10 @@
-export interface IWordProgressStats {
-  totalWords: number;
-  newWords: number;
-  learningWords: number;
-  reviewWords: number;
-  dueToday: number;
-  overallSuccessRate: number;
-}
+import type {
+    IWordProgressResponse,
+    IWordProgressStats,
+} from "@/types/word-progress/word-progress.type";
+
+export type { IWordProgressResponse as IWordProgress, IWordProgressStats };
+
 export interface ICourse {
   id: string;
   name: string;
@@ -16,7 +15,10 @@ export interface ICourse {
   lessons?: ILesson[];
   totalLessonsCount?: number;
   totalWordsCount?: number;
-  wordProgressStats: IWordProgressStats;
+}
+
+export interface ICourseWithProgress extends ICourse {
+  wordProgressStats?: IWordProgressStats;
 }
 
 export interface ILesson {
@@ -29,7 +31,7 @@ export interface ILesson {
   createdAt: Date;
   updatedAt: Date;
   words?: IWord[];
-  wordProgressStats: IWordProgressStats;
+  wordProgressStats?: IWordProgressStats;
 }
 
 /** Lightweight lesson for lists (no word details). */
@@ -45,20 +47,6 @@ export interface ILessonSummary {
   wordsCount: number;
 }
 
-export interface IWordProgress {
-  id: string;
-  wordId: string;
-  userLoginId: string;
-  easeFactor: number;
-  interval: number;
-  repetitions: number;
-  lastReviewedAt?: Date;
-  nextReviewAt: Date;
-  totalReviews: number;
-  correctReviews: number;
-  successRate: number;
-}
-
 export interface IWord {
   id: string; word: string;
   meaning: string;
@@ -69,7 +57,7 @@ export interface IWord {
   example?: string;
   lessonId: string; createdAt: Date;
   updatedAt: Date;
-  wordProgress?: IWordProgress;
+  wordProgress?: IWordProgressResponse;
 }
 
 export interface ICourseTotalStats {

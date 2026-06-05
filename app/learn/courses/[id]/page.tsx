@@ -5,8 +5,9 @@ import { LearningProgressSection, WordProgressBadge, WordProgressStatsInline } f
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
+import { useCourseWordProgress } from "@/hooks/useCourseWordProgress.hook";
 import { useGetCourseDetailByIdQuery } from "@/queries/courses.query";
-import { useGetDueWordIdsQuery } from "@/queries/word-progress.query";
+import { useGetDueWordIdsByWordIdsQuery } from "@/queries/word-progress.query";
 import { ILesson, IWord } from "@/types/courses/courses.type";
 import WordDetailDialog from "@/components/features/manage/word-detail-dialog";
 import { ArrowLeft, Brain, ChevronDown, ChevronRight, Eye, List, Play, Search, Volume2 } from "lucide-react";
@@ -20,7 +21,7 @@ import {
 } from "@/lib/due-words-limit";
 import { setLastLearnCourse } from "@/lib/learning-session";
 import { getLocalStorageItem, setLocalStorageItem } from "@/lib/local-storage";
-import { use, useEffect, useRef, useState, startTransition } from "react";
+import { use, useEffect, useMemo, useRef, useState, startTransition } from "react";
 import { toast } from "sonner";
 
 export default function LearnCourseDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -36,6 +37,11 @@ export default function LearnCourseDetailPage({ params }: { params: Promise<{ id
     const [viewingWord, setViewingWord] = useState<IWord | null>(null);
 
     const { data: course, isLoading, isError, refetch: loadCourseDetail } = useGetCourseDetailByIdQuery(id, !!id);
+    const {
+        courseStats,
+        lessonStatsByLessonId,
+        wordProgressByWordId,
+    } = useCourseWordProgress(course, !!course);
 
     useEffect(() => {
         if (course) {
@@ -87,7 +93,19 @@ export default function LearnCourseDetailPage({ params }: { params: Promise<{ id
         const t = setTimeout(() => tryScroll(0), 50);
         return () => clearTimeout(t);
     }, [course, urlWord, urlLessonId, searchQuery, expandedLessons]);
-    const { data: dueWordIds, isLoading: isDueWordIdsLoading } = useGetDueWordIdsQuery(id, undefined, dueWordsLimit, true, !!id && dueWordsLimit > 0);
+    const courseWordIds = useMemo(
+        () =>
+            course?.lessons?.flatMap(
+                (lesson) => lesson.words?.map((word) => word.id) ?? [],
+            ) ?? [],
+        [course?.lessons],
+    );
+    const { data: dueWordIds, isLoading: isDueWordIdsLoading } = useGetDueWordIdsByWordIdsQuery(
+        courseWordIds,
+        dueWordsLimit,
+        true,
+        !!course && dueWordsLimit > 0 && courseWordIds.length > 0,
+    );
 
     if (isLoading || isError) {
         return <LoadingSection isLoading={isLoading} error={isError ? 'Error loading course' : null} refetch={loadCourseDetail} />;
@@ -265,7 +283,7 @@ export default function LearnCourseDetailPage({ params }: { params: Promise<{ id
 
                 {/* Word Progress Stats */}
                 <LearningProgressSection
-                    stats={course.wordProgressStats}
+                    stats={courseStats}
                     className="mb-6 sm:mb-8"
                 />
 
@@ -360,10 +378,10 @@ export default function LearnCourseDetailPage({ params }: { params: Promise<{ id
                                         </option>
                                     ))}
                                 </select>
-                                {course?.wordProgressStats?.dueToday != null &&
-                                    course.wordProgressStats.dueToday > 0 && (
+                                {courseStats?.dueToday != null &&
+                                    courseStats.dueToday > 0 && (
                                         <span className="text-xs text-muted-foreground">
-                                            {course.wordProgressStats.dueToday} due today
+                                            {courseStats.dueToday} due today
                                         </span>
                                     )}
                             </div>
@@ -490,9 +508,9 @@ export default function LearnCourseDetailPage({ params }: { params: Promise<{ id
                                                     {lessonWords.length} words
                                                 </p>
                                                 {/* Lesson word-progress stats */}
-                                                {lesson.wordProgressStats && lessonWords.length > 0 && (
+                                                {lessonStatsByLessonId[lesson.id] && lessonWords.length > 0 && (
                                                     <WordProgressStatsInline
-                                                        stats={lesson.wordProgressStats}
+                                                        stats={lessonStatsByLessonId[lesson.id]}
                                                         totalWords={lessonWords.length}
                                                         className="mt-1.5"
                                                     />
@@ -567,9 +585,9 @@ export default function LearnCourseDetailPage({ params }: { params: Promise<{ id
                                                                     {word.pronunciation}
                                                                 </p>
                                                             )}
-                                                            {word.wordProgress && (
+                                                            {wordProgressByWordId[word.id] && (
                                                                 <WordProgressBadge
-                                                                    progress={word.wordProgress}
+                                                                    progress={wordProgressByWordId[word.id]!}
                                                                     className="mt-1.5"
                                                                 />
                                                             )}

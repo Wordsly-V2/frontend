@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Pagination } from "@/components/ui/pagination";
 import { useCourses } from "@/hooks/useCourses.hook";
 import { useGetMyCoursesQuery } from "@/queries/courses.query";
+import { useGetProgressStatsByCourseIdsQuery } from "@/queries/word-progress.query";
 import { ICourse } from "@/types/courses/courses.type";
 import { BookOpen, Edit, Eye, Plus, Trash2 } from "lucide-react";
 import Image from "next/image";
@@ -25,6 +26,11 @@ export default function ManageCourses() {
     const itemsPerPage = 10;
 
     const { data: paginatedData, isLoading, isError, refetch: loadCourses } = useGetMyCoursesQuery(itemsPerPage, currentPage, );
+    const courseIds = paginatedData?.items.map((course) => course.id) ?? [];
+    const { data: statsByCourseId } = useGetProgressStatsByCourseIdsQuery(
+        courseIds,
+        courseIds.length > 0,
+    );
     const { mutationCreateMyCourse, mutationUpdateMyCourse, mutationDeleteMyCourse } = useCourses();
 
     const handleCreateMyCourse = (courseData: Pick<ICourse, 'name' | 'coverImageUrl'>) => {
@@ -127,18 +133,21 @@ export default function ManageCourses() {
         {
             key: 'wordProgressStats' as keyof ICourse,
             label: 'Progress',
-            render: (course: ICourse) => (
-                <div className="min-w-0 max-w-[200px]">
-                    {course.wordProgressStats ? (
-                        <WordProgressStatsInline
-                            stats={course.wordProgressStats}
-                            totalWords={course.totalWordsCount}
-                        />
-                    ) : (
-                        <span className="text-xs text-muted-foreground">—</span>
-                    )}
-                </div>
-            ),
+            render: (course: ICourse) => {
+                const stats = statsByCourseId?.[course.id];
+                return (
+                    <div className="min-w-0 max-w-[200px]">
+                        {stats ? (
+                            <WordProgressStatsInline
+                                stats={stats}
+                                totalWords={course.totalWordsCount}
+                            />
+                        ) : (
+                            <span className="text-xs text-muted-foreground">—</span>
+                        )}
+                    </div>
+                );
+            },
         },
         {
             key: 'actions' as keyof ICourse,

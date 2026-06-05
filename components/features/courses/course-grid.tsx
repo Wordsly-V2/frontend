@@ -1,5 +1,6 @@
 "use client";
 
+import { useGetProgressStatsByCourseIdsQuery } from "@/queries/word-progress.query";
 import { ICourse } from "@/types/courses/courses.type";
 import CourseCard from "./course-card";
 
@@ -8,6 +9,11 @@ interface CourseGridProps {
 }
 
 export default function CourseGrid({ courses }: Readonly<CourseGridProps>) {
+    const courseIds = courses.map((course) => course.id);
+    const { data: statsByCourseId } = useGetProgressStatsByCourseIdsQuery(
+        courseIds,
+        courses.length > 0,
+    );
     if (courses.length === 0) {
         return (
             <div className="text-center py-16">
@@ -37,7 +43,11 @@ export default function CourseGrid({ courses }: Readonly<CourseGridProps>) {
     return (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 md:gap-6">
             {courses.map((course) => (
-                <CourseCard key={course.id} course={course} />
+                <CourseCard
+                    key={course.id}
+                    course={course}
+                    wordProgressStats={statsByCourseId?.[course.id]}
+                />
             ))}
         </div>
     );

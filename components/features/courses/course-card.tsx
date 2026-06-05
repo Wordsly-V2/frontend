@@ -2,18 +2,20 @@
 
 import { WordProgressStatsInline } from "@/components/common/word-progress-stats";
 import { ICourse } from "@/types/courses/courses.type";
+import type { IWordProgressStats } from "@/types/word-progress/word-progress.type";
 import Image from "next/image";
 import Link from "next/link";
 import { BookOpen, GraduationCap } from "lucide-react";
 
 interface CourseCardProps {
     course: ICourse;
+    wordProgressStats?: IWordProgressStats;
 }
 
-export default function CourseCard({ course }: Readonly<CourseCardProps>) {
+export default function CourseCard({ course, wordProgressStats }: Readonly<CourseCardProps>) {
     const lessonCount = course.totalLessonsCount || 0;
     const wordCount = course.totalWordsCount || 0;
-    const stats = course.wordProgressStats ?? undefined;
+    const stats = wordProgressStats;
     const startedCount = stats
         ? stats.learningWords + stats.reviewWords
         : 0;
