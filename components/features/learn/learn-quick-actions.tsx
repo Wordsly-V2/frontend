@@ -1,10 +1,15 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { dailyGoalProgress, getDailyHabit } from "@/lib/daily-habit";
+import {
+    DAILY_GOAL_WORDS,
+    dailyGoalProgress,
+    getDailyHabit,
+} from "@/lib/daily-habit";
 import { buildPracticeUrl } from "@/lib/practice-session";
 import { readDueWordsLimitFromStorage } from "@/lib/due-words-limit";
 import { getLastLearnCourse } from "@/lib/learning-session";
+import { useDailyHabitDisplay } from "@/queries/daily-habit.query";
 import { useGetDueWordIdsQuery } from "@/queries/word-progress.query";
 import { BookOpen, Brain, ChevronRight, Flame, Library, Target } from "lucide-react";
 import Link from "next/link";
@@ -16,13 +21,13 @@ export function LearnQuickActions() {
     const pathname = usePathname();
     const [last, setLast] = useState<ReturnType<typeof getLastLearnCourse>>(null);
     const [dueWordsLimit, setDueWordsLimit] = useState(readDueWordsLimitFromStorage);
-    const [habit, setHabit] = useState(() => getDailyHabit());
+    const { habit: serverHabit, goal: serverGoal } = useDailyHabitDisplay();
+    const habit = serverHabit ?? getDailyHabit();
 
     useEffect(() => {
         startTransition(() => {
             setLast(getLastLearnCourse());
             setDueWordsLimit(readDueWordsLimitFromStorage());
-            setHabit(getDailyHabit());
         });
     }, [pathname]);
 
@@ -35,7 +40,7 @@ export function LearnQuickActions() {
     );
 
     const dueCount = dueIds?.wordIds.length ?? 0;
-    const goal = dailyGoalProgress(habit);
+    const goal = dailyGoalProgress(habit, serverGoal ?? DAILY_GOAL_WORDS);
 
     const handleReviewDue = () => {
         if (!last || dueCount === 0) return;

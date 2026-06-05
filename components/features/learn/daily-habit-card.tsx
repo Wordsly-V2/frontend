@@ -1,17 +1,18 @@
 "use client";
 
-import { dailyGoalProgress, getDailyHabit, DAILY_GOAL_WORDS } from "@/lib/daily-habit";
+import {
+    DAILY_GOAL_WORDS,
+    dailyGoalProgress,
+    getDailyHabit,
+} from "@/lib/daily-habit";
+import { useDailyHabitDisplay } from "@/queries/daily-habit.query";
 import { Flame, Target } from "lucide-react";
-import { startTransition, useEffect, useState } from "react";
+import { useState } from "react";
 
 export function DailyHabitCard() {
-    const [habit, setHabit] = useState(() => getDailyHabit());
-
-    useEffect(() => {
-        startTransition(() => setHabit(getDailyHabit()));
-    }, []);
-
-    const goal = dailyGoalProgress(habit);
+    const { habit: serverHabit, goal: serverGoal, isLoading } = useDailyHabitDisplay();
+    const habit = serverHabit ?? getDailyHabit();
+    const goal = dailyGoalProgress(habit, serverGoal ?? DAILY_GOAL_WORDS);
 
     return (
         <section
@@ -24,9 +25,11 @@ export function DailyHabitCard() {
                         Daily habit
                     </p>
                     <p className="mt-1 text-sm text-muted-foreground">
-                        {goal.met
-                            ? "You hit your goal today. Nice work!"
-                            : `Practice ${DAILY_GOAL_WORDS} words a day to build a streak.`}
+                        {isLoading && !serverHabit
+                            ? "Loading your progress…"
+                            : goal.met
+                              ? "You hit your goal today. Nice work!"
+                              : `Practice ${goal.goal} words a day to build a streak.`}
                     </p>
                 </div>
                 <div className="flex shrink-0 items-center gap-4 sm:gap-6">

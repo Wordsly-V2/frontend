@@ -16,7 +16,13 @@ import {
     type FlashcardRating,
 } from "@/lib/answer-quality";
 import { fireMiniConfetti } from "@/lib/confetti";
-import { recordPracticeWords, type DailyHabitState } from "@/lib/daily-habit";
+import {
+    localDateString,
+    recordPracticeWordsLocally,
+    toDailyHabitState,
+    type DailyHabitState,
+} from "@/lib/daily-habit";
+import { useRecordDailyPracticeMutation } from "@/queries/daily-habit.query";
 import { playAudioUrl } from "@/lib/practice-audio";
 import { pickMilestoneMessage } from "@/lib/practice-feedback";
 import type { PracticeSessionKind } from "@/lib/practice-session";
@@ -162,6 +168,7 @@ export default function VocabularyPractice({
     const [pendingResult, setPendingResult] = useState<WordResult | null>(null);
     const [sessionStreak, setSessionStreak] = useState(0);
     const [habitState, setHabitState] = useState<DailyHabitState | null>(null);
+    const recordDailyPractice = useRecordDailyPracticeMutation();
     const [timeSpentSeconds, setTimeSpentSeconds] = useState<number | undefined>(undefined);
     const [feedbackSeed] = useState(() => Date.now());
     const inputRef = useRef<HTMLInputElement>(null);
@@ -265,12 +272,25 @@ export default function VocabularyPractice({
         setPendingResult(null);
     }, []);
 
-    const finishSession = useCallback((results: WordResult[]) => {
-        const habit = recordPracticeWords(results.length);
-        setWordResults(results);
-        setHabitState(habit);
-        setPhase("summary");
-    }, []);
+    const finishSession = useCallback(
+        (results: WordResult[]) => {
+            const wordCount = results.length;
+            const localHabit = recordPracticeWordsLocally(wordCount);
+            setWordResults(results);
+            setHabitState(localHabit);
+            setPhase("summary");
+
+            recordDailyPractice.mutate(
+                { wordCount, clientDate: localDateString() },
+                {
+                    onSuccess: (habit) => {
+                        setHabitState(toDailyHabitState(habit));
+                    },
+                },
+            );
+        },
+        [recordDailyPractice],
+    );
 
     const handleNextFromDialog = useCallback(() => {
         setShowResultDialog(false);
