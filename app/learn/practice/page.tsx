@@ -3,7 +3,6 @@
 import LoadingSection from "@/components/common/loading-section/loading-section";
 import { SavingOverlay } from "@/components/common/saving-overlay";
 import { PracticeSessionOverview } from "@/components/features/vocabulary/practice-session-overview";
-import WordDetailsCarousel from "@/components/features/vocabulary/word-details-carousel";
 import VocabularyPractice, {
     type SessionCompletePayload,
 } from "@/components/features/vocabulary/vocabulary-practice";
@@ -36,7 +35,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 
-type PracticePhase = "overview" | "intro" | "practice";
+type PracticePhase = "overview" | "practice";
 
 async function saveSessionResults(
     payload: SessionCompletePayload,
@@ -64,7 +63,6 @@ export default function PracticePage() {
     const queryClient = useQueryClient();
     const urlSessionKind = parsePracticeSessionKind(searchParams.get("kind"));
     const [phase, setPhase] = useState<PracticePhase>("overview");
-    const [introIndex, setIntroIndex] = useState(0);
     const [savedOnce, setSavedOnce] = useState(false);
     const [isSyncingProgress, setIsSyncingProgress] = useState(false);
     const [hasUnsavedPractice, setHasUnsavedPractice] = useState(false);
@@ -228,21 +226,8 @@ export default function PracticePage() {
     };
 
     const handleOverviewStart = () => {
-        if (sessionPlan && sessionPlan.introWords.length > 0) {
-            setPhase("intro");
-        } else {
-            setPhase("practice");
-        }
+        setPhase("practice");
     };
-
-    useEffect(() => {
-        if (phase !== "intro") return;
-        const onKeyDown = (e: KeyboardEvent) => {
-            if (e.key === "Enter") setPhase("practice");
-        };
-        globalThis.addEventListener("keydown", onKeyDown);
-        return () => globalThis.removeEventListener("keydown", onKeyDown);
-    }, [phase]);
 
     if (!paramsValid) {
         return (
@@ -284,17 +269,10 @@ export default function PracticePage() {
 
     let title = "Practice";
     if (phase === "overview") title = "Session plan";
-    else if (phase === "intro") title = "New words";
     else if (isReview) title = "Review";
 
     return (
-        <main
-            className={
-                phase === "intro"
-                    ? "bg-gradient-to-b from-background via-background to-muted/30"
-                    : "bg-background flex flex-col"
-            }
-        >
+        <main className="bg-background flex flex-col">
             <SavingOverlay open={isPersisting} />
             <div className="container mx-auto px-3 sm:px-4 py-3 sm:py-6 max-w-4xl flex flex-col">
                 <Button
@@ -325,27 +303,6 @@ export default function PracticePage() {
                             isReviewSession={isReview}
                             onStart={handleOverviewStart}
                         />
-                    )}
-                    {phase === "intro" && (
-                        <>
-                            <section className="flex-1 flex flex-col min-h-0">
-                                <WordDetailsCarousel
-                                    words={sessionPlan.introWords}
-                                    onIndexChange={setIntroIndex}
-                                    headerSlot={
-                                        <span className="text-sm font-medium tabular-nums text-muted-foreground">
-                                            {introIndex + 1} / {sessionPlan.introWords.length}
-                                        </span>
-                                    }
-                                    className="flex-1"
-                                />
-                            </section>
-                            <div className="flex-shrink-0 pt-4 sm:pt-6 flex justify-center">
-                                <Button size="lg" onClick={() => setPhase("practice")}>
-                                    Start practice
-                                </Button>
-                            </div>
-                        </>
                     )}
                     {phase === "practice" && (
                         <VocabularyPractice

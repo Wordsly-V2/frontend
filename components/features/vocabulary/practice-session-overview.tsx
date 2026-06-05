@@ -73,10 +73,10 @@ export function PracticeSessionOverview({
                     </span>
                 </div>
                 <p className="text-sm text-muted-foreground mb-4">
-                    {isReviewSession
+                    {isReviewSession && !hasIntro
                         ? "Time to recall — due words first, hints stay off so you really remember."
                         : hasIntro
-                          ? "A quick peek at new words, then practice in smart order: due → learning → new → review."
+                          ? "New words get a short introduction before you practice them. Order: due → learning → new → review."
                           : "You have seen these before — straight into active practice."}
                 </p>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -101,7 +101,7 @@ export function PracticeSessionOverview({
 
             <div className="flex-shrink-0 flex justify-center pt-2">
                 <Button size="lg" onClick={onStart} className="min-w-[200px] rounded-xl">
-                    {hasIntro ? "Preview new words" : "Start practice"}
+                    Start practice
                 </Button>
                 <p className="sr-only">Press Enter to start</p>
             </div>

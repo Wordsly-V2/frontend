@@ -4,6 +4,7 @@ import PracticeSettingsDialog, {
     type PracticeSettings,
 } from "@/components/features/vocabulary/practice-settings-dialog";
 import PracticeResultDialog from "@/components/features/vocabulary/practice-result-dialog";
+import WordDetailCard from "@/components/features/vocabulary/word-detail-card";
 import {
     PracticeSessionSummary,
 } from "@/components/features/vocabulary/practice-session-summary";
@@ -54,6 +55,7 @@ import { AnswerQuality } from "@/types/word-progress/word-progress.type";
 import { IWord } from "@/types/courses/courses.type";
 import {
     AlertTriangle,
+    ChevronRight,
     Lightbulb,
     List,
     Play,
@@ -156,6 +158,7 @@ export default function VocabularyPractice({
     const [queue, setQueue] = useState(() => practiceQueue ?? shuffleArray(words));
     const [currentIndex, setCurrentIndex] = useState(0);
     const [phase, setPhase] = useState<"practice" | "summary">("practice");
+    const [wordStep, setWordStep] = useState<"intro" | "exercise">("exercise");
     const [showAnswer, setShowAnswer] = useState(false);
     const [userAnswer, setUserAnswer] = useState("");
     const [practiceSettings, setPracticeSettings] = useState<PracticeSettings>(() =>
@@ -237,6 +240,51 @@ export default function VocabularyPractice({
 
     const progress = queue.length > 0 ? ((currentIndex + 1) / queue.length) * 100 : 100;
     const isLeech = currentWord != null && leechWordIds?.has(currentWord.id);
+    const showNewWordIntro =
+        wordStep === "intro" && currentStage === "new" && practicePass === "main";
+
+    useEffect(() => {
+        if (!currentWord || practicePass !== "main") {
+            setWordStep("exercise");
+            return;
+        }
+        setWordStep(currentStage === "new" ? "intro" : "exercise");
+    }, [currentIndex, currentWord?.id, currentStage, practicePass]);
+
+    useEffect(() => {
+        if (!showNewWordIntro || !currentWord?.audioUrl) return;
+        const timer = setTimeout(() => {
+            playAudioUrl(currentWord.audioUrl);
+        }, 300);
+        return () => clearTimeout(timer);
+    }, [showNewWordIntro, currentWord?.id, currentWord?.audioUrl]);
+
+    useEffect(() => {
+        if (!showNewWordIntro) return;
+        const onKeyDown = (e: KeyboardEvent) => {
+            if (e.key !== "Enter") return;
+            const target = e.target;
+            if (
+                target instanceof HTMLElement &&
+                (target.isContentEditable ||
+                    target.tagName === "INPUT" ||
+                    target.tagName === "TEXTAREA" ||
+                    target.tagName === "SELECT")
+            ) {
+                return;
+            }
+            e.preventDefault();
+            setWordStep("exercise");
+            focusPracticeInput();
+        };
+        globalThis.addEventListener("keydown", onKeyDown);
+        return () => globalThis.removeEventListener("keydown", onKeyDown);
+    }, [showNewWordIntro, focusPracticeInput]);
+
+    const handleStartWordExercise = useCallback(() => {
+        setWordStep("exercise");
+        focusPracticeInput();
+    }, [focusPracticeInput]);
 
     function scoreFromResults(results: WordResult[]): number {
         if (results.length === 0) return 0;
@@ -506,10 +554,11 @@ export default function VocabularyPractice({
     }, [currentIndex, activeMode, currentWord, queue]);
 
     useEffect(() => {
+        if (showNewWordIntro) return;
         if (["typing", "listening", "cloze", "cloze-fallback", "multiple-choice"].includes(activeMode)) {
             wordStartTimeRef.current = Date.now();
         }
-    }, [currentIndex, activeMode]);
+    }, [currentIndex, activeMode, showNewWordIntro]);
 
     useEffect(() => {
         if (
@@ -555,10 +604,11 @@ export default function VocabularyPractice({
     }, [autoCheck, currentWord, activeMode, typingResult, showResultDialog, userAnswer, hintsUsed, stageResult, playResultSound]);
 
     useEffect(() => {
+        if (showNewWordIntro) return;
         if (typingResult || showResultDialog) return;
         if (!["typing", "listening", "cloze", "cloze-fallback"].includes(activeMode)) return;
         focusPracticeInput();
-    }, [activeMode, typingResult, showResultDialog, currentIndex, hasPlayedAudio, focusPracticeInput]);
+    }, [activeMode, typingResult, showResultDialog, currentIndex, hasPlayedAudio, focusPracticeInput, showNewWordIntro]);
 
     useEffect(() => {
         if (
@@ -724,7 +774,7 @@ export default function VocabularyPractice({
                 currentIndex={currentIndex}
             />
 
-            {isLeech && (
+            {isLeech && !showNewWordIntro && (
                 <div className="mb-4 rounded-xl border border-amber-200/80 bg-amber-50/90 dark:bg-amber-950/30 dark:border-amber-800/50 px-3 py-3 text-sm text-amber-800 dark:text-amber-200">
                     <div className="flex items-start gap-2">
                         <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" aria-hidden />
@@ -752,6 +802,31 @@ export default function VocabularyPractice({
                 </div>
             )}
 
+            {showNewWordIntro ? (
+                <div className="bg-gradient-to-br from-card to-card/50 border-2 border-primary/20 rounded-2xl sm:rounded-3xl p-4 sm:p-6 md:p-8 mb-4 sm:mb-6 min-h-[320px] sm:min-h-[400px] flex flex-col shadow-xl shadow-primary/5 animate-in fade-in duration-300">
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary mb-4 text-center">
+                        New word — take a moment to learn it
+                    </p>
+                    <div className="flex-1 min-h-0 flex flex-col">
+                        <WordDetailCard
+                            word={currentWord}
+                            layout="stack"
+                            constrainHeight
+                            className="flex-1 min-h-0"
+                        />
+                    </div>
+                    <div className="flex-shrink-0 pt-4 sm:pt-6 flex justify-center">
+                        <Button
+                            size="lg"
+                            onClick={handleStartWordExercise}
+                            className="rounded-xl gap-2 min-w-[200px]"
+                        >
+                            Practice this word
+                            <ChevronRight className="h-4 w-4" aria-hidden />
+                        </Button>
+                    </div>
+                </div>
+            ) : (
             <div className="bg-gradient-to-br from-card to-card/50 border-2 border-border rounded-2xl sm:rounded-3xl p-4 sm:p-8 md:p-10 mb-4 sm:mb-6 min-h-[320px] sm:min-h-[400px] flex flex-col justify-between shadow-xl shadow-primary/5">
                 {activeMode === "flashcard" && (
                     <>
@@ -1007,8 +1082,9 @@ export default function VocabularyPractice({
                     </div>
                 )}
             </div>
+            )}
 
-            {activeMode === "flashcard" && showAnswer && (
+            {!showNewWordIntro && activeMode === "flashcard" && showAnswer && (
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 animate-in fade-in">
                     <Button
                         variant="outline"
@@ -1041,7 +1117,7 @@ export default function VocabularyPractice({
                 </div>
             )}
 
-            {activeMode !== "flashcard" && (
+            {!showNewWordIntro && activeMode !== "flashcard" && (
                 <PracticeResultDialog
                     isOpen={showResultDialog}
                     isCorrect={typingResult === "correct"}

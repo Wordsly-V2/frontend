@@ -14,7 +14,7 @@ export interface SessionStageCounts {
 }
 
 export interface PracticeSessionPlan {
-    /** Words to show in the intro carousel (never due/review-only on review sessions). */
+    /** New words that receive a per-word introduction before their first exercise. */
     introWords: IWord[];
     /** Ordered practice queue — due first, then learning, new, review. */
     practiceQueue: IWord[];
@@ -103,10 +103,7 @@ export function buildPracticeSessionPlan(
     );
     const counts = countStages(stagesByWordId);
 
-    const introWords =
-        sessionKind === "review"
-            ? []
-            : words.filter((w) => stagesByWordId[w.id] === "new");
+    const introWords = words.filter((w) => stagesByWordId[w.id] === "new");
 
     const ordered = sortWordsForPractice(words, stagesByWordId, progressByWordId);
 
