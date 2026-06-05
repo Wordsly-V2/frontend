@@ -23,3 +23,17 @@ export function fireCelebrationConfetti(): void {
         fire(0.1, { spread: 120, startVelocity: 45 });
     });
 }
+
+/** Small burst for in-session milestones (e.g. 5 correct in a row). */
+export function fireMiniConfetti(): void {
+    if (globalThis.window === undefined) return;
+    void import("canvas-confetti").then((mod) => {
+        mod.default({
+            particleCount: 40,
+            spread: 55,
+            origin: { y: 0.7 },
+            startVelocity: 35,
+            scalar: 0.85,
+        });
+    });
+}

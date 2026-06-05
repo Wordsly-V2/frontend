@@ -5,6 +5,7 @@ import { LearningProgressChart } from "@/components/common/learning-progress-cha
 import { StatsCards } from "@/components/common/stats-cards";
 import LearningProgressSection from "@/components/common/word-progress-stats/learning-progress-section";
 import { LearnQuickActions } from "@/components/features/learn/learn-quick-actions";
+import { DailyHabitCard } from "@/components/features/learn/daily-habit-card";
 import CourseGrid from "@/components/features/courses/course-grid";
 import CoursesHeader from "@/components/features/courses/courses-header";
 import { Pagination } from "@/components/ui/pagination";
@@ -59,6 +60,8 @@ export default function LearnPage() {
                 </div>
 
                 <LearnQuickActions />
+
+                <DailyHabitCard />
 
                 {/* Stats Section */}
                 <StatsCards

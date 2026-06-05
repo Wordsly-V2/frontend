@@ -3,6 +3,8 @@
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogFooter, DialogTitle } from "@/components/ui/dialog";
 import { getPlayPhraseSearchUrl } from "@/lib/playphrase";
+import { pickCorrectMessage, pickIncorrectMessage } from "@/lib/practice-feedback";
+import { playAudioUrl } from "@/lib/practice-audio";
 import { CheckCircle2, Film, Timer, Volume2, XCircle } from "lucide-react";
 import Image from "next/image";
 import { useEffect } from "react";
@@ -22,6 +24,8 @@ export interface PracticeResultDialogProps {
     onTryAgain: () => void;
     onNext: () => void;
     isLastWord: boolean;
+    /** Rotates encouraging copy */
+    feedbackSeed?: number;
 }
 
 export default function PracticeResultDialog({
@@ -39,14 +43,14 @@ export default function PracticeResultDialog({
     onTryAgain,
     onNext,
     isLastWord,
+    feedbackSeed = 0,
 }: Readonly<PracticeResultDialogProps>) {
     // Auto-play audio when dialog opens
     useEffect(() => {
         if (isOpen && audioUrl) {
             const timer = setTimeout(() => {
-                const audio = new Audio(audioUrl);
-                audio.play().catch(console.error);
-            }, 300); // Small delay for better UX
+                playAudioUrl(audioUrl);
+            }, 300);
 
             return () => clearTimeout(timer);
         }
@@ -67,12 +71,7 @@ export default function PracticeResultDialog({
         return () => globalThis.removeEventListener("keydown", handleKeyDown);
     }, [isOpen, onNext]);
 
-    const handlePlayAudio = () => {
-        if (audioUrl) {
-            const audio = new Audio(audioUrl);
-            audio.play().catch(console.error);
-        }
-    };
+    const handlePlayAudio = () => playAudioUrl(audioUrl);
 
     let speedLabel: string | null = null;
     if (timeSpentSeconds != null && timeSpentSeconds > 0) {
@@ -106,14 +105,18 @@ export default function PracticeResultDialog({
                             <div className="inline-flex items-center justify-center w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-gradient-to-br from-green-400 to-emerald-500">
                                 <CheckCircle2 className="h-8 w-8 sm:h-9 sm:w-9 text-white" />
                             </div>
-                            <h3 className="text-xl sm:text-2xl font-bold text-green-600">Perfect!</h3>
+                            <h3 className="text-xl sm:text-2xl font-bold text-green-600">
+                                {pickCorrectMessage(feedbackSeed)}
+                            </h3>
                         </div>
                     ) : (
                         <div className="space-y-2 sm:space-y-3 animate-in fade-in zoom-in duration-500 shrink-0">
                             <div className="inline-flex items-center justify-center w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-gradient-to-br from-red-400 to-rose-500">
                                 <XCircle className="h-8 w-8 sm:h-9 sm:w-9 text-white" />
                             </div>
-                            <h3 className="text-xl sm:text-2xl font-bold text-red-600">Not Quite</h3>
+                            <h3 className="text-xl sm:text-2xl font-bold text-red-600">
+                                {pickIncorrectMessage(feedbackSeed)}
+                            </h3>
                             {userAnswer && (
                                 <div className="flex justify-center">
                                     <div className="inline-block px-3 py-1.5 rounded-lg bg-muted border border-border">

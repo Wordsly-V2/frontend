@@ -20,6 +20,7 @@ import {
     parseDueWordsLimit,
 } from "@/lib/due-words-limit";
 import { setLastLearnCourse } from "@/lib/learning-session";
+import { buildPracticeUrl } from "@/lib/practice-session";
 import { getLocalStorageItem, setLocalStorageItem } from "@/lib/local-storage";
 import { use, useEffect, useMemo, useRef, useState, startTransition } from "react";
 import { toast } from "sonner";
@@ -213,23 +214,31 @@ export default function LearnCourseDetailPage({ params }: { params: Promise<{ id
     };
 
     const handleStartPractice = () => {
-        if (selectedWords.size > 0) {
-            const wordIds = Array.from(selectedWords).join(",");
+        if (selectedWords.size > 0 && course) {
             router.push(
-                `/learn/practice?courseId=${id}&courseName=${encodeURIComponent(course.name)}&wordIds=${wordIds}`,
+                buildPracticeUrl({
+                    courseId: id,
+                    courseName: course.name,
+                    wordIds: Array.from(selectedWords),
+                    kind: "new",
+                }),
             );
         }
     };
 
     const handlePracticeDueWords = () => {
-        if (!dueWordIds || dueWordIds.wordIds.length === 0) {
+        if (!dueWordIds || dueWordIds.wordIds.length === 0 || !course) {
             toast.info("No words are due for review right now!");
             return;
         }
 
-        const wordIds = dueWordIds.wordIds.join(",");
         router.push(
-            `/learn/practice?courseId=${id}&courseName=${encodeURIComponent(course.name)}&wordIds=${wordIds}`,
+            buildPracticeUrl({
+                courseId: id,
+                courseName: course.name,
+                wordIds: dueWordIds.wordIds,
+                kind: "review",
+            }),
         );
     };
 

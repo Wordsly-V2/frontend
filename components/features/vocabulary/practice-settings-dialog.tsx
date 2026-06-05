@@ -5,16 +5,29 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Sparkles, Keyboard, CheckSquare, Volume2, MessageSquare, ImageIcon } from "lucide-react";
+import {
+    Sparkles,
+    Keyboard,
+    CheckSquare,
+    Volume2,
+    MessageSquare,
+    ImageIcon,
+    Shuffle,
+    TextCursorInput,
+} from "lucide-react";
 
-export type PracticeMode = "flashcard" | "typing" | "multiple-choice" | "listening";
+export type PracticeMode =
+    | "flashcard"
+    | "typing"
+    | "multiple-choice"
+    | "listening"
+    | "cloze"
+    | "mixed";
 
 export interface PracticeSettings {
     mode: PracticeMode;
     autoCheck: boolean;
-    /** When true, show example sentences with the word replaced by *** to help guess. */
     showExampleHints: boolean;
-    /** When true, show the word's image (if any) next to example hints. */
     showImageHints: boolean;
 }
 
@@ -36,33 +49,26 @@ export default function PracticeSettingsDialog({
     const [tempShowExampleHints, setTempShowExampleHints] = useState(currentSettings.showExampleHints);
     const [tempShowImageHints, setTempShowImageHints] = useState(currentSettings.showImageHints);
 
-    // Update temp settings when dialog opens with current settings
     useEffect(() => {
-        const _initialSettings = () => {
-            if (isOpen) {
-                setTempMode(currentSettings.mode);
-                setTempAutoCheck(currentSettings.autoCheck);
-                setTempShowExampleHints(currentSettings.showExampleHints);
-                setTempShowImageHints(currentSettings.showImageHints);
-            }
+        if (isOpen) {
+            setTempMode(currentSettings.mode);
+            setTempAutoCheck(currentSettings.autoCheck);
+            setTempShowExampleHints(currentSettings.showExampleHints);
+            setTempShowImageHints(currentSettings.showImageHints);
         }
-
-        _initialSettings();
     }, [isOpen, currentSettings]);
 
     const handleSave = () => {
-        const newSettings: PracticeSettings = {
+        onSave({
             mode: tempMode,
             autoCheck: tempAutoCheck,
             showExampleHints: tempShowExampleHints,
             showImageHints: tempShowImageHints,
-        };
-        onSave(newSettings);
+        });
         onClose();
     };
 
     const handleCancel = () => {
-        // Reset temp settings to current settings
         setTempMode(currentSettings.mode);
         setTempAutoCheck(currentSettings.autoCheck);
         setTempShowExampleHints(currentSettings.showExampleHints);
@@ -70,79 +76,51 @@ export default function PracticeSettingsDialog({
         onClose();
     };
 
-    const isFlashcard = tempMode === "flashcard";
     const isTyping = tempMode === "typing";
-    const isMultipleChoice = tempMode === "multiple-choice";
-    const isListening = tempMode === "listening";
+    const isMixed = tempMode === "mixed";
+
+    const modes: { id: PracticeMode; icon: typeof Sparkles; label: string; desc: string }[] = [
+        { id: "mixed", icon: Shuffle, label: "Mixed", desc: "Best for memory" },
+        { id: "typing", icon: Keyboard, label: "Typing", desc: "Type the word" },
+        { id: "listening", icon: Volume2, label: "Listening", desc: "Listen and type" },
+        { id: "cloze", icon: TextCursorInput, label: "Fill-in", desc: "Complete the sentence" },
+        { id: "multiple-choice", icon: CheckSquare, label: "Quiz", desc: "Pick the meaning" },
+        { id: "flashcard", icon: Sparkles, label: "Flashcard", desc: "Reveal and rate" },
+    ];
 
     return (
         <Dialog open={isOpen} onOpenChange={handleCancel}>
-            <DialogContent className="max-w-md">
+            <DialogContent className="max-w-md max-h-[90dvh] overflow-y-auto">
                 <DialogHeader>
                     <DialogTitle>Practice Settings</DialogTitle>
                 </DialogHeader>
 
                 <div className="space-y-6 py-4">
-                    {/* Mode Selection */}
                     <div>
                         <Label className="text-sm font-medium mb-3 block">Practice Mode</Label>
                         <div className="grid grid-cols-2 gap-3">
-                            <Button
-                                type="button"
-                                size="lg"
-                                variant={isFlashcard ? "default" : "outline"}
-                                onClick={() => setTempMode("flashcard")}
-                                className="gap-2 h-auto py-4 flex-col"
-                            >
-                                <Sparkles className="h-5 w-5" />
-                                <span className="font-medium">Flashcard</span>
-                                <span className="text-xs opacity-80 font-normal">
-                                    Learn at your pace
-                                </span>
-                            </Button>
-                            <Button
-                                type="button"
-                                size="lg"
-                                variant={isTyping ? "default" : "outline"}
-                                onClick={() => setTempMode("typing")}
-                                className="gap-2 h-auto py-4 flex-col"
-                            >
-                                <Keyboard className="h-5 w-5" />
-                                <span className="font-medium">Typing</span>
-                                <span className="text-xs opacity-80 font-normal">
-                                    Type to practice
-                                </span>
-                            </Button>
-                            <Button
-                                type="button"
-                                size="lg"
-                                variant={isMultipleChoice ? "default" : "outline"}
-                                onClick={() => setTempMode("multiple-choice")}
-                                className="gap-2 h-auto py-4 flex-col"
-                            >
-                                <CheckSquare className="h-5 w-5" />
-                                <span className="font-medium">Quiz</span>
-                                <span className="text-xs opacity-80 font-normal">
-                                    Choose the answer
-                                </span>
-                            </Button>
-                            <Button
-                                type="button"
-                                size="lg"
-                                variant={isListening ? "default" : "outline"}
-                                onClick={() => setTempMode("listening")}
-                                className="gap-2 h-auto py-4 flex-col"
-                            >
-                                <Volume2 className="h-5 w-5" />
-                                <span className="font-medium">Listening</span>
-                                <span className="text-xs opacity-80 font-normal">
-                                    Listen and type
-                                </span>
-                            </Button>
+                            {modes.map(({ id, icon: Icon, label, desc }) => (
+                                <Button
+                                    key={id}
+                                    type="button"
+                                    size="lg"
+                                    variant={tempMode === id ? "default" : "outline"}
+                                    onClick={() => setTempMode(id)}
+                                    className="gap-2 h-auto py-4 flex-col"
+                                >
+                                    <Icon className="h-5 w-5" />
+                                    <span className="font-medium">{label}</span>
+                                    <span className="text-xs opacity-80 font-normal">{desc}</span>
+                                </Button>
+                            ))}
                         </div>
+                        {isMixed && (
+                            <p className="text-xs text-muted-foreground mt-2">
+                                Rotates typing, listening, quiz, and fill-in for stronger recall.
+                            </p>
+                        )}
                     </div>
 
-                    {/* Auto-check Toggle (only for typing mode) */}
                     {isTyping && (
                         <div className="space-y-3 pt-4 border-t border-border">
                             <div className="flex items-start justify-between gap-4">
@@ -151,7 +129,7 @@ export default function PracticeSettingsDialog({
                                         Auto-check answers
                                     </Label>
                                     <p className="text-xs text-muted-foreground mt-1">
-                                        Automatically validate correct answers as you type
+                                        Validate correct answers as you type
                                     </p>
                                 </div>
                                 <Switch
@@ -164,7 +142,6 @@ export default function PracticeSettingsDialog({
                         </div>
                     )}
 
-                    {/* Example hints — applies to all modes */}
                     <div className="space-y-3 pt-4 border-t border-border">
                         <div className="flex items-start justify-between gap-4">
                             <div className="flex-1">
@@ -173,14 +150,13 @@ export default function PracticeSettingsDialog({
                                     Example hints
                                 </Label>
                                 <p className="text-xs text-muted-foreground mt-1">
-                                    Show example sentences with the word hidden (***) to help you guess
+                                    Show sentences with the word hidden (***)
                                 </p>
                             </div>
                             <Switch
                                 id="show-example-hints"
                                 checked={tempShowExampleHints}
                                 onCheckedChange={setTempShowExampleHints}
-                                className="data-[state=checked]:bg-green-500"
                             />
                         </div>
                         <div className="flex items-start justify-between gap-4">
@@ -190,14 +166,13 @@ export default function PracticeSettingsDialog({
                                     Image hints
                                 </Label>
                                 <p className="text-xs text-muted-foreground mt-1">
-                                    Show a picture for the word next to example hints when available
+                                    Show a picture when available
                                 </p>
                             </div>
                             <Switch
                                 id="show-image-hints"
                                 checked={tempShowImageHints}
                                 onCheckedChange={setTempShowImageHints}
-                                className="data-[state=checked]:bg-green-500"
                             />
                         </div>
                     </div>
