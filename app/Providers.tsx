@@ -23,10 +23,6 @@ export function Providers({ children }: { children: React.ReactNode }) {
                         });
                     }
                 }
-            }).catch(() => {
-                toast.error("System Status", {
-                    description: "Unable to connect to backend services",
-                });
             });
         }, 100);
     }, []);
