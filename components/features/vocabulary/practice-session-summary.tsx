@@ -1,11 +1,12 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { dailyGoalProgress, type DailyHabitState } from "@/lib/daily-habit";
+import { dailyGoalProgress } from "@/lib/daily-habit";
 import { pickSessionCompleteMessage } from "@/lib/practice-feedback";
+import type { IDailyHabit } from "@/types/daily-habit/daily-habit.type";
 import { AnswerQuality } from "@/types/word-progress/word-progress.type";
 import { IWord } from "@/types/courses/courses.type";
-import { ArrowRight, Flame, RotateCcw, Sparkles, Target } from "lucide-react";
+import { ArrowRight, Award, Flame, RotateCcw, Sparkles, Target } from "lucide-react";
 
 export interface SessionWordResult {
     wordId: string;
@@ -16,7 +17,7 @@ export interface PracticeSessionSummaryProps {
     words: IWord[];
     wordResults: SessionWordResult[];
     score: number;
-    habitState: DailyHabitState;
+    habitState: IDailyHabit;
     onContinue: () => void;
     onRetryMissed?: () => void;
 }
@@ -38,7 +39,7 @@ export function PracticeSessionSummary({
     );
     const missedWords = words.filter((w) => missedIds.has(w.id));
     const strongCount = wordResults.filter((r) => r.quality >= AnswerQuality.CORRECT_WITH_HESITATION).length;
-    const goal = dailyGoalProgress(habitState);
+    const goal = dailyGoalProgress(habitState.wordsToday, habitState.goal);
     const headline = pickSessionCompleteMessage(score, wordResults.length);
 
     return (
@@ -50,9 +51,21 @@ export function PracticeSessionSummary({
             <h2 className="text-2xl sm:text-3xl font-bold mb-2 gradient-brand bg-clip-text text-transparent">
                 {headline}
             </h2>
-            <p className="text-muted-foreground mb-6 text-sm sm:text-base">
+            <p className="text-muted-foreground mb-2 text-sm sm:text-base">
                 {wordResults.length} word{wordResults.length === 1 ? "" : "s"} practiced
             </p>
+            {habitState.goalMetToday && (
+                <p className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-sm font-medium text-primary mb-4">
+                    <Award className="h-4 w-4" aria-hidden />
+                    Daily goal complete
+                    {habitState.goalStreak > 1 && ` · ${habitState.goalStreak}-day goal streak`}
+                </p>
+            )}
+            {!habitState.goalMetToday && habitState.wordsToday > 0 && (
+                <p className="text-sm text-muted-foreground mb-4">
+                    {goal.remaining} more word{goal.remaining === 1 ? "" : "s"} to hit today&apos;s goal
+                </p>
+            )}
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 max-w-lg mx-auto mb-6 sm:mb-8">
                 <div className="rounded-xl border border-border bg-card p-3">
@@ -84,7 +97,7 @@ export function PracticeSessionSummary({
             <div className="max-w-md mx-auto mb-6 sm:mb-8 text-left">
                 <div className="flex items-center justify-between text-xs sm:text-sm text-muted-foreground mb-2">
                     <span>Daily goal</span>
-                    <span>{goal.met ? "Done for today!" : `${goal.goal - habitState.wordsToday} more to go`}</span>
+                    <span>{goal.met ? "Done for today!" : `${goal.remaining} more to go`}</span>
                 </div>
                 <div className="h-2.5 bg-muted rounded-full overflow-hidden">
                     <div

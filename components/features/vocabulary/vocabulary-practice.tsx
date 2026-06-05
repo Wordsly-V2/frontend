@@ -19,9 +19,8 @@ import { fireMiniConfetti } from "@/lib/confetti";
 import {
     localDateString,
     recordPracticeWordsLocally,
-    toDailyHabitState,
-    type DailyHabitState,
 } from "@/lib/daily-habit";
+import type { IDailyHabit } from "@/types/daily-habit/daily-habit.type";
 import { useRecordDailyPracticeMutation } from "@/queries/daily-habit.query";
 import { playAudioUrl } from "@/lib/practice-audio";
 import { pickMilestoneMessage } from "@/lib/practice-feedback";
@@ -75,7 +74,7 @@ export interface WordResult {
 export interface SessionCompletePayload {
     score: number;
     wordResults: WordResult[];
-    habitState: DailyHabitState;
+    habitState: IDailyHabit;
 }
 
 interface VocabularyPracticeProps {
@@ -167,7 +166,7 @@ export default function VocabularyPractice({
     const [wordResults, setWordResults] = useState<WordResult[]>([]);
     const [pendingResult, setPendingResult] = useState<WordResult | null>(null);
     const [sessionStreak, setSessionStreak] = useState(0);
-    const [habitState, setHabitState] = useState<DailyHabitState | null>(null);
+    const [habitState, setHabitState] = useState<IDailyHabit | null>(null);
     const recordDailyPractice = useRecordDailyPracticeMutation();
     const [timeSpentSeconds, setTimeSpentSeconds] = useState<number | undefined>(undefined);
     const [feedbackSeed] = useState(() => Date.now());
@@ -284,7 +283,7 @@ export default function VocabularyPractice({
                 { wordCount, clientDate: localDateString() },
                 {
                     onSuccess: (habit) => {
-                        setHabitState(toDailyHabitState(habit));
+                        setHabitState(habit);
                     },
                 },
             );

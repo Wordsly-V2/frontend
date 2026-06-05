@@ -1,12 +1,17 @@
-import { getDailyHabit, recordDailyPractice } from "@/apis/daily-habit.api";
+import {
+    getDailyHabit,
+    recordDailyPractice,
+    updateDailyGoal,
+} from "@/apis/daily-habit.api";
 import {
     cacheDailyHabitLocally,
+    emptyLocalDailyHabit,
     localDateString,
-    toDailyHabitState,
 } from "@/lib/daily-habit";
 import type {
     IDailyHabit,
     IRecordDailyPracticeDto,
+    IUpdateDailyGoalDto,
 } from "@/types/daily-habit/daily-habit.type";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
@@ -40,11 +45,24 @@ export const useRecordDailyPracticeMutation = () => {
     });
 };
 
+export const useUpdateDailyGoalMutation = () => {
+    const queryClient = useQueryClient();
+    const clientDate = localDateString();
+
+    return useMutation<IDailyHabit, Error, IUpdateDailyGoalDto>({
+        mutationFn: (body) => updateDailyGoal(body, clientDate),
+        onSuccess: (habit) => {
+            cacheDailyHabitLocally(habit);
+            queryClient.setQueryData(dailyHabitQueryKey(habit.date), habit);
+        },
+    });
+};
+
 /** Resolved habit for UI: server data when available, else local cache. */
 export function useDailyHabitDisplay() {
     const clientDate = localDateString();
     const { data, isLoading, isError } = useGetDailyHabitQuery();
-    const habit = data ? toDailyHabitState(data) : undefined;
+    const habit = data ?? undefined;
 
     return {
         clientDate,
@@ -53,4 +71,9 @@ export function useDailyHabitDisplay() {
         isError,
         goal: data?.goal,
     };
+}
+
+export function useDailyHabitWithFallback(): IDailyHabit {
+    const { data } = useGetDailyHabitQuery();
+    return data ?? emptyLocalDailyHabit();
 }

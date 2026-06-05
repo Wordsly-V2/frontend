@@ -2,9 +2,8 @@
 
 import { Button } from "@/components/ui/button";
 import {
-    DAILY_GOAL_WORDS,
     dailyGoalProgress,
-    getDailyHabit,
+    getLocalDailyHabit,
 } from "@/lib/daily-habit";
 import { buildPracticeUrl } from "@/lib/practice-session";
 import { readDueWordsLimitFromStorage } from "@/lib/due-words-limit";
@@ -21,8 +20,9 @@ export function LearnQuickActions() {
     const pathname = usePathname();
     const [last, setLast] = useState<ReturnType<typeof getLastLearnCourse>>(null);
     const [dueWordsLimit, setDueWordsLimit] = useState(readDueWordsLimitFromStorage);
-    const { habit: serverHabit, goal: serverGoal } = useDailyHabitDisplay();
-    const habit = serverHabit ?? getDailyHabit();
+    const { habit: serverHabit } = useDailyHabitDisplay();
+    const habit = serverHabit ?? getLocalDailyHabit();
+    const goal = dailyGoalProgress(habit.wordsToday, habit.goal);
 
     useEffect(() => {
         startTransition(() => {
@@ -40,7 +40,6 @@ export function LearnQuickActions() {
     );
 
     const dueCount = dueIds?.wordIds.length ?? 0;
-    const goal = dailyGoalProgress(habit, serverGoal ?? DAILY_GOAL_WORDS);
 
     const handleReviewDue = () => {
         if (!last || dueCount === 0) return;
@@ -54,6 +53,14 @@ export function LearnQuickActions() {
         );
     };
 
+    const subtitle = goal.met
+        ? habit.goalStreak > 0
+            ? `${habit.goalStreak}-day goal streak — quick review keeps momentum.`
+            : "Daily goal done — keep your streak alive with a quick review."
+        : goal.remaining <= 3 && habit.wordsToday > 0
+          ? `Almost there — ${goal.remaining} more word${goal.remaining === 1 ? "" : "s"} today.`
+          : "Continue where you left off — or jump into review.";
+
     return (
         <nav
             aria-label="Quick learning actions"
@@ -65,11 +72,7 @@ export function LearnQuickActions() {
                         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
                             Next step
                         </p>
-                        <p className="mt-1 text-sm text-muted-foreground">
-                            {goal.met
-                                ? "Daily goal done — keep your streak alive with a quick review."
-                                : "Continue where you left off — or jump into review."}
-                        </p>
+                        <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p>
                     </div>
                     <div className="flex shrink-0 items-center gap-3 sm:gap-4">
                         <div className="flex items-center gap-2 rounded-xl bg-orange-500/10 px-3 py-2">

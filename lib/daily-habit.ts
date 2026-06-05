@@ -1,15 +1,14 @@
 import { getLocalStorageItem, setLocalStorageItem } from "@/lib/local-storage";
-import type { IDailyHabit } from "@/types/daily-habit/daily-habit.type";
+import type { IDailyHabit, IDailyHabitDay } from "@/types/daily-habit/daily-habit.type";
 
 export const DAILY_GOAL_WORDS = 10;
 export const DAILY_HABIT_STORAGE_KEY = "wordsly.dailyHabit";
 
+/** @deprecated Use IDailyHabit — kept for practice summary compatibility */
 export interface DailyHabitState {
-    /** Local calendar date YYYY-MM-DD for wordsToday */
     date: string;
     wordsToday: number;
     streak: number;
-    /** Last calendar date the learner completed at least 1 word */
     lastPracticeDate: string | null;
 }
 
@@ -28,12 +27,36 @@ function yesterdayDateString(fromDate = localDateString()): string {
     return localDateString(d);
 }
 
-function defaultState(): DailyHabitState {
+function emptyRecentDays(endDate = localDateString()): IDailyHabitDay[] {
+    return Array.from({ length: 7 }, (_, index) => {
+        const [y, m, day] = endDate.split("-").map(Number);
+        const date = new Date(y, m - 1, day);
+        date.setDate(date.getDate() - (6 - index));
+        return {
+            date: localDateString(date),
+            words: 0,
+            goalMet: false,
+        };
+    });
+}
+
+export function emptyLocalDailyHabit(date = localDateString()): IDailyHabit {
     return {
-        date: localDateString(),
+        date,
         wordsToday: 0,
         streak: 0,
+        longestStreak: 0,
+        goalStreak: 0,
+        longestGoalStreak: 0,
         lastPracticeDate: null,
+        goal: DAILY_GOAL_WORDS,
+        goalMetToday: false,
+        totalWordsPracticed: 0,
+        totalPracticeDays: 0,
+        wordsThisWeek: 0,
+        daysActiveThisWeek: 0,
+        recentDays: emptyRecentDays(date),
+        message: `Practice ${DAILY_GOAL_WORDS} words a day to build your streak.`,
     };
 }
 
@@ -49,47 +72,67 @@ export function toDailyHabitState(habit: IDailyHabit): DailyHabitState {
 export function cacheDailyHabitLocally(habit: IDailyHabit): void {
     if (globalThis.window === undefined) return;
     try {
-        setLocalStorageItem(DAILY_HABIT_STORAGE_KEY, JSON.stringify(toDailyHabitState(habit)));
+        setLocalStorageItem(DAILY_HABIT_STORAGE_KEY, JSON.stringify(habit));
     } catch {
         // ignore
     }
 }
 
-export function getDailyHabit(): DailyHabitState {
-    if (globalThis.window === undefined) return defaultState();
+export function getLocalDailyHabit(): IDailyHabit {
+    if (globalThis.window === undefined) return emptyLocalDailyHabit();
     try {
         const raw = getLocalStorageItem(DAILY_HABIT_STORAGE_KEY);
-        if (!raw) return defaultState();
-        const parsed = JSON.parse(raw) as Partial<DailyHabitState>;
+        if (!raw) return emptyLocalDailyHabit();
+        const parsed = JSON.parse(raw) as Partial<IDailyHabit>;
         const today = localDateString();
+        const base = emptyLocalDailyHabit(today);
+
         if (parsed.date !== today) {
             return {
-                date: today,
-                wordsToday: 0,
+                ...base,
                 streak: typeof parsed.streak === "number" ? parsed.streak : 0,
+                longestStreak:
+                    typeof parsed.longestStreak === "number" ? parsed.longestStreak : 0,
+                goalStreak: typeof parsed.goalStreak === "number" ? parsed.goalStreak : 0,
+                longestGoalStreak:
+                    typeof parsed.longestGoalStreak === "number"
+                        ? parsed.longestGoalStreak
+                        : 0,
                 lastPracticeDate:
-                    typeof parsed.lastPracticeDate === "string" ? parsed.lastPracticeDate : null,
+                    typeof parsed.lastPracticeDate === "string"
+                        ? parsed.lastPracticeDate
+                        : null,
+                goal: typeof parsed.goal === "number" ? parsed.goal : DAILY_GOAL_WORDS,
+                totalWordsPracticed:
+                    typeof parsed.totalWordsPracticed === "number"
+                        ? parsed.totalWordsPracticed
+                        : 0,
+                totalPracticeDays:
+                    typeof parsed.totalPracticeDays === "number"
+                        ? parsed.totalPracticeDays
+                        : 0,
             };
         }
-        return {
-            date: today,
-            wordsToday: typeof parsed.wordsToday === "number" ? parsed.wordsToday : 0,
-            streak: typeof parsed.streak === "number" ? parsed.streak : 0,
-            lastPracticeDate:
-                typeof parsed.lastPracticeDate === "string" ? parsed.lastPracticeDate : null,
-        };
+
+        return { ...base, ...parsed, date: today };
     } catch {
-        return defaultState();
+        return emptyLocalDailyHabit();
     }
 }
 
+/** @deprecated Use getLocalDailyHabit */
+export function getDailyHabit(): DailyHabitState {
+    return toDailyHabitState(getLocalDailyHabit());
+}
+
 /** Offline fallback: record words locally when the API is unavailable. */
-export function recordPracticeWordsLocally(wordCount: number): DailyHabitState {
-    if (wordCount <= 0) return getDailyHabit();
+export function recordPracticeWordsLocally(wordCount: number): IDailyHabit {
+    if (wordCount <= 0) return getLocalDailyHabit();
 
     const today = localDateString();
     const yesterday = yesterdayDateString(today);
-    const current = getDailyHabit();
+    const current = getLocalDailyHabit();
+    const goal = current.goal;
 
     let streak = current.streak;
     const last = current.lastPracticeDate;
@@ -106,32 +149,55 @@ export function recordPracticeWordsLocally(wordCount: number): DailyHabitState {
         streak = Math.max(streak, 1);
     }
 
-    const next: DailyHabitState = {
-        date: today,
-        wordsToday: current.wordsToday + wordCount,
-        streak,
-        lastPracticeDate: today,
-    };
-
-    try {
-        setLocalStorageItem(DAILY_HABIT_STORAGE_KEY, JSON.stringify(next));
-    } catch {
-        // ignore
+    const wordsToday = current.wordsToday + wordCount;
+    const goalMetToday = wordsToday >= goal;
+    let goalStreak = current.goalStreak;
+    if (goalMetToday && !current.goalMetToday) {
+        goalStreak =
+            current.lastPracticeDate === yesterday ? current.goalStreak + 1 : 1;
     }
 
+    const recentDays = current.recentDays.map((day) =>
+        day.date === today
+            ? { ...day, words: day.words + wordCount, goalMet: goalMetToday }
+            : day,
+    );
+
+    const next: IDailyHabit = {
+        ...current,
+        date: today,
+        wordsToday,
+        streak,
+        longestStreak: Math.max(current.longestStreak, streak),
+        goalStreak,
+        longestGoalStreak: Math.max(current.longestGoalStreak, goalStreak),
+        lastPracticeDate: today,
+        goalMetToday,
+        totalWordsPracticed: current.totalWordsPracticed + wordCount,
+        wordsThisWeek: recentDays.reduce((sum, d) => sum + d.words, 0),
+        daysActiveThisWeek: recentDays.filter((d) => d.words > 0).length,
+        recentDays,
+        message: goalMetToday
+            ? "Daily goal complete. Keep the momentum going!"
+            : `Practice ${goal} words a day to build your streak.`,
+    };
+
+    cacheDailyHabitLocally(next);
     return next;
 }
 
 export function dailyGoalProgress(
-    state: DailyHabitState,
+    wordsToday: number,
     goal = DAILY_GOAL_WORDS,
 ): {
     goal: number;
     done: number;
     percent: number;
     met: boolean;
+    remaining: number;
 } {
-    const done = Math.min(state.wordsToday, goal);
-    const percent = goal > 0 ? Math.min(100, (state.wordsToday / goal) * 100) : 0;
-    return { goal, done, percent, met: state.wordsToday >= goal };
+    const done = Math.min(wordsToday, goal);
+    const percent = goal > 0 ? Math.min(100, (wordsToday / goal) * 100) : 0;
+    const remaining = Math.max(0, goal - wordsToday);
+    return { goal, done, percent, met: wordsToday >= goal, remaining };
 }
