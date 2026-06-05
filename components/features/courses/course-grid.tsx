@@ -3,6 +3,9 @@
 import { useGetProgressStatsByCourseIdsQuery } from "@/queries/word-progress.query";
 import { ICourse } from "@/types/courses/courses.type";
 import CourseCard from "./course-card";
+import { Button } from "@/components/ui/button";
+import { Plus } from "lucide-react";
+import Link from "next/link";
 
 interface CourseGridProps {
     courses: ICourse[];
@@ -33,9 +36,15 @@ export default function CourseGrid({ courses }: Readonly<CourseGridProps>) {
                     </svg>
                 </div>
                 <h3 className="text-lg font-semibold mb-2">No courses yet</h3>
-                <p className="text-muted-foreground max-w-md mx-auto">
-                    Start your English learning journey by creating your first course.
+                <p className="text-muted-foreground max-w-md mx-auto mb-6">
+                    Create your first course in Manage, then come back here to practice.
                 </p>
+                <Button className="rounded-xl gap-2" asChild>
+                    <Link href="/manage">
+                        <Plus className="h-4 w-4" aria-hidden />
+                        Create a course
+                    </Link>
+                </Button>
             </div>
         );
     }

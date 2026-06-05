@@ -101,6 +101,7 @@ export default function LearnPage() {
                             isLoading={isLoadingCourses}
                             error={isErrorCourses ? "Error loading courses" : null}
                             refetch={refetchCourses}
+                            fullPage={false}
                         />
                     ) : (
                         <>

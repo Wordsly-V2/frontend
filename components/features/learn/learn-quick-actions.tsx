@@ -10,7 +10,7 @@ import { readDueWordsLimitFromStorage } from "@/lib/due-words-limit";
 import { getLastLearnCourse } from "@/lib/learning-session";
 import { useDailyHabitDisplay } from "@/queries/daily-habit.query";
 import { useGetDueWordIdsQuery } from "@/queries/word-progress.query";
-import { BookOpen, Brain, ChevronRight, Flame, Library, Target } from "lucide-react";
+import { BookOpen, Brain, ChevronRight, Library, Target } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { startTransition, useEffect, useState } from "react";
@@ -80,25 +80,11 @@ export function LearnQuickActions() {
             className="mb-6 rounded-2xl border border-border/70 bg-card/80 p-4 shadow-sm sm:p-5"
         >
             <div className="flex min-w-0 flex-col gap-4">
-                <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
-                    <div className="min-w-0 shrink-0">
-                        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                            Next step
-                        </p>
-                        <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p>
-                    </div>
-                    <div className="flex shrink-0 items-center gap-3 sm:gap-4">
-                        <div className="flex items-center gap-2 rounded-xl bg-orange-500/10 px-3 py-2">
-                            <Flame className="h-4 w-4 text-orange-500" aria-hidden />
-                            <span className="text-sm font-bold tabular-nums">{habit.streak}</span>
-                        </div>
-                        <div className="flex items-center gap-2 rounded-xl bg-primary/10 px-3 py-2 min-w-[5.5rem]">
-                            <Target className="h-4 w-4 text-primary" aria-hidden />
-                            <span className="text-sm font-bold tabular-nums">
-                                {habit.wordsToday}/{goal.goal}
-                            </span>
-                        </div>
-                    </div>
+                <div className="min-w-0">
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                        Next step
+                    </p>
+                    <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p>
                 </div>
 
                 <div className="flex min-w-0 w-full flex-col gap-2 sm:flex-row sm:flex-wrap sm:justify-end">

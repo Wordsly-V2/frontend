@@ -1,5 +1,6 @@
 import { Button } from '@/components/ui/button';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import { cn } from '@/lib/utils';
 
 export default function LoadingSection({
     isLoading,
@@ -10,6 +11,8 @@ export default function LoadingSection({
     retryLabel = 'Retry',
     isDataNotFound = false,
     dataNotFoundLabel = 'Data not found',
+    fullPage = true,
+    className,
 }: {
     isLoading: boolean;
     error: string | null;
@@ -19,37 +22,41 @@ export default function LoadingSection({
     retryLabel?: string;
     isDataNotFound?: boolean;
     dataNotFoundLabel?: string;
+    fullPage?: boolean;
+    className?: string;
 }) {
+    const wrapperClass = cn(
+        'flex items-center justify-center px-4',
+        fullPage ? 'min-h-dvh' : 'py-16',
+        className,
+    );
+
     if (isLoading) {
         return (
-            <main className='min-h-dvh bg-slate-50 flex items-center justify-center px-4'>
+            <div className={wrapperClass}>
                 <LoadingSpinner size='lg' label={loadingLabel} />
-            </main>
+            </div>
         );
     }
 
     if (error) {
         return (
-            <main className='min-h-dvh bg-slate-50 flex items-center justify-center px-4'>
-                <div>
-                    <div className='text-center text-sm text-muted-foreground'>{errorLabel}: {error}</div>
+            <div className={wrapperClass}>
+                <div className="flex flex-col items-center gap-4 text-center">
+                    <p className="text-sm text-muted-foreground">
+                        {errorLabel}: {error}
+                    </p>
+                    <Button onClick={() => refetch()}>{retryLabel}</Button>
                 </div>
-                <Button
-                    onClick={() => {
-                        refetch();
-                    }}
-                >
-                    {retryLabel}
-                </Button>
-            </main>
+            </div>
         );
     }
 
     if (isDataNotFound) {
         return (
-            <main className='min-h-dvh bg-slate-50 flex items-center justify-center px-4'>
-                <div className='text-center text-sm text-muted-foreground'>{dataNotFoundLabel}</div>
-            </main>
+            <div className={wrapperClass}>
+                <p className="text-center text-sm text-muted-foreground">{dataNotFoundLabel}</p>
+            </div>
         );
     }
 }

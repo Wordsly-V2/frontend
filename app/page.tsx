@@ -20,6 +20,7 @@ import {
 	CardTitle,
 } from "@/components/ui/card";
 import { useUser } from "@/hooks/useUser.hook";
+import { HomeWelcomeBanner } from "@/components/features/home/home-welcome-banner";
 
 export default function HomePage() {
 	const router = useRouter();
@@ -30,6 +31,9 @@ export default function HomePage() {
 			{/* Hero — asymmetric: copy + visual panel */}
 			<section className="relative overflow-hidden border-b border-border/50">
 				<div className="container relative mx-auto max-w-6xl px-4 sm:px-6 py-12 sm:py-16 lg:py-20">
+					{profile && (
+						<HomeWelcomeBanner displayName={profile.displayName ?? "Learner"} />
+					)}
 					<div className="grid gap-10 lg:grid-cols-[1.05fr_0.95fr] lg:gap-12 lg:items-center">
 						<div>
 							<p className="mb-3 inline-flex items-center rounded-full border border-border/70 bg-card/80 px-3 py-1 text-xs font-medium uppercase tracking-wider text-muted-foreground">
