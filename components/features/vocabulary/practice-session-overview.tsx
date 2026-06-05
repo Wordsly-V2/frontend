@@ -7,6 +7,7 @@ import {
     type WordLearningStage,
 } from "@/lib/word-progress-stage";
 import { BookOpen, Brain, Sparkles, Timer } from "lucide-react";
+import { useEffect } from "react";
 
 const STAGE_STYLES: Record<
     WordLearningStage,
@@ -36,6 +37,26 @@ export function PracticeSessionOverview({
     const stages = (Object.entries(counts) as [WordLearningStage, number][]).filter(
         ([, n]) => n > 0,
     );
+
+    useEffect(() => {
+        const onKeyDown = (e: KeyboardEvent) => {
+            if (e.key !== "Enter") return;
+            const target = e.target;
+            if (
+                target instanceof HTMLElement &&
+                (target.isContentEditable ||
+                    target.tagName === "INPUT" ||
+                    target.tagName === "TEXTAREA" ||
+                    target.tagName === "SELECT")
+            ) {
+                return;
+            }
+            e.preventDefault();
+            onStart();
+        };
+        globalThis.addEventListener("keydown", onKeyDown);
+        return () => globalThis.removeEventListener("keydown", onKeyDown);
+    }, [onStart]);
 
     return (
         <section className="flex flex-col flex-1 min-h-0 animate-in fade-in duration-300">

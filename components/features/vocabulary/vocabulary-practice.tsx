@@ -167,6 +167,17 @@ export default function VocabularyPractice({
     const inputRef = useRef<HTMLInputElement>(null);
     const wordStartTimeRef = useRef<number | null>(null);
 
+    const focusPracticeInput = useCallback(() => {
+        requestAnimationFrame(() => {
+            setTimeout(() => {
+                const el = inputRef.current;
+                if (!el) return;
+                el.focus({ preventScroll: false });
+                el.scrollIntoView({ behavior: "smooth", block: "center" });
+            }, 80);
+        });
+    }, []);
+
     useEffect(() => {
         startTransition(() => {
             setPracticeSettings(resolvePracticeSettings(sessionKind));
@@ -272,6 +283,7 @@ export default function VocabularyPractice({
         if (currentIndex < queue.length - 1) {
             setCurrentIndex((i) => i + 1);
             resetWordUi();
+            focusPracticeInput();
         } else {
             finishSession(nextResults);
             resetWordUi();
@@ -284,6 +296,7 @@ export default function VocabularyPractice({
         queue.length,
         resetWordUi,
         finishSession,
+        focusPracticeInput,
     ]);
 
     const handleTryAgain = useCallback(() => {
@@ -292,8 +305,8 @@ export default function VocabularyPractice({
         setUserAnswer("");
         setTimeSpentSeconds(undefined);
         setPendingResult(null);
-        setTimeout(() => inputRef.current?.focus(), 100);
-    }, []);
+        focusPracticeInput();
+    }, [focusPracticeInput]);
 
     const getNextHint = useCallback((): string => {
         if (!currentWord) return "";
@@ -405,6 +418,22 @@ export default function VocabularyPractice({
 
     useEffect(() => {
         if (
+            activeMode !== "listening" ||
+            !currentWord?.audioUrl ||
+            typingResult ||
+            showResultDialog
+        ) {
+            return;
+        }
+        const timer = setTimeout(() => {
+            playAudioUrl(currentWord.audioUrl);
+            setHasPlayedAudio(true);
+        }, 350);
+        return () => clearTimeout(timer);
+    }, [currentIndex, activeMode, currentWord?.id, currentWord?.audioUrl, typingResult, showResultDialog]);
+
+    useEffect(() => {
+        if (
             activeMode !== "typing" ||
             !autoCheck ||
             typingResult ||
@@ -430,10 +459,10 @@ export default function VocabularyPractice({
     }, [autoCheck, currentWord, activeMode, typingResult, showResultDialog, userAnswer, hintsUsed, stageResult]);
 
     useEffect(() => {
-        if ((activeMode === "typing" || activeMode === "listening" || activeMode === "cloze") && !typingResult && !showResultDialog) {
-            inputRef.current?.focus();
-        }
-    }, [activeMode, typingResult, showResultDialog, currentIndex]);
+        if (typingResult || showResultDialog) return;
+        if (!["typing", "listening", "cloze"].includes(activeMode)) return;
+        focusPracticeInput();
+    }, [activeMode, typingResult, showResultDialog, currentIndex, hasPlayedAudio, focusPracticeInput]);
 
     useEffect(() => {
         if (showResultDialog) {
@@ -619,6 +648,7 @@ export default function VocabularyPractice({
                         <input
                             ref={inputRef}
                             type="text"
+                            autoFocus
                             placeholder="Type your answer..."
                             value={userAnswer}
                             onChange={(e) => setUserAnswer(String(e.target.value).toLowerCase())}
@@ -642,10 +672,27 @@ export default function VocabularyPractice({
                 {activeMode === "cloze" && clozePrompt && (
                     <div className="space-y-6 text-center">
                         <p className="text-xs uppercase tracking-widest text-muted-foreground">Fill in the blank</p>
-                        <p className="text-lg sm:text-xl italic leading-relaxed px-2">&ldquo;{clozePrompt.sentence}&rdquo;</p>
+                        <div className="space-y-2">
+                            <p className="text-xs font-medium text-muted-foreground">Meaning</p>
+                            <p className="text-xl sm:text-2xl font-bold px-2">{currentWord.meaning}</p>
+                            {currentWord.partOfSpeech && (
+                                <span className="inline-block px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-semibold">
+                                    {currentWord.partOfSpeech}
+                                </span>
+                            )}
+                        </div>
+                        <p className="text-lg sm:text-xl italic leading-relaxed px-2 text-foreground/90">
+                            &ldquo;{clozePrompt.sentence}&rdquo;
+                        </p>
+                        <WordPracticeHints
+                            maskedExamples={maskedExamples}
+                            imageUrl={currentWord.imageUrl}
+                            showImageHints={effectiveImageHints}
+                        />
                         <input
                             ref={inputRef}
                             type="text"
+                            autoFocus
                             placeholder="Type the missing word..."
                             value={userAnswer}
                             onChange={(e) => setUserAnswer(String(e.target.value).toLowerCase())}
@@ -694,6 +741,9 @@ export default function VocabularyPractice({
                 {activeMode === "listening" && (
                     <div className="space-y-6 text-center">
                         <p className="text-xs uppercase tracking-widest text-muted-foreground">Listening</p>
+                        <p className="text-sm text-muted-foreground">
+                            {hasPlayedAudio ? "Type what you heard" : "Playing audio…"}
+                        </p>
                         <Button
                             size="lg"
                             onClick={() => {
@@ -702,20 +752,21 @@ export default function VocabularyPractice({
                             }}
                             disabled={!currentWord.audioUrl}
                             className="h-20 w-20 rounded-full"
+                            aria-label="Replay audio"
                         >
                             {currentWord.audioUrl ? <Volume2 className="h-8 w-8" /> : <Play className="h-8 w-8" />}
                         </Button>
                         <input
                             ref={inputRef}
                             type="text"
+                            autoFocus
                             placeholder="Type what you heard..."
                             value={userAnswer}
                             onChange={(e) => setUserAnswer(e.target.value)}
-                            disabled={!hasPlayedAudio}
                             onKeyDown={(e) =>
                                 submitAnswerOnEnter(e, handleCheckListeningAnswer, hasPlayedAudio)
                             }
-                            className="w-full px-4 py-4 text-xl text-center rounded-xl border-2 border-border bg-background focus:border-primary outline-none disabled:opacity-50"
+                            className="w-full px-4 py-4 text-xl text-center rounded-xl border-2 border-border bg-background focus:border-primary outline-none"
                         />
                         <div className="flex justify-center gap-2 flex-wrap">
                             <Button variant="outline" onClick={() => playAudioUrl(currentWord.audioUrl)} className="rounded-xl">

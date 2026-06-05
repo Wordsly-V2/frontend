@@ -3,13 +3,8 @@
 import { Button } from "@/components/ui/button";
 import { dailyGoalProgress, getDailyHabit } from "@/lib/daily-habit";
 import { buildPracticeUrl } from "@/lib/practice-session";
-import {
-    DEFAULT_DUE_WORDS_LIMIT,
-    DUE_WORDS_LIMIT_STORAGE_KEY,
-    parseDueWordsLimit,
-} from "@/lib/due-words-limit";
+import { readDueWordsLimitFromStorage } from "@/lib/due-words-limit";
 import { getLastLearnCourse } from "@/lib/learning-session";
-import { getLocalStorageItem } from "@/lib/local-storage";
 import { useGetDueWordIdsQuery } from "@/queries/word-progress.query";
 import { BookOpen, Brain, ChevronRight, Flame, Library, Target } from "lucide-react";
 import Link from "next/link";
@@ -20,21 +15,15 @@ export function LearnQuickActions() {
     const router = useRouter();
     const pathname = usePathname();
     const [last, setLast] = useState<ReturnType<typeof getLastLearnCourse>>(null);
-    const [dueWordsLimit, setDueWordsLimit] = useState(DEFAULT_DUE_WORDS_LIMIT);
-    const [dueWordsLimitReady, setDueWordsLimitReady] = useState(false);
+    const [dueWordsLimit, setDueWordsLimit] = useState(readDueWordsLimitFromStorage);
     const [habit, setHabit] = useState(() => getDailyHabit());
 
     useEffect(() => {
-        const refresh = () => {
+        startTransition(() => {
             setLast(getLastLearnCourse());
-            startTransition(() => {
-                const raw = getLocalStorageItem(DUE_WORDS_LIMIT_STORAGE_KEY);
-                setDueWordsLimit(parseDueWordsLimit(raw, DEFAULT_DUE_WORDS_LIMIT));
-                setDueWordsLimitReady(true);
-                setHabit(getDailyHabit());
-            });
-        };
-        refresh();
+            setDueWordsLimit(readDueWordsLimitFromStorage());
+            setHabit(getDailyHabit());
+        });
     }, [pathname]);
 
     const { data: dueIds, isLoading: dueLoading } = useGetDueWordIdsQuery(
@@ -42,7 +31,7 @@ export function LearnQuickActions() {
         undefined,
         dueWordsLimit,
         true,
-        !!last?.id && dueWordsLimitReady && dueWordsLimit > 0,
+        !!last?.id && dueWordsLimit > 0,
     );
 
     const dueCount = dueIds?.wordIds.length ?? 0;

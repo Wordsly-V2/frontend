@@ -9,6 +9,7 @@ import VocabularyPractice, {
 import { Button } from "@/components/ui/button";
 import { fireCelebrationConfetti } from "@/lib/confetti";
 import { parsePracticeSessionKind } from "@/lib/practice-session";
+import { waitForWordProgressSync } from "@/lib/wait-for-word-progress-sync";
 import {
     buildLeechWordIds,
     buildPracticeSessionPlan,
@@ -22,17 +23,20 @@ import { ArrowLeft } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
 
 type PracticePhase = "overview" | "intro" | "practice";
 
 export default function PracticePage() {
     const router = useRouter();
     const searchParams = useSearchParams();
+    const queryClient = useQueryClient();
     const sessionKind = parsePracticeSessionKind(searchParams.get("kind"));
     const isReview = sessionKind === "review";
     const [phase, setPhase] = useState<PracticePhase>("overview");
     const [introIndex, setIntroIndex] = useState(0);
     const [savedOnce, setSavedOnce] = useState(false);
+    const [isSyncingProgress, setIsSyncingProgress] = useState(false);
 
     const courseNameRaw = searchParams.get("courseName") ?? "";
     const courseId = searchParams.get("courseId") ?? "";
@@ -83,6 +87,13 @@ export default function PracticePage() {
     );
 
     const { mutate: recordBulk, isPending: isSaving } = useRecordAnswerBulkMutation();
+    const isPersisting = isSaving || isSyncingProgress;
+
+    const invalidateProgressQueries = useCallback(async () => {
+        await queryClient.invalidateQueries({ queryKey: ["word-progress"] });
+        await queryClient.invalidateQueries({ queryKey: ["due-words"] });
+        await queryClient.invalidateQueries({ queryKey: ["due-word-ids"] });
+    }, [queryClient]);
 
     const persistSession = useCallback(
         (payload: SessionCompletePayload) => {
@@ -91,13 +102,32 @@ export default function PracticePage() {
                 return;
             }
             setSavedOnce(true);
+            const wordIds = [...new Set(payload.wordResults.map((r) => r.wordId))];
+            const progressBeforeSave = progressByWordId;
+
             recordBulk(
                 { answers: payload.wordResults },
                 {
-                    onSuccess: () => {
-                        fireCelebrationConfetti();
-                        toast.success("Progress saved!");
-                        router.replace(`/learn/courses/${courseId}`);
+                    onSuccess: async () => {
+                        setIsSyncingProgress(true);
+                        try {
+                            const synced = await waitForWordProgressSync(
+                                wordIds,
+                                progressBeforeSave,
+                            );
+                            await invalidateProgressQueries();
+                            fireCelebrationConfetti();
+                            toast.success("Progress saved!");
+                            if (!synced) {
+                                toast.info("Stats may take a moment to fully update.");
+                            }
+                            router.replace(`/learn/courses/${courseId}`);
+                        } catch {
+                            setSavedOnce(false);
+                            toast.error("Could not confirm progress sync.");
+                        } finally {
+                            setIsSyncingProgress(false);
+                        }
                     },
                     onError: () => {
                         setSavedOnce(false);
@@ -106,7 +136,14 @@ export default function PracticePage() {
                 },
             );
         },
-        [savedOnce, recordBulk, courseId, router],
+        [
+            savedOnce,
+            recordBulk,
+            courseId,
+            router,
+            progressByWordId,
+            invalidateProgressQueries,
+        ],
     );
 
     const handleBackToCourse = () => {
@@ -187,7 +224,7 @@ export default function PracticePage() {
                     onClick={handleBackToCourse}
                     className="mb-3 sm:mb-4 self-start flex-shrink-0 text-muted-foreground hover:text-foreground"
                     size="sm"
-                    disabled={isSaving}
+                    disabled={isPersisting}
                 >
                     <ArrowLeft className="h-4 w-4 mr-2" />
                     Back to Course

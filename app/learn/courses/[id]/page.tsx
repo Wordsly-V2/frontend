@@ -14,15 +14,14 @@ import { ArrowLeft, BookOpen, Brain, ChevronDown, ChevronRight, Eye, GraduationC
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
-    DEFAULT_DUE_WORDS_LIMIT,
     DUE_WORDS_LIMIT_OPTIONS,
     DUE_WORDS_LIMIT_STORAGE_KEY,
-    parseDueWordsLimit,
+    readDueWordsLimitFromStorage,
 } from "@/lib/due-words-limit";
 import { setLastLearnCourse } from "@/lib/learning-session";
 import { buildPracticeUrl } from "@/lib/practice-session";
-import { getLocalStorageItem, setLocalStorageItem } from "@/lib/local-storage";
-import { use, useEffect, useMemo, useRef, useState, startTransition } from "react";
+import { setLocalStorageItem } from "@/lib/local-storage";
+import { use, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
 export default function LearnCourseDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -32,8 +31,7 @@ export default function LearnCourseDetailPage({ params }: { params: Promise<{ id
     const appliedFocusRef = useRef(false);
     const [expandedLessons, setExpandedLessons] = useState<Set<string>>(new Set());
     const [selectedWords, setSelectedWords] = useState<Set<string>>(new Set());
-    const [dueWordsLimit, setDueWordsLimit] = useState(DEFAULT_DUE_WORDS_LIMIT);
-    const [dueWordsLimitReady, setDueWordsLimitReady] = useState(false);
+    const [dueWordsLimit, setDueWordsLimit] = useState(readDueWordsLimitFromStorage);
     const [searchQuery, setSearchQuery] = useState("");
     const [viewingWord, setViewingWord] = useState<IWord | null>(null);
 
@@ -51,17 +49,8 @@ export default function LearnCourseDetailPage({ params }: { params: Promise<{ id
     }, [course]);
 
     useEffect(() => {
-        startTransition(() => {
-            const raw = getLocalStorageItem(DUE_WORDS_LIMIT_STORAGE_KEY);
-            setDueWordsLimit(parseDueWordsLimit(raw, DEFAULT_DUE_WORDS_LIMIT));
-            setDueWordsLimitReady(true);
-        });
-    }, []);
-
-    useEffect(() => {
-        if (!dueWordsLimitReady) return;
         setLocalStorageItem(DUE_WORDS_LIMIT_STORAGE_KEY, JSON.stringify(dueWordsLimit));
-    }, [dueWordsLimit, dueWordsLimitReady]);
+    }, [dueWordsLimit]);
 
     // When opening from nav word search: apply URL params to state (fill search, expand lesson)
     const urlWord = searchParams.get("word");

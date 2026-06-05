@@ -28,14 +28,8 @@ export const useRecordAnswerMutation = () => {
 };
 
 export const useRecordAnswerBulkMutation = () => {
-    const queryClient = useQueryClient();
     return useMutation<{ accepted: boolean }, Error, IBulkRecordAnswersDto>({
         mutationFn: recordAnswerBulk,
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ["word-progress"] });
-            queryClient.invalidateQueries({ queryKey: ["due-words"] });
-            queryClient.invalidateQueries({ queryKey: ["due-word-ids"] });
-        },
     });
 };
 
