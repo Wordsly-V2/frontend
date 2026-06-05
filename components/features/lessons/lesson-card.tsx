@@ -1,6 +1,8 @@
 "use client";
 
 import { ILesson } from "@/types/courses/courses.type";
+import type { IWordProgressStats } from "@/types/word-progress/word-progress.type";
+import { computeLessonProgressPercent } from "@/lib/lesson-progress";
 import { BookOpen, GripVertical, Play } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useSortable } from "@dnd-kit/sortable";
@@ -12,6 +14,7 @@ interface LessonCardProps {
     onStart?: () => void;
     sortable?: boolean;
     index?: number;
+    progressStats?: IWordProgressStats;
 }
 
 export default function LessonCard({
@@ -19,9 +22,10 @@ export default function LessonCard({
     onStart,
     sortable = false,
     index = 0,
+    progressStats,
 }: Readonly<LessonCardProps>) {
     const wordCount = lesson.words?.length || 0;
-    const progress = 0; // TODO: Calculate actual progress
+    const progress = computeLessonProgressPercent(progressStats, wordCount);
 
     const {
         attributes,

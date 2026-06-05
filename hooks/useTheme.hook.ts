@@ -1,7 +1,7 @@
 "use client";
 
 import { useTheme as useNextThemes } from "next-themes";
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 
 type Theme = "light" | "dark";
 
@@ -10,11 +10,11 @@ type Theme = "light" | "dark";
  */
 export function useTheme() {
     const { theme, setTheme, resolvedTheme } = useNextThemes();
-    const [mounted, setMounted] = useState(false);
-
-    useEffect(() => {
-        setMounted(true);
-    }, []);
+    const mounted = useSyncExternalStore(
+        () => () => {},
+        () => true,
+        () => false,
+    );
 
     const isDark = resolvedTheme === "dark";
 

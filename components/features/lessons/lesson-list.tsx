@@ -1,6 +1,7 @@
 "use client";
 
 import { ILesson } from "@/types/courses/courses.type";
+import type { IWordProgressStats } from "@/types/word-progress/word-progress.type";
 import LessonCard from "./lesson-card";
 import {
     DndContext,
@@ -23,6 +24,7 @@ interface LessonListProps {
     onLessonClick?: (lessonId: string) => void;
     onReorder?: (lessons: ILesson[]) => void;
     sortable?: boolean;
+    lessonStatsByLessonId?: Record<string, IWordProgressStats>;
 }
 
 export default function LessonList({
@@ -30,6 +32,7 @@ export default function LessonList({
     onLessonClick,
     onReorder,
     sortable = false,
+    lessonStatsByLessonId = {},
 }: Readonly<LessonListProps>) {
     const sensors = useSensors(
         useSensor(PointerSensor),
@@ -81,6 +84,7 @@ export default function LessonList({
             lesson={lesson}
             index={index}
             sortable={sortable}
+            progressStats={lessonStatsByLessonId[lesson.id]}
             onStart={onLessonClick ? () => onLessonClick(lesson.id) : undefined}
         />
     ));

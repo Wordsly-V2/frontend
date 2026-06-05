@@ -1,7 +1,7 @@
 "use client";
 
 import { IWord } from "@/types/courses/courses.type";
-import { Volume2, Star } from "lucide-react";
+import { Volume2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 

@@ -389,7 +389,7 @@ export default function ManageCourseDetailPage({ params }: { params: Promise<{ i
         return () => clearTimeout(t);
     }, [course, urlWord, urlLessonId, searchQuery, expandedLessons]);
     const { mutationCreateMyCourseLesson, mutationUpdateMyCourseLesson, mutationDeleteMyCourseLesson, mutationReorderMyCourseLessons } = useLessons();
-    const { mutationCreateMyWord, mutationUpdateMyWord, mutationDeleteMyWord, mutationMoveMyWord, mutationBulkDeleteMyWords, mutationBulkMoveMyWords, mutationBulkDeleteMyWordsFromCourse, mutationBulkMoveMyWordsFromCourse } = useWords();
+    const { mutationCreateMyWord, mutationUpdateMyWord, mutationDeleteMyWord, mutationBulkDeleteMyWords, mutationBulkDeleteMyWordsFromCourse, mutationBulkMoveMyWordsFromCourse } = useWords();
 
     useLoadingOverlay({ isPending: mutationReorderMyCourseLessons.isPending, label: "Reordering lessons..." });
 
@@ -553,9 +553,9 @@ export default function ManageCourseDetailPage({ params }: { params: Promise<{ i
         }
     }
 
-    const handleMoveMyWord = (targetLessonId: string, _targetCourseId?: string) => {
+    const handleMoveMyWord = (targetLessonId: string) => {
         if (moveWordDialog) {
-            const { words, sourceLesson } = moveWordDialog;
+            const { words } = moveWordDialog;
             const wordIds = words.map((w) => w.id);
             // Use course-level bulk move (supports words from any lesson; target can be in any course)
             mutationBulkMoveMyWordsFromCourse.mutate(

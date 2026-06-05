@@ -56,7 +56,7 @@ const userSlice = createSlice({
             state.error = undefined;
             state.isLoading = true;
         });
-        builder.addCase(logout.fulfilled, (state, action) => {
+        builder.addCase(logout.fulfilled, (state) => {
             state.profile = null;
             state.isLoading = false;
         });

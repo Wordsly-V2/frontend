@@ -1,4 +1,4 @@
-import { createMyCourseLesson, deleteMyCourseLesson, reorderMyCourseLessons, updateMyCourseLesson } from "@/apis/lesssons.api";
+import { createMyCourseLesson, deleteMyCourseLesson, reorderMyCourseLessons, updateMyCourseLesson } from "@/apis/lessons.api";
 import { CreateMyLesson } from "@/types/courses/courses.type";
 import { useMutation } from "@tanstack/react-query";
 

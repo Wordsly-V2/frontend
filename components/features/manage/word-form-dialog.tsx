@@ -33,24 +33,64 @@ function getExamplesArray(example: string | undefined): string[] {
     }
 }
 
-export default function WordFormDialog({
-    isLoading,
-    isOpen,
-    onClose,
-    onSubmit,
-    word,
-    initialData,
-    title,
-}: Readonly<WordFormDialogProps>) {
-    const [formData, setFormData] = useState({
+type WordFormData = {
+    word: string;
+    meaning: string;
+    pronunciation: string;
+    partOfSpeech: string;
+    audioUrl: string;
+    imageUrl: string;
+    examples: string[];
+};
+
+function buildInitialFormData(word?: IWord, initialData?: WordDetailView | null): WordFormData {
+    if (word) {
+        return {
+            word: word.word,
+            meaning: word.meaning,
+            pronunciation: word.pronunciation || "",
+            partOfSpeech: word.partOfSpeech || "",
+            audioUrl: word.audioUrl || "",
+            imageUrl: word.imageUrl || "",
+            examples: getExamplesArray(word.example),
+        };
+    }
+    if (initialData) {
+        return {
+            word: initialData.word,
+            meaning: initialData.meaning,
+            pronunciation: initialData.pronunciation || "",
+            partOfSpeech: initialData.partOfSpeech || "",
+            audioUrl: initialData.audioUrl || "",
+            imageUrl: initialData.imageUrl || "",
+            examples: getExamplesArray(initialData.example),
+        };
+    }
+    return {
         word: "",
         meaning: "",
         pronunciation: "",
         partOfSpeech: "",
         audioUrl: "",
         imageUrl: "",
-        examples: [] as string[],
-    });
+        examples: [],
+    };
+}
+
+function WordFormDialogForm({
+    isLoading,
+    onClose,
+    onSubmit,
+    word,
+    initialData,
+    title,
+}: Readonly<Omit<WordFormDialogProps, "isOpen">>) {
+    const initial = buildInitialFormData(word, initialData);
+    const exampleIdRef = useRef(initial.examples.length);
+    const [formData, setFormData] = useState<WordFormData>(() => initial);
+    const [exampleIds, setExampleIds] = useState(() =>
+        initial.examples.map((_, index) => `ex-${index + 1}`),
+    );
     const { isPlaying, error: audioError, play, stop, clearError } = useAudio();
 
     const [pendingWordDetails, setPendingWordDetails] = useState<{
@@ -69,54 +109,6 @@ export default function WordFormDialog({
     );
 
     const [imageLoadError, setImageLoadError] = useState(false);
-    const [exampleIds, setExampleIds] = useState<string[]>([]);
-    const exampleIdRef = useRef(0);
-    const appliedInitialDataRef = useRef(false);
-
-    useEffect(() => {
-        if (!isOpen) {
-            appliedInitialDataRef.current = false;
-            return;
-        }
-        if (word) {
-            appliedInitialDataRef.current = false;
-            setFormData({
-                word: word.word,
-                meaning: word.meaning,
-                pronunciation: word.pronunciation || "",
-                partOfSpeech: word.partOfSpeech || "",
-                audioUrl: word.audioUrl || "",
-                imageUrl: word.imageUrl || "",
-                examples: getExamplesArray(word.example),
-            });
-            setExampleIds(getExamplesArray(word.example).map(() => `ex-${++exampleIdRef.current}`));
-        } else if (initialData && !appliedInitialDataRef.current) {
-            appliedInitialDataRef.current = true;
-            const examples = getExamplesArray(initialData.example);
-            setFormData({
-                word: initialData.word,
-                meaning: initialData.meaning,
-                pronunciation: initialData.pronunciation || "",
-                partOfSpeech: initialData.partOfSpeech || "",
-                audioUrl: initialData.audioUrl || "",
-                imageUrl: initialData.imageUrl || "",
-                examples,
-            });
-            setExampleIds(examples.map(() => `ex-${++exampleIdRef.current}`));
-        } else if (!initialData) {
-            appliedInitialDataRef.current = false;
-            setFormData({
-                word: "",
-                meaning: "",
-                pronunciation: "",
-                partOfSpeech: "",
-                audioUrl: "",
-                imageUrl: "",
-                examples: [],
-            });
-            setExampleIds([]);
-        }
-    }, [word, initialData, isOpen]);
 
     useEffect(() => {
         if (!pendingWordDetails || !langeekDetailsSuccess || !langeekWordDetails) return;
@@ -173,18 +165,6 @@ export default function WordFormDialog({
     const handleClose = () => {
         stop();
         clearError();
-        setImageLoadError(false);
-        setPendingWordDetails(null);
-        setFormData({
-            word: "",
-            meaning: "",
-            pronunciation: "",
-            partOfSpeech: "",
-            audioUrl: "",
-            imageUrl: "",
-            examples: [],
-        });
-        setExampleIds([]);
         onClose();
     };
 
@@ -207,9 +187,7 @@ export default function WordFormDialog({
     };
 
     return (
-        <Dialog open={isOpen} onOpenChange={handleClose}>
-            <DialogContent className="max-w-lg w-[calc(100vw-1.5rem)] sm:w-full max-h-[85dvh] overflow-y-auto overflow-x-hidden mx-auto" onOpenAutoFocus={(e) => word ? e.preventDefault() : undefined}>
-                <form onSubmit={handleSubmit} className="min-w-0">
+        <form onSubmit={handleSubmit} className="min-w-0">
                     <DialogHeader>
                         <DialogTitle className="text-lg sm:text-xl">{title}</DialogTitle>
                     </DialogHeader>
@@ -419,7 +397,38 @@ export default function WordFormDialog({
                             }
                         </Button>
                     </DialogFooter>
-                </form>
+        </form>
+    );
+}
+
+export default function WordFormDialog({
+    isLoading,
+    isOpen,
+    onClose,
+    onSubmit,
+    word,
+    initialData,
+    title,
+}: Readonly<WordFormDialogProps>) {
+    const formKey = word?.id ?? initialData?.word ?? "new";
+
+    return (
+        <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
+            <DialogContent
+                className="max-w-lg w-[calc(100vw-1.5rem)] sm:w-full max-h-[85dvh] overflow-y-auto overflow-x-hidden mx-auto"
+                onOpenAutoFocus={(e) => word ? e.preventDefault() : undefined}
+            >
+                {isOpen && (
+                    <WordFormDialogForm
+                        key={formKey}
+                        isLoading={isLoading}
+                        onClose={onClose}
+                        onSubmit={onSubmit}
+                        word={word}
+                        initialData={initialData}
+                        title={title}
+                    />
+                )}
             </DialogContent>
         </Dialog>
     );

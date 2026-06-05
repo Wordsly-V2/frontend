@@ -1,4 +1,4 @@
-import { getLessonsByCourseId } from "@/apis/lesssons.api";
+import { getLessonsByCourseId } from "@/apis/lessons.api";
 import { getCourseDetailById, getMyCourses, getMyCoursesTotalStats } from "@/apis/courses.api";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { IPaginatedResponse } from "@/types/common/pagination.type";
