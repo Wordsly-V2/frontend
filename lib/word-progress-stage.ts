@@ -93,7 +93,6 @@ function sortWordsForPractice(
 export function buildPracticeSessionPlan(
     words: IWord[],
     progressByWordId: Record<string, IWordProgressResponse | null> | undefined,
-    sessionKind: PracticeSessionKind,
     now: Date = new Date(),
 ): PracticeSessionPlan {
     const stagesByWordId = buildStagesMap(

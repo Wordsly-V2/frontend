@@ -1,14 +1,14 @@
 "use client";
 
-import PracticeSettingsDialog, {
-    type PracticeSettings,
-} from "@/components/features/vocabulary/practice-settings-dialog";
+import type { PracticeSettings } from "@/components/features/vocabulary/practice-settings-dialog";
 import PracticeResultDialog from "@/components/features/vocabulary/practice-result-dialog";
-import WordDetailCard from "@/components/features/vocabulary/word-detail-card";
-import {
-    PracticeSessionSummary,
-} from "@/components/features/vocabulary/practice-session-summary";
-import WordsSummaryDialog from "@/components/features/vocabulary/words-summary-dialog";
+import { LeechWordBanner } from "@/components/features/vocabulary/leech-word-banner";
+import { NewWordIntroPanel } from "@/components/features/vocabulary/new-word-intro-panel";
+import { PracticeCardShell } from "@/components/features/vocabulary/practice-card-shell";
+import { PracticeProgressHeader } from "@/components/features/vocabulary/practice-progress-header";
+import { PracticeToolbar } from "@/components/features/vocabulary/practice-toolbar";
+import { WordPracticeHints } from "@/components/features/vocabulary/word-practice-hints";
+import { PracticeSessionSummary } from "@/components/features/vocabulary/practice-session-summary";
 import { Button } from "@/components/ui/button";
 import {
     calculateAnswerQuality,
@@ -32,7 +32,6 @@ import {
 } from "@/lib/practice-sounds";
 import {
     stageHintPolicy,
-    stageLabel,
     type WordLearningStage,
 } from "@/lib/word-progress-stage";
 import {
@@ -50,19 +49,15 @@ import {
     normalizeForHintPrefix,
     shuffleArray,
 } from "@/lib/practice-utils";
+import { useNewWordIntro } from "@/hooks/useNewWordIntro.hook";
 import { setLocalStorageItem } from "@/lib/local-storage";
-import { AnswerQuality } from "@/types/word-progress/word-progress.type";
+import type { SessionCompletePayload, WordResult } from "@/types/practice/practice.type";
 import { IWord } from "@/types/courses/courses.type";
 import {
-    AlertTriangle,
-    ChevronRight,
     Lightbulb,
-    List,
     Play,
-    Settings2,
     Volume2,
 } from "lucide-react";
-import Image from "next/image";
 import {
     useCallback,
     useEffect,
@@ -73,16 +68,7 @@ import {
 } from "react";
 import { toast } from "sonner";
 
-export interface WordResult {
-    wordId: string;
-    quality: AnswerQuality;
-}
-
-export interface SessionCompletePayload {
-    score: number;
-    wordResults: WordResult[];
-    habitState: IDailyHabit;
-}
+export type { SessionCompletePayload, WordResult } from "@/types/practice/practice.type";
 
 interface VocabularyPracticeProps {
     /** All session words (used in summary). */
@@ -94,56 +80,6 @@ interface VocabularyPracticeProps {
     leechWordIds?: Set<string>;
     onComplete?: (payload: SessionCompletePayload) => void;
     onSummaryReady?: () => void;
-}
-
-function WordPracticeHints({
-    maskedExamples,
-    imageUrl,
-    showImageHints,
-}: Readonly<{
-    maskedExamples: string[];
-    imageUrl?: string;
-    showImageHints: boolean;
-}>) {
-    const showImage = showImageHints && Boolean(imageUrl?.trim());
-    const showExamples = maskedExamples.length > 0;
-    if (!showImage && !showExamples) return null;
-
-    return (
-        <div className="mt-4 sm:mt-6 pt-4 sm:pt-6 border-t border-border/50 mx-auto w-full">
-            <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 items-start text-left">
-                {showExamples && (
-                    <div className="flex-1 min-w-0 w-full">
-                        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
-                            Example sentences
-                        </p>
-                        <ul className="space-y-1.5 text-sm sm:text-base text-muted-foreground max-h-24 sm:max-h-32 overflow-y-auto overscroll-contain pr-1">
-                            {maskedExamples.map((s) => (
-                                <li key={s} className="italic">&ldquo;{s}&rdquo;</li>
-                            ))}
-                        </ul>
-                    </div>
-                )}
-                {showImage && imageUrl && (
-                    <div className="shrink-0 w-full sm:w-40">
-                        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
-                            Image hint
-                        </p>
-                        <div className="rounded-xl overflow-hidden bg-muted border border-border aspect-square max-h-40 sm:max-h-44 mx-auto sm:mx-0 w-full sm:w-40">
-                            <Image
-                                src={imageUrl}
-                                alt=""
-                                width={160}
-                                height={160}
-                                className="w-full h-full object-cover"
-                                unoptimized
-                            />
-                        </div>
-                    </div>
-                )}
-            </div>
-        </div>
-    );
 }
 
 export default function VocabularyPractice({
@@ -158,7 +94,6 @@ export default function VocabularyPractice({
     const [queue, setQueue] = useState(() => practiceQueue ?? shuffleArray(words));
     const [currentIndex, setCurrentIndex] = useState(0);
     const [phase, setPhase] = useState<"practice" | "summary">("practice");
-    const [wordStep, setWordStep] = useState<"intro" | "exercise">("exercise");
     const [showAnswer, setShowAnswer] = useState(false);
     const [userAnswer, setUserAnswer] = useState("");
     const [practiceSettings, setPracticeSettings] = useState<PracticeSettings>(() =>
@@ -238,53 +173,15 @@ export default function VocabularyPractice({
         [currentWord, effectiveExampleHints, rawExamples],
     );
 
-    const progress = queue.length > 0 ? ((currentIndex + 1) / queue.length) * 100 : 100;
     const isLeech = currentWord != null && leechWordIds?.has(currentWord.id);
-    const showNewWordIntro =
-        wordStep === "intro" && currentStage === "new" && practicePass === "main";
 
-    useEffect(() => {
-        if (!currentWord || practicePass !== "main") {
-            setWordStep("exercise");
-            return;
-        }
-        setWordStep(currentStage === "new" ? "intro" : "exercise");
-    }, [currentIndex, currentWord?.id, currentStage, practicePass]);
-
-    useEffect(() => {
-        if (!showNewWordIntro || !currentWord?.audioUrl) return;
-        const timer = setTimeout(() => {
-            playAudioUrl(currentWord.audioUrl);
-        }, 300);
-        return () => clearTimeout(timer);
-    }, [showNewWordIntro, currentWord?.id, currentWord?.audioUrl]);
-
-    useEffect(() => {
-        if (!showNewWordIntro) return;
-        const onKeyDown = (e: KeyboardEvent) => {
-            if (e.key !== "Enter") return;
-            const target = e.target;
-            if (
-                target instanceof HTMLElement &&
-                (target.isContentEditable ||
-                    target.tagName === "INPUT" ||
-                    target.tagName === "TEXTAREA" ||
-                    target.tagName === "SELECT")
-            ) {
-                return;
-            }
-            e.preventDefault();
-            setWordStep("exercise");
-            focusPracticeInput();
-        };
-        globalThis.addEventListener("keydown", onKeyDown);
-        return () => globalThis.removeEventListener("keydown", onKeyDown);
-    }, [showNewWordIntro, focusPracticeInput]);
-
-    const handleStartWordExercise = useCallback(() => {
-        setWordStep("exercise");
-        focusPracticeInput();
-    }, [focusPracticeInput]);
+    const { showIntro, startExercise } = useNewWordIntro({
+        word: currentWord,
+        wordId: currentWord?.id,
+        stage: currentStage,
+        practicePass,
+        onExerciseStart: focusPracticeInput,
+    });
 
     function scoreFromResults(results: WordResult[]): number {
         if (results.length === 0) return 0;
@@ -554,11 +451,11 @@ export default function VocabularyPractice({
     }, [currentIndex, activeMode, currentWord, queue]);
 
     useEffect(() => {
-        if (showNewWordIntro) return;
+        if (showIntro) return;
         if (["typing", "listening", "cloze", "cloze-fallback", "multiple-choice"].includes(activeMode)) {
             wordStartTimeRef.current = Date.now();
         }
-    }, [currentIndex, activeMode, showNewWordIntro]);
+    }, [currentIndex, activeMode, showIntro]);
 
     useEffect(() => {
         if (
@@ -604,11 +501,11 @@ export default function VocabularyPractice({
     }, [autoCheck, currentWord, activeMode, typingResult, showResultDialog, userAnswer, hintsUsed, stageResult, playResultSound]);
 
     useEffect(() => {
-        if (showNewWordIntro) return;
+        if (showIntro) return;
         if (typingResult || showResultDialog) return;
         if (!["typing", "listening", "cloze", "cloze-fallback"].includes(activeMode)) return;
         focusPracticeInput();
-    }, [activeMode, typingResult, showResultDialog, currentIndex, hasPlayedAudio, focusPracticeInput, showNewWordIntro]);
+    }, [activeMode, typingResult, showResultDialog, currentIndex, hasPlayedAudio, focusPracticeInput, showIntro]);
 
     useEffect(() => {
         if (
@@ -709,125 +606,41 @@ export default function VocabularyPractice({
         mode === "mixed" ? `Mixed · ${activeMode.replace("-", " ")}` : activeMode.replace("-", " ");
 
     return (
-        <div className="max-w-4xl pb-safe">
-            <div className="mb-4 sm:mb-6">
-                <div className="flex items-center justify-between text-xs sm:text-sm font-medium text-muted-foreground mb-2">
-                    <span>Progress</span>
-                    <span className="px-2 sm:px-2.5 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-semibold">
-                        {currentIndex + 1} / {queue.length}
-                    </span>
-                </div>
-                <div className="h-2 sm:h-2.5 bg-muted rounded-full overflow-hidden shadow-inner">
-                    <div
-                        className="h-full bg-gradient-to-r from-primary to-purple-500 transition-all duration-500 ease-out"
-                        style={{ width: `${progress}%` }}
-                    />
-                </div>
-                {sessionStreak >= 3 && (
-                    <p className="text-xs text-primary mt-1.5 font-medium">{sessionStreak} in a row</p>
-                )}
-                {practicePass === "retry-missed" && (
-                    <p className="text-xs text-orange-600 dark:text-orange-400 mt-1.5 font-medium">
-                        Extra round — missed words
-                    </p>
-                )}
-            </div>
-
-            <div className="flex justify-center gap-2 sm:gap-3 mb-4 sm:mb-6 flex-wrap">
-                <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setShowSettings(true)}
-                    className="gap-1.5 rounded-full text-xs sm:text-sm"
-                >
-                    <Settings2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                    Settings
-                </Button>
-                <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setShowWordsList(true)}
-                    className="gap-1.5 rounded-full text-xs sm:text-sm"
-                >
-                    <List className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                    Words
-                </Button>
-                <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-muted text-xs text-muted-foreground capitalize">
-                    {modeLabel}
-                </span>
-                <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-primary/10 text-xs font-medium text-primary">
-                    {stageLabel(currentStage)}
-                </span>
-            </div>
-
-            <PracticeSettingsDialog
-                isOpen={showSettings}
-                onClose={() => setShowSettings(false)}
-                currentSettings={practiceSettings}
-                onSave={setPracticeSettings}
-            />
-
-            <WordsSummaryDialog
-                isOpen={showWordsList}
-                onClose={() => setShowWordsList(false)}
-                words={queue}
+        <div className="max-w-4xl pb-safe mx-auto w-full">
+            <PracticeProgressHeader
                 currentIndex={currentIndex}
+                total={queue.length}
+                sessionStreak={sessionStreak}
+                isRetryPass={practicePass === "retry-missed"}
             />
 
-            {isLeech && !showNewWordIntro && (
-                <div className="mb-4 rounded-xl border border-amber-200/80 bg-amber-50/90 dark:bg-amber-950/30 dark:border-amber-800/50 px-3 py-3 text-sm text-amber-800 dark:text-amber-200">
-                    <div className="flex items-start gap-2">
-                        <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" aria-hidden />
-                        <div className="min-w-0 text-left space-y-2">
-                            <p className="font-medium">Tricky word — extra help</p>
-                            {rawExamples[0] && (
-                                <p className="text-xs italic text-amber-700/90 dark:text-amber-300/90">
-                                    &ldquo;{rawExamples[0]}&rdquo;
-                                </p>
-                            )}
-                            {currentWord.audioUrl && (
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    size="sm"
-                                    className="h-8 rounded-lg border-amber-300/60 bg-white/50 dark:bg-transparent"
-                                    onClick={() => playAudioUrl(currentWord.audioUrl)}
-                                >
-                                    <Volume2 className="h-3.5 w-3.5 mr-1.5" aria-hidden />
-                                    Listen again
-                                </Button>
-                            )}
-                        </div>
-                    </div>
-                </div>
+            <PracticeToolbar
+                modeLabel={modeLabel}
+                currentStage={currentStage}
+                showSettings={showSettings}
+                showWordsList={showWordsList}
+                practiceSettings={practiceSettings}
+                queue={queue}
+                currentIndex={currentIndex}
+                onOpenSettings={() => setShowSettings(true)}
+                onCloseSettings={() => setShowSettings(false)}
+                onOpenWordsList={() => setShowWordsList(true)}
+                onCloseWordsList={() => setShowWordsList(false)}
+                onSaveSettings={setPracticeSettings}
+                hidden={showIntro}
+            />
+
+            {isLeech && !showIntro && (
+                <LeechWordBanner
+                    example={rawExamples[0]}
+                    audioUrl={currentWord.audioUrl}
+                />
             )}
 
-            {showNewWordIntro ? (
-                <div className="bg-gradient-to-br from-card to-card/50 border-2 border-primary/20 rounded-2xl sm:rounded-3xl p-4 sm:p-6 md:p-8 mb-4 sm:mb-6 min-h-[320px] sm:min-h-[400px] flex flex-col shadow-xl shadow-primary/5 animate-in fade-in duration-300">
-                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary mb-4 text-center">
-                        New word — take a moment to learn it
-                    </p>
-                    <div className="flex-1 min-h-0 flex flex-col">
-                        <WordDetailCard
-                            word={currentWord}
-                            layout="stack"
-                            constrainHeight
-                            className="flex-1 min-h-0"
-                        />
-                    </div>
-                    <div className="flex-shrink-0 pt-4 sm:pt-6 flex justify-center">
-                        <Button
-                            size="lg"
-                            onClick={handleStartWordExercise}
-                            className="rounded-xl gap-2 min-w-[200px]"
-                        >
-                            Practice this word
-                            <ChevronRight className="h-4 w-4" aria-hidden />
-                        </Button>
-                    </div>
-                </div>
+            {showIntro ? (
+                <NewWordIntroPanel word={currentWord} onStartExercise={startExercise} />
             ) : (
-            <div className="bg-gradient-to-br from-card to-card/50 border-2 border-border rounded-2xl sm:rounded-3xl p-4 sm:p-8 md:p-10 mb-4 sm:mb-6 min-h-[320px] sm:min-h-[400px] flex flex-col justify-between shadow-xl shadow-primary/5">
+            <PracticeCardShell>
                 {activeMode === "flashcard" && (
                     <>
                         <div className="space-y-4 sm:space-y-8 text-center">
@@ -1081,10 +894,10 @@ export default function VocabularyPractice({
                         </div>
                     </div>
                 )}
-            </div>
+            </PracticeCardShell>
             )}
 
-            {!showNewWordIntro && activeMode === "flashcard" && showAnswer && (
+            {!showIntro && activeMode === "flashcard" && showAnswer && (
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 animate-in fade-in">
                     <Button
                         variant="outline"
@@ -1117,7 +930,7 @@ export default function VocabularyPractice({
                 </div>
             )}
 
-            {!showNewWordIntro && activeMode !== "flashcard" && (
+            {!showIntro && activeMode !== "flashcard" && (
                 <PracticeResultDialog
                     isOpen={showResultDialog}
                     isCorrect={typingResult === "correct"}

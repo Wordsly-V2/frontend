@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { useEnterKeyAction } from "@/lib/keyboard-utils";
 import {
     stageLabel,
     type SessionStageCounts,
@@ -8,7 +9,7 @@ import {
 } from "@/lib/word-progress-stage";
 import { formatSessionEstimate } from "@/lib/practice-session-estimate";
 import { BookOpen, Brain, Clock, Sparkles, Timer } from "lucide-react";
-import { useEffect } from "react";
+import { useCallback } from "react";
 
 const STAGE_STYLES: Record<
     WordLearningStage,
@@ -23,7 +24,7 @@ const STAGE_STYLES: Record<
 interface PracticeSessionOverviewProps {
     counts: SessionStageCounts;
     totalWords: number;
-    hasIntro: boolean;
+    newWordCount: number;
     isReviewSession: boolean;
     onStart: () => void;
 }
@@ -31,34 +32,18 @@ interface PracticeSessionOverviewProps {
 export function PracticeSessionOverview({
     counts,
     totalWords,
-    hasIntro,
+    newWordCount,
     isReviewSession,
     onStart,
 }: Readonly<PracticeSessionOverviewProps>) {
     const stages = (Object.entries(counts) as [WordLearningStage, number][]).filter(
         ([, n]) => n > 0,
     );
-    const timeEstimate = formatSessionEstimate(totalWords, hasIntro, counts);
+    const hasNewWords = newWordCount > 0;
+    const timeEstimate = formatSessionEstimate(totalWords, hasNewWords, counts);
+    const handleStart = useCallback(() => onStart(), [onStart]);
 
-    useEffect(() => {
-        const onKeyDown = (e: KeyboardEvent) => {
-            if (e.key !== "Enter") return;
-            const target = e.target;
-            if (
-                target instanceof HTMLElement &&
-                (target.isContentEditable ||
-                    target.tagName === "INPUT" ||
-                    target.tagName === "TEXTAREA" ||
-                    target.tagName === "SELECT")
-            ) {
-                return;
-            }
-            e.preventDefault();
-            onStart();
-        };
-        globalThis.addEventListener("keydown", onKeyDown);
-        return () => globalThis.removeEventListener("keydown", onKeyDown);
-    }, [onStart]);
+    useEnterKeyAction(handleStart, true);
 
     return (
         <section className="flex flex-col flex-1 min-h-0 animate-in fade-in duration-300">
@@ -73,10 +58,10 @@ export function PracticeSessionOverview({
                     </span>
                 </div>
                 <p className="text-sm text-muted-foreground mb-4">
-                    {isReviewSession && !hasIntro
+                    {isReviewSession && !hasNewWords
                         ? "Time to recall — due words first, hints stay off so you really remember."
-                        : hasIntro
-                          ? "New words get a short introduction before you practice them. Order: due → learning → new → review."
+                        : hasNewWords
+                          ? `${newWordCount} new word${newWordCount === 1 ? "" : "s"} get a Learn step before practice. Order: due → learning → new → review.`
                           : "You have seen these before — straight into active practice."}
                 </p>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -99,11 +84,11 @@ export function PracticeSessionOverview({
                 )}
             </div>
 
-            <div className="flex-shrink-0 flex justify-center pt-2">
-                <Button size="lg" onClick={onStart} className="min-w-[200px] rounded-xl">
+            <div className="flex-shrink-0 flex flex-col items-center gap-2 pt-2">
+                <Button size="lg" onClick={handleStart} className="min-w-[200px] rounded-xl">
                     Start practice
                 </Button>
-                <p className="sr-only">Press Enter to start</p>
+                <p className="text-xs text-muted-foreground">Press Enter to start</p>
             </div>
         </section>
     );

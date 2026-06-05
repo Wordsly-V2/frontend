@@ -6,13 +6,12 @@ import { pickSessionCompleteMessage } from "@/lib/practice-feedback";
 import type { IDailyHabit } from "@/types/daily-habit/daily-habit.type";
 import { AnswerQuality } from "@/types/word-progress/word-progress.type";
 import { IWord } from "@/types/courses/courses.type";
+import { isEditableKeyboardTarget, useEnterKeyAction } from "@/lib/keyboard-utils";
+import type { WordResult } from "@/types/practice/practice.type";
 import { ArrowRight, Award, Flame, RotateCcw, Sparkles, Target } from "lucide-react";
-import { useEffect } from "react";
+import { useCallback, useEffect } from "react";
 
-export interface SessionWordResult {
-    wordId: string;
-    quality: AnswerQuality;
-}
+export type SessionWordResult = WordResult;
 
 export interface PracticeSessionSummaryProps {
     words: IWord[];
@@ -42,32 +41,20 @@ export function PracticeSessionSummary({
     const strongCount = wordResults.filter((r) => r.quality >= AnswerQuality.CORRECT_WITH_HESITATION).length;
     const goal = dailyGoalProgress(habitState.wordsToday, habitState.goal);
     const headline = pickSessionCompleteMessage(score, wordResults.length);
+    const handleContinue = useCallback(() => onContinue(), [onContinue]);
+
+    useEnterKeyAction(handleContinue, true);
 
     useEffect(() => {
         const onKeyDown = (e: KeyboardEvent) => {
-            const target = e.target;
-            if (
-                target instanceof HTMLElement &&
-                (target.isContentEditable ||
-                    target.tagName === "INPUT" ||
-                    target.tagName === "TEXTAREA" ||
-                    target.tagName === "SELECT")
-            ) {
-                return;
-            }
-            if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault();
-                onContinue();
-                return;
-            }
-            if (e.key.toLowerCase() === "r" && missedWords.length > 0 && onRetryMissed) {
-                e.preventDefault();
-                onRetryMissed();
-            }
+            if (e.key.toLowerCase() !== "r" || missedWords.length === 0 || !onRetryMissed) return;
+            if (isEditableKeyboardTarget(e.target)) return;
+            e.preventDefault();
+            onRetryMissed();
         };
         globalThis.addEventListener("keydown", onKeyDown);
         return () => globalThis.removeEventListener("keydown", onKeyDown);
-    }, [onContinue, onRetryMissed, missedWords.length]);
+    }, [onRetryMissed, missedWords.length]);
 
     return (
         <div className="animate-in fade-in zoom-in duration-500 text-center py-6 sm:py-10">
