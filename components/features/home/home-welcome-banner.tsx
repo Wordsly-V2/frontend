@@ -9,7 +9,7 @@ import { LONG_TEXT_WRAP } from "@/lib/long-text";
 import { useDailyHabitDisplay } from "@/queries/daily-habit.query";
 import { Flame, Target } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { startTransition, useEffect, useState } from "react";
 
 interface HomeWelcomeBannerProps {
     displayName: string;
@@ -23,7 +23,9 @@ export function HomeWelcomeBanner({ displayName }: Readonly<HomeWelcomeBannerPro
     const [lastCourse, setLastCourse] = useState<ReturnType<typeof getLastLearnCourse>>(null);
 
     useEffect(() => {
-        setLastCourse(getLastLearnCourse());
+        startTransition(() => {
+            setLastCourse(getLastLearnCourse());
+        });
     }, []);
 
     return (

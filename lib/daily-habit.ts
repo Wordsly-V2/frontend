@@ -190,7 +190,7 @@ export function recordPracticeWordsLocally(wordCount: number): IDailyHabit {
 
 export function dailyGoalProgress(
     wordsToday: number,
-    goal = DAILY_GOAL_WORDS,
+    goal: number = DAILY_GOAL_WORDS,
 ): {
     goal: number;
     done: number;
