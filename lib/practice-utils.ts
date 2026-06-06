@@ -49,11 +49,18 @@ export function getClozePrompt(word: IWord): ClozePrompt | null {
     return { sentence, answer: target };
 }
 
-/** First visible character for cloze fallback when no example exists. */
-export function getFirstLetterHint(word: string): string {
-    const trimmed = word.trim();
-    if (!trimmed) return "";
-    return trimmed[0].toLowerCase();
+/** Build word options for cloze quiz (correct word + distractors from session). */
+export function generateWordChoiceOptions(
+    correctWord: IWord,
+    pool: IWord[],
+    optionCount = 4,
+): string[] {
+    const options = [correctWord.word];
+    const others = shuffleArray(pool.filter((w) => w.id !== correctWord.id));
+    for (let i = 0; i < Math.min(optionCount - 1, others.length); i++) {
+        options.push(others[i].word);
+    }
+    return shuffleArray(options);
 }
 
 export function normalizeAnswer(value: string): string {

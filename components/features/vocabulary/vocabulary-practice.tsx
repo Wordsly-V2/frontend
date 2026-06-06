@@ -9,6 +9,7 @@ import { PracticeCardShell } from "@/components/features/vocabulary/practice-car
 import { PracticeExerciseBody } from "@/components/features/vocabulary/practice-exercise-body";
 import { PracticeProgressHeader } from "@/components/features/vocabulary/practice-progress-header";
 import { PracticeToolbar } from "@/components/features/vocabulary/practice-toolbar";
+import { PracticeWordChoiceGrid } from "@/components/features/vocabulary/practice-word-choice-grid";
 import { WordPracticeHints } from "@/components/features/vocabulary/word-practice-hints";
 import { PracticeSessionSummary } from "@/components/features/vocabulary/practice-session-summary";
 import { Button } from "@/components/ui/button";
@@ -37,14 +38,15 @@ import {
     type WordLearningStage,
 } from "@/lib/word-progress-stage";
 import {
+    buildMixedModePlan,
     resolveActiveMode,
     resolvePracticeSettings,
     SETTINGS_STORAGE_KEY,
     type ActivePracticeMode,
 } from "@/lib/practice-settings";
 import {
+    generateWordChoiceOptions,
     getClozePrompt,
-    getFirstLetterHint,
     getWordExamples,
     maskWordInExamples,
     normalizeAnswer,
@@ -160,8 +162,19 @@ export default function VocabularyPractice({
         () => (currentWord ? getClozePrompt(currentWord) : null),
         [currentWord],
     );
+    const mixedModePlan = useMemo(
+        () => (mode === "mixed" ? buildMixedModePlan(queue, stagesByWordId) : null),
+        [mode, queue, stagesByWordId],
+    );
     const activeMode: ActivePracticeMode = currentWord
-        ? resolveActiveMode(mode, currentIndex, clozePrompt != null, currentStage)
+        ? resolveActiveMode(
+              mode,
+              clozePrompt != null,
+              Boolean(currentWord.audioUrl),
+              mixedModePlan?.get(currentWord.id),
+              currentIndex,
+              currentStage,
+          )
         : "typing";
 
     const rawExamples = useMemo(
@@ -355,21 +368,32 @@ export default function VocabularyPractice({
         }, 0);
     };
 
-    const checkTypedAnswer = (expected: string) => {
-        if (!currentWord || typingResult || showResultDialog) return;
-        const elapsed =
-            wordStartTimeRef.current != null
-                ? (Date.now() - wordStartTimeRef.current) / 1000
-                : undefined;
-        if (elapsed != null) setTimeSpentSeconds(elapsed);
-        const isCorrect = normalizeAnswer(userAnswer.trim()) === normalizeAnswer(expected.trim());
-        const quality = calculateAnswerQuality(isCorrect, hintsUsed, elapsed);
-        stageResult({ wordId: currentWord.id, quality });
-        setTypingResult(isCorrect ? "correct" : "incorrect");
-        playResultSound(isCorrect);
-        setShowResultDialog(true);
-        inputRef.current?.blur();
-    };
+    const checkTypedAnswer = useCallback(
+        (expected: string) => {
+            if (!currentWord || typingResult || showResultDialog) return;
+            const elapsed =
+                wordStartTimeRef.current != null
+                    ? (Date.now() - wordStartTimeRef.current) / 1000
+                    : undefined;
+            if (elapsed != null) setTimeSpentSeconds(elapsed);
+            const isCorrect = normalizeAnswer(userAnswer.trim()) === normalizeAnswer(expected.trim());
+            const quality = calculateAnswerQuality(isCorrect, hintsUsed, elapsed);
+            stageResult({ wordId: currentWord.id, quality });
+            setTypingResult(isCorrect ? "correct" : "incorrect");
+            playResultSound(isCorrect);
+            setShowResultDialog(true);
+            inputRef.current?.blur();
+        },
+        [
+            currentWord,
+            typingResult,
+            showResultDialog,
+            userAnswer,
+            hintsUsed,
+            stageResult,
+            playResultSound,
+        ],
+    );
 
     const submitAnswerOnEnter = (
         e: React.KeyboardEvent<HTMLInputElement>,
@@ -385,8 +409,43 @@ export default function VocabularyPractice({
     };
 
     const handleCheckTypingAnswer = () => checkTypedAnswer(currentWord?.word ?? "");
-    const handleCheckClozeAnswer = () => checkTypedAnswer(clozePrompt?.answer ?? currentWord?.word ?? "");
     const handleCheckListeningAnswer = () => checkTypedAnswer(currentWord?.word ?? "");
+
+    const handleChoiceInteraction = (
+        option: string,
+        submit: (selected: string) => void,
+    ) => {
+        if (!currentWord || typingResult) return;
+        if (autoCheck) {
+            submit(option);
+            return;
+        }
+        setSelectedChoice(option);
+    };
+
+    const handleConfirmChoice = (submit: (selected: string) => void) => {
+        if (selectedChoice) submit(selectedChoice);
+    };
+
+    const handleWordChoiceSelect = (selectedWord: string, correctWord: string) => {
+        if (!currentWord || typingResult) return;
+        const elapsed =
+            wordStartTimeRef.current != null
+                ? (Date.now() - wordStartTimeRef.current) / 1000
+                : undefined;
+        if (elapsed != null) setTimeSpentSeconds(elapsed);
+        setSelectedChoice(selectedWord);
+        const isCorrect = normalizeAnswer(selectedWord) === normalizeAnswer(correctWord);
+        const quality = calculateAnswerQuality(isCorrect, 0, elapsed);
+        stageResult({ wordId: currentWord.id, quality });
+        setTypingResult(isCorrect ? "correct" : "incorrect");
+        playResultSound(isCorrect);
+        setShowResultDialog(true);
+    };
+
+    const handleClozeWordSelect = (selectedWord: string) => {
+        handleWordChoiceSelect(selectedWord, clozePrompt?.answer ?? currentWord?.word ?? "");
+    };
 
     const handleMultipleChoiceSelect = (selectedMeaning: string) => {
         if (!currentWord || typingResult) return;
@@ -453,9 +512,22 @@ export default function VocabularyPractice({
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [currentIndex, activeMode, currentWord, queue]);
 
+    const clozeWordOptions = useMemo(() => {
+        if (activeMode === "cloze" && currentWord) {
+            return generateWordChoiceOptions(currentWord, queue);
+        }
+        return [];
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [currentIndex, activeMode, currentWord, queue]);
+
+    const isWordChoiceMode = activeMode === "multiple-choice" || activeMode === "cloze";
+
     useEffect(() => {
         if (showIntro) return;
-        if (["typing", "listening", "cloze", "cloze-fallback", "multiple-choice"].includes(activeMode)) {
+        if (["typing", "listening"].includes(activeMode)) {
+            wordStartTimeRef.current = Date.now();
+        }
+        if (isWordChoiceMode) {
             wordStartTimeRef.current = Date.now();
         }
     }, [currentIndex, activeMode, showIntro]);
@@ -478,47 +550,47 @@ export default function VocabularyPractice({
 
     useEffect(() => {
         if (
-            activeMode !== "typing" ||
             !autoCheck ||
             typingResult ||
             showResultDialog ||
-            !currentWord
+            !currentWord ||
+            !["typing", "listening"].includes(activeMode)
         ) {
             return;
         }
-        if (normalizeAnswer(userAnswer) === normalizeAnswer(currentWord.word)) {
-            const elapsed =
-                wordStartTimeRef.current != null
-                    ? (Date.now() - wordStartTimeRef.current) / 1000
-                    : undefined;
-            if (elapsed != null) setTimeSpentSeconds(elapsed);
-            setTypingResult("correct");
-            stageResult({
-                wordId: currentWord.id,
-                quality: calculateAnswerQuality(true, hintsUsed, elapsed),
-            });
-            playResultSound(true);
-            setShowResultDialog(true);
-            inputRef.current?.blur();
-        }
-    }, [autoCheck, currentWord, activeMode, typingResult, showResultDialog, userAnswer, hintsUsed, stageResult, playResultSound]);
+        if (activeMode === "listening" && !hasPlayedAudio) return;
+        if (normalizeAnswer(userAnswer) !== normalizeAnswer(currentWord.word)) return;
+        checkTypedAnswer(currentWord.word);
+    }, [
+        autoCheck,
+        currentWord,
+        activeMode,
+        typingResult,
+        showResultDialog,
+        userAnswer,
+        hasPlayedAudio,
+        checkTypedAnswer,
+    ]);
 
     useEffect(() => {
         if (showIntro) return;
         if (typingResult || showResultDialog) return;
-        if (!["typing", "listening", "cloze", "cloze-fallback"].includes(activeMode)) return;
+        if (!["typing", "listening"].includes(activeMode)) return;
         focusPracticeInput();
     }, [activeMode, typingResult, showResultDialog, currentIndex, hasPlayedAudio, focusPracticeInput, showIntro]);
 
     useEffect(() => {
         if (
-            activeMode !== "multiple-choice" ||
+            !isWordChoiceMode ||
             typingResult ||
-            showResultDialog ||
-            multipleChoiceOptions.length === 0
+            showResultDialog
         ) {
             return;
         }
+        const options =
+            activeMode === "multiple-choice" ? multipleChoiceOptions : clozeWordOptions;
+        if (options.length === 0) return;
+
         const onKeyDown = (e: KeyboardEvent) => {
             const key = e.key.toLowerCase();
             if (!["a", "b", "c", "d"].includes(key)) return;
@@ -530,16 +602,32 @@ export default function VocabularyPractice({
                 return;
             }
             const index = key.charCodeAt(0) - 97;
-            const option = multipleChoiceOptions[index];
-            if (option) {
-                e.preventDefault();
-                handleMultipleChoiceSelect(option);
+            const option = options[index];
+            if (!option) return;
+            e.preventDefault();
+            if (autoCheck) {
+                if (activeMode === "multiple-choice") {
+                    handleMultipleChoiceSelect(option);
+                } else {
+                    handleClozeWordSelect(option);
+                }
+            } else {
+                setSelectedChoice(option);
             }
         };
         globalThis.addEventListener("keydown", onKeyDown);
         return () => globalThis.removeEventListener("keydown", onKeyDown);
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [activeMode, typingResult, showResultDialog, multipleChoiceOptions, currentIndex]);
+    }, [
+        activeMode,
+        isWordChoiceMode,
+        typingResult,
+        showResultDialog,
+        multipleChoiceOptions,
+        clozeWordOptions,
+        currentIndex,
+        autoCheck,
+    ]);
 
     useEffect(() => {
         if (activeMode !== "flashcard" || !showAnswer) return;
@@ -722,6 +810,11 @@ export default function VocabularyPractice({
                                 align="center"
                                 className="mb-2"
                             />
+                            {currentWord.partOfSpeech && (
+                                <span className="inline-block px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-semibold">
+                                    {currentWord.partOfSpeech}
+                                </span>
+                            )}
                             <WordPracticeHints
                                 maskedExamples={maskedExamples}
                                 imageUrl={currentWord.imageUrl}
@@ -753,102 +846,42 @@ export default function VocabularyPractice({
                 )}
 
                 {activeMode === "cloze" && clozePrompt && (
-                    <div className="space-y-6 text-center">
-                        <p className="text-xs uppercase tracking-widest text-muted-foreground">Fill in the blank</p>
-                        <div className="space-y-2">
-                            <p className="text-xs font-medium text-muted-foreground">Meaning</p>
+                    <div className="space-y-6">
+                        <div className="text-center">
+                            <p className="text-xs uppercase tracking-widest text-muted-foreground mb-4">
+                                Complete the sentence
+                            </p>
                             <AdaptiveText
-                                text={currentWord.meaning}
-                                role="meaning"
+                                text={clozePrompt.sentence}
+                                role="sentence"
                                 align="center"
-                                className="px-2"
+                                className="px-2 text-foreground/90"
                             />
-                            {currentWord.partOfSpeech && (
-                                <span className="inline-block px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-semibold">
-                                    {currentWord.partOfSpeech}
-                                </span>
-                            )}
-                        </div>
-                        <AdaptiveText
-                            text={clozePrompt.sentence}
-                            role="sentence"
-                            align="center"
-                            className="px-2 text-foreground/90"
-                        />
-                        <WordPracticeHints
-                            maskedExamples={maskedExamples}
-                            imageUrl={currentWord.imageUrl}
-                            showImageHints={effectiveImageHints}
-                        />
-                        <input
-                            ref={inputRef}
-                            type="text"
-                            autoFocus
-                            placeholder="Type the missing word..."
-                            value={userAnswer}
-                            onChange={(e) => setUserAnswer(String(e.target.value).toLowerCase())}
-                            onKeyDown={(e) => submitAnswerOnEnter(e, handleCheckClozeAnswer)}
-                            className="w-full px-4 py-4 text-xl text-center rounded-xl border-2 border-border bg-background focus:border-primary outline-none"
-                        />
-                        <div className="flex justify-center gap-2">
-                            <Button variant="outline" onClick={handleGetHint} className="gap-2 rounded-xl">
-                                <Lightbulb className="h-4 w-4" />
-                                Hint
-                            </Button>
-                            <Button onClick={handleCheckClozeAnswer} disabled={!userAnswer.trim()} className="rounded-xl">
-                                Check
-                            </Button>
-                        </div>
-                    </div>
-                )}
-
-                {activeMode === "cloze-fallback" && (
-                    <div className="space-y-6 text-center">
-                        <p className="text-xs uppercase tracking-widest text-muted-foreground">Fill in the word</p>
-                        <div className="space-y-2">
-                            <p className="text-xs font-medium text-muted-foreground">Meaning</p>
-                            <AdaptiveText
-                                text={currentWord.meaning}
-                                role="meaning"
-                                align="center"
-                                className="px-2"
+                            <WordPracticeHints
+                                maskedExamples={maskedExamples}
+                                imageUrl={currentWord.imageUrl}
+                                showImageHints={effectiveImageHints}
                             />
-                            {currentWord.partOfSpeech && (
-                                <span className="inline-block px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-semibold">
-                                    {currentWord.partOfSpeech}
-                                </span>
-                            )}
                         </div>
-                        <p className={`text-sm text-muted-foreground ${LONG_TEXT_WRAP}`}>
-                            Starts with:{" "}
-                            <span className="font-bold text-foreground uppercase">
-                                {getFirstLetterHint(currentWord.word)}
-                            </span>
-                        </p>
-                        <WordPracticeHints
-                            maskedExamples={maskedExamples}
-                            imageUrl={currentWord.imageUrl}
-                            showImageHints={effectiveImageHints}
+                        <PracticeWordChoiceGrid
+                            options={clozeWordOptions}
+                            onSelect={(option) =>
+                                handleChoiceInteraction(option, handleClozeWordSelect)
+                            }
+                            selectedOption={!autoCheck ? selectedChoice : null}
+                            disabled={!!typingResult}
                         />
-                        <input
-                            ref={inputRef}
-                            type="text"
-                            autoFocus
-                            placeholder="Type the word..."
-                            value={userAnswer}
-                            onChange={(e) => setUserAnswer(String(e.target.value).toLowerCase())}
-                            onKeyDown={(e) => submitAnswerOnEnter(e, handleCheckTypingAnswer)}
-                            className="w-full px-4 py-4 text-xl text-center rounded-xl border-2 border-border bg-background focus:border-primary outline-none"
-                        />
-                        <div className="flex justify-center gap-2">
-                            <Button variant="outline" onClick={handleGetHint} className="gap-2 rounded-xl">
-                                <Lightbulb className="h-4 w-4" />
-                                Hint
-                            </Button>
-                            <Button onClick={handleCheckTypingAnswer} disabled={!userAnswer.trim()} className="rounded-xl">
-                                Check
-                            </Button>
-                        </div>
+                        {!autoCheck && (
+                            <div className="flex justify-center">
+                                <Button
+                                    onClick={() => handleConfirmChoice(handleClozeWordSelect)}
+                                    disabled={!selectedChoice || !!typingResult}
+                                    className="rounded-xl"
+                                >
+                                    Check
+                                </Button>
+                            </div>
+                        )}
                     </div>
                 )}
 
@@ -872,8 +905,14 @@ export default function VocabularyPractice({
                             {multipleChoiceOptions.map((option, index) => (
                                 <Button
                                     key={option}
-                                    variant="outline"
-                                    onClick={() => !typingResult && handleMultipleChoiceSelect(option)}
+                                    variant={
+                                        !autoCheck && selectedChoice === option && !typingResult
+                                            ? "default"
+                                            : "outline"
+                                    }
+                                    onClick={() =>
+                                        handleChoiceInteraction(option, handleMultipleChoiceSelect)
+                                    }
                                     disabled={typingResult !== null}
                                     className="min-h-[56px] h-auto py-3 justify-start text-left rounded-xl whitespace-normal"
                                 >
@@ -893,6 +932,17 @@ export default function VocabularyPractice({
                                 </Button>
                             ))}
                         </div>
+                        {!autoCheck && (
+                            <div className="flex justify-center">
+                                <Button
+                                    onClick={() => handleConfirmChoice(handleMultipleChoiceSelect)}
+                                    disabled={!selectedChoice || typingResult !== null}
+                                    className="rounded-xl"
+                                >
+                                    Check
+                                </Button>
+                            </div>
+                        )}
                     </div>
                 )}
 
@@ -933,9 +983,15 @@ export default function VocabularyPractice({
                             <Button variant="outline" onClick={handleGetHint} disabled={!hasPlayedAudio} className="rounded-xl">
                                 Hint
                             </Button>
-                            <Button onClick={handleCheckListeningAnswer} disabled={!userAnswer.trim() || !hasPlayedAudio} className="rounded-xl">
-                                Check
-                            </Button>
+                            {!autoCheck && (
+                                <Button
+                                    onClick={handleCheckListeningAnswer}
+                                    disabled={!userAnswer.trim() || !hasPlayedAudio}
+                                    className="rounded-xl"
+                                >
+                                    Check
+                                </Button>
+                            )}
                         </div>
                     </div>
                 )}
@@ -980,8 +1036,12 @@ export default function VocabularyPractice({
                 <PracticeResultDialog
                     isOpen={showResultDialog}
                     isCorrect={typingResult === "correct"}
-                    userAnswer={activeMode === "multiple-choice" ? (selectedChoice ?? "") : userAnswer}
-                    correctAnswer={activeMode === "cloze" ? (clozePrompt?.answer ?? currentWord.word) : currentWord.word}
+                    userAnswer={isWordChoiceMode ? (selectedChoice ?? "") : userAnswer}
+                    correctAnswer={
+                        activeMode === "cloze"
+                            ? (clozePrompt?.answer ?? currentWord.word)
+                            : currentWord.word
+                    }
                     meaning={currentWord.meaning}
                     pronunciation={currentWord.pronunciation}
                     partOfSpeech={currentWord.partOfSpeech}

@@ -1,7 +1,9 @@
 import { getLocalStorageItem } from "@/lib/local-storage";
+import { shuffleArray } from "@/lib/practice-utils";
 import type { PracticeSettings } from "@/components/features/vocabulary/practice-settings-dialog";
 import type { PracticeSessionKind } from "@/lib/practice-session";
 import type { WordLearningStage } from "@/lib/word-progress-stage";
+import type { IWord } from "@/types/courses/courses.type";
 
 export const SETTINGS_STORAGE_KEY = "vocabulary-practice-settings";
 
@@ -56,7 +58,7 @@ export function resolvePracticeSettings(
     return { ...base, ...override };
 }
 
-/** Modes cycled in mixed sessions — strongest recall patterns first. */
+/** Modes available in mixed sessions. */
 export const MIXED_PRACTICE_MODES = ["typing", "listening", "multiple-choice", "cloze"] as const;
 
 export const NEW_WORD_MIXED_MODES = ["typing", "multiple-choice", "cloze"] as const;
@@ -66,8 +68,7 @@ export const REVIEW_MIXED_MODES = ["typing", "listening", "cloze", "multiple-cho
 export type ActivePracticeMode =
     | (typeof MIXED_PRACTICE_MODES)[number]
     | (typeof NEW_WORD_MIXED_MODES)[number]
-    | "flashcard"
-    | "cloze-fallback";
+    | "flashcard";
 
 function mixedModesForStage(stage: WordLearningStage): readonly string[] {
     switch (stage) {
@@ -81,18 +82,71 @@ function mixedModesForStage(stage: WordLearningStage): readonly string[] {
     }
 }
 
+function resolveClozeFallback(listeningAvailable: boolean): ActivePracticeMode {
+    return listeningAvailable ? "listening" : "typing";
+}
+
+function applyModeFallbacks(
+    mode: ActivePracticeMode,
+    clozeAvailable: boolean,
+    listeningAvailable: boolean,
+): ActivePracticeMode {
+    if (mode === "cloze" && !clozeAvailable) {
+        return resolveClozeFallback(listeningAvailable);
+    }
+    return mode;
+}
+
+/** Assign a shuffled practice method to each word in a mixed session. */
+export function buildMixedModePlan(
+    queue: IWord[],
+    stagesByWordId?: Record<string, WordLearningStage>,
+): Map<string, ActivePracticeMode> {
+    const ring = shuffleArray([...MIXED_PRACTICE_MODES]) as ActivePracticeMode[];
+    let ringIndex = 0;
+    const plan = new Map<string, ActivePracticeMode>();
+
+    for (const word of queue) {
+        const stage = stagesByWordId?.[word.id] ?? "new";
+        const allowed = new Set(mixedModesForStage(stage));
+        let assigned: ActivePracticeMode | null = null;
+
+        for (let attempt = 0; attempt < ring.length; attempt++) {
+            const candidate = ring[ringIndex % ring.length];
+            ringIndex++;
+            if (allowed.has(candidate)) {
+                assigned = candidate;
+                break;
+            }
+        }
+
+        if (!assigned) {
+            assigned = shuffleArray([...mixedModesForStage(stage)])[0] as ActivePracticeMode;
+        }
+
+        plan.set(word.id, assigned);
+    }
+
+    return plan;
+}
+
 export function resolveActiveMode(
     settingsMode: PracticeSettings["mode"],
-    wordIndex: number,
     clozeAvailable: boolean,
-    stage: WordLearningStage = "learning",
+    listeningAvailable = true,
+    assignedMixedMode?: ActivePracticeMode,
+    fallbackIndex = 0,
+    fallbackStage: WordLearningStage = "learning",
 ): ActivePracticeMode {
     if (settingsMode === "mixed") {
-        const modes = mixedModesForStage(stage);
-        const mode = modes[wordIndex % modes.length] as ActivePracticeMode;
-        if (mode === "cloze" && !clozeAvailable) return "cloze-fallback";
-        return mode;
+        const modes = mixedModesForStage(fallbackStage);
+        const mode =
+            assignedMixedMode ??
+            (modes[fallbackIndex % modes.length] as ActivePracticeMode);
+        return applyModeFallbacks(mode, clozeAvailable, listeningAvailable);
     }
-    if (settingsMode === "cloze" && !clozeAvailable) return "cloze-fallback";
+    if (settingsMode === "cloze" && !clozeAvailable) {
+        return resolveClozeFallback(listeningAvailable);
+    }
     return settingsMode;
 }

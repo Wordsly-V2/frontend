@@ -66,14 +66,19 @@ function PracticeSettingsForm({
         onClose();
     };
 
-    const isTyping = tempMode === "typing";
     const isMixed = tempMode === "mixed";
+    const supportsAutoCheck =
+        isMixed ||
+        tempMode === "typing" ||
+        tempMode === "listening" ||
+        tempMode === "multiple-choice" ||
+        tempMode === "cloze";
 
     const modes: { id: PracticeMode; icon: typeof Sparkles; label: string; desc: string }[] = [
         { id: "mixed", icon: Shuffle, label: "Mixed", desc: "Best for memory" },
         { id: "typing", icon: Keyboard, label: "Typing", desc: "Type the word" },
         { id: "listening", icon: Volume2, label: "Listening", desc: "Listen and type" },
-        { id: "cloze", icon: TextCursorInput, label: "Fill-in", desc: "Complete the sentence" },
+        { id: "cloze", icon: TextCursorInput, label: "Fill-in", desc: "Pick the word in context" },
         { id: "multiple-choice", icon: CheckSquare, label: "Quiz", desc: "Pick the meaning" },
         { id: "flashcard", icon: Sparkles, label: "Flashcard", desc: "Reveal and rate" },
     ];
@@ -110,26 +115,27 @@ function PracticeSettingsForm({
                     )}
                 </div>
 
-                {isTyping && (
-                    <div className="space-y-3 pt-4 border-t border-border">
-                        <div className="flex items-start justify-between gap-4">
-                            <div className="flex-1">
-                                <Label htmlFor="auto-check-dialog" className="text-sm font-medium">
-                                    Auto-check answers
-                                </Label>
-                                <p className="text-xs text-muted-foreground mt-1">
-                                    Validate correct answers as you type
-                                </p>
-                            </div>
-                            <Switch
-                                id="auto-check-dialog"
-                                checked={tempAutoCheck}
-                                onCheckedChange={setTempAutoCheck}
-                                className="data-[state=checked]:bg-green-500"
-                            />
+                <div className="space-y-3 pt-4 border-t border-border">
+                    <div className="flex items-start justify-between gap-4">
+                        <div className="flex-1">
+                            <Label htmlFor="auto-check-dialog" className="text-sm font-medium">
+                                Auto-check answers
+                            </Label>
+                            <p className="text-xs text-muted-foreground mt-1">
+                                {supportsAutoCheck
+                                    ? "Submit when your typed answer is correct, or immediately when you pick a quiz option"
+                                    : "Not used in flashcard mode — reveal and rate yourself"}
+                            </p>
                         </div>
+                        <Switch
+                            id="auto-check-dialog"
+                            checked={tempAutoCheck}
+                            onCheckedChange={setTempAutoCheck}
+                            disabled={!supportsAutoCheck}
+                            className="data-[state=checked]:bg-green-500"
+                        />
                     </div>
-                )}
+                </div>
 
                 <div className="space-y-3 pt-4 border-t border-border">
                     <div className="flex items-start justify-between gap-4">
