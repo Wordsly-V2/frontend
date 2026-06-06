@@ -42,7 +42,16 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import WordDetailDialog from "@/components/features/manage/word-detail-dialog";
-import { ArrowLeft, ArrowRightLeft, ChevronDown, ChevronRight, Download, Edit, Eye, GripVertical, Plus, Search, Trash2, Volume2, X } from "lucide-react";
+import { setLastManageCourse } from "@/lib/manage-session";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { ArrowLeft, ArrowRightLeft, BookOpen, ChevronDown, ChevronRight, Download, Edit, Eye, GripVertical, MoreHorizontal, Plus, Search, Trash2, Volume2, X } from "lucide-react";
+import Link from "next/link";
 import { toast } from "sonner";
 
 function SortableLesson({
@@ -327,6 +336,12 @@ export default function ManageCourseDetailPage({ params }: { params: Promise<{ i
     const [viewingWord, setViewingWord] = useState<IWord | null>(null);
 
     const { data: course, isLoading, isError, refetch: loadCourseDetail } = useGetCourseDetailByIdQuery(id, !!id);
+
+    useEffect(() => {
+        if (course) {
+            setLastManageCourse({ id: course.id, name: course.name });
+        }
+    }, [course]);
     const {
         courseStats,
         lessonStatsByLessonId,
@@ -676,16 +691,23 @@ export default function ManageCourseDetailPage({ params }: { params: Promise<{ i
 
     return (
         <main className="min-h-dvh bg-background">
-            <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 md:py-8 max-w-5xl">
-                <Button variant="ghost" onClick={() => router.push('/manage')} className="mb-4 sm:mb-6 text-sm sm:text-base" size="sm">
-                    <ArrowLeft className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-2" />
-                    Back to Courses
-                </Button>
+            <div className="container mx-auto max-w-5xl px-3 py-4 sm:px-4 sm:py-6 md:py-8">
+                <nav aria-label="Breadcrumb" className="mb-4 flex flex-wrap items-center gap-1.5 text-sm text-muted-foreground sm:mb-6">
+                    <Link
+                        href="/manage"
+                        className="inline-flex items-center gap-1.5 transition-colors hover:text-foreground"
+                    >
+                        <ArrowLeft className="h-3.5 w-3.5" />
+                        Manage
+                    </Link>
+                    <ChevronRight className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                    <span className="truncate font-medium text-foreground">{course.name}</span>
+                </nav>
 
                 {/* Course Header */}
-                <div className="bg-card border-2 border-border rounded-2xl overflow-hidden mb-6 sm:mb-8">
+                <div className="mb-6 overflow-hidden rounded-2xl border-2 border-border bg-card sm:mb-8">
                     {course.coverImageUrl && (
-                        <div className="relative w-full h-40 sm:h-48 bg-muted">
+                        <div className="relative h-36 w-full bg-muted sm:h-44">
                             <Image
                                 src={course.coverImageUrl}
                                 alt={course.name}
@@ -697,90 +719,113 @@ export default function ManageCourseDetailPage({ params }: { params: Promise<{ i
                                     e.currentTarget.style.display = "none";
                                 }}
                             />
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/35 to-transparent" />
                         </div>
                     )}
                     <div className="p-4 sm:p-6">
-                        <div className="flex flex-col lg:flex-row lg:justify-between lg:items-start gap-3 lg:gap-4">
-                            <div className="flex-1 min-w-0">
-                                <h1 className="text-2xl sm:text-3xl font-bold mb-1 sm:mb-2 break-words">{course.name}</h1>
-                                <p className="text-sm sm:text-base text-muted-foreground">
-                                    {course?.lessons?.length || 0} lessons • {course?.lessons?.reduce((sum, l) => sum + (l.words?.length || 0), 0) || 0} words
+                        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                            <div className="min-w-0 flex-1">
+                                <p className="mb-1 text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                                    Course content
+                                </p>
+                                <h1 className="mb-1 break-words text-2xl font-bold sm:text-3xl">{course.name}</h1>
+                                <p className="text-sm text-muted-foreground sm:text-base">
+                                    {course?.lessons?.length || 0} lessons ·{" "}
+                                    {course?.lessons?.reduce((sum, l) => sum + (l.words?.length || 0), 0) || 0} words
                                 </p>
                             </div>
                             <div className="flex flex-wrap gap-2">
-                                <Button
-                                    variant="outline"
-                                    onClick={() => setExportWordsDialogOpen(true)}
-                                    size="sm"
-                                    className="text-xs sm:text-sm"
-                                    disabled={!course?.lessons?.length}
-                                >
-                                    <Download className="h-3.5 w-3.5 sm:h-4 sm:w-4 sm:mr-2" />
-                                    <span className="hidden sm:inline">Export words</span>
-                                    <span className="sm:hidden">Export</span>
-                                </Button>
-                                <Button
-                                    variant="outline"
-                                    onClick={() => setCourseFormOpen(true)}
-                                    size="sm"
-                                    className="text-xs sm:text-sm"
-                                >
-                                    <Edit className="h-3.5 w-3.5 sm:h-4 sm:w-4 sm:mr-2" />
-                                    <span className="hidden sm:inline">Edit Course</span>
-                                    <span className="sm:hidden">Edit</span>
-                                </Button>
-                                <Button
-                                    variant="outline"
-                                    onClick={() => setDeleteCourseConfirm(true)}
-                                    className="text-destructive hover:text-destructive text-xs sm:text-sm"
-                                    size="sm"
-                                >
-                                    <Trash2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 sm:mr-2" />
-                                    <span className="hidden sm:inline">Delete Course</span>
-                                    <span className="sm:hidden">Delete</span>
-                                </Button>
                                 <Button
                                     onClick={() => {
                                         setEditingLesson(undefined);
                                         setLessonFormOpen(true);
                                     }}
                                     size="sm"
-                                    className="text-xs sm:text-sm w-full sm:w-auto"
+                                    className="w-full rounded-xl text-xs sm:w-auto sm:text-sm"
                                 >
                                     <Plus className="h-3.5 w-3.5 sm:h-4 sm:w-4 sm:mr-2" />
-                                    Add Lesson
+                                    Add lesson
                                 </Button>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="w-full rounded-xl text-xs sm:w-auto sm:text-sm"
+                                    asChild
+                                >
+                                    <Link href={`/learn/courses/${course.id}`}>
+                                        <BookOpen className="h-3.5 w-3.5 sm:h-4 sm:w-4 sm:mr-2" />
+                                        Study course
+                                    </Link>
+                                </Button>
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="rounded-xl"
+                                            aria-label="More course actions"
+                                        >
+                                            <MoreHorizontal className="h-4 w-4" />
+                                        </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end" className="w-48">
+                                        <DropdownMenuItem
+                                            onClick={() => setExportWordsDialogOpen(true)}
+                                            disabled={!course?.lessons?.length}
+                                        >
+                                            <Download className="h-4 w-4" />
+                                            Export words
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => setCourseFormOpen(true)}>
+                                            <Edit className="h-4 w-4" />
+                                            Edit course
+                                        </DropdownMenuItem>
+                                        <DropdownMenuSeparator />
+                                        <DropdownMenuItem
+                                            variant="destructive"
+                                            onClick={() => setDeleteCourseConfirm(true)}
+                                        >
+                                            <Trash2 className="h-4 w-4" />
+                                            Delete course
+                                        </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                {/* Course word-progress stats */}
-                {courseStats && (
+                {courseStats ? (
                     <LearningProgressSection
                         stats={courseStats}
-                        title="Learning Progress"
+                        title="Learner progress"
                         className="mb-6 sm:mb-8"
                     />
-                )}
+                ) : null}
 
-                {/* Search */}
-                {(course?.lessons?.reduce((sum, l) => sum + (l.words?.length || 0), 0) ?? 0) > 0 && (
+                {(course?.lessons?.reduce((sum, l) => sum + (l.words?.length || 0), 0) ?? 0) > 0 ? (
                     <div className="relative mb-4 sm:mb-6">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                         <Input
                             type="search"
                             inputMode="search"
-                            placeholder="Search by word, meaning, or pronunciation..."
+                            placeholder="Search words by text, meaning, or pronunciation…"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="pl-9 h-9 sm:h-10"
+                            className="h-10 pl-9"
                             aria-label="Search words"
                         />
                     </div>
-                )}
+                ) : null}
 
-                {/* Lessons List */}
+                <div className="mb-3 flex items-end justify-between gap-3 sm:mb-4">
+                    <div>
+                        <h2 className="text-lg font-semibold tracking-tight sm:text-xl">Lessons</h2>
+                        <p className="text-xs text-muted-foreground sm:text-sm">
+                            Drag to reorder · expand to edit words
+                        </p>
+                    </div>
+                </div>
                 {course?.lessons?.length === 0 && (
                     <div className="text-center py-12 sm:py-16 border-2 border-dashed border-border rounded-xl sm:rounded-2xl bg-muted/30 px-4">
                         <div className="inline-flex items-center justify-center w-12 h-12 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl bg-muted mb-3 sm:mb-4">

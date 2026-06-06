@@ -9,6 +9,9 @@ interface CoursesHeaderProps {
     onSearch?: (query: string) => void;
     totalCourses: number;
     searchQuery: string;
+    sectionLabel?: string;
+    title?: string;
+    searchPlaceholder?: string;
 }
 
 export default function CoursesHeader({
@@ -16,15 +19,18 @@ export default function CoursesHeader({
     onSearch,
     searchQuery,
     totalCourses,
+    sectionLabel = "Library",
+    title = "My courses",
+    searchPlaceholder = "Search by course name…",
 }: Readonly<CoursesHeaderProps>) {
     return (
         <div className="space-y-5 sm:space-y-6">
             <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
                 <div>
                     <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-                        Library
+                        {sectionLabel}
                     </p>
-                    <h2 className="mt-1 text-2xl font-bold tracking-tight sm:text-3xl">My courses</h2>
+                    <h2 className="mt-1 text-2xl font-bold tracking-tight sm:text-3xl">{title}</h2>
                     <p className="mt-1 text-sm text-muted-foreground sm:text-base">
                         {totalCourses} course{totalCourses === 1 ? "" : "s"}
                         {searchQuery.length > 0 ? ` matching “${searchQuery}”` : ""}
@@ -47,7 +53,7 @@ export default function CoursesHeader({
                     <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                     <Input
                         value={searchQuery}
-                        placeholder="Search by course name…"
+                        placeholder={searchPlaceholder}
                         className="h-10 pl-9"
                         onChange={(e) => onSearch?.(e.target.value)}
                         aria-label="Search courses"
