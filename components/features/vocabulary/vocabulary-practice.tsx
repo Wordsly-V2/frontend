@@ -130,6 +130,7 @@ export default function VocabularyPractice({
     );
     const inputRef = useRef<HTMLInputElement>(null);
     const wordStartTimeRef = useRef<number | null>(null);
+    const sessionStreakRef = useRef(0);
 
     const focusPracticeInput = useCallback(() => {
         requestAnimationFrame(() => {
@@ -253,17 +254,17 @@ export default function VocabularyPractice({
                 return [...prev, result];
             });
             if (isWeakAnswer(result.quality)) {
+                sessionStreakRef.current = 0;
                 setSessionStreak(0);
             } else {
-                setSessionStreak((s) => {
-                    const next = s + 1;
-                    const msg = pickMilestoneMessage(next);
-                    if (msg) {
-                        fireMiniConfetti();
-                        toast.success(msg);
-                    }
-                    return next;
-                });
+                const next = sessionStreakRef.current + 1;
+                sessionStreakRef.current = next;
+                setSessionStreak(next);
+                const msg = pickMilestoneMessage(next);
+                if (msg) {
+                    fireMiniConfetti();
+                    toast.success(msg);
+                }
             }
         },
         [],
