@@ -57,9 +57,9 @@ export function PracticeSessionSummary({
     }, [onRetryMissed, missedWords.length]);
 
     return (
-        <div className="animate-in fade-in zoom-in duration-500 text-center py-6 sm:py-10">
-            <div className="inline-flex items-center justify-center w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-gradient-to-br from-green-400 to-emerald-500 mb-4 sm:mb-6">
-                <Sparkles className="h-10 w-10 sm:h-12 sm:w-12 text-white" />
+        <div className="animate-in fade-in duration-500 text-center py-4 sm:py-8 max-w-lg mx-auto w-full">
+            <div className="inline-flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 rounded-2xl gradient-brand mb-4 sm:mb-5 shadow-lg shadow-primary/20">
+                <Sparkles className="h-8 w-8 sm:h-10 sm:w-10 text-white" />
             </div>
 
             <h2 className="text-2xl sm:text-3xl font-bold mb-2 gradient-brand bg-clip-text text-transparent">
@@ -148,7 +148,7 @@ export function PracticeSessionSummary({
                         <span className="text-xs text-muted-foreground font-normal">(R)</span>
                     </Button>
                 )}
-                <Button size="lg" onClick={onContinue} className="gap-2 rounded-xl">
+                <Button size="lg" onClick={onContinue} className="gap-2 rounded-xl gradient-brand text-white shadow-md">
                     Continue
                     <ArrowRight className="h-4 w-4" aria-hidden />
                     <span className="text-xs opacity-80 font-normal">(Enter)</span>

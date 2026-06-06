@@ -2,12 +2,13 @@
 
 import { AdaptiveText } from "@/components/common/adaptive-text";
 import type { PracticeSettings } from "@/components/features/vocabulary/practice-settings-dialog";
-import PracticeResultDialog from "@/components/features/vocabulary/practice-result-dialog";
 import { LeechWordBanner } from "@/components/features/vocabulary/leech-word-banner";
 import { NewWordIntroPanel } from "@/components/features/vocabulary/new-word-intro-panel";
 import { PracticeCardShell } from "@/components/features/vocabulary/practice-card-shell";
 import { PracticeExerciseBody } from "@/components/features/vocabulary/practice-exercise-body";
+import { PracticeExerciseHeader } from "@/components/features/vocabulary/practice-exercise-header";
 import { PracticeProgressHeader } from "@/components/features/vocabulary/practice-progress-header";
+import { PracticeResultPanel } from "@/components/features/vocabulary/practice-result-panel";
 import { PracticeToolbar } from "@/components/features/vocabulary/practice-toolbar";
 import { PracticeWordChoiceGrid } from "@/components/features/vocabulary/practice-word-choice-grid";
 import { WordPracticeHints } from "@/components/features/vocabulary/word-practice-hints";
@@ -730,38 +731,38 @@ export default function VocabularyPractice({
 
     const newWordRoundLabel =
         currentStage === "new" && practicePass === "main"
-            ? ` · round ${currentOccurrence + 1}/${PEDAGOGY.newWordSessionRepetitions}`
+            ? ` · ${currentOccurrence + 1}/${PEDAGOGY.newWordSessionRepetitions}`
             : "";
-    const modeLabel =
-        (mode === "mixed" ? `Mixed · ${activeMode.replace("-", " ")}` : activeMode.replace("-", " ")) +
-        newWordRoundLabel;
+
+    const inputClassName =
+        "w-full px-4 py-4 text-xl text-center rounded-xl border-2 border-border bg-muted/30 focus:border-primary focus:bg-background outline-none transition-colors";
 
     return (
-        <div className="max-w-4xl pb-safe mx-auto w-full">
-            <PracticeProgressHeader
-                currentIndex={currentIndex}
-                total={queue.length}
-                sessionStreak={sessionStreak}
-                isRetryPass={practicePass === "retry-missed"}
-            />
+        <div className="flex flex-col flex-1 min-h-0 w-full">
+            <div className="flex items-start gap-1 mb-4">
+                <PracticeProgressHeader
+                    currentIndex={currentIndex}
+                    total={queue.length}
+                    sessionStreak={sessionStreak}
+                    isRetryPass={practicePass === "retry-missed"}
+                    className="flex-1 min-w-0"
+                />
+                <PracticeToolbar
+                    showSettings={showSettings}
+                    showWordsList={showWordsList}
+                    practiceSettings={practiceSettings}
+                    queue={queue}
+                    currentIndex={currentIndex}
+                    onOpenSettings={() => setShowSettings(true)}
+                    onCloseSettings={() => setShowSettings(false)}
+                    onOpenWordsList={() => setShowWordsList(true)}
+                    onCloseWordsList={() => setShowWordsList(false)}
+                    onSaveSettings={setPracticeSettings}
+                    hidden={showIntro}
+                />
+            </div>
 
-            <PracticeToolbar
-                modeLabel={modeLabel}
-                currentStage={currentStage}
-                showSettings={showSettings}
-                showWordsList={showWordsList}
-                practiceSettings={practiceSettings}
-                queue={queue}
-                currentIndex={currentIndex}
-                onOpenSettings={() => setShowSettings(true)}
-                onCloseSettings={() => setShowSettings(false)}
-                onOpenWordsList={() => setShowWordsList(true)}
-                onCloseWordsList={() => setShowWordsList(false)}
-                onSaveSettings={setPracticeSettings}
-                hidden={showIntro}
-            />
-
-            {isLeech && !showIntro && (
+            {isLeech && !showIntro && !showResultDialog && (
                 <LeechWordBanner
                     example={rawExamples[0]}
                     audioUrl={currentWord.audioUrl}
@@ -771,329 +772,359 @@ export default function VocabularyPractice({
             {showIntro ? (
                 <NewWordIntroPanel word={currentWord} onStartExercise={startExercise} />
             ) : (
-            <PracticeCardShell>
-                <PracticeExerciseBody>
-                {activeMode === "flashcard" && (
-                    <>
-                        <div className="space-y-4 sm:space-y-8 text-center">
-                            <div>
-                                <div className="flex flex-wrap items-center justify-center gap-3 mb-3 max-w-full">
-                                    <AdaptiveText
-                                        text={currentWord.word}
-                                        role="word"
-                                        as="h2"
-                                        align="center"
-                                    />
-                                    {currentWord.audioUrl && (
+                <PracticeCardShell variant={showResultDialog ? "result" : "default"}>
+                    {showResultDialog && activeMode !== "flashcard" ? (
+                        <PracticeResultPanel
+                            isCorrect={typingResult === "correct"}
+                            userAnswer={isWordChoiceMode ? (selectedChoice ?? "") : userAnswer}
+                            correctAnswer={
+                                activeMode === "cloze"
+                                    ? (clozePrompt?.answer ?? currentWord.word)
+                                    : currentWord.word
+                            }
+                            meaning={currentWord.meaning}
+                            pronunciation={currentWord.pronunciation}
+                            partOfSpeech={currentWord.partOfSpeech}
+                            audioUrl={currentWord.audioUrl}
+                            imageUrl={currentWord.imageUrl}
+                            examples={rawExamples}
+                            timeSpentSeconds={timeSpentSeconds}
+                            feedbackSeed={feedbackSeed + currentIndex}
+                            onTryAgain={handleTryAgain}
+                            onNext={handleNextFromDialog}
+                            isLastWord={currentIndex === queue.length - 1}
+                        />
+                    ) : (
+                        <>
+                            {activeMode !== "flashcard" && (
+                                <PracticeExerciseHeader
+                                    mode={activeMode}
+                                    stage={currentStage}
+                                    roundLabel={newWordRoundLabel || undefined}
+                                />
+                            )}
+                            <PracticeExerciseBody>
+                                {activeMode === "flashcard" && (
+                                    <>
+                                        <PracticeExerciseHeader
+                                            mode="flashcard"
+                                            stage={currentStage}
+                                        />
+                                        <div className="space-y-4 sm:space-y-6 text-center">
+                                            <div>
+                                                <div className="flex flex-wrap items-center justify-center gap-3 mb-3 max-w-full">
+                                                    <AdaptiveText
+                                                        text={currentWord.word}
+                                                        role="word"
+                                                        as="h2"
+                                                        align="center"
+                                                    />
+                                                    {currentWord.audioUrl && (
+                                                        <Button
+                                                            variant="outline"
+                                                            size="icon"
+                                                            onClick={() => playAudioUrl(currentWord.audioUrl)}
+                                                            className="rounded-xl shrink-0"
+                                                        >
+                                                            <Volume2 className="h-5 w-5" />
+                                                        </Button>
+                                                    )}
+                                                </div>
+                                                {currentWord.pronunciation && (
+                                                    <p className={`text-muted-foreground text-lg mb-2 ${LONG_TEXT_WRAP}`}>
+                                                        {currentWord.pronunciation}
+                                                    </p>
+                                                )}
+                                                {currentWord.partOfSpeech && (
+                                                    <span className="inline-block px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-semibold">
+                                                        {currentWord.partOfSpeech}
+                                                    </span>
+                                                )}
+                                                {!showAnswer && (
+                                                    <WordPracticeHints
+                                                        maskedExamples={maskedExamples}
+                                                        imageUrl={currentWord.imageUrl}
+                                                        showImageHints={effectiveImageHints}
+                                                    />
+                                                )}
+                                            </div>
+                                            {showAnswer && (
+                                                <div className="pt-4 border-t border-dashed border-border animate-in fade-in">
+                                                    <AdaptiveText
+                                                        text={currentWord.meaning}
+                                                        role="meaning"
+                                                        align="center"
+                                                    />
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div className="mt-6">
+                                            {!showAnswer ? (
+                                                <div className="flex justify-center">
+                                                    <Button
+                                                        size="lg"
+                                                        onClick={() => {
+                                                            setShowAnswer(true);
+                                                            if (currentWord.audioUrl) {
+                                                                setTimeout(
+                                                                    () => playAudioUrl(currentWord.audioUrl),
+                                                                    300,
+                                                                );
+                                                            }
+                                                        }}
+                                                        className="rounded-xl min-w-[180px]"
+                                                    >
+                                                        Reveal meaning
+                                                    </Button>
+                                                </div>
+                                            ) : (
+                                                <div className="space-y-3 animate-in fade-in">
+                                                    <p className="text-sm text-muted-foreground text-center">
+                                                        How well did you know it?
+                                                    </p>
+                                                    <div className="grid grid-cols-2 gap-2">
+                                                        <Button
+                                                            variant="outline"
+                                                            onClick={() => handleFlashcardRate("easy")}
+                                                            className="rounded-xl border-green-200 text-green-700 bg-green-50 hover:bg-green-100 dark:bg-green-950/30 dark:border-green-800/50 dark:text-green-400"
+                                                        >
+                                                            Easy <span className="text-xs opacity-70 ml-1">1</span>
+                                                        </Button>
+                                                        <Button
+                                                            variant="outline"
+                                                            onClick={() => handleFlashcardRate("good")}
+                                                            className="rounded-xl border-teal-200 text-teal-700 bg-teal-50 hover:bg-teal-100 dark:bg-teal-950/30 dark:border-teal-800/50 dark:text-teal-400"
+                                                        >
+                                                            Got it <span className="text-xs opacity-70 ml-1">2</span>
+                                                        </Button>
+                                                        <Button
+                                                            variant="outline"
+                                                            onClick={() => handleFlashcardRate("hard")}
+                                                            className="rounded-xl border-orange-200 text-orange-700 bg-orange-50 hover:bg-orange-100 dark:bg-orange-950/30 dark:border-orange-800/50 dark:text-orange-400"
+                                                        >
+                                                            Hard <span className="text-xs opacity-70 ml-1">3</span>
+                                                        </Button>
+                                                        <Button
+                                                            variant="outline"
+                                                            onClick={() => handleFlashcardRate("forgot")}
+                                                            className="rounded-xl border-red-200 text-red-700 bg-red-50 hover:bg-red-100 dark:bg-red-950/30 dark:border-red-800/50 dark:text-red-400"
+                                                        >
+                                                            Forgot <span className="text-xs opacity-70 ml-1">4</span>
+                                                        </Button>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </>
+                                )}
+
+                                {activeMode === "typing" && (
+                                    <div className="space-y-5 text-center">
+                                        <div>
+                                            <AdaptiveText
+                                                text={currentWord.meaning}
+                                                role="meaning"
+                                                align="center"
+                                                className="mb-2"
+                                            />
+                                            {currentWord.partOfSpeech && (
+                                                <span className="inline-block px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-semibold">
+                                                    {currentWord.partOfSpeech}
+                                                </span>
+                                            )}
+                                            <WordPracticeHints
+                                                maskedExamples={maskedExamples}
+                                                imageUrl={currentWord.imageUrl}
+                                                showImageHints={effectiveImageHints}
+                                            />
+                                        </div>
+                                        <input
+                                            ref={inputRef}
+                                            type="text"
+                                            autoFocus
+                                            placeholder="Type your answer…"
+                                            value={userAnswer}
+                                            onChange={(e) =>
+                                                setUserAnswer(String(e.target.value).toLowerCase())
+                                            }
+                                            onKeyDown={(e) =>
+                                                submitAnswerOnEnter(e, handleCheckTypingAnswer)
+                                            }
+                                            className={inputClassName}
+                                        />
+                                        <div className="flex flex-wrap justify-center gap-2">
+                                            <Button
+                                                variant="outline"
+                                                onClick={handleGetHint}
+                                                className="gap-2 rounded-xl"
+                                            >
+                                                <Lightbulb className="h-4 w-4" />
+                                                Hint {hintsUsed > 0 ? `(${hintsUsed})` : ""}
+                                            </Button>
+                                            {!autoCheck && (
+                                                <Button
+                                                    onClick={handleCheckTypingAnswer}
+                                                    disabled={!userAnswer.trim()}
+                                                    className="rounded-xl"
+                                                >
+                                                    Check
+                                                </Button>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {activeMode === "cloze" && clozePrompt && (
+                                    <div className="space-y-5">
+                                        <div className="text-center">
+                                            <AdaptiveText
+                                                text={clozePrompt.sentence}
+                                                role="sentence"
+                                                align="center"
+                                                className="px-2 text-foreground/90"
+                                            />
+                                            <WordPracticeHints
+                                                maskedExamples={maskedExamples}
+                                                imageUrl={currentWord.imageUrl}
+                                                showImageHints={effectiveImageHints}
+                                            />
+                                        </div>
+                                        <PracticeWordChoiceGrid
+                                            options={clozeWordOptions}
+                                            onSelect={(option) =>
+                                                handleChoiceInteraction(option, handleClozeWordSelect)
+                                            }
+                                            selectedOption={!autoCheck ? selectedChoice : null}
+                                            disabled={!!typingResult}
+                                        />
+                                        {!autoCheck && (
+                                            <div className="flex justify-center">
+                                                <Button
+                                                    onClick={() =>
+                                                        handleConfirmChoice(handleClozeWordSelect)
+                                                    }
+                                                    disabled={!selectedChoice || !!typingResult}
+                                                    className="rounded-xl"
+                                                >
+                                                    Check
+                                                </Button>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+
+                                {activeMode === "multiple-choice" && (
+                                    <div className="space-y-5">
+                                        <div className="text-center">
+                                            <AdaptiveText
+                                                text={currentWord.word}
+                                                role="word"
+                                                as="h2"
+                                                align="center"
+                                                className="mb-2"
+                                            />
+                                            <WordPracticeHints
+                                                maskedExamples={maskedExamples}
+                                                imageUrl={currentWord.imageUrl}
+                                                showImageHints={effectiveImageHints}
+                                            />
+                                        </div>
+                                        <PracticeWordChoiceGrid
+                                            options={multipleChoiceOptions}
+                                            onSelect={(option) =>
+                                                handleChoiceInteraction(
+                                                    option,
+                                                    handleMultipleChoiceSelect,
+                                                )
+                                            }
+                                            selectedOption={!autoCheck ? selectedChoice : null}
+                                            disabled={typingResult !== null}
+                                        />
+                                        {!autoCheck && (
+                                            <div className="flex justify-center">
+                                                <Button
+                                                    onClick={() =>
+                                                        handleConfirmChoice(handleMultipleChoiceSelect)
+                                                    }
+                                                    disabled={!selectedChoice || typingResult !== null}
+                                                    className="rounded-xl"
+                                                >
+                                                    Check
+                                                </Button>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+
+                                {activeMode === "listening" && (
+                                    <div className="space-y-5 text-center">
+                                        <p className="text-sm text-muted-foreground">
+                                            {hasPlayedAudio ? "Type what you heard" : "Playing audio…"}
+                                        </p>
                                         <Button
-                                            variant="outline"
-                                            size="icon"
-                                            onClick={() => playAudioUrl(currentWord.audioUrl)}
-                                            className="rounded-xl shrink-0"
+                                            size="lg"
+                                            onClick={() => {
+                                                playAudioUrl(currentWord.audioUrl);
+                                                setHasPlayedAudio(true);
+                                            }}
+                                            disabled={!currentWord.audioUrl}
+                                            className="h-16 w-16 sm:h-20 sm:w-20 rounded-full gradient-brand text-white shadow-md"
+                                            aria-label="Replay audio"
                                         >
-                                            <Volume2 className="h-5 w-5" />
+                                            {currentWord.audioUrl ? (
+                                                <Volume2 className="h-7 w-7 sm:h-8 sm:w-8" />
+                                            ) : (
+                                                <Play className="h-7 w-7 sm:h-8 sm:w-8" />
+                                            )}
                                         </Button>
-                                    )}
-                                </div>
-                                {currentWord.pronunciation && (
-                                    <p className={`text-muted-foreground text-lg mb-2 ${LONG_TEXT_WRAP}`}>
-                                        {currentWord.pronunciation}
-                                    </p>
+                                        <input
+                                            ref={inputRef}
+                                            type="text"
+                                            autoFocus
+                                            placeholder="Type what you heard…"
+                                            value={userAnswer}
+                                            onChange={(e) => setUserAnswer(e.target.value)}
+                                            onKeyDown={(e) =>
+                                                submitAnswerOnEnter(
+                                                    e,
+                                                    handleCheckListeningAnswer,
+                                                    hasPlayedAudio,
+                                                )
+                                            }
+                                            className={inputClassName}
+                                        />
+                                        <div className="flex justify-center gap-2 flex-wrap">
+                                            <Button
+                                                variant="outline"
+                                                onClick={() => playAudioUrl(currentWord.audioUrl)}
+                                                className="rounded-xl"
+                                            >
+                                                Replay
+                                            </Button>
+                                            <Button
+                                                variant="outline"
+                                                onClick={handleGetHint}
+                                                disabled={!hasPlayedAudio}
+                                                className="rounded-xl"
+                                            >
+                                                Hint
+                                            </Button>
+                                            {!autoCheck && (
+                                                <Button
+                                                    onClick={handleCheckListeningAnswer}
+                                                    disabled={!userAnswer.trim() || !hasPlayedAudio}
+                                                    className="rounded-xl"
+                                                >
+                                                    Check
+                                                </Button>
+                                            )}
+                                        </div>
+                                    </div>
                                 )}
-                                {currentWord.partOfSpeech && (
-                                    <span className="inline-block px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-semibold">
-                                        {currentWord.partOfSpeech}
-                                    </span>
-                                )}
-                                {!showAnswer && (
-                                    <WordPracticeHints
-                                        maskedExamples={maskedExamples}
-                                        imageUrl={currentWord.imageUrl}
-                                        showImageHints={effectiveImageHints}
-                                    />
-                                )}
-                            </div>
-                            {showAnswer && (
-                                <div className="pt-6 border-t-2 border-dashed border-border animate-in fade-in">
-                                    <AdaptiveText
-                                        text={currentWord.meaning}
-                                        role="meaning"
-                                        align="center"
-                                    />
-                                </div>
-                            )}
-                        </div>
-                        <div className="flex justify-center mt-6">
-                            {showAnswer ? (
-                                <p className="text-sm text-muted-foreground">How well did you know it?</p>
-                            ) : (
-                                <Button size="lg" onClick={() => {
-                                    setShowAnswer(true);
-                                    if (currentWord.audioUrl) {
-                                        setTimeout(() => playAudioUrl(currentWord.audioUrl), 300);
-                                    }
-                                }} className="rounded-xl">
-                                    Reveal meaning
-                                </Button>
-                            )}
-                        </div>
-                    </>
-                )}
-
-                {activeMode === "typing" && (
-                    <div className="space-y-6 text-center">
-                        <div>
-                            <p className="text-xs uppercase tracking-widest text-muted-foreground mb-3">Translation</p>
-                            <AdaptiveText
-                                text={currentWord.meaning}
-                                role="meaning"
-                                align="center"
-                                className="mb-2"
-                            />
-                            {currentWord.partOfSpeech && (
-                                <span className="inline-block px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-semibold">
-                                    {currentWord.partOfSpeech}
-                                </span>
-                            )}
-                            <WordPracticeHints
-                                maskedExamples={maskedExamples}
-                                imageUrl={currentWord.imageUrl}
-                                showImageHints={effectiveImageHints}
-                            />
-                        </div>
-                        <input
-                            ref={inputRef}
-                            type="text"
-                            autoFocus
-                            placeholder="Type your answer..."
-                            value={userAnswer}
-                            onChange={(e) => setUserAnswer(String(e.target.value).toLowerCase())}
-                            onKeyDown={(e) => submitAnswerOnEnter(e, handleCheckTypingAnswer)}
-                            className="w-full px-4 py-4 text-xl text-center rounded-xl border-2 border-border bg-background focus:border-primary outline-none"
-                        />
-                        <div className="flex flex-wrap justify-center gap-2">
-                            <Button variant="outline" onClick={handleGetHint} className="gap-2 rounded-xl">
-                                <Lightbulb className="h-4 w-4" />
-                                Hint {hintsUsed > 0 ? `(${hintsUsed})` : ""}
-                            </Button>
-                            {!autoCheck && (
-                                <Button onClick={handleCheckTypingAnswer} disabled={!userAnswer.trim()} className="rounded-xl">
-                                    Check
-                                </Button>
-                            )}
-                        </div>
-                    </div>
-                )}
-
-                {activeMode === "cloze" && clozePrompt && (
-                    <div className="space-y-6">
-                        <div className="text-center">
-                            <p className="text-xs uppercase tracking-widest text-muted-foreground mb-4">
-                                Complete the sentence
-                            </p>
-                            <AdaptiveText
-                                text={clozePrompt.sentence}
-                                role="sentence"
-                                align="center"
-                                className="px-2 text-foreground/90"
-                            />
-                            <WordPracticeHints
-                                maskedExamples={maskedExamples}
-                                imageUrl={currentWord.imageUrl}
-                                showImageHints={effectiveImageHints}
-                            />
-                        </div>
-                        <PracticeWordChoiceGrid
-                            options={clozeWordOptions}
-                            onSelect={(option) =>
-                                handleChoiceInteraction(option, handleClozeWordSelect)
-                            }
-                            selectedOption={!autoCheck ? selectedChoice : null}
-                            disabled={!!typingResult}
-                        />
-                        {!autoCheck && (
-                            <div className="flex justify-center">
-                                <Button
-                                    onClick={() => handleConfirmChoice(handleClozeWordSelect)}
-                                    disabled={!selectedChoice || !!typingResult}
-                                    className="rounded-xl"
-                                >
-                                    Check
-                                </Button>
-                            </div>
-                        )}
-                    </div>
-                )}
-
-                {activeMode === "multiple-choice" && (
-                    <div className="space-y-6">
-                        <div className="text-center">
-                            <AdaptiveText
-                                text={currentWord.word}
-                                role="word"
-                                as="h2"
-                                align="center"
-                                className="mb-2"
-                            />
-                            <WordPracticeHints
-                                maskedExamples={maskedExamples}
-                                imageUrl={currentWord.imageUrl}
-                                showImageHints={effectiveImageHints}
-                            />
-                        </div>
-                        <div className="grid gap-3">
-                            {multipleChoiceOptions.map((option, index) => (
-                                <Button
-                                    key={option}
-                                    variant={
-                                        !autoCheck && selectedChoice === option && !typingResult
-                                            ? "default"
-                                            : "outline"
-                                    }
-                                    onClick={() =>
-                                        handleChoiceInteraction(option, handleMultipleChoiceSelect)
-                                    }
-                                    disabled={typingResult !== null}
-                                    className="min-h-[56px] h-auto py-3 justify-start text-left rounded-xl whitespace-normal"
-                                >
-                                    <span className="font-bold mr-3 shrink-0">
-                                        {String.fromCharCode(65 + index)}.
-                                    </span>
-                                    <AdaptiveText
-                                        text={option}
-                                        role="choice"
-                                        as="span"
-                                        className="flex-1"
-                                        scrollWhenLong={false}
-                                    />
-                                    <span className="ml-auto text-xs text-muted-foreground">
-                                        {String.fromCharCode(65 + index)}
-                                    </span>
-                                </Button>
-                            ))}
-                        </div>
-                        {!autoCheck && (
-                            <div className="flex justify-center">
-                                <Button
-                                    onClick={() => handleConfirmChoice(handleMultipleChoiceSelect)}
-                                    disabled={!selectedChoice || typingResult !== null}
-                                    className="rounded-xl"
-                                >
-                                    Check
-                                </Button>
-                            </div>
-                        )}
-                    </div>
-                )}
-
-                {activeMode === "listening" && (
-                    <div className="space-y-6 text-center">
-                        <p className="text-xs uppercase tracking-widest text-muted-foreground">Listening</p>
-                        <p className="text-sm text-muted-foreground">
-                            {hasPlayedAudio ? "Type what you heard" : "Playing audio…"}
-                        </p>
-                        <Button
-                            size="lg"
-                            onClick={() => {
-                                playAudioUrl(currentWord.audioUrl);
-                                setHasPlayedAudio(true);
-                            }}
-                            disabled={!currentWord.audioUrl}
-                            className="h-20 w-20 rounded-full"
-                            aria-label="Replay audio"
-                        >
-                            {currentWord.audioUrl ? <Volume2 className="h-8 w-8" /> : <Play className="h-8 w-8" />}
-                        </Button>
-                        <input
-                            ref={inputRef}
-                            type="text"
-                            autoFocus
-                            placeholder="Type what you heard..."
-                            value={userAnswer}
-                            onChange={(e) => setUserAnswer(e.target.value)}
-                            onKeyDown={(e) =>
-                                submitAnswerOnEnter(e, handleCheckListeningAnswer, hasPlayedAudio)
-                            }
-                            className="w-full px-4 py-4 text-xl text-center rounded-xl border-2 border-border bg-background focus:border-primary outline-none"
-                        />
-                        <div className="flex justify-center gap-2 flex-wrap">
-                            <Button variant="outline" onClick={() => playAudioUrl(currentWord.audioUrl)} className="rounded-xl">
-                                Replay
-                            </Button>
-                            <Button variant="outline" onClick={handleGetHint} disabled={!hasPlayedAudio} className="rounded-xl">
-                                Hint
-                            </Button>
-                            {!autoCheck && (
-                                <Button
-                                    onClick={handleCheckListeningAnswer}
-                                    disabled={!userAnswer.trim() || !hasPlayedAudio}
-                                    className="rounded-xl"
-                                >
-                                    Check
-                                </Button>
-                            )}
-                        </div>
-                    </div>
-                )}
-                </PracticeExerciseBody>
-            </PracticeCardShell>
-            )}
-
-            {!showIntro && activeMode === "flashcard" && showAnswer && (
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 animate-in fade-in">
-                    <Button
-                        variant="outline"
-                        onClick={() => handleFlashcardRate("easy")}
-                        className="rounded-xl border-green-200 text-green-700 bg-green-50 hover:bg-green-100"
-                    >
-                        Easy <span className="text-xs opacity-70 ml-1">1</span>
-                    </Button>
-                    <Button
-                        variant="outline"
-                        onClick={() => handleFlashcardRate("good")}
-                        className="rounded-xl border-teal-200 text-teal-700 bg-teal-50 hover:bg-teal-100"
-                    >
-                        Got it <span className="text-xs opacity-70 ml-1">2</span>
-                    </Button>
-                    <Button
-                        variant="outline"
-                        onClick={() => handleFlashcardRate("hard")}
-                        className="rounded-xl border-orange-200 text-orange-700 bg-orange-50 hover:bg-orange-100"
-                    >
-                        Hard <span className="text-xs opacity-70 ml-1">3</span>
-                    </Button>
-                    <Button
-                        variant="outline"
-                        onClick={() => handleFlashcardRate("forgot")}
-                        className="rounded-xl border-red-200 text-red-700 bg-red-50 hover:bg-red-100"
-                    >
-                        Forgot <span className="text-xs opacity-70 ml-1">4</span>
-                    </Button>
-                </div>
-            )}
-
-            {!showIntro && activeMode !== "flashcard" && (
-                <PracticeResultDialog
-                    isOpen={showResultDialog}
-                    isCorrect={typingResult === "correct"}
-                    userAnswer={isWordChoiceMode ? (selectedChoice ?? "") : userAnswer}
-                    correctAnswer={
-                        activeMode === "cloze"
-                            ? (clozePrompt?.answer ?? currentWord.word)
-                            : currentWord.word
-                    }
-                    meaning={currentWord.meaning}
-                    pronunciation={currentWord.pronunciation}
-                    partOfSpeech={currentWord.partOfSpeech}
-                    audioUrl={currentWord.audioUrl}
-                    imageUrl={currentWord.imageUrl}
-                    examples={rawExamples}
-                    timeSpentSeconds={timeSpentSeconds}
-                    feedbackSeed={feedbackSeed + currentIndex}
-                    onTryAgain={handleTryAgain}
-                    onNext={handleNextFromDialog}
-                    isLastWord={currentIndex === queue.length - 1}
-                />
+                            </PracticeExerciseBody>
+                        </>
+                    )}
+                </PracticeCardShell>
             )}
         </div>
     );

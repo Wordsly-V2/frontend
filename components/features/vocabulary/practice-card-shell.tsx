@@ -6,7 +6,7 @@ import type { ReactNode } from "react";
 
 interface PracticeCardShellProps {
     children: ReactNode;
-    variant?: "default" | "intro";
+    variant?: "default" | "intro" | "result";
     className?: string;
 }
 
@@ -18,11 +18,14 @@ export function PracticeCardShell({
     return (
         <div
             className={cn(
-                "bg-gradient-to-br from-card to-card/50 border-2 rounded-2xl sm:rounded-3xl",
-                "p-4 sm:p-8 md:p-10 mb-4 sm:mb-6 flex flex-col min-h-[280px] sm:min-h-[320px]",
+                "relative rounded-2xl sm:rounded-3xl border bg-card",
+                "p-4 sm:p-6 md:p-8 flex flex-col min-h-0 overflow-hidden",
+                "min-h-[min(320px,55dvh)] sm:min-h-[360px]",
                 VIEWPORT_CARD_MAX,
-                "shadow-xl shadow-primary/5",
-                variant === "intro" ? "border-primary/20" : "border-border justify-between",
+                "shadow-lg shadow-primary/5 transition-shadow duration-300",
+                variant === "intro" && "border-primary/25 ring-1 ring-primary/10",
+                variant === "result" && "border-border/80",
+                variant === "default" && "border-border/80 justify-between",
                 className,
             )}
         >

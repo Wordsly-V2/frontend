@@ -122,22 +122,23 @@ export default function PracticePage() {
         );
     }
 
-    let title = "Practice";
-    if (phase === "overview") title = "Session plan";
-    else if (isReview) title = "Review";
-
-    const subtitle = [
+    const overviewSubtitle = [
         courseName,
         `${words.length} word${words.length === 1 ? "" : "s"}`,
-        isReview && phase === "practice" ? "recall mode" : null,
     ]
         .filter(Boolean)
-        .join(" • ");
+        .join(" · ");
+
+    const practiceSubtitle = isReview
+        ? `${sessionPlan.practiceQueue.length} exercises · recall mode`
+        : `${sessionPlan.practiceQueue.length} exercises`;
 
     return (
         <PracticeSessionLayout
-            title={title}
-            subtitle={subtitle}
+            variant={phase === "practice" ? "practice" : "overview"}
+            title={phase === "overview" ? "Session plan" : undefined}
+            subtitle={phase === "overview" ? overviewSubtitle : practiceSubtitle}
+            courseName={courseName}
             onBack={handleBackToCourse}
             backDisabled={isPersisting}
             isPersisting={isPersisting}

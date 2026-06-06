@@ -51,6 +51,9 @@ export default function WordDetailCard({
 
     const isCompact = variant === "compact";
     const imageSize = isCompact ? "w-24 h-24 sm:w-28 sm:h-28" : "w-28 h-28 sm:w-36 sm:h-36 md:w-44 md:h-44";
+    const stackImageClass = constrainHeight
+        ? "shrink-0 overflow-hidden bg-muted w-full aspect-video max-h-[min(28dvh,200px)] sm:max-h-[min(32dvh,240px)]"
+        : "shrink-0 overflow-hidden bg-muted w-full aspect-video sm:aspect-[2/1]";
 
     return (
         <div
@@ -69,18 +72,23 @@ export default function WordDetailCard({
             <div
                 className={
                     layout === "stack"
-                        ? "flex flex-col" + (constrainHeight ? " min-h-0" : "")
-                        : "flex flex-col sm:flex-row gap-4 sm:gap-6 items-stretch" + (constrainHeight ? " min-h-0" : "")
+                        ? cn(
+                              "flex flex-col",
+                              constrainHeight && "flex-1 min-h-0",
+                          )
+                        : cn(
+                              "flex flex-col sm:flex-row gap-4 sm:gap-6 items-stretch",
+                              constrainHeight && "flex-1 min-h-0",
+                          )
                 }
             >
                 {word.imageUrl && (
                     <div
                         className={
                             layout === "stack"
-                                ? "shrink-0 overflow-hidden bg-muted w-full aspect-video sm:aspect-[2/1]"
+                                ? stackImageClass
                                 : `shrink-0 overflow-hidden bg-muted ${imageSize} rounded-xl sm:rounded-l-2xl sm:rounded-r-none`
                         }
-                        style={constrainHeight && layout === "stack" ? { maxHeight: "40dvh" } : undefined}
                     >
                         <Image
                             src={word.imageUrl}

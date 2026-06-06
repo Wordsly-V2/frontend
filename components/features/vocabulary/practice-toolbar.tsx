@@ -5,13 +5,10 @@ import PracticeSettingsDialog, {
 } from "@/components/features/vocabulary/practice-settings-dialog";
 import WordsSummaryDialog from "@/components/features/vocabulary/words-summary-dialog";
 import { Button } from "@/components/ui/button";
-import { stageLabel, type WordLearningStage } from "@/lib/word-progress-stage";
 import type { IWord } from "@/types/courses/courses.type";
 import { List, Settings2 } from "lucide-react";
 
 interface PracticeToolbarProps {
-    modeLabel: string;
-    currentStage: WordLearningStage;
     showSettings: boolean;
     showWordsList: boolean;
     practiceSettings: PracticeSettings;
@@ -26,8 +23,6 @@ interface PracticeToolbarProps {
 }
 
 export function PracticeToolbar({
-    modeLabel,
-    currentStage,
     showSettings,
     showWordsList,
     practiceSettings,
@@ -44,31 +39,25 @@ export function PracticeToolbar({
 
     return (
         <>
-            <div className="flex justify-center gap-2 sm:gap-3 mb-4 sm:mb-6 flex-wrap">
+            <div className="flex justify-end gap-1.5 mb-3">
                 <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={onOpenSettings}
-                    className="gap-1.5 rounded-full text-xs sm:text-sm"
-                >
-                    <Settings2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                    Settings
-                </Button>
-                <Button
-                    variant="outline"
-                    size="sm"
+                    variant="ghost"
+                    size="icon"
                     onClick={onOpenWordsList}
-                    className="gap-1.5 rounded-full text-xs sm:text-sm"
+                    className="h-8 w-8 rounded-lg text-muted-foreground"
+                    aria-label="View word list"
                 >
-                    <List className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                    Words
+                    <List className="h-4 w-4" />
                 </Button>
-                <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-muted text-xs text-muted-foreground capitalize">
-                    {modeLabel}
-                </span>
-                <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-primary/10 text-xs font-medium text-primary">
-                    {stageLabel(currentStage)}
-                </span>
+                <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={onOpenSettings}
+                    className="h-8 w-8 rounded-lg text-muted-foreground"
+                    aria-label="Practice settings"
+                >
+                    <Settings2 className="h-4 w-4" />
+                </Button>
             </div>
 
             <PracticeSettingsDialog

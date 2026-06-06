@@ -5,7 +5,7 @@ import { LearningStepIndicator } from "@/components/features/vocabulary/learning
 import { PracticeCardShell } from "@/components/features/vocabulary/practice-card-shell";
 import { Button } from "@/components/ui/button";
 import type { IWord } from "@/types/courses/courses.type";
-import { ChevronRight } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { useEnterKeyAction } from "@/lib/keyboard-utils";
 
 interface NewWordIntroPanelProps {
@@ -20,13 +20,10 @@ export function NewWordIntroPanel({
     useEnterKeyAction(onStartExercise, true);
 
     return (
-        <PracticeCardShell
-            variant="intro"
-            className="sm:p-6 md:p-8 animate-in fade-in duration-300"
-        >
-            <LearningStepIndicator activeStep="intro" className="mb-4" />
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary mb-4 text-center">
-                New word — read, listen, then practice
+        <PracticeCardShell variant="intro" className="animate-in fade-in duration-300">
+            <LearningStepIndicator activeStep="intro" className="mb-5" />
+            <p className="text-center text-sm text-muted-foreground mb-4">
+                Take a moment to read and listen — then you&apos;ll practice this word.
             </p>
             <div className="flex-1 min-h-0 flex flex-col">
                 <WordDetailCard
@@ -36,14 +33,14 @@ export function NewWordIntroPanel({
                     className="flex-1 min-h-0"
                 />
             </div>
-            <div className="flex-shrink-0 pt-4 sm:pt-6 flex flex-col items-center gap-2">
+            <div className="flex-shrink-0 pt-5 flex flex-col items-center gap-2">
                 <Button
                     size="lg"
                     onClick={onStartExercise}
-                    className="rounded-xl gap-2 min-w-[200px]"
+                    className="rounded-xl gap-2 min-w-[200px] gradient-brand text-white shadow-md"
                 >
-                    Practice this word
-                    <ChevronRight className="h-4 w-4" aria-hidden />
+                    Start practicing
+                    <ArrowRight className="h-4 w-4" aria-hidden />
                 </Button>
                 <p className="text-xs text-muted-foreground">Press Enter when ready</p>
             </div>

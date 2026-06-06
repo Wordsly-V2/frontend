@@ -1,10 +1,14 @@
 "use client";
 
+import { cn } from "@/lib/utils";
+import { Flame } from "lucide-react";
+
 interface PracticeProgressHeaderProps {
     currentIndex: number;
     total: number;
     sessionStreak?: number;
     isRetryPass?: boolean;
+    className?: string;
 }
 
 export function PracticeProgressHeader({
@@ -12,33 +16,34 @@ export function PracticeProgressHeader({
     total,
     sessionStreak = 0,
     isRetryPass = false,
+    className,
 }: Readonly<PracticeProgressHeaderProps>) {
     const progress = total > 0 ? ((currentIndex + 1) / total) * 100 : 100;
 
     return (
-        <div className="mb-4 sm:mb-6">
-            <div className="flex items-center justify-between text-xs sm:text-sm font-medium text-muted-foreground mb-2">
-                <span>Progress</span>
-                <span className="px-2 sm:px-2.5 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-semibold tabular-nums">
-                    {currentIndex + 1} / {total}
+        <div className={cn("space-y-2", className)}>
+            <div className="flex items-center justify-between gap-2 text-xs font-medium">
+                <div className="flex items-center gap-2 min-w-0">
+                    <span className="text-muted-foreground truncate">
+                        {isRetryPass ? "Retry round" : "Progress"}
+                    </span>
+                    {sessionStreak >= 3 && (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-orange-500/10 px-2 py-0.5 text-orange-600 dark:text-orange-400 font-semibold shrink-0">
+                            <Flame className="h-3 w-3" aria-hidden />
+                            {sessionStreak}
+                        </span>
+                    )}
+                </div>
+                <span className="tabular-nums text-primary font-semibold shrink-0">
+                    {currentIndex + 1}/{total}
                 </span>
             </div>
-            <div className="h-2 sm:h-2.5 bg-muted rounded-full overflow-hidden shadow-inner">
+            <div className="h-1.5 bg-muted rounded-full overflow-hidden">
                 <div
-                    className="h-full bg-gradient-to-r from-primary to-[var(--brand-accent)] transition-all duration-500 ease-out"
+                    className="h-full rounded-full bg-gradient-to-r from-primary to-[var(--brand-accent)] transition-all duration-500 ease-out"
                     style={{ width: `${progress}%` }}
                 />
             </div>
-            {sessionStreak >= 3 && (
-                <p className="text-xs text-primary mt-1.5 font-medium">
-                    {sessionStreak} in a row
-                </p>
-            )}
-            {isRetryPass && (
-                <p className="text-xs text-orange-600 dark:text-orange-400 mt-1.5 font-medium">
-                    Extra round — missed words
-                </p>
-            )}
         </div>
     );
 }
