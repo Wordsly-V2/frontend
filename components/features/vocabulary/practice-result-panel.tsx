@@ -118,58 +118,39 @@ export function PracticeResultPanel({
 
             <div
                 className={cn(
-                    "rounded-xl border-2 px-4 py-3 text-left mb-5",
+                    "rounded-xl border-2 px-3 py-3 sm:px-4 text-left mb-5",
                     isCorrect
                         ? "bg-green-50/80 border-green-200 dark:bg-green-950/20 dark:border-green-800/50"
                         : "bg-red-50/80 border-red-200 dark:bg-red-950/20 dark:border-red-800/50",
                 )}
             >
-                <div className={`flex gap-3 items-start min-h-0 ${SCROLLABLE_BODY}`}>
-                    {imageUrl && (
-                        <div className="shrink-0 w-20 h-20 sm:w-24 sm:h-24 rounded-lg overflow-hidden bg-muted border border-border">
-                            <Image
-                                src={imageUrl}
-                                alt=""
-                                width={96}
-                                height={96}
-                                className="w-full h-full object-cover"
-                                unoptimized
-                            />
-                        </div>
-                    )}
-                    <div className="min-w-0 flex-1">
-                        <div className="flex items-start justify-between gap-2">
-                            <div className="min-w-0">
-                                <AdaptiveText
-                                    text={correctAnswer}
-                                    role="word"
-                                    as="p"
-                                    scrollWhenLong={false}
-                                    className={cn(
-                                        "!text-lg font-semibold",
-                                        isCorrect ? "text-green-900 dark:text-green-100" : "text-red-900 dark:text-red-100",
-                                    )}
+                <div className={cn("space-y-2.5 min-h-0", SCROLLABLE_BODY)}>
+                    <div className="flex items-start gap-3">
+                        {imageUrl && (
+                            <div className="shrink-0 w-14 h-14 sm:w-20 sm:h-20 rounded-lg overflow-hidden bg-muted border border-border">
+                                <Image
+                                    src={imageUrl}
+                                    alt=""
+                                    width={80}
+                                    height={80}
+                                    className="w-full h-full object-cover"
+                                    unoptimized
                                 />
-                                <AdaptiveText
-                                    text={meaning}
-                                    role="meaning"
-                                    className={cn(
-                                        "mt-0.5",
-                                        isCorrect ? "text-green-700 dark:text-green-300" : "text-red-700 dark:text-red-300",
-                                    )}
-                                />
-                                {(partOfSpeech || pronunciation) && (
-                                    <p
-                                        className={cn(
-                                            "text-xs mt-1",
-                                            LONG_TEXT_WRAP,
-                                            isCorrect ? "text-green-600/80" : "text-red-600/80",
-                                        )}
-                                    >
-                                        {[partOfSpeech, pronunciation].filter(Boolean).join(" · ")}
-                                    </p>
-                                )}
                             </div>
+                        )}
+                        <div className="min-w-0 flex-1 flex items-start justify-between gap-2">
+                            <AdaptiveText
+                                text={correctAnswer}
+                                role="word"
+                                as="p"
+                                scrollWhenLong={false}
+                                className={cn(
+                                    "!text-lg sm:!text-xl font-semibold",
+                                    isCorrect
+                                        ? "text-green-900 dark:text-green-100"
+                                        : "text-red-900 dark:text-red-100",
+                                )}
+                            />
                             <div className="flex items-center gap-0.5 shrink-0">
                                 <Button
                                     type="button"
@@ -202,6 +183,29 @@ export function PracticeResultPanel({
                             </div>
                         </div>
                     </div>
+
+                    <p
+                        className={cn(
+                            "text-sm sm:text-base leading-relaxed break-words min-w-0 w-full",
+                            isCorrect
+                                ? "text-green-700 dark:text-green-300"
+                                : "text-red-700 dark:text-red-300",
+                        )}
+                    >
+                        {meaning}
+                    </p>
+
+                    {(partOfSpeech || pronunciation) && (
+                        <p
+                            className={cn(
+                                "text-xs",
+                                LONG_TEXT_WRAP,
+                                isCorrect ? "text-green-600/80" : "text-red-600/80",
+                            )}
+                        >
+                            {[partOfSpeech, pronunciation].filter(Boolean).join(" · ")}
+                        </p>
+                    )}
                 </div>
                 {examples.length > 0 && (
                     <div
