@@ -2,7 +2,6 @@ import { ACCESS_TOKEN_STORAGE_KEY, removeLocalStorageItem } from '@/lib/local-st
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { fetchProfile as fetchProfileAction, logout as logoutAction } from '@/store/slices/userSlice';
 import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
 
 export const useUser = () => {
     const router = useRouter();
@@ -22,12 +21,6 @@ export const useUser = () => {
             router.refresh();
         });
     }
-
-    useEffect(() => {
-        if (!profile) {
-            fetchProfile();
-        }
-    }, []);
 
     return { profile, fetchProfile, logout, isLoading, error };
 }

@@ -1,6 +1,7 @@
 import { logout as logoutApi } from '@/apis/auth.api';
 import { getUserProfile } from '@/apis/users.api';
 import { IUserProfile } from '@/types/users/users.type';
+import type { RootState } from '@/store/store';
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
 
 interface UserState {
@@ -15,13 +16,22 @@ const initialState: UserState = {
     isLoading: true,
 }
 
-export const fetchProfile = createAsyncThunk('user/fetchProfile', async (_, { rejectWithValue }) => {
-    try {
-        return getUserProfile();
-    } catch (error) {
-        return rejectWithValue(error);
-    }
-});
+export const fetchProfile = createAsyncThunk(
+    'user/fetchProfile',
+    async (_, { rejectWithValue }) => {
+        try {
+            return getUserProfile();
+        } catch (error) {
+            return rejectWithValue(error);
+        }
+    },
+    {
+        condition: (_, { getState }) => {
+            const { user } = getState() as RootState;
+            return user.profile === null;
+        },
+    },
+);
 
 export const logout = createAsyncThunk('user/logout', async ({ isLoggedOutFromAllDevices }: { isLoggedOutFromAllDevices?: boolean }, { rejectWithValue }) => {
     try {
