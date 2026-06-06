@@ -37,11 +37,14 @@ import {
     stageHintPolicy,
     type WordLearningStage,
 } from "@/lib/word-progress-stage";
+import { PEDAGOGY } from "@/lib/learning-pedagogy";
 import {
     buildMixedModePlan,
+    mixedModePlanKey,
     resolveActiveMode,
     resolvePracticeSettings,
     SETTINGS_STORAGE_KEY,
+    wordOccurrenceAtIndex,
     type ActivePracticeMode,
 } from "@/lib/practice-settings";
 import {
@@ -121,6 +124,9 @@ export default function VocabularyPractice({
     const recordDailyPractice = useRecordDailyPracticeMutation();
     const [timeSpentSeconds, setTimeSpentSeconds] = useState<number | undefined>(undefined);
     const [feedbackSeed] = useState(() => Date.now());
+    const [introCompletedIds, setIntroCompletedIds] = useState<Set<string>>(
+        () => new Set(),
+    );
     const inputRef = useRef<HTMLInputElement>(null);
     const wordStartTimeRef = useRef<number | null>(null);
 
@@ -154,7 +160,14 @@ export default function VocabularyPractice({
     const currentWord = queue[currentIndex];
     const currentStage: WordLearningStage =
         currentWord != null ? (stagesByWordId?.[currentWord.id] ?? "new") : "new";
-    const stageHints = stageHintPolicy(currentStage);
+    const currentOccurrence = currentWord
+        ? wordOccurrenceAtIndex(queue, currentIndex)
+        : 0;
+    let hintStage: WordLearningStage = currentStage;
+    if (currentStage === "new" && currentOccurrence > 0) {
+        hintStage = currentOccurrence === 1 ? "learning" : "due";
+    }
+    const stageHints = stageHintPolicy(hintStage);
     const effectiveExampleHints = showExampleHints && stageHints.showExampleHints;
     const effectiveImageHints = showImageHints && stageHints.showImageHints;
 
@@ -162,16 +175,30 @@ export default function VocabularyPractice({
         () => (currentWord ? getClozePrompt(currentWord) : null),
         [currentWord],
     );
-    const mixedModePlan = useMemo(
-        () => (mode === "mixed" ? buildMixedModePlan(queue, stagesByWordId) : null),
-        [mode, queue, stagesByWordId],
-    );
+    const mainMixedPlanRef = useRef<Map<string, ActivePracticeMode> | null>(null);
+    const mixedModePlan = useMemo(() => {
+        if (mode !== "mixed") return null;
+        const plan = buildMixedModePlan(queue, stagesByWordId, {
+            leechWordIds,
+            retryPass: practicePass === "retry-missed",
+            previousPlan:
+                practicePass === "retry-missed"
+                    ? (mainMixedPlanRef.current ?? undefined)
+                    : undefined,
+        });
+        if (practicePass === "main") {
+            mainMixedPlanRef.current = plan;
+        }
+        return plan;
+    }, [mode, queue, stagesByWordId, leechWordIds, practicePass]);
     const activeMode: ActivePracticeMode = currentWord
         ? resolveActiveMode(
               mode,
               clozePrompt != null,
               Boolean(currentWord.audioUrl),
-              mixedModePlan?.get(currentWord.id),
+              mixedModePlan?.get(
+                  mixedModePlanKey(currentWord.id, currentOccurrence),
+              ),
               currentIndex,
               currentStage,
           )
@@ -196,7 +223,15 @@ export default function VocabularyPractice({
         wordId: currentWord?.id,
         stage: currentStage,
         practicePass,
-        onExerciseStart: focusPracticeInput,
+        introAlreadySeen: currentWord
+            ? introCompletedIds.has(currentWord.id)
+            : false,
+        onExerciseStart: () => {
+            if (currentWord) {
+                setIntroCompletedIds((prev) => new Set(prev).add(currentWord.id));
+            }
+            focusPracticeInput();
+        },
     });
 
     function scoreFromResults(results: WordResult[]): number {
@@ -693,8 +728,13 @@ export default function VocabularyPractice({
 
     if (!currentWord) return null;
 
+    const newWordRoundLabel =
+        currentStage === "new" && practicePass === "main"
+            ? ` · round ${currentOccurrence + 1}/${PEDAGOGY.newWordSessionRepetitions}`
+            : "";
     const modeLabel =
-        mode === "mixed" ? `Mixed · ${activeMode.replace("-", " ")}` : activeMode.replace("-", " ");
+        (mode === "mixed" ? `Mixed · ${activeMode.replace("-", " ")}` : activeMode.replace("-", " ")) +
+        newWordRoundLabel;
 
     return (
         <div className="max-w-4xl pb-safe mx-auto w-full">

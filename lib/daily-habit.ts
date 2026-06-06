@@ -1,7 +1,9 @@
 import { getLocalStorageItem, setLocalStorageItem } from "@/lib/local-storage";
 import type { IDailyHabit, IDailyHabitDay } from "@/types/daily-habit/daily-habit.type";
 
-export const DAILY_GOAL_WORDS = 10;
+import { PEDAGOGY } from "@/lib/learning-pedagogy";
+
+export const DAILY_GOAL_WORDS = PEDAGOGY.dailyNewWordGoal;
 export const DAILY_HABIT_STORAGE_KEY = "wordsly.dailyHabit";
 
 /** @deprecated Use IDailyHabit — kept for practice summary compatibility */

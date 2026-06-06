@@ -1,3 +1,4 @@
+import { PEDAGOGY } from "@/lib/learning-pedagogy";
 import type { IWordProgressResponse } from "@/types/word-progress/word-progress.type";
 import type { IWord } from "@/types/courses/courses.type";
 import type { PracticeSessionKind } from "@/lib/practice-session";
@@ -16,8 +17,10 @@ export interface SessionStageCounts {
 export interface PracticeSessionPlan {
     /** New words that receive a per-word introduction before their first exercise. */
     introWords: IWord[];
-    /** Ordered practice queue — due first, then learning, new, review. */
+    /** Ordered practice queue — due → learning → review → new (× reps, interleaved). */
     practiceQueue: IWord[];
+    /** Unique words in the session (progress + daily habit use this). */
+    uniqueWordCount: number;
     stagesByWordId: Record<string, WordLearningStage>;
     counts: SessionStageCounts;
 }
@@ -89,6 +92,22 @@ function sortWordsForPractice(
     });
 }
 
+/** Interleave new words across rounds: A,B,C then A,B,C again (not A,A,A,B,B,B). */
+export function buildInterleavedNewWordRepetitions(
+    newWords: IWord[],
+    repetitions: number,
+): IWord[] {
+    if (newWords.length === 0) return [];
+    const ordered = shuffleArray(newWords);
+    if (repetitions <= 1) return ordered;
+
+    const queue: IWord[] = [];
+    for (let round = 0; round < repetitions; round++) {
+        queue.push(...ordered);
+    }
+    return queue;
+}
+
 /** Build intro + practice queues from word progress. */
 export function buildPracticeSessionPlan(
     words: IWord[],
@@ -106,19 +125,35 @@ export function buildPracticeSessionPlan(
 
     const ordered = sortWordsForPractice(words, stagesByWordId, progressByWordId);
 
-    // Light shuffle within each priority band keeps sessions fresh without breaking urgency order
     const practiceQueue: IWord[] = [];
-    for (const stage of ["due", "learning", "new", "review"] as WordLearningStage[]) {
+    for (const stage of ["due", "learning", "review"] as WordLearningStage[]) {
         const band = ordered.filter((w) => stagesByWordId[w.id] === stage);
         practiceQueue.push(...shuffleArray(band));
     }
 
-    return { introWords, practiceQueue, stagesByWordId, counts };
+    const newBand = ordered.filter((w) => stagesByWordId[w.id] === "new");
+    practiceQueue.push(
+        ...buildInterleavedNewWordRepetitions(
+            newBand,
+            PEDAGOGY.newWordSessionRepetitions,
+        ),
+    );
+
+    return {
+        introWords,
+        practiceQueue,
+        uniqueWordCount: words.length,
+        stagesByWordId,
+        counts,
+    };
 }
 
 export function isLeechWord(progress: IWordProgressResponse | null | undefined): boolean {
     if (!progress) return false;
-    return progress.totalReviews >= 3 && progress.successRate < 50;
+    return (
+        progress.totalReviews >= PEDAGOGY.leechMinReviews &&
+        progress.successRate < PEDAGOGY.leechSuccessRateMax
+    );
 }
 
 export function buildLeechWordIds(

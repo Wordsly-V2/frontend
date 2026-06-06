@@ -19,7 +19,7 @@ export function LeechWordBanner({
             <div className="flex items-start gap-2">
                 <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" aria-hidden />
                 <div className="min-w-0 text-left space-y-2">
-                    <p className="font-medium">Tricky word — extra help</p>
+                    <p className="font-medium">Tricky word — flashcard review with context</p>
                     {example && (
                         <AdaptiveText
                             text={`"${example}"`}

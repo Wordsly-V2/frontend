@@ -146,6 +146,7 @@ export default function PracticePage() {
                 <PracticeSessionOverview
                     counts={sessionPlan.counts}
                     totalWords={words.length}
+                    exerciseCount={sessionPlan.practiceQueue.length}
                     newWordCount={sessionPlan.introWords.length}
                     isReviewSession={isReview}
                     onStart={() => setPhase("practice")}

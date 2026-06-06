@@ -1,4 +1,5 @@
 import { getLocalStorageItem } from "@/lib/local-storage";
+import { assignMixedPracticeMode } from "@/lib/learning-pedagogy";
 import { shuffleArray } from "@/lib/practice-utils";
 import type { PracticeSettings } from "@/components/features/vocabulary/practice-settings-dialog";
 import type { PracticeSessionKind } from "@/lib/practice-session";
@@ -97,34 +98,59 @@ function applyModeFallbacks(
     return mode;
 }
 
-/** Assign a shuffled practice method to each word in a mixed session. */
+/** Key for one queue slot (same word can appear multiple times). */
+export function mixedModePlanKey(wordId: string, occurrence: number): string {
+    return `${wordId}:${occurrence}`;
+}
+
+/** 0-based occurrence of queue[index] among same wordId earlier in the queue. */
+export function wordOccurrenceAtIndex(queue: IWord[], index: number): number {
+    const wordId = queue[index]?.id;
+    if (!wordId) return 0;
+    let count = 0;
+    for (let i = 0; i <= index; i++) {
+        if (queue[i].id === wordId) count++;
+    }
+    return count - 1;
+}
+
+export interface MixedModePlanOptions {
+    leechWordIds?: Set<string>;
+    /** Retry pass uses the opposite recall direction (interleaving). */
+    retryPass?: boolean;
+    previousPlan?: Map<string, ActivePracticeMode>;
+}
+
+/** Assign an evidence-based practice method to each word in a mixed session. */
 export function buildMixedModePlan(
     queue: IWord[],
     stagesByWordId?: Record<string, WordLearningStage>,
+    options?: MixedModePlanOptions,
 ): Map<string, ActivePracticeMode> {
-    const ring = shuffleArray([...MIXED_PRACTICE_MODES]) as ActivePracticeMode[];
-    let ringIndex = 0;
+    const { leechWordIds, retryPass = false, previousPlan } = options ?? {};
     const plan = new Map<string, ActivePracticeMode>();
+    let preferProduction = shuffleArray([true, false])[0];
+    const occurrenceByWordId = new Map<string, number>();
 
     for (const word of queue) {
         const stage = stagesByWordId?.[word.id] ?? "new";
         const allowed = new Set(mixedModesForStage(stage));
-        let assigned: ActivePracticeMode | null = null;
+        const newWordRound = occurrenceByWordId.get(word.id) ?? 0;
+        occurrenceByWordId.set(word.id, newWordRound + 1);
 
-        for (let attempt = 0; attempt < ring.length; attempt++) {
-            const candidate = ring[ringIndex % ring.length];
-            ringIndex++;
-            if (allowed.has(candidate)) {
-                assigned = candidate;
-                break;
-            }
-        }
-
-        if (!assigned) {
-            assigned = shuffleArray([...mixedModesForStage(stage)])[0] as ActivePracticeMode;
-        }
-
-        plan.set(word.id, assigned);
+        const planKey = `${word.id}:${newWordRound}`;
+        const { mode, nextPreferProduction } = assignMixedPracticeMode({
+            word,
+            stage,
+            allowed,
+            isLeech: leechWordIds?.has(word.id) ?? false,
+            preferProduction,
+            retryPass,
+            previousMode: previousPlan?.get(planKey) ?? previousPlan?.get(word.id),
+            newWordRound: stage === "new" ? newWordRound : undefined,
+        });
+        plan.set(planKey, mode);
+        preferProduction = nextPreferProduction;
     }
 
     return plan;

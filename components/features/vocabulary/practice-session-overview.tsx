@@ -7,6 +7,7 @@ import {
     type SessionStageCounts,
     type WordLearningStage,
 } from "@/lib/word-progress-stage";
+import { PEDAGOGY } from "@/lib/learning-pedagogy";
 import { formatSessionEstimate } from "@/lib/practice-session-estimate";
 import { BookOpen, Brain, Clock, Sparkles, Timer } from "lucide-react";
 import { useCallback } from "react";
@@ -24,6 +25,8 @@ const STAGE_STYLES: Record<
 interface PracticeSessionOverviewProps {
     counts: SessionStageCounts;
     totalWords: number;
+    /** Total exercises including new-word repetitions. */
+    exerciseCount: number;
     newWordCount: number;
     isReviewSession: boolean;
     onStart: () => void;
@@ -32,6 +35,7 @@ interface PracticeSessionOverviewProps {
 export function PracticeSessionOverview({
     counts,
     totalWords,
+    exerciseCount,
     newWordCount,
     isReviewSession,
     onStart,
@@ -40,7 +44,7 @@ export function PracticeSessionOverview({
         ([, n]) => n > 0,
     );
     const hasNewWords = newWordCount > 0;
-    const timeEstimate = formatSessionEstimate(totalWords, hasNewWords, counts);
+    const timeEstimate = formatSessionEstimate(exerciseCount, hasNewWords, counts);
     const handleStart = useCallback(() => onStart(), [onStart]);
 
     useEnterKeyAction(handleStart, true);
@@ -61,7 +65,7 @@ export function PracticeSessionOverview({
                     {isReviewSession && !hasNewWords
                         ? "Time to recall — due words first, hints stay off so you really remember."
                         : hasNewWords
-                          ? `${newWordCount} new word${newWordCount === 1 ? "" : "s"} get a Learn step before practice. Order: due → learning → new → review.`
+                          ? `${newWordCount} new word${newWordCount === 1 ? "" : "s"}: Learn once, then ${PEDAGOGY.newWordSessionRepetitions} practice rounds each (recognition → production). Due and learning words come first.`
                           : "You have seen these before — straight into active practice."}
                 </p>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
