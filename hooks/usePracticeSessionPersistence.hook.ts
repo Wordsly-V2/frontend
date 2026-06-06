@@ -26,7 +26,6 @@ export function usePracticeSessionPersistence({
     const router = useRouter();
     const queryClient = useQueryClient();
     const [savedOnce, setSavedOnce] = useState(false);
-    const [isSyncingProgress, setIsSyncingProgress] = useState(false);
     const [hasUnsavedPractice, setHasUnsavedPractice] = useState(false);
 
     const invalidateProgressQueries = useCallback(async () => {
@@ -49,15 +48,34 @@ export function usePracticeSessionPersistence({
         return () => globalThis.removeEventListener("beforeunload", onBeforeUnload);
     }, [hasUnsavedPractice]);
 
-    const persistSession = useCallback(
+    const persistSessionInBackground = useCallback(
         async (payload: SessionCompletePayload) => {
+            try {
+                const outcome = await saveSessionResults(payload);
+                await invalidateProgressQueries();
+
+                if (outcome === "queued") {
+                    toast.warning("Saved locally — we will sync when you are back online.");
+                } else if (outcome === "async") {
+                    toast.info("Progress is syncing in the background.");
+                }
+            } catch {
+                setHasUnsavedPractice(true);
+                enqueuePendingPracticeSave({ answers: payload.wordResults });
+                toast.error("Could not save progress. It is queued for retry.");
+            }
+        },
+        [invalidateProgressQueries],
+    );
+
+    const persistSession = useCallback(
+        (payload: SessionCompletePayload) => {
             if (savedOnce || payload.wordResults.length === 0) {
                 router.replace(`/learn/courses/${courseId}`);
                 return;
             }
             setSavedOnce(true);
             setHasUnsavedPractice(false);
-            setIsSyncingProgress(true);
 
             applyOptimisticWordProgress(
                 queryClient,
@@ -66,44 +84,25 @@ export function usePracticeSessionPersistence({
                 { answers: payload.wordResults },
             );
 
-            try {
-                const outcome = await saveSessionResults(payload, progressByWordId);
-                await invalidateProgressQueries();
-                fireCelebrationConfetti();
+            fireCelebrationConfetti();
+            router.replace(`/learn/courses/${courseId}`);
 
-                if (outcome === "queued") {
-                    toast.warning("Saved locally — we will sync when you are back online.");
-                } else if (outcome === "async") {
-                    toast.success("Progress saved!");
-                    toast.info("Stats may take a moment to fully update.");
-                } else {
-                    toast.success("Progress saved!");
-                }
-
-                router.replace(`/learn/courses/${courseId}`);
-            } catch {
-                setSavedOnce(false);
-                setHasUnsavedPractice(true);
-                enqueuePendingPracticeSave({ answers: payload.wordResults });
-                toast.error("Could not save progress. It is queued for retry.");
-            } finally {
-                setIsSyncingProgress(false);
-            }
+            void persistSessionInBackground(payload);
         },
         [
             savedOnce,
             courseId,
             router,
             progressByWordId,
-            invalidateProgressQueries,
             queryClient,
             wordIdList,
+            persistSessionInBackground,
         ],
     );
 
     return {
         persistSession,
-        isPersisting: isSyncingProgress,
+        isPersisting: false,
         markUnsaved: () => setHasUnsavedPractice(true),
     };
 }
