@@ -1,7 +1,4 @@
-import {
-    recordAnswerBulk,
-    recordAnswerBulkSync,
-} from "@/apis/word-progress.api";
+import { recordAnswerBulkSync } from "@/apis/word-progress.api";
 import {
     enqueuePendingPracticeSave,
     getPendingPracticeSaves,
@@ -9,7 +6,7 @@ import {
 } from "@/lib/practice-pending-saves";
 import type { SessionCompletePayload } from "@/types/practice/practice.type";
 
-export type SaveSessionOutcome = "sync" | "async" | "queued";
+export type SaveSessionOutcome = "sync" | "queued";
 
 export async function saveSessionResults(
     payload: SessionCompletePayload,
@@ -18,13 +15,8 @@ export async function saveSessionResults(
         await recordAnswerBulkSync({ answers: payload.wordResults });
         return "sync";
     } catch {
-        try {
-            await recordAnswerBulk({ answers: payload.wordResults });
-            return "async";
-        } catch {
-            enqueuePendingPracticeSave({ answers: payload.wordResults });
-            return "queued";
-        }
+        enqueuePendingPracticeSave({ answers: payload.wordResults });
+        return "queued";
     }
 }
 
@@ -35,12 +27,7 @@ export async function flushPendingPracticeSaves(): Promise<void> {
             await recordAnswerBulkSync(item.payload);
             removePendingPracticeSave(item.id);
         } catch {
-            try {
-                await recordAnswerBulk(item.payload);
-                removePendingPracticeSave(item.id);
-            } catch {
-                break;
-            }
+            break;
         }
     }
 }

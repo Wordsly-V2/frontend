@@ -56,8 +56,6 @@ export function usePracticeSessionPersistence({
 
                 if (outcome === "queued") {
                     toast.warning("Saved locally — we will sync when you are back online.");
-                } else if (outcome === "async") {
-                    toast.info("Progress is syncing in the background.");
                 }
             } catch {
                 setHasUnsavedPractice(true);

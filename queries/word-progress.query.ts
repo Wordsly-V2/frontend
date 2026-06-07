@@ -8,31 +8,16 @@ import {
     getProgressStatsByLessonIds,
     getProgressStatsByWordIds,
     getWordProgress,
-    recordAnswer,
-    recordAnswerBulk,
     recordAnswerBulkSync,
     resetProgress
 } from "@/apis/word-progress.api";
 import {
     IBulkRecordAnswersDto,
     IDueWord,
-    IRecordAnswerDto,
     IWordProgressResponse,
     IWordProgressStats
 } from "@/types/word-progress/word-progress.type";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-
-export const useRecordAnswerMutation = () => {
-    return useMutation<IWordProgressResponse, Error, IRecordAnswerDto>({
-        mutationFn: recordAnswer,
-    });
-};
-
-export const useRecordAnswerBulkMutation = () => {
-    return useMutation<{ accepted: boolean }, Error, IBulkRecordAnswersDto>({
-        mutationFn: recordAnswerBulk,
-    });
-};
 
 export const useRecordAnswerBulkSyncMutation = () => {
     return useMutation<IWordProgressResponse[], Error, IBulkRecordAnswersDto>({

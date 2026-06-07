@@ -2,22 +2,12 @@ import axiosInstance from "@/lib/axios";
 import {
     IBulkRecordAnswersDto,
     IDueWord,
-    IRecordAnswerDto,
     IWordProgressResponse,
     IWordProgressStats
 } from "@/types/word-progress/word-progress.type";
 import { AxiosError } from "axios";
 
-export const recordAnswer = async (data: IRecordAnswerDto): Promise<IWordProgressResponse> => {
-    try {
-        const response = await axiosInstance.post<IWordProgressResponse>('/word-progress/record-answer', data);
-        return response.data;
-    } catch (error) {
-        throw (error as AxiosError).response?.data || error;
-    }
-}
-
-/** Record multiple answers synchronously when available (writes to DB directly). */
+/** Record multiple answers synchronously (writes to DB directly). */
 export const recordAnswerBulkSync = async (
     data: IBulkRecordAnswersDto,
 ): Promise<IWordProgressResponse[]> => {
@@ -25,19 +15,6 @@ export const recordAnswerBulkSync = async (
         const response = await axiosInstance.post<IWordProgressResponse[]>(
             "/word-progress/record-answer/bulk-sync",
             data,
-        );
-        return response.data;
-    } catch (error) {
-        throw (error as AxiosError).response?.data || error;
-    }
-};
-
-/** Record multiple answers in one request (bulk). Accepted for async processing. */
-export const recordAnswerBulk = async (data: IBulkRecordAnswersDto): Promise<{ accepted: boolean }> => {
-    try {
-        const response = await axiosInstance.post<{ accepted: boolean }>(
-            '/word-progress/record-answer/bulk',
-            data
         );
         return response.data;
     } catch (error) {
