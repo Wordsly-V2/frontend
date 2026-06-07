@@ -104,8 +104,6 @@ export interface AssignMixedModeInput {
     allowed: Set<string>;
     isLeech: boolean;
     preferProduction: boolean;
-    retryPass: boolean;
-    previousMode?: PedagogyPracticeMode;
     /** 0-based occurrence of this word in the current session queue. */
     newWordRound?: number;
     /** Queue index — rotates modes within each production/recognition pool. */
@@ -117,7 +115,6 @@ export interface AssignMixedModeInput {
  * - New words: recognition then production across session rounds
  * - Learning/due/review: alternate production ↔ recognition (bidirectional recall)
  * - Leeches: flashcard self-rating with context (depth of processing)
- * - Retry: opposite direction from the main pass (interleaving)
  */
 export function assignMixedPracticeMode(input: AssignMixedModeInput): {
     mode: PedagogyPracticeMode;
@@ -129,8 +126,6 @@ export function assignMixedPracticeMode(input: AssignMixedModeInput): {
         allowed,
         isLeech,
         preferProduction,
-        retryPass,
-        previousMode,
         newWordRound,
         modeSlotIndex = 0,
     } = input;
@@ -148,18 +143,6 @@ export function assignMixedPracticeMode(input: AssignMixedModeInput): {
 
     if (isLeech) {
         return { mode: "flashcard", nextPreferProduction: preferProduction };
-    }
-
-    if (retryPass && previousMode) {
-        return {
-            mode: alternatePracticeMode(
-                previousMode,
-                allowed,
-                clozeAvailable,
-                listeningAvailable,
-            ),
-            nextPreferProduction: preferProduction,
-        };
     }
 
     if (stage === "new" && newWordRound !== undefined) {

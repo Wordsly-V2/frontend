@@ -8,7 +8,6 @@ interface UseNewWordIntroOptions {
     word: IWord | undefined;
     wordId: string | undefined;
     stage: WordLearningStage;
-    practicePass: "main" | "retry-missed";
     /** True after the Learn step was already shown for this word in the session. */
     introAlreadySeen?: boolean;
     onExerciseStart?: () => void;
@@ -18,7 +17,6 @@ export function useNewWordIntro({
     word,
     wordId,
     stage,
-    practicePass,
     introAlreadySeen = false,
     onExerciseStart,
 }: UseNewWordIntroOptions) {
@@ -27,16 +25,15 @@ export function useNewWordIntro({
     const showIntro =
         wordStep === "intro" &&
         stage === "new" &&
-        practicePass === "main" &&
         !introAlreadySeen;
 
     useEffect(() => {
-        if (!wordId || practicePass !== "main") {
+        if (!wordId) {
             setWordStep("exercise");
             return;
         }
         setWordStep(stage === "new" && !introAlreadySeen ? "intro" : "exercise");
-    }, [wordId, stage, practicePass, introAlreadySeen]);
+    }, [wordId, stage, introAlreadySeen]);
 
     useEffect(() => {
         if (!showIntro || !word?.audioUrl) return;

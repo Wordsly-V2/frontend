@@ -23,7 +23,6 @@ export interface PracticeResultDialogProps {
     imageUrl?: string;
     examples?: string[];
     timeSpentSeconds?: number;
-    onTryAgain: () => void;
     onNext: () => void;
     isLastWord: boolean;
     /** Rotates encouraging copy */
@@ -42,7 +41,6 @@ export default function PracticeResultDialog({
     imageUrl,
     examples = [],
     timeSpentSeconds,
-    onTryAgain,
     onNext,
     isLastWord,
     feedbackSeed = 0,
@@ -234,22 +232,16 @@ export default function PracticeResultDialog({
                 </div>
 
                 <DialogFooter className="gap-2 mt-3 sm:mt-4 shrink-0 pt-2 border-t">
-                    {!isCorrect && (
-                        <Button
-                            type="button"
-                            variant="outline"
-                            onClick={onTryAgain}
-                            className="flex-1"
-                        >
-                            Try Again
-                        </Button>
-                    )}
                     <Button
                         type="button"
                         onClick={onNext}
                         className="flex-1"
                     >
-                        {isLastWord ? "Finish Practice" : "Next Word"}
+                        {isCorrect
+                            ? isLastWord
+                                ? "Finish Practice"
+                                : "Next Word"
+                            : "Continue"}
                     </Button>
                 </DialogFooter>
             </DialogContent>

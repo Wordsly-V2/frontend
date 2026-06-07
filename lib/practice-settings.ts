@@ -116,9 +116,6 @@ export function wordOccurrenceAtIndex(queue: IWord[], index: number): number {
 
 export interface MixedModePlanOptions {
     leechWordIds?: Set<string>;
-    /** Retry pass uses the opposite recall direction (interleaving). */
-    retryPass?: boolean;
-    previousPlan?: Map<string, ActivePracticeMode>;
 }
 
 /** Assign an evidence-based practice method to each word in a mixed session. */
@@ -127,7 +124,7 @@ export function buildMixedModePlan(
     stagesByWordId?: Record<string, WordLearningStage>,
     options?: MixedModePlanOptions,
 ): Map<string, ActivePracticeMode> {
-    const { leechWordIds, retryPass = false, previousPlan } = options ?? {};
+    const { leechWordIds } = options ?? {};
     const plan = new Map<string, ActivePracticeMode>();
     let preferProduction = shuffleArray([true, false])[0];
     const occurrenceByWordId = new Map<string, number>();
@@ -146,8 +143,6 @@ export function buildMixedModePlan(
             allowed,
             isLeech: leechWordIds?.has(word.id) ?? false,
             preferProduction,
-            retryPass,
-            previousMode: previousPlan?.get(planKey) ?? previousPlan?.get(word.id),
             newWordRound: stage === "new" ? newWordRound : undefined,
             modeSlotIndex: queueIndex,
         });

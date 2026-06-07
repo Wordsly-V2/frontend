@@ -111,7 +111,6 @@ export default function VocabularyPractice({
     const [practiceSettingsReady, setPracticeSettingsReady] = useState(false);
     const { mode, autoCheck, showExampleHints, showImageHints, soundEnabled } = practiceSettings;
     const [typingResult, setTypingResult] = useState<"correct" | "incorrect" | null>(null);
-    const [practicePass, setPracticePass] = useState<"main" | "retry-missed">("main");
     const [showSettings, setShowSettings] = useState(false);
     const [showResultDialog, setShowResultDialog] = useState(false);
     const [showWordsList, setShowWordsList] = useState(false);
@@ -177,22 +176,10 @@ export default function VocabularyPractice({
         () => (currentWord ? getClozePrompt(currentWord) : null),
         [currentWord],
     );
-    const mainMixedPlanRef = useRef<Map<string, ActivePracticeMode> | null>(null);
     const mixedModePlan = useMemo(() => {
         if (mode !== "mixed") return null;
-        const plan = buildMixedModePlan(queue, stagesByWordId, {
-            leechWordIds,
-            retryPass: practicePass === "retry-missed",
-            previousPlan:
-                practicePass === "retry-missed"
-                    ? (mainMixedPlanRef.current ?? undefined)
-                    : undefined,
-        });
-        if (practicePass === "main") {
-            mainMixedPlanRef.current = plan;
-        }
-        return plan;
-    }, [mode, queue, stagesByWordId, leechWordIds, practicePass]);
+        return buildMixedModePlan(queue, stagesByWordId, { leechWordIds });
+    }, [mode, queue, stagesByWordId, leechWordIds]);
     const activeMode: ActivePracticeMode = currentWord
         ? resolveActiveMode(
               mode,
@@ -224,7 +211,6 @@ export default function VocabularyPractice({
         word: currentWord,
         wordId: currentWord?.id,
         stage: currentStage,
-        practicePass,
         introAlreadySeen: currentWord
             ? introCompletedIds.has(currentWord.id)
             : false,
@@ -315,68 +301,61 @@ export default function VocabularyPractice({
         [recordDailyPractice, onSummaryReady],
     );
 
+    const mergeWordResult = useCallback(
+        (results: WordResult[], result: WordResult): WordResult[] => {
+            const existingIndex = results.findIndex((r) => r.wordId === result.wordId);
+            if (existingIndex >= 0) {
+                return results.map((r, i) => (i === existingIndex ? result : r));
+            }
+            return [...results, result];
+        },
+        [],
+    );
+
+    const advanceAfterAnswer = useCallback(
+        (result: WordResult, word: IWord) => {
+            if (isWeakAnswer(result.quality)) {
+                sessionStreakRef.current = 0;
+                setSessionStreak(0);
+                setQueue((prev) => [...prev, word]);
+                setCurrentIndex((i) => i + 1);
+                resetWordUi();
+                focusPracticeInput();
+                return;
+            }
+
+            commitResult(result);
+            const mergedResults = mergeWordResult(wordResults, result);
+
+            if (currentIndex < queue.length - 1) {
+                setCurrentIndex((i) => i + 1);
+                resetWordUi();
+                focusPracticeInput();
+                return;
+            }
+
+            finishSession(mergedResults);
+            resetWordUi();
+        },
+        [
+            commitResult,
+            wordResults,
+            currentIndex,
+            queue.length,
+            mergeWordResult,
+            resetWordUi,
+            finishSession,
+            focusPracticeInput,
+        ],
+    );
+
     const handleNextFromDialog = useCallback(() => {
         setShowResultDialog(false);
         const resultToCommit = pendingResult;
         setPendingResult(null);
-
-        let mergedResults = wordResults;
-        if (resultToCommit) {
-            const existingIndex = wordResults.findIndex((r) => r.wordId === resultToCommit.wordId);
-            mergedResults =
-                existingIndex >= 0
-                    ? wordResults.map((r, i) => (i === existingIndex ? resultToCommit : r))
-                    : [...wordResults, resultToCommit];
-            commitResult(resultToCommit);
-        }
-
-        if (currentIndex < queue.length - 1) {
-            setCurrentIndex((i) => i + 1);
-            resetWordUi();
-            focusPracticeInput();
-            return;
-        }
-
-        if (practicePass === "main") {
-            const missedIds = new Set(
-                mergedResults.filter((r) => isWeakAnswer(r.quality)).map((r) => r.wordId),
-            );
-            const missed = words.filter((w) => missedIds.has(w.id));
-            if (missed.length > 0) {
-                setPracticePass("retry-missed");
-                setQueue(shuffleArray(missed));
-                setCurrentIndex(0);
-                setWordResults(mergedResults);
-                resetWordUi();
-                toast.info(`One more try — ${missed.length} word${missed.length === 1 ? "" : "s"}`);
-                focusPracticeInput();
-                return;
-            }
-        }
-
-        finishSession(mergedResults);
-        resetWordUi();
-    }, [
-        pendingResult,
-        wordResults,
-        commitResult,
-        currentIndex,
-        queue.length,
-        resetWordUi,
-        finishSession,
-        focusPracticeInput,
-        practicePass,
-        words,
-    ]);
-
-    const handleTryAgain = useCallback(() => {
-        setShowResultDialog(false);
-        setTypingResult(null);
-        setUserAnswer("");
-        setTimeSpentSeconds(undefined);
-        setPendingResult(null);
-        focusPracticeInput();
-    }, [focusPracticeInput]);
+        if (!resultToCommit || !currentWord) return;
+        advanceAfterAnswer(resultToCommit, currentWord);
+    }, [pendingResult, currentWord, advanceAfterAnswer]);
 
     const getNextHint = useCallback((): string => {
         if (!currentWord) return "";
@@ -503,35 +482,7 @@ export default function VocabularyPractice({
     const handleFlashcardRate = (rating: FlashcardRating) => {
         if (!currentWord) return;
         const result = { wordId: currentWord.id, quality: flashcardRatingToQuality(rating) };
-        const existingIndex = wordResults.findIndex((r) => r.wordId === result.wordId);
-        const mergedResults =
-            existingIndex >= 0
-                ? wordResults.map((r, i) => (i === existingIndex ? result : r))
-                : [...wordResults, result];
-        commitResult(result);
-        if (currentIndex < queue.length - 1) {
-            setCurrentIndex((i) => i + 1);
-            resetWordUi();
-            return;
-        }
-
-        if (practicePass === "main") {
-            const missedIds = new Set(
-                mergedResults.filter((r) => isWeakAnswer(r.quality)).map((r) => r.wordId),
-            );
-            const missed = words.filter((w) => missedIds.has(w.id));
-            if (missed.length > 0) {
-                setPracticePass("retry-missed");
-                setQueue(shuffleArray(missed));
-                setCurrentIndex(0);
-                setWordResults(mergedResults);
-                resetWordUi();
-                toast.info(`One more try — ${missed.length} word${missed.length === 1 ? "" : "s"}`);
-                return;
-            }
-        }
-
-        finishSession(mergedResults);
+        advanceAfterAnswer(result, currentWord);
     };
 
     const generateMultipleChoiceOptions = (correctWord: IWord, allWords: IWord[]): string[] => {
@@ -694,23 +645,9 @@ export default function VocabularyPractice({
         }
     }, [showResultDialog]);
 
-    const handleRetryMissed = () => {
-        const missedIds = new Set(
-            wordResults.filter((r) => isWeakAnswer(r.quality)).map((r) => r.wordId),
-        );
-        const missed = words.filter((w) => missedIds.has(w.id));
-        if (missed.length === 0) return;
-        setPracticePass("retry-missed");
-        setQueue(shuffleArray(missed));
-        setCurrentIndex(0);
-        setPhase("practice");
-        resetWordUi();
-    };
-
     if (phase === "summary" && habitState) {
         return (
             <PracticeSessionSummary
-                words={words}
                 wordResults={wordResults}
                 score={scoreFromResults(wordResults)}
                 habitState={habitState}
@@ -721,9 +658,6 @@ export default function VocabularyPractice({
                         habitState,
                     })
                 }
-                onRetryMissed={
-                    wordResults.some((r) => isWeakAnswer(r.quality)) ? handleRetryMissed : undefined
-                }
             />
         );
     }
@@ -731,7 +665,7 @@ export default function VocabularyPractice({
     if (!currentWord) return null;
 
     const newWordRoundLabel =
-        currentStage === "new" && practicePass === "main"
+        currentStage === "new"
             ? ` · ${currentOccurrence + 1}/${PEDAGOGY.newWordSessionRepetitions}`
             : "";
 
@@ -745,7 +679,6 @@ export default function VocabularyPractice({
                     currentIndex={currentIndex}
                     total={queue.length}
                     sessionStreak={sessionStreak}
-                    isRetryPass={practicePass === "retry-missed"}
                     className="flex-1 min-w-0"
                 />
                 <PracticeToolbar
@@ -791,9 +724,10 @@ export default function VocabularyPractice({
                             examples={rawExamples}
                             timeSpentSeconds={timeSpentSeconds}
                             feedbackSeed={feedbackSeed + currentIndex}
-                            onTryAgain={handleTryAgain}
                             onNext={handleNextFromDialog}
-                            isLastWord={currentIndex === queue.length - 1}
+                            isLastWord={
+                                typingResult === "correct" && currentIndex === queue.length - 1
+                            }
                         />
                     ) : (
                         <>

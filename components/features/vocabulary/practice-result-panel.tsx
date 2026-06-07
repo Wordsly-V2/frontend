@@ -22,7 +22,6 @@ export interface PracticeResultPanelProps {
     imageUrl?: string;
     examples?: string[];
     timeSpentSeconds?: number;
-    onTryAgain: () => void;
     onNext: () => void;
     isLastWord: boolean;
     feedbackSeed?: number;
@@ -41,7 +40,6 @@ export function PracticeResultPanel({
     imageUrl,
     examples = [],
     timeSpentSeconds,
-    onTryAgain,
     onNext,
     isLastWord,
     feedbackSeed = 0,
@@ -76,6 +74,11 @@ export function PracticeResultPanel({
                 : `${(60 / timeSpentSeconds).toFixed(1)}/min`;
     }
 
+    let continueLabel = "Continue";
+    if (isCorrect && isLastWord) {
+        continueLabel = "Finish session";
+    }
+
     return (
         <div
             className={cn(
@@ -106,6 +109,9 @@ export function PracticeResultPanel({
                                 You wrote: {userAnswer}
                             </p>
                         )}
+                        <p className="text-xs text-muted-foreground">
+                            You&apos;ll see this word again before the session ends.
+                        </p>
                     </div>
                 )}
                 {speedLabel && (
@@ -232,13 +238,8 @@ export function PracticeResultPanel({
             </div>
 
             <div className="flex gap-2">
-                {!isCorrect && (
-                    <Button type="button" variant="outline" onClick={onTryAgain} className="flex-1 rounded-xl">
-                        Try again
-                    </Button>
-                )}
                 <Button type="button" onClick={onNext} className="flex-1 rounded-xl">
-                    {isLastWord ? "Finish session" : "Continue"}
+                    {continueLabel}
                     <span className="ml-1.5 text-xs opacity-70 font-normal">Enter</span>
                 </Button>
             </div>

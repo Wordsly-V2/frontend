@@ -7,7 +7,6 @@ interface PracticeProgressHeaderProps {
     currentIndex: number;
     total: number;
     sessionStreak?: number;
-    isRetryPass?: boolean;
     className?: string;
 }
 
@@ -15,7 +14,6 @@ export function PracticeProgressHeader({
     currentIndex,
     total,
     sessionStreak = 0,
-    isRetryPass = false,
     className,
 }: Readonly<PracticeProgressHeaderProps>) {
     const progress = total > 0 ? ((currentIndex + 1) / total) * 100 : 100;
@@ -24,9 +22,7 @@ export function PracticeProgressHeader({
         <div className={cn("space-y-2", className)}>
             <div className="flex items-center justify-between gap-2 text-xs font-medium">
                 <div className="flex items-center gap-2 min-w-0">
-                    <span className="text-muted-foreground truncate">
-                        {isRetryPass ? "Retry round" : "Progress"}
-                    </span>
+                    <span className="text-muted-foreground truncate">Progress</span>
                     {sessionStreak >= 3 && (
                         <span className="inline-flex items-center gap-1 rounded-full bg-orange-500/10 px-2 py-0.5 text-orange-600 dark:text-orange-400 font-semibold shrink-0">
                             <Flame className="h-3 w-3" aria-hidden />

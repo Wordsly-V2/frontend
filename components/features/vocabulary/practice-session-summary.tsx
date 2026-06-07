@@ -5,56 +5,32 @@ import { dailyGoalProgress } from "@/lib/daily-habit";
 import { pickSessionCompleteMessage } from "@/lib/practice-feedback";
 import type { IDailyHabit } from "@/types/daily-habit/daily-habit.type";
 import { AnswerQuality } from "@/types/word-progress/word-progress.type";
-import { IWord } from "@/types/courses/courses.type";
-import { isEditableKeyboardTarget, useEnterKeyAction } from "@/lib/keyboard-utils";
+import { useEnterKeyAction } from "@/lib/keyboard-utils";
 import type { WordResult } from "@/types/practice/practice.type";
-import { ArrowRight, Award, Flame, RotateCcw, Sparkles, Target } from "lucide-react";
-import { useCallback, useEffect } from "react";
+import { ArrowRight, Award, Flame, Sparkles, Target } from "lucide-react";
+import { useCallback } from "react";
 
 export type SessionWordResult = WordResult;
 
 export interface PracticeSessionSummaryProps {
-    words: IWord[];
     wordResults: SessionWordResult[];
     score: number;
     habitState: IDailyHabit;
     onContinue: () => void;
-    onRetryMissed?: () => void;
-}
-
-function isMissed(quality: AnswerQuality): boolean {
-    return quality <= AnswerQuality.INCORRECT;
 }
 
 export function PracticeSessionSummary({
-    words,
     wordResults,
     score,
     habitState,
     onContinue,
-    onRetryMissed,
 }: Readonly<PracticeSessionSummaryProps>) {
-    const missedIds = new Set(
-        wordResults.filter((r) => isMissed(r.quality)).map((r) => r.wordId),
-    );
-    const missedWords = words.filter((w) => missedIds.has(w.id));
     const strongCount = wordResults.filter((r) => r.quality >= AnswerQuality.CORRECT_WITH_HESITATION).length;
     const goal = dailyGoalProgress(habitState.wordsToday, habitState.goal);
     const headline = pickSessionCompleteMessage(score, wordResults.length);
     const handleContinue = useCallback(() => onContinue(), [onContinue]);
 
     useEnterKeyAction(handleContinue, true);
-
-    useEffect(() => {
-        const onKeyDown = (e: KeyboardEvent) => {
-            if (e.key.toLowerCase() !== "r" || missedWords.length === 0 || !onRetryMissed) return;
-            if (isEditableKeyboardTarget(e.target)) return;
-            e.preventDefault();
-            onRetryMissed();
-        };
-        globalThis.addEventListener("keydown", onKeyDown);
-        return () => globalThis.removeEventListener("keydown", onKeyDown);
-    }, [onRetryMissed, missedWords.length]);
 
     return (
         <div className="animate-in fade-in duration-500 text-center py-4 sm:py-8 max-w-lg mx-auto w-full">
@@ -121,33 +97,7 @@ export function PracticeSessionSummary({
                 </div>
             </div>
 
-            {missedWords.length > 0 && (
-                <div className="max-w-md mx-auto mb-6 rounded-xl border border-orange-200/80 bg-orange-50/80 dark:bg-orange-950/20 dark:border-orange-800/50 p-4 text-left">
-                    <p className="text-sm font-medium text-orange-800 dark:text-orange-200 mb-2">
-                        Needs more practice ({missedWords.length})
-                    </p>
-                    <ul className="space-y-1 text-sm text-orange-700 dark:text-orange-300">
-                        {missedWords.slice(0, 5).map((w) => (
-                            <li key={w.id}>
-                                <span className="font-medium">{w.word}</span>
-                                <span className="text-orange-600/80 dark:text-orange-400/80"> — {w.meaning}</span>
-                            </li>
-                        ))}
-                        {missedWords.length > 5 && (
-                            <li className="text-xs text-muted-foreground">+{missedWords.length - 5} more</li>
-                        )}
-                    </ul>
-                </div>
-            )}
-
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                {missedWords.length > 0 && onRetryMissed && (
-                    <Button variant="outline" size="lg" onClick={onRetryMissed} className="gap-2 rounded-xl">
-                        <RotateCcw className="h-4 w-4" aria-hidden />
-                        Retry missed words
-                        <span className="text-xs text-muted-foreground font-normal">(R)</span>
-                    </Button>
-                )}
                 <Button size="lg" onClick={onContinue} className="gap-2 rounded-xl gradient-brand text-white shadow-md">
                     Continue
                     <ArrowRight className="h-4 w-4" aria-hidden />
