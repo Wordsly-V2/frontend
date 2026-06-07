@@ -13,7 +13,10 @@ import { ILesson, IWord } from "@/types/courses/courses.type";
 import WordDetailDialog from "@/components/features/manage/word-detail-dialog";
 import { ArrowLeft, BookOpen, Brain, ChevronDown, ChevronRight, Eye, GraduationCap, List, Play, Search, Volume2 } from "lucide-react";
 import Image from "next/image";
-import { useRouter, useSearchParams } from "next/navigation";
+import { buildWordsDetailsUrl } from "@/lib/search-params/word-selection";
+import { courseWordFocusSearchParams } from "@/lib/search-params/course-word-focus";
+import { useQueryStates } from "nuqs";
+import { useRouter } from "next/navigation";
 import {
     DUE_WORDS_LIMIT_OPTIONS,
     DUE_WORDS_LIMIT_STORAGE_KEY,
@@ -28,7 +31,7 @@ import { toast } from "sonner";
 export default function LearnCourseDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = use(params);
     const router = useRouter();
-    const searchParams = useSearchParams();
+    const [{ word: urlWord, lessonId: urlLessonId }] = useQueryStates(courseWordFocusSearchParams);
     const appliedFocusRef = useRef(false);
     const [expandedLessons, setExpandedLessons] = useState<Set<string>>(new Set());
     const [selectedWords, setSelectedWords] = useState<Set<string>>(new Set());
@@ -55,8 +58,6 @@ export default function LearnCourseDetailPage({ params }: { params: Promise<{ id
     }, [dueWordsLimit]);
 
     // When opening from nav word search: apply URL params to state (fill search, expand lesson)
-    const urlWord = searchParams.get("word");
-    const urlLessonId = searchParams.get("lessonId");
     useEffect(() => {
         function applyUrlParams() {
         if (!course || !urlWord || !urlLessonId) return;
@@ -683,9 +684,12 @@ export default function LearnCourseDetailPage({ params }: { params: Promise<{ id
                             variant="secondary"
                             onClick={() => {
                                 setActionsMenuOpen(false);
-                                const wordIds = Array.from(selectedWords).join(",");
                                 router.push(
-                                    `/learn/words-details?courseId=${id}&courseName=${encodeURIComponent(course.name)}&wordIds=${wordIds}`,
+                                    buildWordsDetailsUrl({
+                                        courseId: id,
+                                        courseName: course.name,
+                                        wordIds: Array.from(selectedWords),
+                                    }),
                                 );
                             }}
                             disabled={selectedWords.size === 0}

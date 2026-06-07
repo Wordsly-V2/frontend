@@ -13,6 +13,10 @@ import { WordDetailView } from "@/types/courses/courses.type";
 import { BookOpen, ExternalLink, Film, Plus, Volume2 } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import {
+    buildLearnCourseWordUrl,
+    buildManageCourseWordUrl,
+} from "@/lib/search-params/course-word-focus";
 
 function getWordExamples(word: WordDetailView): string[] {
     try {
@@ -55,14 +59,16 @@ export default function WordDetailDialog({ word, isOpen, onClose, courseId, less
 
     const handleGoToManage = () => {
         onClose();
-        const params = new URLSearchParams({ word: word.word, lessonId: lessonId! });
-        router.push(`/manage/courses/${courseId}?${params.toString()}`);
+        router.push(
+            buildManageCourseWordUrl(courseId!, { word: word.word, lessonId: lessonId! }),
+        );
     };
 
     const handleGoToLearn = () => {
         onClose();
-        const params = new URLSearchParams({ word: word.word, lessonId: lessonId! });
-        router.push(`/learn/courses/${courseId}?${params.toString()}`);
+        router.push(
+            buildLearnCourseWordUrl(courseId!, { word: word.word, lessonId: lessonId! }),
+        );
     };
 
     if (isLoading && !word) {

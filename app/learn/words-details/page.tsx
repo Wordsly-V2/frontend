@@ -3,39 +3,47 @@
 import LoadingSection from "@/components/common/loading-section/loading-section";
 import WordDetailsCarousel from "@/components/features/vocabulary/word-details-carousel";
 import { Button } from "@/components/ui/button";
+import { wordSelectionSearchParams } from "@/lib/search-params/word-selection";
 import { useGetWordsByIdsQuery } from "@/queries/words.query";
 import { ArrowLeft, BookOpen } from "lucide-react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useQueryStates } from "nuqs";
+import { useRouter } from "next/navigation";
 import { motion, useReducedMotion } from "motion/react";
 import { useEffect, useState } from "react";
 
 export default function WordsDetailsPage() {
     const router = useRouter();
-    const searchParams = useSearchParams();
+    const [{ courseId, courseName, wordIds }] = useQueryStates(wordSelectionSearchParams);
     const [currentIndex, setCurrentIndex] = useState(0);
     const reduceMotion = useReducedMotion();
 
-    const courseName = searchParams.get("courseName") ?? "";
-    const courseId = searchParams.get("courseId") ?? "";
-    const wordIdsParam = searchParams.get("wordIds") ?? "";
-    const wordIds = wordIdsParam ? wordIdsParam.split(",").filter(Boolean) : [];
+    const wordIdList = wordIds ?? [];
+    const paramsValid = Boolean(courseId && wordIdList.length > 0);
 
     const { data: words, isLoading, isError, refetch } = useGetWordsByIdsQuery(
-        courseId,
-        wordIds,
-        !!courseId && wordIds.length > 0
+        courseId ?? "",
+        wordIdList,
+        paramsValid,
     );
 
     useEffect(() => {
-        if (courseId && wordIds.length === 0) {
+        if (!paramsValid) {
             router.replace("/learn");
         }
-    }, [courseId, wordIds.length, router]);
+    }, [paramsValid, router]);
 
     const handleBackToCourse = () => {
         if (courseId) router.push(`/learn/courses/${courseId}`);
         else router.push("/learn");
     };
+
+    if (!paramsValid) {
+        return (
+            <main className="flex min-h-dvh items-center justify-center px-4">
+                <p className="text-sm text-muted-foreground">Taking you to Learn…</p>
+            </main>
+        );
+    }
 
     if (isLoading || isError) {
         return (

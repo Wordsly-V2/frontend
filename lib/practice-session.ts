@@ -1,16 +1,10 @@
-import {
-    createSerializer,
-    parseAsArrayOf,
-    parseAsString,
-    parseAsStringLiteral,
-} from "nuqs/server";
+import { createSerializer, parseAsStringLiteral } from "nuqs/server";
+import { wordSelectionSearchParams } from "@/lib/search-params/word-selection";
 
 export type PracticeSessionKind = "new" | "review";
 
 export const practiceSessionSearchParams = {
-    courseId: parseAsString,
-    courseName: parseAsString,
-    wordIds: parseAsArrayOf(parseAsString),
+    ...wordSelectionSearchParams,
     kind: parseAsStringLiteral(["new", "review"] as const).withDefault("new"),
 };
 

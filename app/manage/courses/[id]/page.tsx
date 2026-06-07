@@ -2,7 +2,9 @@
 
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
-import { useRouter, useSearchParams } from "next/navigation";
+import { courseWordFocusSearchParams } from "@/lib/search-params/course-word-focus";
+import { useQueryStates } from "nuqs";
+import { useRouter } from "next/navigation";
 import { use, useEffect, useRef, useState } from "react";
 
 import ConfirmDialog from "@/components/common/confirm-dialog/confirm-dialog";
@@ -317,7 +319,7 @@ function SortableLesson({
 export default function ManageCourseDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = use(params);
     const router = useRouter();
-    const searchParams = useSearchParams();
+    const [{ word: urlWord, lessonId: urlLessonId }] = useQueryStates(courseWordFocusSearchParams);
     const appliedFocusRef = useRef(false);
     const [expandedLessons, setExpandedLessons] = useState<Set<string>>(new Set());
     const [selectedWords, setSelectedWords] = useState<Set<string>>(new Set());
@@ -375,8 +377,6 @@ export default function ManageCourseDetailPage({ params }: { params: Promise<{ i
     const isLoadingOtherCourses = otherCoursesDetailsQueries.some((q) => q.isLoading);
 
     // When opening from nav word search: apply URL params to state (fill search, expand lesson)
-    const urlWord = searchParams.get("word");
-    const urlLessonId = searchParams.get("lessonId");
     useEffect(() => {
         function applyUrlParams() {
             if (!course || !urlWord || !urlLessonId) return;

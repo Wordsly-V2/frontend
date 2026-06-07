@@ -11,6 +11,10 @@ import { IUserWordSearchResult } from "@/types/courses/courses.type";
 import { BookOpen, ExternalLink } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import {
+    buildLearnCourseWordUrl,
+    buildManageCourseWordUrl,
+} from "@/lib/search-params/course-word-focus";
 
 interface UserWordViewDialogProps {
     readonly word: IUserWordSearchResult | null;
@@ -25,14 +29,22 @@ export default function UserWordViewDialog({ word, isOpen, onClose }: Readonly<U
 
     const handleGoToCourse = () => {
         onClose();
-        const params = new URLSearchParams({ word: word.word, lessonId: word.lessonId });
-        router.push(`/manage/courses/${word.courseId}?${params.toString()}`);
+        router.push(
+            buildManageCourseWordUrl(word.courseId, {
+                word: word.word,
+                lessonId: word.lessonId,
+            }),
+        );
     };
 
     const handleGoToLearn = () => {
         onClose();
-        const params = new URLSearchParams({ word: word.word, lessonId: word.lessonId });
-        router.push(`/learn/courses/${word.courseId}?${params.toString()}`);
+        router.push(
+            buildLearnCourseWordUrl(word.courseId, {
+                word: word.word,
+                lessonId: word.lessonId,
+            }),
+        );
     };
 
     return (
