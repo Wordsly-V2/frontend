@@ -8,10 +8,12 @@ import ManageCourseCard from "@/components/features/manage/manage-course-card";
 import { Button } from "@/components/ui/button";
 import { Pagination } from "@/components/ui/pagination";
 import { useCourses } from "@/hooks/useCourses.hook";
+import { coursesListSearchParams } from "@/lib/search-params/courses-list";
 import { useGetMyCoursesQuery } from "@/queries/courses.query";
 import { useGetProgressStatsByCourseIdsQuery } from "@/queries/word-progress.query";
 import { ICourse } from "@/types/courses/courses.type";
 import { Plus } from "lucide-react";
+import { useQueryStates } from "nuqs";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 
@@ -20,8 +22,10 @@ interface ManageCoursesProps {
 }
 
 export default function ManageCourses({ onRegisterCreateCourse }: Readonly<ManageCoursesProps>) {
-    const [currentPage, setCurrentPage] = useState(1);
-    const [searchQuery, setSearchQuery] = useState("");
+    const [{ q: searchQuery, page: currentPage }, setSearchParams] = useQueryStates(
+        coursesListSearchParams,
+        { history: "replace" },
+    );
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [editingCourse, setEditingCourse] = useState<ICourse | undefined>();
     const [deleteConfirm, setDeleteConfirm] = useState<ICourse | null>(null);
@@ -54,7 +58,7 @@ export default function ManageCourses({ onRegisterCreateCourse }: Readonly<Manag
         mutationCreateMyCourse.mutate(courseData, {
             onSuccess: () => {
                 loadCourses();
-                setCurrentPage(1);
+                setSearchParams({ page: 1 });
                 setIsFormOpen(false);
                 toast.success("Course created successfully");
             },
@@ -96,7 +100,7 @@ export default function ManageCourses({ onRegisterCreateCourse }: Readonly<Manag
         return mutationDeleteMyCourse.mutate(courseId, {
             onSuccess: () => {
                 loadCourses();
-                setCurrentPage(1);
+                setSearchParams({ page: 1 });
                 setDeleteConfirm(null);
                 toast.success("Course deleted successfully");
             },
@@ -107,12 +111,11 @@ export default function ManageCourses({ onRegisterCreateCourse }: Readonly<Manag
     };
 
     const handleSearch = (query: string) => {
-        setSearchQuery(query);
-        setCurrentPage(1);
+        setSearchParams({ q: query || null, page: 1 });
     };
 
     const handlePageChange = (page: number) => {
-        setCurrentPage(page);
+        setSearchParams({ page });
     };
 
     return (

@@ -29,7 +29,7 @@ import {
 import { setLastLearnCourse } from "@/lib/learning-session";
 import { buildPracticeUrl } from "@/lib/practice-session";
 import { setLocalStorageItem } from "@/lib/local-storage";
-import { use, useEffect, useMemo, useRef, useState } from "react";
+import { startTransition, use, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
 function getActionsMenuDescription(selectedCount: number, dueToday: number | undefined): string {
@@ -51,12 +51,14 @@ function getActionsMenuBadge(selectedCount: number, dueWordCount: number): numbe
 export default function LearnCourseDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = use(params);
     const router = useRouter();
-    const [{ word: urlWord, lessonId: urlLessonId }] = useQueryStates(courseWordFocusSearchParams);
+    const [{ word: searchQuery, lessonId: urlLessonId }, setSearchParams] = useQueryStates(
+        courseWordFocusSearchParams,
+        { history: "replace" },
+    );
     const appliedFocusRef = useRef(false);
     const [expandedLessons, setExpandedLessons] = useState<Set<string>>(new Set());
     const [selectedWords, setSelectedWords] = useState<Set<string>>(new Set());
     const [dueWordsLimit, setDueWordsLimit] = useState(readDueWordsLimitFromStorage);
-    const [searchQuery, setSearchQuery] = useState("");
     const [viewingWord, setViewingWord] = useState<IWord | null>(null);
     const [actionsMenuOpen, setActionsMenuOpen] = useState(false);
 
@@ -77,22 +79,20 @@ export default function LearnCourseDetailPage({ params }: { params: Promise<{ id
         setLocalStorageItem(DUE_WORDS_LIMIT_STORAGE_KEY, JSON.stringify(dueWordsLimit));
     }, [dueWordsLimit]);
 
-    // When opening from nav word search: apply URL params to state (fill search, expand lesson)
+    // When opening from nav word search: expand the target lesson
     useEffect(() => {
-        function applyUrlParams() {
-        if (!course || !urlWord || !urlLessonId) return;
+        startTransition(() => {
+            if (!course || !urlLessonId) return;
             const lessonExists = course.lessons?.some((l: ILesson) => l.id === urlLessonId);
             if (!lessonExists) return;
-            setSearchQuery(urlWord);
             setExpandedLessons((prev) => new Set(prev).add(urlLessonId));
-        }
-        applyUrlParams();
-    }, [course, urlWord, urlLessonId]);
+        });
+    }, [course, urlLessonId]);
 
-    // Scroll to lesson after state has been applied and DOM has the lesson element
+    // Scroll to lesson after expand state has been applied
     useEffect(() => {
-        if (!course || !urlWord || !urlLessonId || appliedFocusRef.current) return;
-        if (searchQuery !== urlWord || !expandedLessons.has(urlLessonId)) return;
+        if (!course || !searchQuery || !urlLessonId || appliedFocusRef.current) return;
+        if (!expandedLessons.has(urlLessonId)) return;
         appliedFocusRef.current = true;
 
         function tryScroll(attempt: number) {
@@ -105,7 +105,7 @@ export default function LearnCourseDetailPage({ params }: { params: Promise<{ id
         }
         const t = setTimeout(() => tryScroll(0), 50);
         return () => clearTimeout(t);
-    }, [course, urlWord, urlLessonId, searchQuery, expandedLessons]);
+    }, [course, searchQuery, urlLessonId, expandedLessons]);
     const courseWordIds = useMemo(
         () =>
             course?.lessons?.flatMap(
@@ -161,7 +161,7 @@ export default function LearnCourseDetailPage({ params }: { params: Promise<{ id
         }
     });
 
-    const q = searchQuery.trim().toLowerCase();
+    const q = (searchQuery ?? "").trim().toLowerCase();
     const wordMatchesSearch = (w: IWord) =>
         !q ||
         [w.word, w.meaning, w.pronunciation].some(
@@ -171,11 +171,11 @@ export default function LearnCourseDetailPage({ params }: { params: Promise<{ id
         !q
             ? course.lessons ?? []
             : (course.lessons ?? [])
-                  .map((lesson) => ({
-                      ...lesson,
-                      words: (lesson.words ?? []).filter(wordMatchesSearch),
-                  }))
-                  .filter((lesson) => lesson.words!.length > 0);
+                .map((lesson) => ({
+                    ...lesson,
+                    words: (lesson.words ?? []).filter(wordMatchesSearch),
+                }))
+                .filter((lesson) => lesson.words!.length > 0);
     const filteredWordIds = new Set(filteredLessons.flatMap((l) => (l.words ?? []).map((w) => w.id)));
 
     const actionsMenuDescription = getActionsMenuDescription(
@@ -229,7 +229,7 @@ export default function LearnCourseDetailPage({ params }: { params: Promise<{ id
     };
 
     const selectAllWords = () => {
-        const ids = searchQuery.trim() ? filteredWordIds : new Set(allWords.map((w) => w.id));
+        const ids = (searchQuery ?? "").trim() ? filteredWordIds : new Set(allWords.map((w) => w.id));
         setSelectedWords(new Set(ids));
     };
 
@@ -425,8 +425,14 @@ export default function LearnCourseDetailPage({ params }: { params: Promise<{ id
                                 type="search"
                                 inputMode="search"
                                 placeholder="Search words, meanings, pronunciation…"
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
+                                value={searchQuery ?? ""}
+                                onChange={(e) => {
+                                    const value = e.target.value;
+                                    setSearchParams({
+                                        word: value || null,
+                                        lessonId: null,
+                                    });
+                                }}
                                 className="h-10 pl-9"
                                 aria-label="Search words"
                             />
@@ -461,7 +467,7 @@ export default function LearnCourseDetailPage({ params }: { params: Promise<{ id
                     {filteredLessons.length === 0 ? (
                         <div className="text-center py-12 border-2 border-dashed border-border rounded-xl bg-muted/30">
                             <p className="text-sm sm:text-base text-muted-foreground">
-                                {course.lessons?.length === 0 ? "No lessons yet" : searchQuery.trim() ? "No words match your search" : "No lessons yet"}
+                                {course.lessons?.length === 0 ? "No lessons yet" : (searchQuery ?? "").trim() ? "No words match your search" : "No lessons yet"}
                             </p>
                         </div>
                     ) : (

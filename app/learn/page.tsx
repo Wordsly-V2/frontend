@@ -9,28 +9,30 @@ import { DailyHabitCard } from "@/components/features/learn/daily-habit-card";
 import CourseGrid from "@/components/features/courses/course-grid";
 import CoursesHeader from "@/components/features/courses/courses-header";
 import { Pagination } from "@/components/ui/pagination";
+import { coursesListSearchParams } from "@/lib/search-params/courses-list";
 import { useGetMyCoursesQuery, useGetMyCoursesTotalStatsQuery } from "@/queries/courses.query";
 import { useGetProgressStatsQuery } from "@/queries/word-progress.query";
-import { useState } from "react";
+import { useQueryStates } from "nuqs";
 
 export default function LearnPage() {
     const { data: courseTotalStats, isLoading: isLoadingCourseTotalStats, isError: isErrorCourseTotalStats, refetch: refetchCourseTotalStats } = useGetMyCoursesTotalStatsQuery();
     const isLoadingStats = isLoadingCourseTotalStats || isErrorCourseTotalStats || !courseTotalStats;
     const { data: wordProgressStats, isLoading: isLoadingProgressStats, isError: isErrorProgressStats, refetch: refetchProgressStats } = useGetProgressStatsQuery(undefined, undefined, true);
 
-    const [currentPage, setCurrentPage] = useState(1);
-    const [searchQuery, setSearchQuery] = useState("");
+    const [{ q: searchQuery, page: currentPage }, setSearchParams] = useQueryStates(
+        coursesListSearchParams,
+        { history: "replace" },
+    );
     const itemsPerPage = 10;
 
     const { data: paginatedData, isLoading: isLoadingCourses, isError: isErrorCourses, refetch: refetchCourses } = useGetMyCoursesQuery(itemsPerPage, currentPage, "name", "asc", searchQuery);
 
     const handleSearch = (query: string) => {
-        setSearchQuery(query);
-        setCurrentPage(1); // Reset to first page on search
+        setSearchParams({ q: query || null, page: 1 });
     };
 
     const handlePageChange = (page: number) => {
-        setCurrentPage(page);
+        setSearchParams({ page });
     };
 
 

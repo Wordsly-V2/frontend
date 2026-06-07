@@ -319,11 +319,13 @@ function SortableLesson({
 export default function ManageCourseDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = use(params);
     const router = useRouter();
-    const [{ word: urlWord, lessonId: urlLessonId }] = useQueryStates(courseWordFocusSearchParams);
+    const [{ word: searchQuery, lessonId: urlLessonId }, setSearchParams] = useQueryStates(
+        courseWordFocusSearchParams,
+        { history: "replace" },
+    );
     const appliedFocusRef = useRef(false);
     const [expandedLessons, setExpandedLessons] = useState<Set<string>>(new Set());
     const [selectedWords, setSelectedWords] = useState<Set<string>>(new Set());
-    const [searchQuery, setSearchQuery] = useState("");
 
     // Dialog states
     const [courseFormOpen, setCourseFormOpen] = useState(false);
@@ -376,22 +378,18 @@ export default function ManageCourseDetailPage({ params }: { params: Promise<{ i
             }));
     const isLoadingOtherCourses = otherCoursesDetailsQueries.some((q) => q.isLoading);
 
-    // When opening from nav word search: apply URL params to state (fill search, expand lesson)
+    // When opening from nav word search: expand the target lesson
     useEffect(() => {
-        function applyUrlParams() {
-            if (!course || !urlWord || !urlLessonId) return;
-            const lessonExists = course.lessons?.some((l: ILesson) => l.id === urlLessonId);
-            if (!lessonExists) return;
-            setSearchQuery(urlWord);
-            setExpandedLessons((prev) => new Set(prev).add(urlLessonId));
-        }
-        applyUrlParams();
-    }, [course, urlWord, urlLessonId]);
+        if (!course || !urlLessonId) return;
+        const lessonExists = course.lessons?.some((l: ILesson) => l.id === urlLessonId);
+        if (!lessonExists) return;
+        setExpandedLessons((prev) => new Set(prev).add(urlLessonId));
+    }, [course, urlLessonId]);
 
-    // Scroll to lesson after state has been applied and DOM has the lesson element
+    // Scroll to lesson after expand state has been applied
     useEffect(() => {
-        if (!course || !urlWord || !urlLessonId || appliedFocusRef.current) return;
-        if (searchQuery !== urlWord || !expandedLessons.has(urlLessonId)) return;
+        if (!course || !searchQuery || !urlLessonId || appliedFocusRef.current) return;
+        if (!expandedLessons.has(urlLessonId)) return;
         appliedFocusRef.current = true;
 
         function tryScroll(attempt: number) {
@@ -404,7 +402,7 @@ export default function ManageCourseDetailPage({ params }: { params: Promise<{ i
         }
         const t = setTimeout(() => tryScroll(0), 50);
         return () => clearTimeout(t);
-    }, [course, urlWord, urlLessonId, searchQuery, expandedLessons]);
+    }, [course, searchQuery, urlLessonId, expandedLessons]);
     const { mutationCreateMyCourseLesson, mutationUpdateMyCourseLesson, mutationDeleteMyCourseLesson, mutationReorderMyCourseLessons } = useLessons();
     const { mutationCreateMyWord, mutationUpdateMyWord, mutationDeleteMyWord, mutationBulkDeleteMyWords, mutationBulkDeleteMyWordsFromCourse, mutationBulkMoveMyWordsFromCourse } = useWords();
 
@@ -675,7 +673,7 @@ export default function ManageCourseDetailPage({ params }: { params: Promise<{ i
         );
     }
 
-    const q = searchQuery.trim().toLowerCase();
+    const q = (searchQuery ?? "").trim().toLowerCase();
     const wordMatchesSearch = (w: IWord) =>
         !q ||
         [w.word, w.meaning, w.pronunciation].some(
@@ -821,8 +819,14 @@ export default function ManageCourseDetailPage({ params }: { params: Promise<{ i
                             type="search"
                             inputMode="search"
                             placeholder="Search words by text, meaning, or pronunciation…"
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
+                            value={searchQuery ?? ""}
+                            onChange={(e) => {
+                                const value = e.target.value;
+                                setSearchParams({
+                                    word: value || null,
+                                    lessonId: null,
+                                });
+                            }}
                             className="h-10 pl-9"
                             aria-label="Search words"
                         />
