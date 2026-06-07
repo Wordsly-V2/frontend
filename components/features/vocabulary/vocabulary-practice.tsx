@@ -27,7 +27,7 @@ import {
 } from "@/lib/daily-habit";
 import type { IDailyHabit } from "@/types/daily-habit/daily-habit.type";
 import { useRecordDailyPracticeMutation } from "@/queries/daily-habit.query";
-import { playAudioUrl } from "@/lib/practice-audio";
+import { playAudioUrl, preloadAudioUrl } from "@/lib/practice-audio";
 import { pickMilestoneMessage } from "@/lib/practice-feedback";
 import type { PracticeSessionKind } from "@/lib/practice-session";
 import {
@@ -519,6 +519,16 @@ export default function VocabularyPractice({
             wordStartTimeRef.current = Date.now();
         }
     }, [currentIndex, activeMode, showIntro]);
+
+    useEffect(() => {
+        if (currentWord?.audioUrl) {
+            preloadAudioUrl(currentWord.audioUrl);
+        }
+        const nextWord = queue[currentIndex + 1];
+        if (nextWord?.audioUrl) {
+            preloadAudioUrl(nextWord.audioUrl);
+        }
+    }, [currentIndex, currentWord?.audioUrl, queue]);
 
     useEffect(() => {
         if (
