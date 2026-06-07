@@ -51,3 +51,34 @@ export function deriveNewWordIds(
     const dueSet = new Set(dueWordIds ?? []);
     return (practiceBatchWordIds ?? []).filter((id) => !dueSet.has(id));
 }
+
+export function getPracticeBannerCopy(
+    dueWordCount: number,
+    newWordCount: number,
+    dueTodayTotal?: number,
+    newWordsTotal?: number,
+): { title: string; subtitle: string } | null {
+    if (dueWordCount === 0 && newWordCount === 0) return null;
+
+    const dueTotal = dueTodayTotal ?? dueWordCount;
+    const newTotal = newWordsTotal ?? newWordCount;
+
+    if (dueWordCount > 0 && newWordCount > 0) {
+        return {
+            title: "Review due words or learn new ones",
+            subtitle: `${dueTotal} due for review · ${newTotal.toLocaleString()} new in this course`,
+        };
+    }
+
+    if (dueWordCount > 0) {
+        return {
+            title: `${dueTotal} word${dueTotal === 1 ? "" : "s"} due for review`,
+            subtitle: "Review now while they are fresh — spaced repetition works best on schedule.",
+        };
+    }
+
+    return {
+        title: `${newTotal.toLocaleString()} new word${newTotal === 1 ? "" : "s"} to learn`,
+        subtitle: "Start a fresh batch — introductions and guided practice for words you haven't studied yet.",
+    };
+}

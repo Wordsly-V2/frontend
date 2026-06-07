@@ -143,7 +143,7 @@ export function LearnQuickActions() {
                                 courseName={last.name}
                                 className="min-w-0 max-w-full justify-between gap-2 sm:max-w-[min(100%,20rem)]"
                             />
-                            {dueCount > 0 ? (
+                            {dueCount > 0 && (
                                 <Button
                                     type="button"
                                     variant="outline"
@@ -154,12 +154,13 @@ export function LearnQuickActions() {
                                     <Brain className="h-4 w-4" aria-hidden />
                                     {getReviewDueButtonLabel(wordsLoading, dueCount)}
                                 </Button>
-                            ) : (
+                            )}
+                            {newCount > 0 && (
                                 <Button
                                     type="button"
                                     variant="outline"
                                     className="w-full rounded-xl gap-2 border-primary/25 sm:w-auto"
-                                    disabled={wordsLoading || newCount === 0}
+                                    disabled={wordsLoading}
                                     onClick={handleLearnNew}
                                 >
                                     <Sparkles className="h-4 w-4" aria-hidden />

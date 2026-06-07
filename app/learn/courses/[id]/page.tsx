@@ -22,6 +22,7 @@ import {
     DUE_WORDS_LIMIT_STORAGE_KEY,
     deriveNewWordIds,
     getLearnNewButtonLabel,
+    getPracticeBannerCopy,
     getReviewDueButtonLabel,
     readDueWordsLimitFromStorage,
 } from "@/lib/due-words-limit";
@@ -182,6 +183,13 @@ export default function LearnCourseDetailPage({ params }: { params: Promise<{ id
         courseStats?.dueToday,
     );
     const actionsMenuBadge = getActionsMenuBadge(selectedWords.size, dueWordCount);
+
+    const practiceBanner = getPracticeBannerCopy(
+        dueWordCount,
+        newWordCount,
+        courseStats?.dueToday,
+        courseStats?.newWords,
+    );
 
     const toggleLesson = (lessonId: string) => {
         const newExpanded = new Set(expandedLessons);
@@ -363,30 +371,42 @@ export default function LearnCourseDetailPage({ params }: { params: Promise<{ id
                     )}
                 </div>
 
-                {/* Due review banner */}
-                {courseStats?.dueToday != null && courseStats.dueToday > 0 && (
+                {/* Practice banner — review due and/or learn new */}
+                {practiceBanner && (
                     <div className="mb-6 flex flex-col gap-3 rounded-2xl border border-primary/30 bg-primary/5 p-4 sm:flex-row sm:items-center sm:justify-between">
                         <div className="min-w-0">
                             <p className="text-sm font-semibold text-foreground">
-                                {courseStats.dueToday} word{courseStats.dueToday === 1 ? "" : "s"} due for review
+                                {practiceBanner.title}
                             </p>
                             <p className="text-xs text-muted-foreground mt-0.5">
-                                Review now while they are fresh — spaced repetition works best on schedule.
+                                {practiceBanner.subtitle}
                             </p>
                         </div>
-                        <Button
-                            type="button"
-                            onClick={handlePracticeDueWords}
-                            disabled={
-                                isDueWordIdsLoading ||
-                                !dueWordIds ||
-                                dueWordIds.wordIds.length === 0
-                            }
-                            className="shrink-0 rounded-xl gap-2"
-                        >
-                            <Brain className="h-4 w-4" aria-hidden />
-                            {getReviewDueButtonLabel(isDueWordIdsLoading, dueWordCount)}
-                        </Button>
+                        <div className="flex shrink-0 flex-col gap-2 sm:flex-row">
+                            {dueWordCount > 0 && (
+                                <Button
+                                    type="button"
+                                    onClick={handlePracticeDueWords}
+                                    disabled={practiceWordsLoading}
+                                    className="rounded-xl gap-2"
+                                >
+                                    <Brain className="h-4 w-4" aria-hidden />
+                                    {getReviewDueButtonLabel(practiceWordsLoading, dueWordCount)}
+                                </Button>
+                            )}
+                            {newWordCount > 0 && (
+                                <Button
+                                    type="button"
+                                    variant={dueWordCount > 0 ? "outline" : "default"}
+                                    onClick={handleLearnNewWords}
+                                    disabled={practiceWordsLoading}
+                                    className="rounded-xl gap-2"
+                                >
+                                    <Sparkles className="h-4 w-4" aria-hidden />
+                                    {getLearnNewButtonLabel(practiceWordsLoading, newWordCount)}
+                                </Button>
+                            )}
+                        </div>
                     </div>
                 )}
 
@@ -702,27 +722,28 @@ export default function LearnCourseDetailPage({ params }: { params: Promise<{ id
                     </div>
 
                     <div className="flex flex-col gap-2.5">
-                        {dueWordCount > 0 ? (
+                        {dueWordCount > 0 && (
                             <Button
                                 variant="outline"
                                 onClick={() => {
                                     setActionsMenuOpen(false);
                                     handlePracticeDueWords();
                                 }}
-                                disabled={practiceWordsLoading || dueWordCount === 0}
+                                disabled={practiceWordsLoading}
                                 className="h-11 w-full rounded-xl border-primary/25 bg-primary/5 px-4 text-sm hover:bg-primary/10"
                             >
                                 <Brain className="mr-2 h-4 w-4" />
                                 {getReviewDueButtonLabel(practiceWordsLoading, dueWordCount)}
                             </Button>
-                        ) : (
+                        )}
+                        {newWordCount > 0 && (
                             <Button
                                 variant="outline"
                                 onClick={() => {
                                     setActionsMenuOpen(false);
                                     handleLearnNewWords();
                                 }}
-                                disabled={practiceWordsLoading || newWordCount === 0}
+                                disabled={practiceWordsLoading}
                                 className="h-11 w-full rounded-xl border-primary/25 bg-primary/5 px-4 text-sm hover:bg-primary/10"
                             >
                                 <Sparkles className="mr-2 h-4 w-4" />
