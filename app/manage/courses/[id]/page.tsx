@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { use, useEffect, useRef, useState } from "react";
 
 import ConfirmDialog from "@/components/common/confirm-dialog/confirm-dialog";
+import { FloatingActionMenu } from "@/components/common/floating-action-menu";
 import LoadingSection from "@/components/common/loading-section/loading-section";
 import { LearningProgressSection, WordProgressBadge, WordProgressStatsInline } from "@/components/common/word-progress-stats";
 import CourseFormDialog from "@/components/features/manage/course-form-dialog";
@@ -334,6 +335,7 @@ export default function ManageCourseDetailPage({ params }: { params: Promise<{ i
     const [moveWordDialog, setMoveWordDialog] = useState<{ words: IWord[]; sourceLesson?: ILesson } | null>(null);
     const [exportWordsDialogOpen, setExportWordsDialogOpen] = useState(false);
     const [viewingWord, setViewingWord] = useState<IWord | null>(null);
+    const [bulkActionsOpen, setBulkActionsOpen] = useState(false);
 
     const { data: course, isLoading, isError, refetch: loadCourseDetail } = useGetCourseDetailByIdQuery(id, !!id);
 
@@ -689,9 +691,18 @@ export default function ManageCourseDetailPage({ params }: { params: Promise<{ i
                 }))
                 .filter((lesson) => lesson.words!.length > 0);
 
+    const selectedByLesson = new Map<string, IWord[]>();
+    course.lessons?.forEach((lesson: ILesson) => {
+        const selectedInLesson = getSelectedWordsForLesson(lesson.id);
+        if (selectedInLesson.length > 0) {
+            selectedByLesson.set(lesson.id, selectedInLesson);
+        }
+    });
+    const totalSelected = Array.from(selectedByLesson.values()).reduce((sum, words) => sum + words.length, 0);
+
     return (
         <main className="min-h-dvh bg-background">
-            <div className="container mx-auto max-w-5xl px-3 py-4 sm:px-4 sm:py-6 md:py-8">
+            <div className={`container mx-auto max-w-5xl px-3 py-4 sm:px-4 sm:py-6 md:py-8 ${selectedWords.size > 0 ? "pb-fab-safe" : ""}`}>
                 <nav aria-label="Breadcrumb" className="mb-4 flex flex-wrap items-center gap-1.5 text-sm text-muted-foreground sm:mb-6">
                     <Link
                         href="/manage"
@@ -897,56 +908,53 @@ export default function ManageCourseDetailPage({ params }: { params: Promise<{ i
                 }
             </div>
 
-            {/* Floating Bulk Actions Bar */}
-            {selectedWords.size > 0 && (() => {
-                const selectedByLesson = new Map<string, IWord[]>();
-                course?.lessons?.forEach((lesson: ILesson) => {
-                    const selectedInLesson = getSelectedWordsForLesson(lesson.id);
-                    if (selectedInLesson.length > 0) {
-                        selectedByLesson.set(lesson.id, selectedInLesson);
-                    }
-                });
-
-                const totalSelected = Array.from(selectedByLesson.values()).reduce((sum, words) => sum + words.length, 0);
-
-                return (
-                    <div className="fixed bottom-keyboard-safe left-4 right-4 sm:left-1/2 sm:right-auto sm:-translate-x-1/2 sm:bottom-8 bg-card border-2 border-border rounded-2xl shadow-2xl p-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4 z-50 w-[calc(100vw-2rem)] sm:w-auto sm:min-w-[400px] max-w-lg sm:max-w-none mx-auto">
-                        <div className="flex-1">
-                            <p className="text-sm font-semibold">{totalSelected} word{totalSelected !== 1 ? 's' : ''} selected</p>
-                            <p className="text-xs text-muted-foreground">
-                                {selectedByLesson.size} lesson{selectedByLesson.size !== 1 ? 's' : ''}
-                            </p>
-                        </div>
-                        <div className="flex gap-2">
-                            <Button
-                                variant="outline"
-                                onClick={() => {
-                                    setMoveWordDialog({ words: getSelectedWordsAcrossCourse() });
-                                }}
-                            >
-                                <ArrowRightLeft className="h-4 w-4 mr-2" />
-                                Move
-                            </Button>
-                            <Button
-                                variant="outline"
-                                onClick={() => {
-                                    setDeleteConfirm({ type: 'bulk-words', item: null });
-                                }}
-                                className="text-destructive hover:text-destructive"
-                            >
-                                <Trash2 className="h-4 w-4 mr-2" />
-                                Delete
-                            </Button>
-                            <Button
-                                variant="ghost"
-                                onClick={() => setSelectedWords(new Set())}
-                            >
-                                <X className="h-4 w-4" />
-                            </Button>
-                        </div>
+            {selectedWords.size > 0 && (
+                <FloatingActionMenu
+                    open={bulkActionsOpen}
+                    onOpenChange={setBulkActionsOpen}
+                    title={`${totalSelected} word${totalSelected !== 1 ? "s" : ""} selected`}
+                    description={`${selectedByLesson.size} lesson${selectedByLesson.size !== 1 ? "s" : ""}`}
+                    badge={totalSelected}
+                    triggerIcon={<MoreHorizontal className="h-5 w-5" />}
+                    triggerLabel="Open bulk actions"
+                >
+                    <div className="flex flex-col gap-2.5 sm:flex-row sm:flex-wrap">
+                        <Button
+                            variant="outline"
+                            onClick={() => {
+                                setBulkActionsOpen(false);
+                                setMoveWordDialog({ words: getSelectedWordsAcrossCourse() });
+                            }}
+                            className="h-11 flex-1 rounded-xl px-4 text-sm"
+                        >
+                            <ArrowRightLeft className="h-4 w-4 mr-2" />
+                            Move
+                        </Button>
+                        <Button
+                            variant="outline"
+                            onClick={() => {
+                                setBulkActionsOpen(false);
+                                setDeleteConfirm({ type: "bulk-words", item: null });
+                            }}
+                            className="h-11 flex-1 rounded-xl px-4 text-sm text-destructive hover:text-destructive"
+                        >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Delete
+                        </Button>
+                        <Button
+                            variant="ghost"
+                            onClick={() => {
+                                setBulkActionsOpen(false);
+                                setSelectedWords(new Set());
+                            }}
+                            className="h-11 rounded-xl px-4 text-sm"
+                        >
+                            <X className="h-4 w-4 mr-2" />
+                            Clear selection
+                        </Button>
                     </div>
-                );
-            })()}
+                </FloatingActionMenu>
+            )}
 
             {/* Dialogs */}
             <CourseFormDialog

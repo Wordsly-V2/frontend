@@ -1,5 +1,6 @@
 "use client";
 
+import { FloatingActionMenu } from "@/components/common/floating-action-menu";
 import LoadingSection from "@/components/common/loading-section/loading-section";
 import { LearningProgressSection, WordProgressBadge, WordProgressStatsInline } from "@/components/common/word-progress-stats";
 import { Button } from "@/components/ui/button";
@@ -34,6 +35,7 @@ export default function LearnCourseDetailPage({ params }: { params: Promise<{ id
     const [dueWordsLimit, setDueWordsLimit] = useState(readDueWordsLimitFromStorage);
     const [searchQuery, setSearchQuery] = useState("");
     const [viewingWord, setViewingWord] = useState<IWord | null>(null);
+    const [actionsMenuOpen, setActionsMenuOpen] = useState(false);
 
     const { data: course, isLoading, isError, refetch: loadCourseDetail } = useGetCourseDetailByIdQuery(id, !!id);
     const {
@@ -140,6 +142,16 @@ export default function LearnCourseDetailPage({ params }: { params: Promise<{ id
                   .filter((lesson) => lesson.words!.length > 0);
     const filteredWordIds = new Set(filteredLessons.flatMap((l) => (l.words ?? []).map((w) => w.id)));
 
+    const dueWordCount = dueWordIds?.wordIds.length ?? 0;
+    const actionsMenuDescription =
+        selectedWords.size > 0
+            ? `${selectedWords.size} word${selectedWords.size === 1 ? "" : "s"} selected`
+            : courseStats?.dueToday
+              ? `${courseStats.dueToday} due for review today`
+              : "Select words or review due items";
+    const actionsMenuBadge =
+        selectedWords.size > 0 ? selectedWords.size : dueWordCount > 0 ? dueWordCount : undefined;
+
     const toggleLesson = (lessonId: string) => {
         const newExpanded = new Set(expandedLessons);
         if (newExpanded.has(lessonId)) {
@@ -233,7 +245,7 @@ export default function LearnCourseDetailPage({ params }: { params: Promise<{ id
 
     return (
         <main className="min-h-dvh">
-            <div className="container mx-auto max-w-5xl px-3 py-4 sm:px-4 sm:py-6 md:py-8">
+            <div className={`container mx-auto max-w-5xl px-3 py-4 sm:px-4 sm:py-6 md:py-8 ${totalWords > 0 ? "pb-fab-safe" : ""}`}>
                 {/* Back Button */}
                 <Button
                     variant="ghost"
@@ -378,112 +390,6 @@ export default function LearnCourseDetailPage({ params }: { params: Promise<{ id
                                 </Button>
                             </div>
                         )}
-                    </div>
-                )}
-
-                {/* Selection Actions */}
-                {totalWords > 0 && (
-                    <div className="mb-6 flex flex-col gap-4 rounded-2xl border border-border/70 bg-muted/20 p-3 sm:flex-row sm:flex-wrap sm:items-stretch sm:justify-between sm:gap-3 sm:p-4 dark:bg-muted/10">
-                        <div className="flex flex-wrap gap-2">
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={selectAllWords}
-                                className="h-9 rounded-xl text-xs"
-                            >
-                                Select all
-                            </Button>
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={deselectAllWords}
-                                disabled={selectedWords.size === 0}
-                                className="h-9 rounded-xl text-xs"
-                            >
-                                Clear selection
-                            </Button>
-                            {selectedWords.size > 0 && (
-                                <span className="inline-flex items-center rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
-                                    {selectedWords.size} selected
-                                </span>
-                            )}
-                        </div>
-
-                        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
-                            <div className="flex flex-wrap items-center gap-2">
-                                <label
-                                    htmlFor="due-words-limit"
-                                    className="text-xs text-muted-foreground whitespace-nowrap sm:text-sm"
-                                >
-                                    Due batch:
-                                </label>
-                                <select
-                                    id="due-words-limit"
-                                    value={dueWordsLimit}
-                                    onChange={(e) => {
-                                        const value = Number(e.target.value);
-                                        setDueWordsLimit(value);
-                                    }}
-                                    className="h-9 rounded-lg border border-input bg-background px-2 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-                                >
-                                    {DUE_WORDS_LIMIT_OPTIONS.map((n) => (
-                                        <option key={n} value={n}>
-                                            {n}
-                                        </option>
-                                    ))}
-                                </select>
-                                {courseStats?.dueToday != null &&
-                                    courseStats.dueToday > 0 && (
-                                        <span className="text-xs text-muted-foreground">
-                                            {courseStats.dueToday} due today
-                                        </span>
-                                    )}
-                            </div>
-                            <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:gap-2">
-                                <Button
-                                    variant="outline"
-                                    onClick={handlePracticeDueWords}
-                                    disabled={
-                                        isDueWordIdsLoading ||
-                                        !dueWordIds ||
-                                        dueWordIds.wordIds.length === 0
-                                    }
-                                    className="h-11 flex-1 rounded-xl border-primary/25 bg-primary/5 px-4 py-3 text-sm hover:bg-primary/10 sm:h-9 sm:flex-initial sm:px-3 sm:py-0"
-                                    size="sm"
-                                >
-                                    <Brain className="mr-2 h-4 w-4" />
-                                    {isDueWordIdsLoading
-                                        ? "Loading…"
-                                        : dueWordIds && dueWordIds.wordIds.length > 0
-                                          ? `Review due (${dueWordIds.wordIds.length})`
-                                          : "No due words"}
-                                </Button>
-                                <Button
-                                    variant="secondary"
-                                    onClick={() => {
-                                        const wordIds = Array.from(selectedWords).join(",");
-                                        router.push(
-                                            `/learn/words-details?courseId=${id}&courseName=${encodeURIComponent(course.name)}&wordIds=${wordIds}`,
-                                        );
-                                    }}
-                                    disabled={selectedWords.size === 0}
-                                    className="h-11 flex-1 rounded-xl px-4 py-3 text-sm sm:h-9 sm:flex-initial sm:px-3 sm:py-0"
-                                    size="sm"
-                                >
-                                    <List className="mr-2 h-4 w-4" />
-                                    Word details
-                                </Button>
-                                <Button
-                                    onClick={handleStartPractice}
-                                    disabled={selectedWords.size === 0}
-                                    className="h-11 flex-1 rounded-xl px-4 py-3 text-sm sm:h-9 sm:flex-initial sm:px-3 sm:py-0"
-                                    size="sm"
-                                >
-                                    <Play className="mr-2 h-4 w-4" />
-                                    Practice selected
-                                </Button>
-                            </div>
-                        </div>
                     </div>
                 )}
 
@@ -693,6 +599,114 @@ export default function LearnCourseDetailPage({ params }: { params: Promise<{ id
             </div>
             {viewingWord && (
                 <WordDetailDialog word={viewingWord} isOpen={!!viewingWord} onClose={() => setViewingWord(null)} />
+            )}
+
+            {totalWords > 0 && (
+                <FloatingActionMenu
+                    open={actionsMenuOpen}
+                    onOpenChange={setActionsMenuOpen}
+                    title="Course actions"
+                    description={actionsMenuDescription}
+                    badge={actionsMenuBadge}
+                    triggerIcon={<Play className="h-5 w-5" />}
+                    triggerLabel="Open course actions"
+                >
+                    <div className="flex flex-wrap items-center gap-2">
+                        <Button
+                            variant="outline"
+                            onClick={selectAllWords}
+                            className="h-11 rounded-xl px-4 text-sm"
+                        >
+                            Select all
+                        </Button>
+                        <Button
+                            variant="outline"
+                            onClick={deselectAllWords}
+                            disabled={selectedWords.size === 0}
+                            className="h-11 rounded-xl px-4 text-sm"
+                        >
+                            Clear selection
+                        </Button>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-2">
+                        <label
+                            htmlFor="due-words-limit"
+                            className="text-sm text-muted-foreground whitespace-nowrap"
+                        >
+                            Due batch:
+                        </label>
+                        <select
+                            id="due-words-limit"
+                            value={dueWordsLimit}
+                            onChange={(e) => {
+                                const value = Number(e.target.value);
+                                setDueWordsLimit(value);
+                            }}
+                            className="h-11 rounded-lg border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                        >
+                            {DUE_WORDS_LIMIT_OPTIONS.map((n) => (
+                                <option key={n} value={n}>
+                                    {n}
+                                </option>
+                            ))}
+                        </select>
+                        {courseStats?.dueToday != null && courseStats.dueToday > 0 && (
+                            <span className="text-xs text-muted-foreground">
+                                {courseStats.dueToday} due today
+                            </span>
+                        )}
+                    </div>
+
+                    <div className="flex flex-col gap-2.5">
+                        <Button
+                            variant="outline"
+                            onClick={() => {
+                                setActionsMenuOpen(false);
+                                handlePracticeDueWords();
+                            }}
+                            disabled={
+                                isDueWordIdsLoading ||
+                                !dueWordIds ||
+                                dueWordIds.wordIds.length === 0
+                            }
+                            className="h-11 w-full rounded-xl border-primary/25 bg-primary/5 px-4 text-sm hover:bg-primary/10"
+                        >
+                            <Brain className="mr-2 h-4 w-4" />
+                            {isDueWordIdsLoading
+                                ? "Loading…"
+                                : dueWordIds && dueWordIds.wordIds.length > 0
+                                  ? `Review due (${dueWordIds.wordIds.length})`
+                                  : "No due words"}
+                        </Button>
+                        <Button
+                            variant="secondary"
+                            onClick={() => {
+                                setActionsMenuOpen(false);
+                                const wordIds = Array.from(selectedWords).join(",");
+                                router.push(
+                                    `/learn/words-details?courseId=${id}&courseName=${encodeURIComponent(course.name)}&wordIds=${wordIds}`,
+                                );
+                            }}
+                            disabled={selectedWords.size === 0}
+                            className="h-11 w-full rounded-xl px-4 text-sm"
+                        >
+                            <List className="mr-2 h-4 w-4" />
+                            Word details
+                        </Button>
+                        <Button
+                            onClick={() => {
+                                setActionsMenuOpen(false);
+                                handleStartPractice();
+                            }}
+                            disabled={selectedWords.size === 0}
+                            className="h-11 w-full rounded-xl px-4 text-sm"
+                        >
+                            <Play className="mr-2 h-4 w-4" />
+                            Practice selected
+                        </Button>
+                    </div>
+                </FloatingActionMenu>
             )}
         </main>
     );

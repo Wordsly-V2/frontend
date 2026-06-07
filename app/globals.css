@@ -187,6 +187,11 @@
   .bottom-keyboard-safe {
     bottom: max(0.5rem, env(safe-area-inset-bottom));
   }
+
+  /* Reserve space for collapsed FAB (not expanded sheet/panel) */
+  .pb-fab-safe {
+    padding-bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px));
+  }
   
   /* Brand surfaces — restrained gradients */
   .gradient-brand {
