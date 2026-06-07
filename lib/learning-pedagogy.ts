@@ -98,6 +98,8 @@ export function alternatePracticeMode(
     );
 }
 
+export type PracticeModePool = "production" | "recognition";
+
 export interface AssignMixedModeInput {
     word: IWord;
     stage: WordLearningStage;
@@ -106,8 +108,9 @@ export interface AssignMixedModeInput {
     preferProduction: boolean;
     /** 0-based occurrence of this word in the current session queue. */
     newWordRound?: number;
-    /** Queue index — rotates modes within each production/recognition pool. */
-    modeSlotIndex?: number;
+    /** Separate counters so prod/rec alternation still rotates typing ↔ listening, quiz ↔ cloze. */
+    productionSlotIndex?: number;
+    recognitionSlotIndex?: number;
 }
 
 /**
@@ -119,6 +122,7 @@ export interface AssignMixedModeInput {
 export function assignMixedPracticeMode(input: AssignMixedModeInput): {
     mode: PedagogyPracticeMode;
     nextPreferProduction: boolean;
+    poolUsed?: PracticeModePool;
 } {
     const {
         word,
@@ -127,18 +131,19 @@ export function assignMixedPracticeMode(input: AssignMixedModeInput): {
         isLeech,
         preferProduction,
         newWordRound,
-        modeSlotIndex = 0,
+        productionSlotIndex = 0,
+        recognitionSlotIndex = 0,
     } = input;
 
     const clozeAvailable = getClozePrompt(word) != null;
     const listeningAvailable = Boolean(word.audioUrl);
-    const pick = (pool: readonly string[]) =>
+    const pick = (pool: readonly string[], poolKind: PracticeModePool) =>
         pickPracticeMode(
             pool,
             allowed,
             clozeAvailable,
             listeningAvailable,
-            modeSlotIndex,
+            poolKind === "production" ? productionSlotIndex : recognitionSlotIndex,
         );
 
     if (isLeech) {
@@ -147,34 +152,63 @@ export function assignMixedPracticeMode(input: AssignMixedModeInput): {
 
     if (stage === "new" && newWordRound !== undefined) {
         let roundPool: readonly string[];
+        let poolKind: PracticeModePool;
         if (newWordRound === 0) {
             roundPool = RECOGNITION_MODES;
+            poolKind = "recognition";
         } else if (newWordRound === 1) {
             roundPool = PRODUCTION_MODES;
+            poolKind = "production";
         } else if (listeningAvailable) {
             roundPool = ["listening", "typing"];
+            poolKind = "production";
         } else {
             roundPool = PRODUCTION_MODES;
+            poolKind = "production";
         }
-        const mode = pick(roundPool);
-        if (mode) return { mode, nextPreferProduction: preferProduction };
+        const mode = pick(roundPool, poolKind);
+        if (mode) {
+            return { mode, nextPreferProduction: preferProduction, poolUsed: poolKind };
+        }
     }
 
     if (stage === "new") {
-        const mode = pick(RECOGNITION_MODES) ?? pick(PRODUCTION_MODES);
-        if (mode) return { mode, nextPreferProduction: preferProduction };
+        const mode =
+            pick(RECOGNITION_MODES, "recognition") ??
+            pick(PRODUCTION_MODES, "production");
+        if (mode) {
+            const poolUsed: PracticeModePool =
+                modeDirection(mode) === "production" ? "production" : "recognition";
+            return { mode, nextPreferProduction: preferProduction, poolUsed };
+        }
     } else {
+        const poolKind: PracticeModePool = preferProduction ? "production" : "recognition";
         const pool = preferProduction ? PRODUCTION_MODES : RECOGNITION_MODES;
         const mode =
-            pick(pool) ??
-            pick([...PRODUCTION_MODES, ...RECOGNITION_MODES]);
+            pick(pool, poolKind) ??
+            pick([...PRODUCTION_MODES, ...RECOGNITION_MODES], poolKind);
         if (mode) {
-            return { mode, nextPreferProduction: !preferProduction };
+            const resolvedPool: PracticeModePool =
+                modeDirection(mode) === "production" ? "production" : "recognition";
+            return {
+                mode,
+                nextPreferProduction: !preferProduction,
+                poolUsed: resolvedPool,
+            };
         }
     }
 
+    const fallbackSlot = productionSlotIndex + recognitionSlotIndex;
     const fallback =
-        pick([...RECOGNITION_MODES, ...PRODUCTION_MODES]) ?? "typing";
+        pickPracticeMode(
+            [...RECOGNITION_MODES, ...PRODUCTION_MODES],
+            allowed,
+            clozeAvailable,
+            listeningAvailable,
+            fallbackSlot,
+        ) ?? "typing";
+    const poolUsed: PracticeModePool =
+        modeDirection(fallback) === "production" ? "production" : "recognition";
 
-    return { mode: fallback, nextPreferProduction: preferProduction };
+    return { mode: fallback, nextPreferProduction: preferProduction, poolUsed };
 }
