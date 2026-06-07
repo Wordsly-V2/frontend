@@ -7,39 +7,24 @@ import VocabularyPractice from "@/components/features/vocabulary/vocabulary-prac
 import { Button } from "@/components/ui/button";
 import { usePracticeSessionPersistence } from "@/hooks/usePracticeSessionPersistence.hook";
 import { usePracticeSessionPlan } from "@/hooks/usePracticeSessionPlan.hook";
-import { parsePracticeSessionKind } from "@/lib/practice-session";
+import { practiceSessionSearchParams } from "@/lib/practice-session";
 import { useGetProgressByWordIdsQuery } from "@/queries/word-progress.query";
 import { useGetWordsByIdsQuery } from "@/queries/words.query";
 import type { PracticePhase } from "@/types/practice/practice.type";
 import { ArrowLeft } from "lucide-react";
-import { useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState } from "react";
-
-function decodeCourseName(raw: string): string {
-    try {
-        return decodeURIComponent(raw);
-    } catch {
-        return raw;
-    }
-}
+import { useQueryStates } from "nuqs";
+import { useRouter } from "next/navigation";
+import { useCallback, useEffect, useState } from "react";
 
 export default function PracticePage() {
     const router = useRouter();
-    const searchParams = useSearchParams();
-    const urlSessionKind = parsePracticeSessionKind(searchParams.get("kind"));
+    const [{ courseId, courseName, wordIds, kind }] = useQueryStates(
+        practiceSessionSearchParams,
+    );
     const [phase, setPhase] = useState<PracticePhase>("overview");
 
-    const courseNameRaw = searchParams.get("courseName") ?? "";
-    const courseId = searchParams.get("courseId") ?? "";
-    const wordIdsParam = searchParams.get("wordIds") ?? "";
-    const paramsValid = Boolean(courseNameRaw && courseId && wordIdsParam);
-
-    const wordIdList = useMemo(
-        () => (wordIdsParam ? wordIdsParam.split(",").filter(Boolean) : []),
-        [wordIdsParam],
-    );
-
-    const courseName = useMemo(() => decodeCourseName(courseNameRaw), [courseNameRaw]);
+    const wordIdList = wordIds ?? [];
+    const paramsValid = Boolean(courseName && courseId && wordIdList.length > 0);
 
     useEffect(() => {
         if (!paramsValid) {
@@ -52,23 +37,23 @@ export default function PracticePage() {
         isLoading: isWordsLoading,
         isError: isWordsError,
         refetch: refetchWords,
-    } = useGetWordsByIdsQuery(courseId, wordIdList, paramsValid && wordIdList.length > 0);
+    } = useGetWordsByIdsQuery(courseId ?? "", wordIdList, paramsValid);
 
     const {
         data: progressByWordId,
         isLoading: isProgressLoading,
         isError: isProgressError,
         refetch: refetchProgress,
-    } = useGetProgressByWordIdsQuery(wordIdList, paramsValid && wordIdList.length > 0);
+    } = useGetProgressByWordIdsQuery(wordIdList, paramsValid);
 
     const { sessionKind, sessionPlan, leechWordIds, isReview } = usePracticeSessionPlan(
         words,
         progressByWordId,
-        urlSessionKind,
+        kind,
     );
 
     const { persistSession, isPersisting, markUnsaved } = usePracticeSessionPersistence({
-        courseId,
+        courseId: courseId ?? "",
         wordIdList,
         progressByWordId,
     });
@@ -138,7 +123,7 @@ export default function PracticePage() {
             variant={phase === "practice" ? "practice" : "overview"}
             title={phase === "overview" ? "Session plan" : undefined}
             subtitle={phase === "overview" ? overviewSubtitle : practiceSubtitle}
-            courseName={courseName}
+            courseName={courseName ?? ""}
             onBack={handleBackToCourse}
             backDisabled={isPersisting}
             isPersisting={isPersisting}

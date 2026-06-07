@@ -1,8 +1,20 @@
+import {
+    createSerializer,
+    parseAsArrayOf,
+    parseAsString,
+    parseAsStringLiteral,
+} from "nuqs/server";
+
 export type PracticeSessionKind = "new" | "review";
 
-export function parsePracticeSessionKind(raw: string | null): PracticeSessionKind {
-    return raw === "review" ? "review" : "new";
-}
+export const practiceSessionSearchParams = {
+    courseId: parseAsString,
+    courseName: parseAsString,
+    wordIds: parseAsArrayOf(parseAsString),
+    kind: parseAsStringLiteral(["new", "review"] as const).withDefault("new"),
+};
+
+const serializePracticeSession = createSerializer(practiceSessionSearchParams);
 
 export function buildPracticeUrl(params: {
     courseId: string;
@@ -10,7 +22,10 @@ export function buildPracticeUrl(params: {
     wordIds: string[];
     kind?: PracticeSessionKind;
 }): string {
-    const kind = params.kind ?? "new";
-    const wordIds = params.wordIds.join(",");
-    return `/learn/practice?courseId=${params.courseId}&courseName=${encodeURIComponent(params.courseName)}&wordIds=${wordIds}&kind=${kind}`;
+    return serializePracticeSession("/learn/practice", {
+        courseId: params.courseId,
+        courseName: params.courseName,
+        wordIds: params.wordIds,
+        kind: params.kind ?? "new",
+    });
 }
