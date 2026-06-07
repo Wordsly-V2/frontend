@@ -7,13 +7,18 @@ import {
     getLocalDailyHabit,
 } from "@/lib/daily-habit";
 import { buildPracticeUrl } from "@/lib/practice-session";
-import { readDueWordsLimitFromStorage } from "@/lib/due-words-limit";
+import {
+    deriveNewWordIds,
+    getLearnNewButtonLabel,
+    getReviewDueButtonLabel,
+    readDueWordsLimitFromStorage,
+} from "@/lib/due-words-limit";
 import { getLastLearnCourse } from "@/lib/learning-session";
 import { useDailyHabitDisplay } from "@/queries/daily-habit.query";
 import { useGetDueWordIdsQuery } from "@/queries/word-progress.query";
-import { Brain, Library, Target } from "lucide-react";
+import { Brain, Library, Sparkles, Target } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
-import { startTransition, useEffect, useState } from "react";
+import { startTransition, useEffect, useMemo, useState } from "react";
 
 export function LearnQuickActions() {
     const router = useRouter();
@@ -35,11 +40,26 @@ export function LearnQuickActions() {
         last?.id,
         undefined,
         dueWordsLimit,
+        false,
+        !!last?.id && dueWordsLimit > 0,
+    );
+
+    const { data: practiceBatch, isLoading: practiceBatchLoading } = useGetDueWordIdsQuery(
+        last?.id,
+        undefined,
+        dueWordsLimit,
         true,
         !!last?.id && dueWordsLimit > 0,
     );
 
     const dueCount = dueIds?.wordIds.length ?? 0;
+    const newWordIds = useMemo(
+        () => deriveNewWordIds(dueIds?.wordIds, practiceBatch?.wordIds),
+        [dueIds?.wordIds, practiceBatch?.wordIds],
+    );
+    const newCount = newWordIds.length;
+    const practicePoolCount = practiceBatch?.wordIds.length ?? 0;
+    const wordsLoading = dueLoading || practiceBatchLoading;
 
     const handleReviewDue = () => {
         if (!last || dueCount === 0) return;
@@ -53,15 +73,29 @@ export function LearnQuickActions() {
         );
     };
 
-    const handleFinishDailyGoal = () => {
-        if (!last || dueCount === 0 || goal.met) return;
-        const wordsNeeded = Math.min(goal.remaining, dueCount);
+    const handleLearnNew = () => {
+        if (!last || newCount === 0) return;
         router.push(
             buildPracticeUrl({
                 courseId: last.id,
                 courseName: last.name,
-                wordIds: dueIds!.wordIds.slice(0, wordsNeeded),
-                kind: "review",
+                wordIds: newWordIds,
+                kind: "new",
+            }),
+        );
+    };
+
+    const handleFinishDailyGoal = () => {
+        if (!last || practicePoolCount === 0 || goal.met) return;
+        const wordsNeeded = Math.min(goal.remaining, practicePoolCount);
+        const wordIds = practiceBatch!.wordIds.slice(0, wordsNeeded);
+        const onlyDueWords = dueCount > 0 && newCount === 0;
+        router.push(
+            buildPracticeUrl({
+                courseId: last.id,
+                courseName: last.name,
+                wordIds,
+                kind: onlyDueWords ? "review" : "new",
             }),
         );
     };
@@ -90,18 +124,18 @@ export function LearnQuickActions() {
                 <div className="flex min-w-0 w-full flex-col gap-2 sm:flex-row sm:flex-wrap sm:justify-end">
                     {last ? (
                         <>
-                            {!goal.met && dueCount > 0 && (
+                            {!goal.met && practicePoolCount > 0 && (
                                 <Button
                                     type="button"
                                     variant="default"
                                     className="w-full rounded-xl gap-2 sm:w-auto"
-                                    disabled={dueLoading}
+                                    disabled={wordsLoading}
                                     onClick={handleFinishDailyGoal}
                                 >
                                     <Target className="h-4 w-4" aria-hidden />
-                                    {dueLoading
+                                    {wordsLoading
                                         ? "Loading…"
-                                        : `Finish today's goal (${Math.min(goal.remaining, dueCount)} words)`}
+                                        : `Finish today's goal (${Math.min(goal.remaining, practicePoolCount)} words)`}
                                 </Button>
                             )}
                             <ContinueCourseButton
@@ -109,20 +143,29 @@ export function LearnQuickActions() {
                                 courseName={last.name}
                                 className="min-w-0 max-w-full justify-between gap-2 sm:max-w-[min(100%,20rem)]"
                             />
-                            <Button
-                                type="button"
-                                variant="outline"
-                                className="w-full rounded-xl gap-2 border-primary/25 sm:w-auto"
-                                disabled={dueLoading || dueCount === 0}
-                                onClick={handleReviewDue}
-                            >
-                                <Brain className="h-4 w-4" aria-hidden />
-                                {dueLoading
-                                    ? "Loading…"
-                                    : dueCount > 0
-                                      ? `Review due (${dueCount})`
-                                      : "No due words here"}
-                            </Button>
+                            {dueCount > 0 ? (
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    className="w-full rounded-xl gap-2 border-primary/25 sm:w-auto"
+                                    disabled={wordsLoading}
+                                    onClick={handleReviewDue}
+                                >
+                                    <Brain className="h-4 w-4" aria-hidden />
+                                    {getReviewDueButtonLabel(wordsLoading, dueCount)}
+                                </Button>
+                            ) : (
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    className="w-full rounded-xl gap-2 border-primary/25 sm:w-auto"
+                                    disabled={wordsLoading || newCount === 0}
+                                    onClick={handleLearnNew}
+                                >
+                                    <Sparkles className="h-4 w-4" aria-hidden />
+                                    {getLearnNewButtonLabel(wordsLoading, newCount)}
+                                </Button>
+                            )}
                         </>
                     ) : (
                         <p className="text-sm text-muted-foreground py-2">

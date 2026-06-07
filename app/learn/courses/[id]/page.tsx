@@ -11,7 +11,7 @@ import { useGetCourseDetailByIdQuery } from "@/queries/courses.query";
 import { useGetDueWordIdsByWordIdsQuery } from "@/queries/word-progress.query";
 import { ILesson, IWord } from "@/types/courses/courses.type";
 import WordDetailDialog from "@/components/features/manage/word-detail-dialog";
-import { ArrowLeft, BookOpen, Brain, ChevronDown, ChevronRight, Eye, GraduationCap, List, Play, Search, Volume2 } from "lucide-react";
+import { ArrowLeft, BookOpen, Brain, ChevronDown, ChevronRight, Eye, GraduationCap, List, Play, Search, Sparkles, Volume2 } from "lucide-react";
 import Image from "next/image";
 import { buildWordsDetailsUrl } from "@/lib/search-params/word-selection";
 import { courseWordFocusSearchParams } from "@/lib/search-params/course-word-focus";
@@ -20,6 +20,9 @@ import { useRouter } from "next/navigation";
 import {
     DUE_WORDS_LIMIT_OPTIONS,
     DUE_WORDS_LIMIT_STORAGE_KEY,
+    deriveNewWordIds,
+    getLearnNewButtonLabel,
+    getReviewDueButtonLabel,
     readDueWordsLimitFromStorage,
 } from "@/lib/due-words-limit";
 import { setLastLearnCourse } from "@/lib/learning-session";
@@ -27,6 +30,22 @@ import { buildPracticeUrl } from "@/lib/practice-session";
 import { setLocalStorageItem } from "@/lib/local-storage";
 import { use, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
+
+function getActionsMenuDescription(selectedCount: number, dueToday: number | undefined): string {
+    if (selectedCount > 0) {
+        return `${selectedCount} word${selectedCount === 1 ? "" : "s"} selected`;
+    }
+    if (dueToday) {
+        return `${dueToday} due for review today`;
+    }
+    return "Select words or review due items";
+}
+
+function getActionsMenuBadge(selectedCount: number, dueWordCount: number): number | undefined {
+    if (selectedCount > 0) return selectedCount;
+    if (dueWordCount > 0) return dueWordCount;
+    return undefined;
+}
 
 export default function LearnCourseDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = use(params);
@@ -96,9 +115,24 @@ export default function LearnCourseDetailPage({ params }: { params: Promise<{ id
     const { data: dueWordIds, isLoading: isDueWordIdsLoading } = useGetDueWordIdsByWordIdsQuery(
         courseWordIds,
         dueWordsLimit,
+        false,
+        !!course && dueWordsLimit > 0 && courseWordIds.length > 0,
+    );
+
+    const { data: practiceBatch, isLoading: isPracticeBatchLoading } = useGetDueWordIdsByWordIdsQuery(
+        courseWordIds,
+        dueWordsLimit,
         true,
         !!course && dueWordsLimit > 0 && courseWordIds.length > 0,
     );
+
+    const dueWordCount = dueWordIds?.wordIds.length ?? 0;
+    const newWordIds = useMemo(
+        () => deriveNewWordIds(dueWordIds?.wordIds, practiceBatch?.wordIds),
+        [dueWordIds?.wordIds, practiceBatch?.wordIds],
+    );
+    const newWordCount = newWordIds.length;
+    const practiceWordsLoading = isDueWordIdsLoading || isPracticeBatchLoading;
 
     if (isLoading || isError) {
         return <LoadingSection isLoading={isLoading} error={isError ? 'Error loading course' : null} refetch={loadCourseDetail} />;
@@ -143,15 +177,11 @@ export default function LearnCourseDetailPage({ params }: { params: Promise<{ id
                   .filter((lesson) => lesson.words!.length > 0);
     const filteredWordIds = new Set(filteredLessons.flatMap((l) => (l.words ?? []).map((w) => w.id)));
 
-    const dueWordCount = dueWordIds?.wordIds.length ?? 0;
-    const actionsMenuDescription =
-        selectedWords.size > 0
-            ? `${selectedWords.size} word${selectedWords.size === 1 ? "" : "s"} selected`
-            : courseStats?.dueToday
-              ? `${courseStats.dueToday} due for review today`
-              : "Select words or review due items";
-    const actionsMenuBadge =
-        selectedWords.size > 0 ? selectedWords.size : dueWordCount > 0 ? dueWordCount : undefined;
+    const actionsMenuDescription = getActionsMenuDescription(
+        selectedWords.size,
+        courseStats?.dueToday,
+    );
+    const actionsMenuBadge = getActionsMenuBadge(selectedWords.size, dueWordCount);
 
     const toggleLesson = (lessonId: string) => {
         const newExpanded = new Set(expandedLessons);
@@ -240,6 +270,22 @@ export default function LearnCourseDetailPage({ params }: { params: Promise<{ id
                 courseName: course.name,
                 wordIds: dueWordIds.wordIds,
                 kind: "review",
+            }),
+        );
+    };
+
+    const handleLearnNewWords = () => {
+        if (newWordCount === 0 || !course) {
+            toast.info("No new words left in this course batch!");
+            return;
+        }
+
+        router.push(
+            buildPracticeUrl({
+                courseId: id,
+                courseName: course.name,
+                wordIds: newWordIds,
+                kind: "new",
             }),
         );
     };
@@ -339,11 +385,7 @@ export default function LearnCourseDetailPage({ params }: { params: Promise<{ id
                             className="shrink-0 rounded-xl gap-2"
                         >
                             <Brain className="h-4 w-4" aria-hidden />
-                            {isDueWordIdsLoading
-                                ? "Loading…"
-                                : dueWordIds && dueWordIds.wordIds.length > 0
-                                  ? `Review due (${dueWordIds.wordIds.length})`
-                                  : "No due words"}
+                            {getReviewDueButtonLabel(isDueWordIdsLoading, dueWordCount)}
                         </Button>
                     </div>
                 )}
@@ -660,26 +702,33 @@ export default function LearnCourseDetailPage({ params }: { params: Promise<{ id
                     </div>
 
                     <div className="flex flex-col gap-2.5">
-                        <Button
-                            variant="outline"
-                            onClick={() => {
-                                setActionsMenuOpen(false);
-                                handlePracticeDueWords();
-                            }}
-                            disabled={
-                                isDueWordIdsLoading ||
-                                !dueWordIds ||
-                                dueWordIds.wordIds.length === 0
-                            }
-                            className="h-11 w-full rounded-xl border-primary/25 bg-primary/5 px-4 text-sm hover:bg-primary/10"
-                        >
-                            <Brain className="mr-2 h-4 w-4" />
-                            {isDueWordIdsLoading
-                                ? "Loading…"
-                                : dueWordIds && dueWordIds.wordIds.length > 0
-                                  ? `Review due (${dueWordIds.wordIds.length})`
-                                  : "No due words"}
-                        </Button>
+                        {dueWordCount > 0 ? (
+                            <Button
+                                variant="outline"
+                                onClick={() => {
+                                    setActionsMenuOpen(false);
+                                    handlePracticeDueWords();
+                                }}
+                                disabled={practiceWordsLoading || dueWordCount === 0}
+                                className="h-11 w-full rounded-xl border-primary/25 bg-primary/5 px-4 text-sm hover:bg-primary/10"
+                            >
+                                <Brain className="mr-2 h-4 w-4" />
+                                {getReviewDueButtonLabel(practiceWordsLoading, dueWordCount)}
+                            </Button>
+                        ) : (
+                            <Button
+                                variant="outline"
+                                onClick={() => {
+                                    setActionsMenuOpen(false);
+                                    handleLearnNewWords();
+                                }}
+                                disabled={practiceWordsLoading || newWordCount === 0}
+                                className="h-11 w-full rounded-xl border-primary/25 bg-primary/5 px-4 text-sm hover:bg-primary/10"
+                            >
+                                <Sparkles className="mr-2 h-4 w-4" />
+                                {getLearnNewButtonLabel(practiceWordsLoading, newWordCount)}
+                            </Button>
+                        )}
                         <Button
                             variant="secondary"
                             onClick={() => {

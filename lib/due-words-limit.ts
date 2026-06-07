@@ -26,3 +26,28 @@ export function readDueWordsLimitFromStorage(): number {
         DEFAULT_DUE_WORDS_LIMIT,
     );
 }
+
+export function getReviewDueButtonLabel(
+    isLoading: boolean,
+    dueCount: number,
+    emptyLabel = "No due words",
+): string {
+    if (isLoading) return "Loading…";
+    if (dueCount > 0) return `Review due (${dueCount})`;
+    return emptyLabel;
+}
+
+export function getLearnNewButtonLabel(isLoading: boolean, newCount: number): string {
+    if (isLoading) return "Loading…";
+    if (newCount > 0) return `Learn new (${newCount})`;
+    return "No new words";
+}
+
+/** Words in a practice batch (includeNew) that are not in the due-only set. */
+export function deriveNewWordIds(
+    dueWordIds: string[] | undefined,
+    practiceBatchWordIds: string[] | undefined,
+): string[] {
+    const dueSet = new Set(dueWordIds ?? []);
+    return (practiceBatchWordIds ?? []).filter((id) => !dueSet.has(id));
+}

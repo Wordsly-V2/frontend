@@ -1,5 +1,6 @@
 "use client";
 
+import { getWordLearningStage, stageLabel } from "@/lib/word-progress-stage";
 import { IWordProgress } from "@/types/courses/courses.type";
 
 interface WordProgressBadgeProps {
@@ -27,7 +28,9 @@ export default function WordProgressBadge({
     className = "",
 }: Readonly<WordProgressBadgeProps>) {
     const successRate = Math.round(progress.successRate);
+    const stage = getWordLearningStage(progress);
     const nextReviewLabel = formatNextReview(progress.nextReviewAt);
+    const statusLabel = stage === "due" ? nextReviewLabel : stageLabel(stage);
     const fullNextReview =
         typeof progress.nextReviewAt === "string"
             ? new Date(progress.nextReviewAt).toLocaleString()
@@ -45,7 +48,7 @@ export default function WordProgressBadge({
             <span className="text-muted-foreground">·</span>
             <span className="text-muted-foreground">{progress.repetitions}×</span>
             <span className="text-muted-foreground">·</span>
-            <span className="text-muted-foreground">{nextReviewLabel}</span>
+            <span className="text-muted-foreground">{statusLabel}</span>
         </div>
     );
 }
