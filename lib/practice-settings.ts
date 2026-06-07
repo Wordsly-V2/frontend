@@ -132,7 +132,8 @@ export function buildMixedModePlan(
     let preferProduction = shuffleArray([true, false])[0];
     const occurrenceByWordId = new Map<string, number>();
 
-    for (const word of queue) {
+    for (let queueIndex = 0; queueIndex < queue.length; queueIndex++) {
+        const word = queue[queueIndex];
         const stage = stagesByWordId?.[word.id] ?? "new";
         const allowed = new Set(mixedModesForStage(stage));
         const newWordRound = occurrenceByWordId.get(word.id) ?? 0;
@@ -148,6 +149,7 @@ export function buildMixedModePlan(
             retryPass,
             previousMode: previousPlan?.get(planKey) ?? previousPlan?.get(word.id),
             newWordRound: stage === "new" ? newWordRound : undefined,
+            modeSlotIndex: queueIndex,
         });
         plan.set(planKey, mode);
         preferProduction = nextPreferProduction;

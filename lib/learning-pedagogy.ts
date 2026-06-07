@@ -51,19 +51,21 @@ function modeAvailable(
     return true;
 }
 
-/** Pick the first usable mode from a pool within stage constraints. */
+/** Pick a usable mode from a pool, cycling by slot for variety in mixed sessions. */
 export function pickPracticeMode(
     pool: readonly string[],
     allowed: Set<string>,
     clozeAvailable: boolean,
     listeningAvailable: boolean,
+    slotIndex = 0,
 ): PedagogyPracticeMode | null {
-    for (const mode of pool) {
-        if (!allowed.has(mode)) continue;
-        if (!modeAvailable(mode, clozeAvailable, listeningAvailable)) continue;
-        return mode as PedagogyPracticeMode;
-    }
-    return null;
+    const available = pool.filter(
+        (mode) =>
+            allowed.has(mode) &&
+            modeAvailable(mode, clozeAvailable, listeningAvailable),
+    );
+    if (available.length === 0) return null;
+    return available[slotIndex % available.length] as PedagogyPracticeMode;
 }
 
 /** Swap production ↔ recognition for retry interleaving (Nakata 2019). */
@@ -84,12 +86,13 @@ export function alternatePracticeMode(
     }
 
     return (
-        pickPracticeMode(pool, allowed, clozeAvailable, listeningAvailable) ??
+        pickPracticeMode(pool, allowed, clozeAvailable, listeningAvailable, 0) ??
         pickPracticeMode(
             [...PRODUCTION_MODES, ...RECOGNITION_MODES],
             allowed,
             clozeAvailable,
             listeningAvailable,
+            0,
         ) ??
         mode
     );
@@ -105,12 +108,14 @@ export interface AssignMixedModeInput {
     previousMode?: PedagogyPracticeMode;
     /** 0-based occurrence of this word in the current session queue. */
     newWordRound?: number;
+    /** Queue index — rotates modes within each production/recognition pool. */
+    modeSlotIndex?: number;
 }
 
 /**
  * Assign a practice mode using retrieval-practice research:
- * - New/learning: recognition before production (comprehensible input → recall)
- * - Review/due: alternate production ↔ recognition (bidirectional recall)
+ * - New words: recognition then production across session rounds
+ * - Learning/due/review: alternate production ↔ recognition (bidirectional recall)
  * - Leeches: flashcard self-rating with context (depth of processing)
  * - Retry: opposite direction from the main pass (interleaving)
  */
@@ -127,10 +132,19 @@ export function assignMixedPracticeMode(input: AssignMixedModeInput): {
         retryPass,
         previousMode,
         newWordRound,
+        modeSlotIndex = 0,
     } = input;
 
     const clozeAvailable = getClozePrompt(word) != null;
     const listeningAvailable = Boolean(word.audioUrl);
+    const pick = (pool: readonly string[]) =>
+        pickPracticeMode(
+            pool,
+            allowed,
+            clozeAvailable,
+            listeningAvailable,
+            modeSlotIndex,
+        );
 
     if (isLeech) {
         return { mode: "flashcard", nextPreferProduction: preferProduction };
@@ -159,37 +173,25 @@ export function assignMixedPracticeMode(input: AssignMixedModeInput): {
         } else {
             roundPool = PRODUCTION_MODES;
         }
-        const mode = pickPracticeMode(roundPool, allowed, clozeAvailable, listeningAvailable);
+        const mode = pick(roundPool);
         if (mode) return { mode, nextPreferProduction: preferProduction };
     }
 
-    if (stage === "new" || stage === "learning") {
-        const mode =
-            pickPracticeMode(RECOGNITION_MODES, allowed, clozeAvailable, listeningAvailable) ??
-            pickPracticeMode(PRODUCTION_MODES, allowed, clozeAvailable, listeningAvailable);
+    if (stage === "new") {
+        const mode = pick(RECOGNITION_MODES) ?? pick(PRODUCTION_MODES);
         if (mode) return { mode, nextPreferProduction: preferProduction };
     } else {
         const pool = preferProduction ? PRODUCTION_MODES : RECOGNITION_MODES;
         const mode =
-            pickPracticeMode(pool, allowed, clozeAvailable, listeningAvailable) ??
-            pickPracticeMode(
-                [...PRODUCTION_MODES, ...RECOGNITION_MODES],
-                allowed,
-                clozeAvailable,
-                listeningAvailable,
-            );
+            pick(pool) ??
+            pick([...PRODUCTION_MODES, ...RECOGNITION_MODES]);
         if (mode) {
             return { mode, nextPreferProduction: !preferProduction };
         }
     }
 
     const fallback =
-        pickPracticeMode(
-            [...RECOGNITION_MODES, ...PRODUCTION_MODES],
-            allowed,
-            clozeAvailable,
-            listeningAvailable,
-        ) ?? "typing";
+        pick([...RECOGNITION_MODES, ...PRODUCTION_MODES]) ?? "typing";
 
     return { mode: fallback, nextPreferProduction: preferProduction };
 }
