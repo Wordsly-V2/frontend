@@ -34,7 +34,7 @@ export interface ClozePrompt {
     answer: string;
 }
 
-/** Build a fill-in-the-blank sentence from the first matching example. */
+/** Build a fill-in-the-blank sentence from a random matching example. */
 export function getClozePrompt(word: IWord): ClozePrompt | null {
     const examples = getWordExamples(word);
     const target = word.word.trim();
@@ -42,9 +42,10 @@ export function getClozePrompt(word: IWord): ClozePrompt | null {
 
     const escaped = target.replace(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`);
     const re = new RegExp(escaped, "i");
-    const match = examples.find((s) => re.test(s));
-    if (!match) return null;
+    const matching = examples.filter((s) => re.test(s));
+    if (matching.length === 0) return null;
 
+    const match = matching[Math.floor(Math.random() * matching.length)];
     const sentence = match.replace(new RegExp(escaped, "gi"), "_____");
     return { sentence, answer: target };
 }
