@@ -13,6 +13,39 @@ import { useEffect } from "react";
 import { Provider } from "react-redux";
 import { toast } from "sonner";
 
+const HEALTH_CHECK_INTERVAL_MS = 5 * 60 * 1000;
+
+function notifyUnhealthyServices(services: ServiceHealth[]) {
+    for (const service of services) {
+        if (service.status === "unhealthy") {
+            toast.warning(`${service.name} is unhealthy`, {
+                description: service.message,
+            });
+        }
+    }
+}
+
+function runHealthChecks() {
+    getServiceHealth();
+    healthCheck()
+        .then(notifyUnhealthyServices)
+        .catch(() => undefined);
+}
+
+function ServiceHealthMonitor() {
+    useEffect(() => {
+        const initialTimeout = setTimeout(runHealthChecks, 100);
+        const interval = setInterval(runHealthChecks, HEALTH_CHECK_INTERVAL_MS);
+
+        return () => {
+            clearTimeout(initialTimeout);
+            clearInterval(interval);
+        };
+    }, []);
+
+    return null;
+}
+
 function UserProfileBootstrap() {
     const dispatch = useAppDispatch();
 
@@ -24,21 +57,6 @@ function UserProfileBootstrap() {
 }
 
 export function Providers({ children }: { children: React.ReactNode }) {
-    useEffect(() => {
-        setTimeout(() => {
-            getServiceHealth();
-            healthCheck().then((services: ServiceHealth[]) => {
-                for (const service of services) {
-                    if (service.status === 'unhealthy') {
-                        toast.warning(`${service.name} is unhealthy`, {
-                            description: service.message,
-                        });
-                    }
-                }
-            });
-        }, 100);
-    }, []);
-
     return (
         <ThemeProvider
             attribute="class"
@@ -49,6 +67,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
         >
             <TooltipProvider delayDuration={200}>
                 <Provider store={store}>
+                    <ServiceHealthMonitor />
                     <UserProfileBootstrap />
                     <QueryClientProvider client={queryClient}>
                         <GlobalLoadingOverlay />
