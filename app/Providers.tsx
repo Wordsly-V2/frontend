@@ -25,8 +25,9 @@ function notifyUnhealthyServices(services: ServiceHealth[]) {
     }
 }
 
-function runHealthChecks() {
-    getServiceHealth();
+async function runHealthChecks() {
+    await getServiceHealth().catch(() => undefined);
+
     healthCheck()
         .then(notifyUnhealthyServices)
         .catch(() => undefined);
