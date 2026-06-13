@@ -1,6 +1,6 @@
-import axiosInstance from "@/lib/axios";
-import type { AxiosError } from "axios";
-import axios from "axios";
+import axiosInstance from '@/lib/axios';
+import type { AxiosError } from 'axios';
+import axios from 'axios';
 
 export type ServiceHealth = {
     name: string;
@@ -9,14 +9,11 @@ export type ServiceHealth = {
 };
 
 const RENDER_COLD_START_TIMEOUT_MS = 90_000;
-const BOOTSTRAP_RETRY_DELAY_MS = 5_000;
-const BOOTSTRAP_MAX_ATTEMPTS = 3;
 
 function getBootstrapServiceUrls(): string[] {
     const urls = new Set<string>();
 
-    process.env.NEXT_PUBLIC_BOOTSTRAP_SERVICE_URLS
-        ?.split(',')
+    process.env.NEXT_PUBLIC_BOOTSTRAP_SERVICE_URLS?.split(',')
         .map((url) => url.trim())
         .filter(Boolean)
         .forEach((url) => urls.add(url));
@@ -30,25 +27,16 @@ function getBootstrapServiceUrls(): string[] {
 }
 
 async function pingServiceHealth(url: string): Promise<string> {
-    for (let attempt = 0; attempt < BOOTSTRAP_MAX_ATTEMPTS; attempt++) {
-        try {
-            const response = await axios.get<string>(`${url}/health`, {
-                timeout: RENDER_COLD_START_TIMEOUT_MS,
-                withCredentials: false,
-            });
-            return response.data;
-        } catch (error) {
-            if (attempt === BOOTSTRAP_MAX_ATTEMPTS - 1) {
-                throw error;
-            }
+    try {
+        const response = await axios.get<string>(`${url}/ping`, {
+            timeout: RENDER_COLD_START_TIMEOUT_MS,
+            withCredentials: false,
+        });
 
-            await new Promise((resolve) =>
-                setTimeout(resolve, BOOTSTRAP_RETRY_DELAY_MS),
-            );
-        }
+        return response.data;
+    } catch (error) {
+        throw error;
     }
-
-    throw new Error(`Failed to bootstrap ${url}`);
 }
 
 export const getServiceHealth = async (): Promise<string[]> => {
@@ -65,9 +53,9 @@ export const getServiceHealth = async (): Promise<string[]> => {
 
 export const healthCheck = async (): Promise<ServiceHealth[]> => {
     try {
-        const response = await axiosInstance.get('/health');
+        const response = await axiosInstance.get('/ping');
         return response.data;
     } catch (error) {
         throw (error as AxiosError).response?.data || error;
     }
-}
+};
