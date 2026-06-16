@@ -50,18 +50,19 @@ export default function HomePage() {
 							</p>
 							<div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
 								<Button
-									size="lg"
+									size="xl"
+									variant="play"
 									onClick={() => router.push("/learn")}
-									className="h-12 w-full rounded-xl px-8 text-base gradient-brand text-white shadow-lg shadow-primary/20 sm:w-auto"
+									className="w-full sm:w-auto"
 								>
 									<BookOpen className="h-5 w-5" aria-hidden />
 									Start learning
 								</Button>
 								<Button
-									size="lg"
-									variant="outline"
+									size="xl"
+									variant="playOutline"
 									onClick={() => router.push("/manage")}
-									className="h-12 w-full rounded-xl px-8 text-base sm:w-auto"
+									className="w-full sm:w-auto"
 								>
 									<Settings className="h-5 w-5" aria-hidden />
 									Manage courses
@@ -220,9 +221,10 @@ export default function HomePage() {
 							Open Learn and pick up where you left off — two minutes is enough.
 						</p>
 						<Button
-							size="lg"
+							size="xl"
+							variant="play"
 							onClick={() => router.push("/learn")}
-							className="mt-6 rounded-xl gradient-brand px-8 text-white shadow-lg shadow-primary/20"
+							className="mt-6"
 						>
 							Go to Learn
 							<ArrowRight className="h-4 w-4" aria-hidden />

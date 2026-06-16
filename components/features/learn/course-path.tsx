@@ -1,0 +1,62 @@
+"use client";
+
+import { Bounce } from "@/components/common/motion";
+import { SkeletonCard } from "@/components/common/states";
+import CourseCard from "@/components/features/courses/course-card";
+import { Button } from "@/components/ui/button";
+import { getLastLearnCourse } from "@/lib/learning-session";
+import { useGetMyCoursesQuery } from "@/queries/courses.query";
+import { ArrowRight } from "lucide-react";
+import Link from "next/link";
+import { startTransition, useEffect, useMemo, useState } from "react";
+
+/** "Jump back in" — last-opened course first, then a few more. */
+export function CoursePath() {
+    const [lastId, setLastId] = useState<string | null>(null);
+    const { data, isLoading } = useGetMyCoursesQuery(6, 1, "name", "asc", "");
+
+    useEffect(() => {
+        startTransition(() => setLastId(getLastLearnCourse()?.id ?? null));
+    }, []);
+
+    const courses = useMemo(() => {
+        const items = data?.items ?? [];
+        if (!lastId) return items.slice(0, 3);
+        const sorted = [...items].sort((a, b) => {
+            if (a.id === lastId) return -1;
+            if (b.id === lastId) return 1;
+            return 0;
+        });
+        return sorted.slice(0, 3);
+    }, [data?.items, lastId]);
+
+    if (!isLoading && courses.length === 0) return null;
+
+    return (
+        <section aria-label="Continue learning" className="mb-8">
+            <div className="mb-3 flex items-center justify-between">
+                <h2 className="font-display text-lg font-bold sm:text-xl">
+                    Jump back in
+                </h2>
+                <Button variant="ghost" size="sm" asChild className="gap-1">
+                    <Link href="/learn/courses">
+                        All courses
+                        <ArrowRight className="h-4 w-4" />
+                    </Link>
+                </Button>
+            </div>
+
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {isLoading
+                    ? Array.from({ length: 3 }).map((_, i) => (
+                          <SkeletonCard key={i} />
+                      ))
+                    : courses.map((course) => (
+                          <Bounce key={course.id}>
+                              <CourseCard course={course} />
+                          </Bounce>
+                      ))}
+            </div>
+        </section>
+    );
+}

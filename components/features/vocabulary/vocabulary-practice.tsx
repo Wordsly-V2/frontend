@@ -26,6 +26,8 @@ import {
     localDateString,
     recordPracticeWordsLocally,
 } from "@/lib/daily-habit";
+import { getLastLearnCourse } from "@/lib/learning-session";
+import { recordSession } from "@/lib/session-history";
 import type { IDailyHabit } from "@/types/daily-habit/daily-habit.type";
 import { useRecordDailyPracticeMutation } from "@/queries/daily-habit.query";
 import { playAudioUrl, preloadAudioUrl } from "@/lib/practice-audio";
@@ -88,7 +90,7 @@ interface VocabularyPracticeProps {
     stagesByWordId?: Record<string, WordLearningStage>;
     sessionKind?: PracticeSessionKind;
     leechWordIds?: Set<string>;
-    onComplete?: (payload: SessionCompletePayload) => void;
+    onComplete?: (payload: SessionCompletePayload, destination?: string) => void;
     onSummaryReady?: () => void;
 }
 
@@ -290,6 +292,17 @@ export default function VocabularyPractice({
             setHabitState(localHabit);
             setPhase("summary");
             onSummaryReady?.();
+
+            // Local-only session history (no backend).
+            recordSession(
+                {
+                    courseName: getLastLearnCourse()?.name,
+                    words: wordCount,
+                    score: scoreFromResults(results),
+                    xp: results.filter((r) => !isWeakAnswer(r.quality)).length * 10,
+                },
+                new Date().toISOString(),
+            );
 
             recordDailyPractice.mutate(
                 { wordCount, clientDate: localDateString() },
@@ -674,12 +687,22 @@ export default function VocabularyPractice({
                 wordResults={wordResults}
                 score={scoreFromResults(wordResults)}
                 habitState={habitState}
-                onContinue={() =>
+                onKeepGoing={() =>
                     onComplete?.({
                         score: scoreFromResults(wordResults),
                         wordResults,
                         habitState,
                     })
+                }
+                onBackToDashboard={() =>
+                    onComplete?.(
+                        {
+                            score: scoreFromResults(wordResults),
+                            wordResults,
+                            habitState,
+                        },
+                        "/learn",
+                    )
                 }
             />
         );
@@ -702,6 +725,11 @@ export default function VocabularyPractice({
             ? 1
             : 0);
 
+    // XP is presentation-only: 10 per non-weak (correct) answer recorded so far.
+    const sessionXp =
+        wordResults.filter((r) => !isWeakAnswer(r.quality)).length * 10;
+    const skippedCount = Math.max(0, queue.length - savableResultCount);
+
     return (
         <div className="flex flex-col flex-1 min-h-0 w-full">
             <div className="flex items-start gap-1 mb-4">
@@ -709,6 +737,8 @@ export default function VocabularyPractice({
                     currentIndex={currentIndex}
                     total={queue.length}
                     sessionStreak={sessionStreak}
+                    mode={showIntro ? undefined : activeMode}
+                    xp={sessionXp}
                     onEndSession={() => setShowEndSessionDialog(true)}
                     endSessionDisabled={showIntro || savableResultCount === 0}
                     className="flex-1 min-w-0"
@@ -733,7 +763,7 @@ export default function VocabularyPractice({
                 onClose={() => setShowEndSessionDialog(false)}
                 onConfirm={handleConfirmEndSession}
                 title="End session early?"
-                description={`You have practiced ${savableResultCount} word${savableResultCount === 1 ? "" : "s"} so far. Remaining exercises will be skipped and your current progress will be saved.`}
+                description={`${savableResultCount} word${savableResultCount === 1 ? "" : "s"} will be saved${skippedCount > 0 ? ` · ${skippedCount} remaining will be skipped` : ""}. Your progress is kept.`}
                 confirmText="End and save"
                 cancelText="Keep practicing"
             />

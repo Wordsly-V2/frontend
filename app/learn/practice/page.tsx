@@ -63,8 +63,11 @@ export default function PracticePage() {
     }, [router, courseId]);
 
     const handlePracticeComplete = useCallback(
-        (payload: Parameters<typeof persistSession>[0]) => {
-            void persistSession(payload);
+        (
+            payload: Parameters<typeof persistSession>[0],
+            destination?: string,
+        ) => {
+            void persistSession(payload, destination);
         },
         [persistSession],
     );

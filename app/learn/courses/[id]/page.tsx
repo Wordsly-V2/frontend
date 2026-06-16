@@ -300,7 +300,7 @@ export default function LearnCourseDetailPage({ params }: { params: Promise<{ id
 
     return (
         <main className="min-h-dvh">
-            <div className={`container mx-auto max-w-5xl px-3 py-4 sm:px-4 sm:py-6 md:py-8 ${totalWords > 0 ? "pb-fab-safe" : ""}`}>
+            <div className={`container mx-auto max-w-5xl px-3 py-4 pb-24 sm:px-4 sm:py-6 sm:pb-12 md:py-8 ${totalWords > 0 ? "pb-fab-safe" : ""}`}>
                 {/* Back Button */}
                 <Button
                     variant="ghost"

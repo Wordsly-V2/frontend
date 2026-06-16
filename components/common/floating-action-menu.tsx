@@ -61,7 +61,8 @@ export function FloatingActionMenu({
         <>
             <div
                 ref={menuRef}
-                className="fixed bottom-keyboard-safe right-4 z-50 flex flex-col items-end gap-3 pb-safe pointer-events-none"
+                /* Mobile: sit above the bottom tab bar. sm+: bar is hidden, so use the normal safe-area offset. */
+                className="fixed right-4 z-50 flex flex-col items-end gap-3 pointer-events-none bottom-[calc(4.75rem+env(safe-area-inset-bottom))] sm:bottom-[max(0.5rem,env(safe-area-inset-bottom))]"
             >
                 {!isMobile && (
                     <div

@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { BookOpen, GraduationCap, Settings, User, LogOut, LogIn, Smartphone, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { MyWordsSearch } from "@/components/common/my-words-search";
+import { StreakChip } from "@/components/common/app-nav/streak-chip";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -42,6 +43,7 @@ export default function AppNav() {
     const isManageMode = pathname?.startsWith('/manage');
     const isLearnMode = pathname?.startsWith('/learn');
     const isAuthPage = pathname?.startsWith('/auth');
+    const isOnboarding = pathname?.startsWith('/onboarding');
 
     const handleLogoutChoice = async (fromAllDevices: boolean) => {
         setIsLoggingOut(true);
@@ -164,6 +166,8 @@ export default function AppNav() {
         );
     };
 
+    if (isOnboarding) return null;
+
     return (
         <header className="sticky top-0 z-50 pt-safe">
             <nav className="border-b border-border/60 bg-background/90 backdrop-blur-xl md:border-b-0 md:bg-transparent md:backdrop-blur-none">
@@ -227,28 +231,10 @@ export default function AppNav() {
                             {!isAuthPage && profile && (
                                 <div className="flex min-[900px]:hidden items-center gap-1">
                                     <MyWordsSearch className="max-w-[min(42vw,11rem)] sm:max-w-[200px]" />
-                                    <Link href="/learn" className="shrink-0">
-                                        <Button
-                                            variant={isLearnMode ? "default" : "ghost"}
-                                            size="sm"
-                                            className="h-9 w-9 p-0 rounded-xl"
-                                            aria-current={isLearnMode ? "page" : undefined}
-                                        >
-                                            <BookOpen className="h-4 w-4" />
-                                        </Button>
-                                    </Link>
-                                    <Link href="/manage" className="shrink-0">
-                                        <Button
-                                            variant={isManageMode ? "default" : "ghost"}
-                                            size="sm"
-                                            className="h-9 w-9 p-0 rounded-xl"
-                                            aria-current={isManageMode ? "page" : undefined}
-                                        >
-                                            <Settings className="h-4 w-4" />
-                                        </Button>
-                                    </Link>
                                 </div>
                             )}
+
+                            {!isAuthPage && profile && <StreakChip />}
 
                             {renderUserSection()}
                         </div>

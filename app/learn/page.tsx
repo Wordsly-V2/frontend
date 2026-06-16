@@ -1,125 +1,77 @@
 "use client";
 
-import LoadingSection from "@/components/common/loading-section/loading-section";
 import { LearningProgressChart } from "@/components/common/learning-progress-chart";
 import { StatsCards } from "@/components/common/stats-cards";
 import LearningProgressSection from "@/components/common/word-progress-stats/learning-progress-section";
-import { LearnQuickActions } from "@/components/features/learn/learn-quick-actions";
+import { CoursePath } from "@/components/features/learn/course-path";
 import { DailyHabitCard } from "@/components/features/learn/daily-habit-card";
-import CourseGrid from "@/components/features/courses/course-grid";
-import CoursesHeader from "@/components/features/courses/courses-header";
-import { Pagination } from "@/components/ui/pagination";
-import { coursesListSearchParams } from "@/lib/search-params/courses-list";
-import { useGetMyCoursesQuery, useGetMyCoursesTotalStatsQuery } from "@/queries/courses.query";
+import { DailyHero } from "@/components/features/learn/daily-hero";
+import {
+    useGetMyCoursesTotalStatsQuery,
+} from "@/queries/courses.query";
 import { useGetProgressStatsQuery } from "@/queries/word-progress.query";
-import { useQueryStates } from "nuqs";
+import { ChevronDown } from "lucide-react";
 
 export default function LearnPage() {
-    const { data: courseTotalStats, isLoading: isLoadingCourseTotalStats, isError: isErrorCourseTotalStats, refetch: refetchCourseTotalStats } = useGetMyCoursesTotalStatsQuery();
-    const isLoadingStats = isLoadingCourseTotalStats || isErrorCourseTotalStats || !courseTotalStats;
-    const { data: wordProgressStats, isLoading: isLoadingProgressStats, isError: isErrorProgressStats, refetch: refetchProgressStats } = useGetProgressStatsQuery(undefined, undefined, true);
-
-    const [{ q: searchQuery, page: currentPage }, setSearchParams] = useQueryStates(
-        coursesListSearchParams,
-        { history: "replace" },
-    );
-    const itemsPerPage = 10;
-
-    const { data: paginatedData, isLoading: isLoadingCourses, isError: isErrorCourses, refetch: refetchCourses } = useGetMyCoursesQuery(itemsPerPage, currentPage, "name", "asc", searchQuery);
-
-    const handleSearch = (query: string) => {
-        setSearchParams({ q: query || null, page: 1 });
-    };
-
-    const handlePageChange = (page: number) => {
-        setSearchParams({ page });
-    };
-
-
-    const handleClickTotalStats = () => {
-        if (isErrorCourseTotalStats) {
-            refetchCourseTotalStats();
-        }
-    }
-
-    const handleClickProgressStats = () => {
-        if (isLoadingProgressStats || isErrorProgressStats) {
-            refetchProgressStats();
-        }
-    }
+    const {
+        data: courseTotalStats,
+        isLoading: isLoadingCourseTotalStats,
+        isError: isErrorCourseTotalStats,
+        refetch: refetchCourseTotalStats,
+    } = useGetMyCoursesTotalStatsQuery();
+    const isLoadingStats =
+        isLoadingCourseTotalStats ||
+        isErrorCourseTotalStats ||
+        !courseTotalStats;
+    const {
+        data: wordProgressStats,
+        isLoading: isLoadingProgressStats,
+        isError: isErrorProgressStats,
+        refetch: refetchProgressStats,
+    } = useGetProgressStatsQuery(undefined, undefined, true);
 
     return (
         <main className="min-h-dvh">
-            <div className="container mx-auto max-w-7xl px-3 pb-10 pt-5 sm:px-4 sm:pb-12 sm:pt-6 md:py-8">
-                <div className="mb-8 sm:mb-10">
-                    <p className="mb-1 text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-                        Practice
-                    </p>
-                    <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">Learn</h1>
-                    <p className="mt-2 max-w-2xl text-sm text-muted-foreground sm:text-base">
-                        Courses, progress, and review — tuned for short daily study.
-                    </p>
-                </div>
-
-                <LearnQuickActions />
+            <div className="container mx-auto max-w-5xl px-3 pb-24 pt-5 sm:px-4 sm:pb-12 sm:pt-6 md:py-8">
+                <DailyHero />
 
                 <DailyHabitCard />
 
-                {/* Stats Section */}
-                <StatsCards
-                    items={courseTotalStats}
-                    isLoading={isLoadingStats}
-                    isError={isErrorCourseTotalStats}
-                    onCardClick={handleClickTotalStats}
-                    className="mb-6 sm:mb-8"
-                />
+                <CoursePath />
 
-
-                {/* Learning Progress (all courses) */}
-                <LearningProgressSection
-                    stats={wordProgressStats}
-                    title="Learning Progress (All Courses)"
-                    className="mb-6 sm:mb-8"
-                    isLoading={isLoadingProgressStats}
-                    isError={isErrorProgressStats}
-                    onCardClick={handleClickProgressStats}
-                />
-
-                <LearningProgressChart
-                    stats={wordProgressStats}
-                    isLoading={isLoadingProgressStats}
-                    isError={isErrorProgressStats}
-                    className="mb-6 sm:mb-8"
-                />
-
-                <section id="course-library" className="scroll-mt-24">
-                    <CoursesHeader
-                        searchQuery={searchQuery}
-                        totalCourses={paginatedData?.totalItems || 0}
-                        onSearch={handleSearch}
-                    />
-                    {isLoadingCourses || isErrorCourses || !paginatedData ? (
-                        <LoadingSection
-                            isLoading={isLoadingCourses}
-                            error={isErrorCourses ? "Error loading courses" : null}
-                            refetch={refetchCourses}
-                            fullPage={false}
+                {/* Progress — kept below the fold for the curious */}
+                <details className="group rounded-3xl border-2 border-border bg-card/60">
+                    <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-5 py-4 font-display text-base font-bold">
+                        Your progress
+                        <ChevronDown className="h-5 w-5 text-muted-foreground transition-transform group-open:rotate-180" />
+                    </summary>
+                    <div className="space-y-6 px-5 pb-5">
+                        <StatsCards
+                            items={courseTotalStats}
+                            isLoading={isLoadingStats}
+                            isError={isErrorCourseTotalStats}
+                            onCardClick={() => {
+                                if (isErrorCourseTotalStats)
+                                    refetchCourseTotalStats();
+                            }}
                         />
-                    ) : (
-                        <>
-                            <div className="mt-6 sm:mt-8">
-                                <CourseGrid courses={paginatedData.items} />
-                            </div>
-
-                            <Pagination
-                                currentPage={paginatedData.currentPage}
-                                totalPages={paginatedData.totalPages}
-                                onPageChange={handlePageChange}
-                            />
-                        </>
-                    )}
-                </section>
-
+                        <LearningProgressSection
+                            stats={wordProgressStats}
+                            title="Learning Progress (All Courses)"
+                            isLoading={isLoadingProgressStats}
+                            isError={isErrorProgressStats}
+                            onCardClick={() => {
+                                if (isLoadingProgressStats || isErrorProgressStats)
+                                    refetchProgressStats();
+                            }}
+                        />
+                        <LearningProgressChart
+                            stats={wordProgressStats}
+                            isLoading={isLoadingProgressStats}
+                            isError={isErrorProgressStats}
+                        />
+                    </div>
+                </details>
             </div>
         </main>
     );

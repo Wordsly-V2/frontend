@@ -46,9 +46,12 @@ export function PracticeResultPanel({
     className,
 }: Readonly<PracticeResultPanelProps>) {
     const mountedAtRef = useRef(0);
+    const nextButtonRef = useRef<HTMLButtonElement>(null);
 
     useEffect(() => {
         mountedAtRef.current = Date.now();
+        // Move focus to the primary action so keyboard/SR users land on "Continue".
+        nextButtonRef.current?.focus();
         if (audioUrl) {
             const timer = setTimeout(() => playAudioUrl(audioUrl), 300);
             return () => clearTimeout(timer);
@@ -81,6 +84,8 @@ export function PracticeResultPanel({
 
     return (
         <div
+            role="status"
+            aria-live="polite"
             className={cn(
                 "animate-in fade-in slide-in-from-bottom-2 duration-300 text-center",
                 className,
@@ -89,7 +94,7 @@ export function PracticeResultPanel({
             <div className="mb-4">
                 {isCorrect ? (
                     <div className="space-y-2">
-                        <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-gradient-to-br from-green-400 to-emerald-500">
+                        <div className="animate-pop inline-flex items-center justify-center w-14 h-14 rounded-full bg-gradient-to-br from-green-400 to-emerald-500 ring-4 ring-[var(--brand-success)]/20">
                             <CheckCircle2 className="h-7 w-7 text-white" />
                         </div>
                         <h3 className="text-xl font-bold text-green-600 dark:text-green-400">
@@ -98,7 +103,7 @@ export function PracticeResultPanel({
                     </div>
                 ) : (
                     <div className="space-y-2">
-                        <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-gradient-to-br from-red-400 to-rose-500">
+                        <div className="animate-pop inline-flex items-center justify-center w-14 h-14 rounded-full bg-gradient-to-br from-red-400 to-rose-500 ring-4 ring-destructive/20">
                             <XCircle className="h-7 w-7 text-white" />
                         </div>
                         <h3 className="text-xl font-bold text-red-600 dark:text-red-400">
@@ -238,7 +243,14 @@ export function PracticeResultPanel({
             </div>
 
             <div className="flex gap-2">
-                <Button type="button" onClick={onNext} className="flex-1 rounded-xl">
+                <Button
+                    ref={nextButtonRef}
+                    type="button"
+                    variant="play"
+                    size="lg"
+                    onClick={onNext}
+                    className="flex-1"
+                >
                     {continueLabel}
                     <span className="ml-1.5 text-xs opacity-70 font-normal">Enter</span>
                 </Button>

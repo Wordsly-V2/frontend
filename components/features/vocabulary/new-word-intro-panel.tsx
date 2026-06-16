@@ -1,5 +1,6 @@
 "use client";
 
+import { Pop } from "@/components/common/motion";
 import WordDetailCard from "@/components/features/vocabulary/word-detail-card";
 import { LearningStepIndicator } from "@/components/features/vocabulary/learning-step-indicator";
 import { PracticeCardShell } from "@/components/features/vocabulary/practice-card-shell";
@@ -25,19 +26,20 @@ export function NewWordIntroPanel({
             <p className="text-center text-sm text-muted-foreground mb-4">
                 Take a moment to read and listen — then you&apos;ll practice this word.
             </p>
-            <div className="flex-1 min-h-0 flex flex-col">
+            <Pop className="flex-1 min-h-0 flex flex-col">
                 <WordDetailCard
                     word={word}
                     layout="stack"
                     constrainHeight
                     className="flex-1 min-h-0"
                 />
-            </div>
+            </Pop>
             <div className="flex-shrink-0 pt-5 flex flex-col items-center gap-2">
                 <Button
+                    variant="play"
                     size="lg"
                     onClick={onStartExercise}
-                    className="rounded-xl gap-2 min-w-[200px] gradient-brand text-white shadow-md"
+                    className="gap-2 min-w-[200px]"
                 >
                     Start practicing
                     <ArrowRight className="h-4 w-4" aria-hidden />

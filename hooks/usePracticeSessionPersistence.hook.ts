@@ -67,9 +67,10 @@ export function usePracticeSessionPersistence({
     );
 
     const persistSession = useCallback(
-        (payload: SessionCompletePayload) => {
+        (payload: SessionCompletePayload, destination?: string) => {
+            const target = destination ?? `/learn/courses/${courseId}`;
             if (savedOnce || payload.wordResults.length === 0) {
-                router.replace(`/learn/courses/${courseId}`);
+                router.replace(target);
                 return;
             }
             setSavedOnce(true);
@@ -83,7 +84,7 @@ export function usePracticeSessionPersistence({
             );
 
             fireCelebrationConfetti();
-            router.replace(`/learn/courses/${courseId}`);
+            router.replace(target);
 
             void persistSessionInBackground(payload);
         },

@@ -1,0 +1,113 @@
+"use client";
+
+import { DailyHabitActivityStrip } from "@/components/features/learn/daily-habit-activity-strip";
+import { StreakFlame } from "@/components/common/motion";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+    dailyGoalProgress,
+    getLocalDailyHabit,
+    localDateString,
+} from "@/lib/daily-habit";
+import { cn } from "@/lib/utils";
+import {
+    useDailyHabitDisplay,
+    useUpdateDailyGoalMutation,
+} from "@/queries/daily-habit.query";
+import { DAILY_GOAL_OPTIONS } from "@/types/daily-habit/daily-habit.type";
+
+/** Always-visible streak + daily-goal chip in the top nav. */
+export function StreakChip({ className }: { className?: string }) {
+    const clientDate = localDateString();
+    const { habit: serverHabit } = useDailyHabitDisplay();
+    const habit = serverHabit ?? getLocalDailyHabit();
+    const goal = dailyGoalProgress(habit.wordsToday, habit.goal);
+    const updateGoal = useUpdateDailyGoalMutation();
+
+    return (
+        <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+                <button
+                    type="button"
+                    aria-label={`Streak ${habit.streak} days, ${habit.wordsToday} of ${goal.goal} words today`}
+                    className={cn(
+                        "flex items-center gap-1.5 rounded-full border-2 border-border bg-card px-2.5 py-1 text-sm font-extrabold tabular-nums transition-colors hover:border-[var(--brand-orange)]/40 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/40",
+                        className,
+                    )}
+                >
+                    <StreakFlame className="h-4 w-4" lit={habit.streak > 0} />
+                    <span>{habit.streak}</span>
+                </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-72 rounded-2xl p-3">
+                <DropdownMenuLabel className="px-1 pb-2">
+                    <div className="flex items-center justify-between">
+                        <span className="font-display text-base font-bold">
+                            {habit.streak}-day streak
+                        </span>
+                        <span className="text-xs font-medium text-muted-foreground">
+                            best {habit.longestStreak}
+                        </span>
+                    </div>
+                </DropdownMenuLabel>
+
+                <div className="rounded-xl border border-border/60 bg-muted/20 p-3">
+                    <div className="mb-1.5 flex items-end justify-between">
+                        <p className="text-2xl font-bold tabular-nums leading-none">
+                            {habit.wordsToday}
+                            <span className="text-sm font-medium text-muted-foreground">
+                                /{goal.goal}
+                            </span>
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                            {goal.met ? "Goal done 🎉" : `${goal.remaining} to go`}
+                        </p>
+                    </div>
+                    <div className="h-2 overflow-hidden rounded-full bg-muted">
+                        <div
+                            className="h-full rounded-full bg-gradient-to-r from-primary to-[var(--brand-accent)] transition-all duration-500"
+                            style={{ width: `${goal.percent}%` }}
+                        />
+                    </div>
+                </div>
+
+                <div className="px-1 py-3">
+                    <DailyHabitActivityStrip
+                        days={habit.recentDays}
+                        today={clientDate}
+                    />
+                </div>
+
+                <DropdownMenuSeparator />
+                <DropdownMenuLabel className="px-1 text-[10px] uppercase tracking-wide text-muted-foreground">
+                    Daily goal
+                </DropdownMenuLabel>
+                <div className="grid grid-cols-4 gap-1 px-1 pt-1">
+                    {DAILY_GOAL_OPTIONS.map((value) => (
+                        <DropdownMenuItem
+                            key={value}
+                            disabled={value === habit.goal || updateGoal.isPending}
+                            onSelect={(e) => {
+                                e.preventDefault();
+                                updateGoal.mutate({ dailyGoal: value });
+                            }}
+                            className={cn(
+                                "justify-center rounded-lg text-xs font-bold",
+                                value === habit.goal &&
+                                    "bg-primary/10 text-primary",
+                            )}
+                        >
+                            {value}
+                        </DropdownMenuItem>
+                    ))}
+                </div>
+            </DropdownMenuContent>
+        </DropdownMenu>
+    );
+}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useUser } from "@/hooks/useUser.hook";
+import { isOnboardingComplete } from "@/lib/onboarding";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import LoadingSection from "../loading-section/loading-section";
@@ -32,6 +33,16 @@ export default function AuthGuard({ children }: Readonly<AuthGuardProps>) {
             if (!profile && !isLoading) {
                 const loginUrl = `/auth/login`;
                 router.push(loginUrl);
+                return;
+            }
+
+            // Logged in but hasn't finished first-run onboarding → send there once.
+            if (
+                profile &&
+                !isOnboardingComplete() &&
+                !pathname?.startsWith('/onboarding')
+            ) {
+                router.replace('/onboarding');
                 return;
             }
 

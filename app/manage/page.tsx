@@ -29,7 +29,7 @@ export default function ManagePage() {
 
     return (
         <main className="min-h-dvh">
-            <div className="container mx-auto max-w-7xl px-3 pb-10 pt-5 sm:px-4 sm:pb-12 sm:pt-6 md:py-8">
+            <div className="container mx-auto max-w-7xl px-3 pb-24 pt-5 sm:px-4 sm:pb-12 sm:pt-6 md:py-8">
                 <div className="mb-8 sm:mb-10">
                     <p className="mb-1 text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
                         Studio

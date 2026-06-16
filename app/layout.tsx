@@ -1,14 +1,22 @@
 import AppNav from '@/components/common/app-nav/app-nav';
+import { BottomTabBar } from '@/components/common/app-nav/bottom-tab-bar';
 import { Toaster } from '@/components/ui/sonner';
 import type { Metadata, Viewport } from 'next';
-import { Geist, Geist_Mono } from 'next/font/google';
+import { Baloo_2, Geist_Mono, Nunito } from 'next/font/google';
 import { NuqsAdapter } from 'nuqs/adapters/next/app';
 import './globals.css';
 import { Providers } from './Providers';
 
-const geistSans = Geist({
-    variable: '--font-geist-sans',
+const fontDisplay = Baloo_2({
+    variable: '--font-display',
     subsets: ['latin'],
+    weight: ['500', '600', '700', '800'],
+});
+
+const fontSans = Nunito({
+    variable: '--font-sans-custom',
+    subsets: ['latin'],
+    weight: ['400', '500', '600', '700', '800'],
 });
 
 const geistMono = Geist_Mono({
@@ -35,12 +43,13 @@ export default function RootLayout({
     return (
         <html lang='en' suppressHydrationWarning>
             <body
-                className={`${geistSans.variable} ${geistMono.variable} mesh-page-bg min-h-dvh`}
+                className={`${fontDisplay.variable} ${fontSans.variable} ${geistMono.variable} mesh-page-bg min-h-dvh`}
             >
                 <NuqsAdapter>
                     <Providers>
                         <AppNav />
                         {children}
+                        <BottomTabBar />
                         <Toaster />
                     </Providers>
                 </NuqsAdapter>

@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { RecentSessions } from "@/components/features/profile/recent-sessions";
 import { useUser } from "@/hooks/useUser.hook";
 import { Info } from "lucide-react";
 
@@ -29,7 +30,7 @@ export default function ProfilePage() {
     }
 
     return (
-        <div className="min-h-dvh px-4 pb-12 pt-8 md:px-8 md:pt-12">
+        <div className="min-h-dvh px-4 pb-24 pt-8 md:px-8 md:pb-12 md:pt-12">
             <div className="mx-auto max-w-2xl space-y-8">
                 <div className="space-y-1 text-center">
                     <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
@@ -103,6 +104,8 @@ export default function ProfilePage() {
                         </div>
                     </CardContent>
                 </Card>
+
+                <RecentSessions />
             </div>
         </div>
     );
