@@ -1,5 +1,6 @@
 "use client";
 
+import ConfirmDialog from "@/components/common/confirm-dialog/confirm-dialog";
 import { AdaptiveText } from "@/components/common/adaptive-text";
 import type { PracticeSettings } from "@/components/features/vocabulary/practice-settings-dialog";
 import { LeechWordBanner } from "@/components/features/vocabulary/leech-word-banner";
@@ -114,6 +115,7 @@ export default function VocabularyPractice({
     const [showSettings, setShowSettings] = useState(false);
     const [showResultDialog, setShowResultDialog] = useState(false);
     const [showWordsList, setShowWordsList] = useState(false);
+    const [showEndSessionDialog, setShowEndSessionDialog] = useState(false);
     const [hintsUsed, setHintsUsed] = useState(0);
     const [selectedChoice, setSelectedChoice] = useState<string | null>(null);
     const [hasPlayedAudio, setHasPlayedAudio] = useState(false);
@@ -311,6 +313,17 @@ export default function VocabularyPractice({
         },
         [],
     );
+
+    const handleConfirmEndSession = useCallback(() => {
+        setShowEndSessionDialog(false);
+        setShowResultDialog(false);
+        let results = wordResults;
+        if (pendingResult && !isWeakAnswer(pendingResult.quality)) {
+            results = mergeWordResult(wordResults, pendingResult);
+        }
+        finishSession(results);
+        resetWordUi();
+    }, [finishSession, wordResults, pendingResult, mergeWordResult, resetWordUi]);
 
     const advanceAfterAnswer = useCallback(
         (result: WordResult, word: IWord) => {
@@ -682,6 +695,13 @@ export default function VocabularyPractice({
     const inputClassName =
         "w-full px-4 py-4 text-xl text-center rounded-xl border-2 border-border bg-muted/30 focus:border-primary focus:bg-background outline-none transition-colors";
 
+    const savableResultCount =
+        wordResults.length +
+        (pendingResult && !isWeakAnswer(pendingResult.quality) &&
+        !wordResults.some((r) => r.wordId === pendingResult.wordId)
+            ? 1
+            : 0);
+
     return (
         <div className="flex flex-col flex-1 min-h-0 w-full">
             <div className="flex items-start gap-1 mb-4">
@@ -689,6 +709,8 @@ export default function VocabularyPractice({
                     currentIndex={currentIndex}
                     total={queue.length}
                     sessionStreak={sessionStreak}
+                    onEndSession={() => setShowEndSessionDialog(true)}
+                    endSessionDisabled={showIntro || savableResultCount === 0}
                     className="flex-1 min-w-0"
                 />
                 <PracticeToolbar
@@ -705,6 +727,16 @@ export default function VocabularyPractice({
                     hidden={showIntro}
                 />
             </div>
+
+            <ConfirmDialog
+                isOpen={showEndSessionDialog}
+                onClose={() => setShowEndSessionDialog(false)}
+                onConfirm={handleConfirmEndSession}
+                title="End session early?"
+                description={`You have practiced ${savableResultCount} word${savableResultCount === 1 ? "" : "s"} so far. Remaining exercises will be skipped and your current progress will be saved.`}
+                confirmText="End and save"
+                cancelText="Keep practicing"
+            />
 
             {isLeech && !showIntro && !showResultDialog && (
                 <LeechWordBanner

@@ -1,12 +1,15 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { Flame } from "lucide-react";
+import { Flag, Flame } from "lucide-react";
 
 interface PracticeProgressHeaderProps {
     currentIndex: number;
     total: number;
     sessionStreak?: number;
+    onEndSession?: () => void;
+    endSessionDisabled?: boolean;
     className?: string;
 }
 
@@ -14,6 +17,8 @@ export function PracticeProgressHeader({
     currentIndex,
     total,
     sessionStreak = 0,
+    onEndSession,
+    endSessionDisabled = false,
     className,
 }: Readonly<PracticeProgressHeaderProps>) {
     const progress = total > 0 ? ((currentIndex + 1) / total) * 100 : 100;
@@ -30,9 +35,25 @@ export function PracticeProgressHeader({
                         </span>
                     )}
                 </div>
-                <span className="tabular-nums text-primary font-semibold shrink-0">
-                    {currentIndex + 1}/{total}
-                </span>
+                <div className="flex items-center gap-2 shrink-0">
+                    {onEndSession && (
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={onEndSession}
+                            disabled={endSessionDisabled}
+                            className="h-7 gap-1 rounded-lg px-2 text-xs text-muted-foreground hover:text-foreground"
+                            aria-label="End session and save progress"
+                        >
+                            <Flag className="h-3.5 w-3.5" aria-hidden />
+                            <span className="hidden sm:inline">End session</span>
+                        </Button>
+                    )}
+                    <span className="tabular-nums text-primary font-semibold">
+                        {currentIndex + 1}/{total}
+                    </span>
+                </div>
             </div>
             <div className="h-1.5 bg-muted rounded-full overflow-hidden">
                 <div
