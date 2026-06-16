@@ -172,11 +172,11 @@ export default function AppNav() {
         <header className="sticky top-0 z-50 pt-safe">
             <nav className="border-b border-border/60 bg-background/90 backdrop-blur-xl md:border-b-0 md:bg-transparent md:backdrop-blur-none">
                 <div className="container mx-auto px-3 sm:px-4 md:px-5 md:pt-3 md:pb-2">
-                    <div className="flex min-h-[3.25rem] sm:min-h-[3.5rem] items-center justify-between gap-2 md:rounded-2xl md:border md:border-border/60 md:bg-card/85 md:px-3 md:py-2 md:shadow-[0_12px_40px_-12px_rgba(15,23,42,0.12)] dark:md:shadow-[0_12px_40px_-12px_rgba(0,0,0,0.45)]">
+                    <div className="flex min-h-[3.25rem] sm:min-h-[3.5rem] items-center justify-between gap-2 min-[900px]:grid min-[900px]:grid-cols-[1fr_auto_1fr] md:rounded-2xl md:border md:border-border/60 md:bg-card/85 md:px-3 md:py-2 md:shadow-[0_12px_40px_-12px_rgba(15,23,42,0.12)] dark:md:shadow-[0_12px_40px_-12px_rgba(0,0,0,0.45)]">
                         {/* Logo */}
                         <Link
                             href="/"
-                            className="flex min-w-0 shrink items-center gap-2 font-semibold text-base sm:text-lg tracking-tight hover:opacity-85 transition-opacity"
+                            className="flex min-w-0 shrink items-center gap-2 font-semibold text-base sm:text-lg tracking-tight hover:opacity-85 transition-opacity min-[900px]:justify-self-start"
                         >
                             <div className="flex h-9 w-9 sm:h-10 sm:w-10 shrink-0 items-center justify-center rounded-xl gradient-brand shadow-md shadow-primary/20">
                                 <GraduationCap className="h-[1.15rem] w-[1.15rem] sm:h-5 sm:w-5 text-primary-foreground" />
@@ -184,37 +184,40 @@ export default function AppNav() {
                             <span className="hidden min-[380px]:inline truncate">Wordsly</span>
                         </Link>
 
-                        {/* Center - Search + Mode Toggle (desktop) */}
-                        {!isAuthPage && profile && (
-                            <div className="hidden min-[900px]:flex absolute left-1/2 -translate-x-1/2 items-center gap-2">
-                                <MyWordsSearch />
-                                <div className="flex items-center rounded-xl border border-border/70 bg-muted/40 p-0.5 dark:bg-muted/25">
-                                    <Link href="/learn">
-                                        <Button
-                                            variant={isLearnMode ? "default" : "ghost"}
-                                            size="sm"
-                                            className={`gap-1.5 rounded-lg px-3 ${isLearnMode ? "shadow-sm" : ""}`}
-                                        >
-                                            <BookOpen className="h-4 w-4" />
-                                            <span>Learn</span>
-                                        </Button>
-                                    </Link>
-                                    <Link href="/manage">
-                                        <Button
-                                            variant={isManageMode ? "default" : "ghost"}
-                                            size="sm"
-                                            className={`gap-1.5 rounded-lg px-3 ${isManageMode ? "shadow-sm" : ""}`}
-                                        >
-                                            <Settings className="h-4 w-4" />
-                                            <span>Manage</span>
-                                        </Button>
-                                    </Link>
-                                </div>
-                            </div>
-                        )}
+                        {/* Center - Search + Mode Toggle (desktop). Always rendered so the
+                            grid keeps its middle column; content is gated on profile. */}
+                        <div className="hidden min-[900px]:flex items-center gap-2 min-[900px]:justify-self-center min-w-0">
+                            {!isAuthPage && profile && (
+                                <>
+                                    <MyWordsSearch />
+                                    <div className="flex items-center rounded-xl border border-border/70 bg-muted/40 p-0.5 dark:bg-muted/25">
+                                        <Link href="/learn">
+                                            <Button
+                                                variant={isLearnMode ? "default" : "ghost"}
+                                                size="sm"
+                                                className={`gap-1.5 rounded-lg px-3 ${isLearnMode ? "shadow-sm" : ""}`}
+                                            >
+                                                <BookOpen className="h-4 w-4" />
+                                                <span>Learn</span>
+                                            </Button>
+                                        </Link>
+                                        <Link href="/manage">
+                                            <Button
+                                                variant={isManageMode ? "default" : "ghost"}
+                                                size="sm"
+                                                className={`gap-1.5 rounded-lg px-3 ${isManageMode ? "shadow-sm" : ""}`}
+                                            >
+                                                <Settings className="h-4 w-4" />
+                                                <span>Manage</span>
+                                            </Button>
+                                        </Link>
+                                    </div>
+                                </>
+                            )}
+                        </div>
 
                         {/* Right + mobile center */}
-                        <div className="flex items-center gap-1 sm:gap-2">
+                        <div className="flex items-center gap-1 sm:gap-2 min-[900px]:justify-self-end">
                             <Button
                                 type="button"
                                 variant="ghost"
