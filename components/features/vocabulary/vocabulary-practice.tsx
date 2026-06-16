@@ -45,8 +45,8 @@ import { PEDAGOGY } from "@/lib/learning-pedagogy";
 import {
     buildMixedModePlan,
     mixedModePlanKey,
+    readPracticeSettingsFromStorage,
     resolveActiveMode,
-    resolvePracticeSettings,
     SETTINGS_STORAGE_KEY,
     wordOccurrenceAtIndex,
     type ActivePracticeMode,
@@ -98,7 +98,6 @@ export default function VocabularyPractice({
     words,
     practiceQueue,
     stagesByWordId,
-    sessionKind = "new",
     leechWordIds,
     onComplete,
     onSummaryReady,
@@ -108,8 +107,8 @@ export default function VocabularyPractice({
     const [phase, setPhase] = useState<"practice" | "summary">("practice");
     const [showAnswer, setShowAnswer] = useState(false);
     const [userAnswer, setUserAnswer] = useState("");
-    const [practiceSettings, setPracticeSettings] = useState<PracticeSettings>(() =>
-        resolvePracticeSettings(sessionKind),
+    const [practiceSettings, setPracticeSettings] = useState<PracticeSettings>(
+        readPracticeSettingsFromStorage,
     );
     const [practiceSettingsReady, setPracticeSettingsReady] = useState(false);
     const { mode, autoCheck, showExampleHints, showImageHints, soundEnabled } = practiceSettings;
@@ -148,10 +147,10 @@ export default function VocabularyPractice({
 
     useEffect(() => {
         startTransition(() => {
-            setPracticeSettings(resolvePracticeSettings(sessionKind));
+            setPracticeSettings(readPracticeSettingsFromStorage());
             setPracticeSettingsReady(true);
         });
-    }, [sessionKind]);
+    }, []);
 
     useEffect(() => {
         if (!practiceSettingsReady) return;

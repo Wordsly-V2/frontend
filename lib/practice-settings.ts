@@ -2,7 +2,6 @@ import { getLocalStorageItem } from '@/lib/local-storage';
 import { assignMixedPracticeMode } from '@/lib/learning-pedagogy';
 import { shuffleArray } from '@/lib/practice-utils';
 import type { PracticeSettings } from '@/components/features/vocabulary/practice-settings-dialog';
-import type { PracticeSessionKind } from '@/lib/practice-session';
 import type { WordLearningStage } from '@/lib/word-progress-stage';
 import type { IWord } from '@/types/courses/courses.type';
 
@@ -11,25 +10,9 @@ export const SETTINGS_STORAGE_KEY = 'vocabulary-practice-settings';
 export const DEFAULT_PRACTICE_SETTINGS: PracticeSettings = {
     mode: 'mixed',
     autoCheck: true,
-    showExampleHints: false,
-    showImageHints: false,
+    showExampleHints: true,
+    showImageHints: true,
     soundEnabled: false,
-};
-
-const SESSION_OVERRIDES: Record<
-    PracticeSessionKind,
-    Partial<PracticeSettings>
-> = {
-    new: {
-        mode: 'mixed',
-        showExampleHints: true,
-        showImageHints: true,
-    },
-    review: {
-        mode: 'mixed',
-        showExampleHints: false,
-        showImageHints: false,
-    },
 };
 
 export function parsePracticeSettings(
@@ -54,15 +37,6 @@ export function parsePracticeSettings(
 export function readPracticeSettingsFromStorage(): PracticeSettings {
     const raw = getLocalStorageItem(SETTINGS_STORAGE_KEY);
     return parsePracticeSettings(raw, DEFAULT_PRACTICE_SETTINGS);
-}
-
-export function resolvePracticeSettings(
-    sessionKind: PracticeSessionKind,
-    stored?: PracticeSettings,
-): PracticeSettings {
-    const base = stored ?? readPracticeSettingsFromStorage();
-    const override = SESSION_OVERRIDES[sessionKind];
-    return { ...base, ...override };
 }
 
 /** Modes available in mixed sessions. */
