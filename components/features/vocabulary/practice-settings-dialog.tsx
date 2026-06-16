@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { usePracticeSettings } from "@/hooks/usePracticeSettings.hook";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
@@ -36,8 +37,6 @@ export interface PracticeSettings {
 interface PracticeSettingsDialogProps {
     isOpen: boolean;
     onClose: () => void;
-    currentSettings: PracticeSettings;
-    onSave: (settings: PracticeSettings) => void;
 }
 
 function PracticeSettingsForm({
@@ -207,10 +206,10 @@ function PracticeSettingsForm({
 export default function PracticeSettingsDialog({
     isOpen,
     onClose,
-    currentSettings,
-    onSave,
 }: Readonly<PracticeSettingsDialogProps>) {
-    const settingsKey = `${currentSettings.mode}-${currentSettings.autoCheck}-${currentSettings.showExampleHints}-${currentSettings.showImageHints}-${currentSettings.soundEnabled}`;
+    // Stateful: the dialog owns its settings via the shared hook.
+    const { settings, setSettings } = usePracticeSettings();
+    const settingsKey = `${settings.mode}-${settings.autoCheck}-${settings.showExampleHints}-${settings.showImageHints}-${settings.soundEnabled}`;
 
     return (
         <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
@@ -218,8 +217,8 @@ export default function PracticeSettingsDialog({
                 {isOpen && (
                     <PracticeSettingsForm
                         key={settingsKey}
-                        currentSettings={currentSettings}
-                        onSave={onSave}
+                        currentSettings={settings}
+                        onSave={setSettings}
                         onClose={onClose}
                     />
                 )}

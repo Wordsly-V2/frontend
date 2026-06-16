@@ -2,7 +2,6 @@
 
 import ConfirmDialog from "@/components/common/confirm-dialog/confirm-dialog";
 import { AdaptiveText } from "@/components/common/adaptive-text";
-import type { PracticeSettings } from "@/components/features/vocabulary/practice-settings-dialog";
 import { LeechWordBanner } from "@/components/features/vocabulary/leech-word-banner";
 import { NewWordIntroPanel } from "@/components/features/vocabulary/new-word-intro-panel";
 import { PracticeCardShell } from "@/components/features/vocabulary/practice-card-shell";
@@ -45,12 +44,11 @@ import { PEDAGOGY } from "@/lib/learning-pedagogy";
 import {
     buildMixedModePlan,
     mixedModePlanKey,
-    readPracticeSettingsFromStorage,
     resolveActiveMode,
-    SETTINGS_STORAGE_KEY,
     wordOccurrenceAtIndex,
     type ActivePracticeMode,
 } from "@/lib/practice-settings";
+import { usePracticeSettings } from "@/hooks/usePracticeSettings.hook";
 import {
     generateWordChoiceOptions,
     getClozePrompt,
@@ -62,7 +60,6 @@ import {
 } from "@/lib/practice-utils";
 import { useNewWordIntro } from "@/hooks/useNewWordIntro.hook";
 import { LONG_TEXT_WRAP } from "@/lib/long-text";
-import { setLocalStorageItem } from "@/lib/local-storage";
 import type { SessionCompletePayload, WordResult } from "@/types/practice/practice.type";
 import { IWord } from "@/types/courses/courses.type";
 import {
@@ -76,7 +73,6 @@ import {
     useMemo,
     useRef,
     useState,
-    startTransition,
 } from "react";
 import { toast } from "sonner";
 
@@ -107,10 +103,7 @@ export default function VocabularyPractice({
     const [phase, setPhase] = useState<"practice" | "summary">("practice");
     const [showAnswer, setShowAnswer] = useState(false);
     const [userAnswer, setUserAnswer] = useState("");
-    const [practiceSettings, setPracticeSettings] = useState<PracticeSettings>(
-        readPracticeSettingsFromStorage,
-    );
-    const [practiceSettingsReady, setPracticeSettingsReady] = useState(false);
+    const { settings: practiceSettings } = usePracticeSettings();
     const { mode, autoCheck, showExampleHints, showImageHints, soundEnabled } = practiceSettings;
     const [typingResult, setTypingResult] = useState<"correct" | "incorrect" | null>(null);
     const [showSettings, setShowSettings] = useState(false);
@@ -144,22 +137,6 @@ export default function VocabularyPractice({
             }, 80);
         });
     }, []);
-
-    useEffect(() => {
-        startTransition(() => {
-            setPracticeSettings(readPracticeSettingsFromStorage());
-            setPracticeSettingsReady(true);
-        });
-    }, []);
-
-    useEffect(() => {
-        if (!practiceSettingsReady) return;
-        try {
-            setLocalStorageItem(SETTINGS_STORAGE_KEY, JSON.stringify(practiceSettings));
-        } catch (error) {
-            console.error("Failed to save practice settings:", error);
-        }
-    }, [practiceSettings, practiceSettingsReady]);
 
     const currentWord = queue[currentIndex];
     const currentStage: WordLearningStage =
@@ -745,14 +722,12 @@ export default function VocabularyPractice({
                 <PracticeToolbar
                     showSettings={showSettings}
                     showWordsList={showWordsList}
-                    practiceSettings={practiceSettings}
                     queue={queue}
                     currentIndex={currentIndex}
                     onOpenSettings={() => setShowSettings(true)}
                     onCloseSettings={() => setShowSettings(false)}
                     onOpenWordsList={() => setShowWordsList(true)}
                     onCloseWordsList={() => setShowWordsList(false)}
-                    onSaveSettings={setPracticeSettings}
                     hidden={showIntro}
                 />
             </div>

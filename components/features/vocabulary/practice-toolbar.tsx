@@ -1,8 +1,6 @@
 "use client";
 
-import PracticeSettingsDialog, {
-    type PracticeSettings,
-} from "@/components/features/vocabulary/practice-settings-dialog";
+import PracticeSettingsDialog from "@/components/features/vocabulary/practice-settings-dialog";
 import WordsSummaryDialog from "@/components/features/vocabulary/words-summary-dialog";
 import { Button } from "@/components/ui/button";
 import type { IWord } from "@/types/courses/courses.type";
@@ -11,28 +9,24 @@ import { List, Settings2 } from "lucide-react";
 interface PracticeToolbarProps {
     showSettings: boolean;
     showWordsList: boolean;
-    practiceSettings: PracticeSettings;
     queue: IWord[];
     currentIndex: number;
     onOpenSettings: () => void;
     onCloseSettings: () => void;
     onOpenWordsList: () => void;
     onCloseWordsList: () => void;
-    onSaveSettings: (settings: PracticeSettings) => void;
     hidden?: boolean;
 }
 
 export function PracticeToolbar({
     showSettings,
     showWordsList,
-    practiceSettings,
     queue,
     currentIndex,
     onOpenSettings,
     onCloseSettings,
     onOpenWordsList,
     onCloseWordsList,
-    onSaveSettings,
     hidden = false,
 }: Readonly<PracticeToolbarProps>) {
     if (hidden) return null;
@@ -63,8 +57,6 @@ export function PracticeToolbar({
             <PracticeSettingsDialog
                 isOpen={showSettings}
                 onClose={onCloseSettings}
-                currentSettings={practiceSettings}
-                onSave={onSaveSettings}
             />
 
             <WordsSummaryDialog
