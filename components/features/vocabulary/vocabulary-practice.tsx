@@ -285,6 +285,13 @@ export default function VocabularyPractice({
                 {
                     onSuccess: (habit) => {
                         setHabitState(habit);
+                        if (habit.streakFreezes > localHabit.streakFreezes) {
+                            fireMiniConfetti();
+                            toast.success("Streak freeze earned! ❄️", {
+                                description:
+                                    "It'll auto-protect your streak if you miss a day.",
+                            });
+                        }
                     },
                 },
             );

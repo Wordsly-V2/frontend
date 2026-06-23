@@ -13,7 +13,12 @@ import {
     useDailyHabitDisplay,
     useUpdateDailyGoalMutation,
 } from "@/queries/daily-habit.query";
-import { DAILY_GOAL_OPTIONS } from "@/types/daily-habit/daily-habit.type";
+import {
+    DAILY_GOAL_OPTIONS,
+    FREEZE_EARN_EVERY_GOAL_DAYS,
+    MAX_STREAK_FREEZES,
+    goalDaysUntilNextFreeze,
+} from "@/types/daily-habit/daily-habit.type";
 import { AlertTriangle, Award, CalendarDays, ChevronDown, Flame, Snowflake, Sparkles, Target, Trophy } from "lucide-react";
 import type { ReactNode } from "react";
 
@@ -65,15 +70,6 @@ export function DailyHabitCard() {
                                 <span className="inline-flex items-center gap-1 rounded-full bg-sky-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-sky-600 dark:text-sky-400">
                                     <Snowflake className="h-3 w-3" aria-hidden />
                                     Streak shielded
-                                </span>
-                            )}
-                            {habit.streakFreezes > 0 && (
-                                <span
-                                    className="inline-flex items-center gap-1 rounded-full bg-sky-500/10 px-2 py-0.5 text-[10px] font-semibold text-sky-600 dark:text-sky-400"
-                                    title={`${habit.streakFreezes} streak freeze${habit.streakFreezes === 1 ? "" : "s"} banked — auto-protects your streak on a missed day`}
-                                >
-                                    <Snowflake className="h-3 w-3" aria-hidden />
-                                    {habit.streakFreezes} freeze{habit.streakFreezes === 1 ? "" : "s"}
                                 </span>
                             )}
                         </div>
@@ -186,6 +182,12 @@ export function DailyHabitCard() {
                     </div>
                 )}
 
+                <FreezeMeter
+                    freezes={habit.streakFreezes}
+                    goalStreak={habit.goalStreak}
+                    shielded={habit.streakShielded}
+                />
+
                 <DailyHabitActivityStrip
                     days={habit.recentDays}
                     today={clientDate}
@@ -202,6 +204,53 @@ export function DailyHabitCard() {
                 )}
             </div>
         </section>
+    );
+}
+
+function FreezeMeter({
+    freezes,
+    goalStreak,
+    shielded,
+}: Readonly<{ freezes: number; goalStreak: number; shielded: boolean }>) {
+    const untilNext = goalDaysUntilNextFreeze(goalStreak, freezes);
+    return (
+        <div className="rounded-xl border border-sky-400/30 bg-sky-400/10 p-3">
+            <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                    <span
+                        className="flex items-center gap-0.5"
+                        role="img"
+                        aria-label={`${freezes} of ${MAX_STREAK_FREEZES} streak freezes banked`}
+                    >
+                        {Array.from({ length: MAX_STREAK_FREEZES }, (_, i) => (
+                            <Snowflake
+                                key={i}
+                                className={
+                                    i < freezes
+                                        ? "h-4 w-4 text-sky-500"
+                                        : "h-4 w-4 text-sky-500/25"
+                                }
+                                aria-hidden
+                            />
+                        ))}
+                    </span>
+                    <span className="text-xs font-semibold text-sky-700 dark:text-sky-300">
+                        {freezes}/{MAX_STREAK_FREEZES} streak freezes
+                    </span>
+                </div>
+                <span className="text-[11px] text-muted-foreground">
+                    {shielded
+                        ? "Shielding your streak"
+                        : untilNext == null
+                          ? "Freezes full"
+                          : `${untilNext} goal-day${untilNext === 1 ? "" : "s"} to next`}
+                </span>
+            </div>
+            <p className="mt-1.5 text-[11px] leading-snug text-muted-foreground">
+                A freeze auto-protects your streak on a missed day. Earn one for
+                every {FREEZE_EARN_EVERY_GOAL_DAYS} goal-met days.
+            </p>
+        </div>
     );
 }
 

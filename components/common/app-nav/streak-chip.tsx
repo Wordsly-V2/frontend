@@ -20,7 +20,11 @@ import {
     useDailyHabitDisplay,
     useUpdateDailyGoalMutation,
 } from "@/queries/daily-habit.query";
-import { DAILY_GOAL_OPTIONS } from "@/types/daily-habit/daily-habit.type";
+import {
+    DAILY_GOAL_OPTIONS,
+    MAX_STREAK_FREEZES,
+    goalDaysUntilNextFreeze,
+} from "@/types/daily-habit/daily-habit.type";
 import { Snowflake } from "lucide-react";
 
 /** Always-visible streak + daily-goal chip in the top nav. */
@@ -61,15 +65,13 @@ export function StreakChip({ className }: { className?: string }) {
                             {habit.streak}-day streak
                         </span>
                         <span className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
-                            {habit.streakFreezes > 0 && (
-                                <span
-                                    className="inline-flex items-center gap-0.5 text-sky-600 dark:text-sky-400"
-                                    title={`${habit.streakFreezes} streak freeze${habit.streakFreezes === 1 ? "" : "s"} banked`}
-                                >
-                                    <Snowflake className="h-3 w-3" aria-hidden />
-                                    {habit.streakFreezes}
-                                </span>
-                            )}
+                            <span
+                                className="inline-flex items-center gap-0.5 text-sky-600 dark:text-sky-400"
+                                title={`${habit.streakFreezes} of ${MAX_STREAK_FREEZES} streak freezes banked`}
+                            >
+                                <Snowflake className="h-3 w-3" aria-hidden />
+                                {habit.streakFreezes}/{MAX_STREAK_FREEZES}
+                            </span>
                             best {habit.longestStreak}
                         </span>
                     </div>
@@ -106,6 +108,28 @@ export function StreakChip({ className }: { className?: string }) {
                         days={habit.recentDays}
                         today={clientDate}
                     />
+                </div>
+
+                <div className="mb-1 flex items-start gap-2 rounded-lg bg-sky-500/5 px-2.5 py-2 text-[11px] leading-snug text-muted-foreground">
+                    <Snowflake
+                        className="mt-0.5 h-3.5 w-3.5 shrink-0 text-sky-500"
+                        aria-hidden
+                    />
+                    <span>
+                        <span className="font-semibold text-sky-700 dark:text-sky-300">
+                            {habit.streakFreezes}/{MAX_STREAK_FREEZES} freezes
+                        </span>{" "}
+                        auto-protect your streak on a missed day.{" "}
+                        {(() => {
+                            const untilNext = goalDaysUntilNextFreeze(
+                                habit.goalStreak,
+                                habit.streakFreezes,
+                            );
+                            return untilNext == null
+                                ? "Balance full."
+                                : `${untilNext} more goal-day${untilNext === 1 ? "" : "s"} earns another.`;
+                        })()}
+                    </span>
                 </div>
 
                 <DropdownMenuSeparator />
