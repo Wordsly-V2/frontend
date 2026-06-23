@@ -43,7 +43,6 @@ export default function AppNav() {
     const isManageMode = pathname?.startsWith('/manage');
     const isLearnMode = pathname?.startsWith('/learn');
     const isAuthPage = pathname?.startsWith('/auth');
-    const isOnboarding = pathname?.startsWith('/onboarding');
 
     const handleLogoutChoice = async (fromAllDevices: boolean) => {
         setIsLoggingOut(true);
@@ -165,8 +164,6 @@ export default function AppNav() {
             </Link>
         );
     };
-
-    if (isOnboarding) return null;
 
     return (
         <header className="sticky top-0 z-50 pt-safe">

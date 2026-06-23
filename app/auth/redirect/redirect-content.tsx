@@ -1,7 +1,6 @@
 "use client";
 import { ACCESS_TOKEN_STORAGE_KEY, setLocalStorageItem } from "@/lib/local-storage";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
-import { isOnboardingComplete } from "@/lib/onboarding";
 import Link from "next/link";
 import { redirect, useSearchParams } from "next/navigation";
 import { useEffect } from "react";
@@ -22,8 +21,7 @@ export default function RedirectContent() {
         }
 
         setLocalStorageItem(ACCESS_TOKEN_STORAGE_KEY, accessToken);
-        // First-time users go through onboarding before landing in the app.
-        redirect(isOnboardingComplete() ? redirectPath : "/onboarding");
+        redirect(redirectPath);
     }, [accessToken, errorParam, redirectPath]);
 
     if (errorParam) {
