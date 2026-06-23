@@ -14,7 +14,7 @@ import {
     useUpdateDailyGoalMutation,
 } from "@/queries/daily-habit.query";
 import { DAILY_GOAL_OPTIONS } from "@/types/daily-habit/daily-habit.type";
-import { Award, CalendarDays, ChevronDown, Flame, Sparkles, Target, Trophy } from "lucide-react";
+import { AlertTriangle, Award, CalendarDays, ChevronDown, Flame, Snowflake, Sparkles, Target, Trophy } from "lucide-react";
 import type { ReactNode } from "react";
 
 export function DailyHabitCard() {
@@ -24,12 +24,31 @@ export function DailyHabitCard() {
     const goal = dailyGoalProgress(habit.wordsToday, habit.goal);
     const updateGoal = useUpdateDailyGoalMutation();
 
+    const showAtRisk = habit.streakAtRisk && !habit.goalMetToday;
+    const milestone = habit.nextMilestone;
+    const showMilestone =
+        milestone != null && habit.streak > 0 && milestone - habit.streak <= 5;
+    const milestoneProgress =
+        milestone != null ? Math.round((habit.streak / milestone) * 100) : 0;
+
     return (
         <section
             aria-label="Daily practice goal"
             className="mb-6 rounded-2xl border border-border/70 bg-card/80 p-4 shadow-sm sm:p-5"
         >
             <div className="flex flex-col gap-5">
+                {showAtRisk && (
+                    <div
+                        role="alert"
+                        className="flex items-center gap-2 rounded-xl border border-orange-400/40 bg-orange-400/10 px-3 py-2 text-sm font-medium text-orange-700 dark:text-orange-300"
+                    >
+                        <AlertTriangle className="h-4 w-4 shrink-0" aria-hidden />
+                        <span>
+                            Your {habit.streak}-day streak ends tonight — practice now
+                            to keep it alive.
+                        </span>
+                    </div>
+                )}
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                     <div className="min-w-0 flex-1 space-y-2">
                         <div className="flex flex-wrap items-center gap-2">
@@ -40,6 +59,21 @@ export function DailyHabitCard() {
                                 <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary">
                                     <Sparkles className="h-3 w-3" aria-hidden />
                                     Goal met
+                                </span>
+                            )}
+                            {habit.streakShielded && (
+                                <span className="inline-flex items-center gap-1 rounded-full bg-sky-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-sky-600 dark:text-sky-400">
+                                    <Snowflake className="h-3 w-3" aria-hidden />
+                                    Streak shielded
+                                </span>
+                            )}
+                            {habit.streakFreezes > 0 && (
+                                <span
+                                    className="inline-flex items-center gap-1 rounded-full bg-sky-500/10 px-2 py-0.5 text-[10px] font-semibold text-sky-600 dark:text-sky-400"
+                                    title={`${habit.streakFreezes} streak freeze${habit.streakFreezes === 1 ? "" : "s"} banked — auto-protects your streak on a missed day`}
+                                >
+                                    <Snowflake className="h-3 w-3" aria-hidden />
+                                    {habit.streakFreezes} freeze{habit.streakFreezes === 1 ? "" : "s"}
                                 </span>
                             )}
                         </div>
@@ -129,6 +163,28 @@ export function DailyHabitCard() {
                         />
                     </div>
                 </div>
+
+                {showMilestone && milestone != null && (
+                    <div className="rounded-xl border border-violet-400/30 bg-violet-400/10 p-3">
+                        <div className="mb-1.5 flex items-center justify-between gap-2 text-xs">
+                            <span className="inline-flex items-center gap-1.5 font-semibold text-violet-700 dark:text-violet-300">
+                                <Award className="h-3.5 w-3.5" aria-hidden />
+                                {milestone - habit.streak === 0
+                                    ? `${milestone}-day milestone reached!`
+                                    : `${milestone - habit.streak} day${milestone - habit.streak === 1 ? "" : "s"} to a ${milestone}-day streak`}
+                            </span>
+                            <span className="tabular-nums text-muted-foreground">
+                                {habit.streak}/{milestone}
+                            </span>
+                        </div>
+                        <div className="h-1.5 overflow-hidden rounded-full bg-violet-400/20">
+                            <div
+                                className="h-full rounded-full bg-violet-500 transition-all duration-500"
+                                style={{ width: `${milestoneProgress}%` }}
+                            />
+                        </div>
+                    </div>
+                )}
 
                 <DailyHabitActivityStrip
                     days={habit.recentDays}

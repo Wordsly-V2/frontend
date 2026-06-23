@@ -1,5 +1,6 @@
 import { getLocalStorageItem, setLocalStorageItem } from "@/lib/local-storage";
 import type { IDailyHabit, IDailyHabitDay } from "@/types/daily-habit/daily-habit.type";
+import { nextStreakMilestone } from "@/types/daily-habit/daily-habit.type";
 
 import { PEDAGOGY } from "@/lib/learning-pedagogy";
 
@@ -27,6 +28,15 @@ function yesterdayDateString(fromDate = localDateString()): string {
     const d = new Date(year, month - 1, day);
     d.setDate(d.getDate() - 1);
     return localDateString(d);
+}
+
+/** Whole calendar days from date string `a` to `b` (b - a). */
+function dayDeltaLocal(a: string, b: string): number {
+    const [ay, am, ad] = a.split("-").map(Number);
+    const [by, bm, bd] = b.split("-").map(Number);
+    const start = Date.UTC(ay, am - 1, ad);
+    const end = Date.UTC(by, bm - 1, bd);
+    return Math.round((end - start) / 86_400_000);
 }
 
 function emptyRecentDays(endDate = localDateString()): IDailyHabitDay[] {
@@ -58,6 +68,10 @@ export function emptyLocalDailyHabit(date = localDateString()): IDailyHabit {
         wordsThisWeek: 0,
         daysActiveThisWeek: 0,
         recentDays: emptyRecentDays(date),
+        streakAtRisk: false,
+        nextMilestone: nextStreakMilestone(0),
+        streakFreezes: 0,
+        streakShielded: false,
         message: `Practice ${DAILY_GOAL_WORDS} words a day to build your streak.`,
     };
 }
@@ -90,20 +104,40 @@ export function getLocalDailyHabit(): IDailyHabit {
         const base = emptyLocalDailyHabit(today);
 
         if (parsed.date !== today) {
+            const storedStreak =
+                typeof parsed.streak === "number" ? parsed.streak : 0;
+            const lastPracticeDate =
+                typeof parsed.lastPracticeDate === "string"
+                    ? parsed.lastPracticeDate
+                    : null;
+            const freezes =
+                typeof parsed.streakFreezes === "number" ? parsed.streakFreezes : 0;
+            // The cached row predates today: a live streak survives if the last
+            // practice was yesterday (at risk until today's session), or if banked
+            // freezes can bridge the missed days (shielded). Anything wider lapses.
+            const delta =
+                lastPracticeDate != null
+                    ? dayDeltaLocal(lastPracticeDate, today)
+                    : Infinity;
+            const practicedYesterday = delta === 1;
+            const missed = delta - 1;
+            const shielded =
+                storedStreak > 0 && missed >= 1 && missed <= freezes;
+            const streakAlive = storedStreak > 0 && (practicedYesterday || shielded);
+            const streak = streakAlive ? storedStreak : 0;
+            const storedGoalStreak =
+                typeof parsed.goalStreak === "number" ? parsed.goalStreak : 0;
             return {
                 ...base,
-                streak: typeof parsed.streak === "number" ? parsed.streak : 0,
+                streak,
                 longestStreak:
                     typeof parsed.longestStreak === "number" ? parsed.longestStreak : 0,
-                goalStreak: typeof parsed.goalStreak === "number" ? parsed.goalStreak : 0,
+                goalStreak: streakAlive ? storedGoalStreak : 0,
                 longestGoalStreak:
                     typeof parsed.longestGoalStreak === "number"
                         ? parsed.longestGoalStreak
                         : 0,
-                lastPracticeDate:
-                    typeof parsed.lastPracticeDate === "string"
-                        ? parsed.lastPracticeDate
-                        : null,
+                lastPracticeDate,
                 goal: typeof parsed.goal === "number" ? parsed.goal : DAILY_GOAL_WORDS,
                 totalWordsPracticed:
                     typeof parsed.totalWordsPracticed === "number"
@@ -113,6 +147,16 @@ export function getLocalDailyHabit(): IDailyHabit {
                     typeof parsed.totalPracticeDays === "number"
                         ? parsed.totalPracticeDays
                         : 0,
+                streakFreezes: freezes,
+                streakShielded: shielded,
+                streakAtRisk: streak > 0 && practicedYesterday,
+                nextMilestone: nextStreakMilestone(streak),
+                message:
+                    streak > 0 && practicedYesterday
+                        ? `Don't lose your ${streak}-day streak — practice today!`
+                        : shielded
+                          ? `Streak shielded — practice today before your freeze runs out.`
+                          : base.message,
             };
         }
 
@@ -179,6 +223,11 @@ export function recordPracticeWordsLocally(wordCount: number): IDailyHabit {
         wordsThisWeek: recentDays.reduce((sum, d) => sum + d.words, 0),
         daysActiveThisWeek: recentDays.filter((d) => d.words > 0).length,
         recentDays,
+        // Practiced today, so the streak is safe again until tomorrow.
+        streakAtRisk: false,
+        streakShielded: false,
+        streakFreezes: current.streakFreezes,
+        nextMilestone: nextStreakMilestone(streak),
         message: goalMetToday
             ? "Daily goal complete. Keep the momentum going!"
             : `Practice ${goal} words a day to build your streak.`,

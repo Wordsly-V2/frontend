@@ -25,6 +25,7 @@ export function DailyHero() {
     const next = useNextPracticeAction();
     const firstName = profile?.displayName?.split(" ")[0] ?? "there";
     const { goal } = next;
+    const atRisk = habit.streakAtRisk && !goal.met;
 
     return (
         <section
@@ -37,7 +38,14 @@ export function DailyHero() {
                 <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
                     <div className="flex min-w-0 flex-1 flex-col gap-4">
                         <div className="flex items-center gap-2">
-                            <span className="inline-flex items-center gap-1 rounded-full border-2 border-border bg-card px-2.5 py-0.5 text-xs font-extrabold tabular-nums">
+                            <span
+                                className={cn(
+                                    "inline-flex items-center gap-1 rounded-full border-2 bg-card px-2.5 py-0.5 text-xs font-extrabold tabular-nums",
+                                    atRisk
+                                        ? "border-[var(--brand-orange)]/60 text-[var(--brand-orange)] animate-pulse"
+                                        : "border-border",
+                                )}
+                            >
                                 <StreakFlame
                                     className="h-3.5 w-3.5"
                                     lit={habit.streak > 0}
@@ -53,9 +61,11 @@ export function DailyHero() {
                             <h1 className="mt-0.5 text-2xl font-bold tracking-tight sm:text-3xl">
                                 {goal.met
                                     ? "Goal smashed — keep the momentum!"
-                                    : next.primary
-                                      ? "Ready for today's practice?"
-                                      : "Pick a course to get started"}
+                                    : atRisk
+                                      ? `Keep your ${habit.streak}-day streak alive!`
+                                      : next.primary
+                                        ? "Ready for today's practice?"
+                                        : "Pick a course to get started"}
                             </h1>
                         </div>
 

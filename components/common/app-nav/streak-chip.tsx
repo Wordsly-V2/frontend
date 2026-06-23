@@ -21,6 +21,7 @@ import {
     useUpdateDailyGoalMutation,
 } from "@/queries/daily-habit.query";
 import { DAILY_GOAL_OPTIONS } from "@/types/daily-habit/daily-habit.type";
+import { Snowflake } from "lucide-react";
 
 /** Always-visible streak + daily-goal chip in the top nav. */
 export function StreakChip({ className }: { className?: string }) {
@@ -29,15 +30,23 @@ export function StreakChip({ className }: { className?: string }) {
     const habit = serverHabit ?? getLocalDailyHabit();
     const goal = dailyGoalProgress(habit.wordsToday, habit.goal);
     const updateGoal = useUpdateDailyGoalMutation();
+    const atRisk = habit.streakAtRisk && !habit.goalMetToday;
 
     return (
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
                 <button
                     type="button"
-                    aria-label={`Streak ${habit.streak} days, ${habit.wordsToday} of ${goal.goal} words today`}
+                    aria-label={
+                        atRisk
+                            ? `Streak ${habit.streak} days at risk — practice today to keep it`
+                            : `Streak ${habit.streak} days, ${habit.wordsToday} of ${goal.goal} words today`
+                    }
                     className={cn(
-                        "flex items-center gap-1.5 rounded-full border-2 border-border bg-card px-2.5 py-1 text-sm font-extrabold tabular-nums transition-colors hover:border-[var(--brand-orange)]/40 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/40",
+                        "flex items-center gap-1.5 rounded-full border-2 bg-card px-2.5 py-1 text-sm font-extrabold tabular-nums transition-colors focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/40",
+                        atRisk
+                            ? "border-[var(--brand-orange)]/60 animate-pulse"
+                            : "border-border hover:border-[var(--brand-orange)]/40",
                         className,
                     )}
                 >
@@ -51,11 +60,26 @@ export function StreakChip({ className }: { className?: string }) {
                         <span className="font-display text-base font-bold">
                             {habit.streak}-day streak
                         </span>
-                        <span className="text-xs font-medium text-muted-foreground">
+                        <span className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
+                            {habit.streakFreezes > 0 && (
+                                <span
+                                    className="inline-flex items-center gap-0.5 text-sky-600 dark:text-sky-400"
+                                    title={`${habit.streakFreezes} streak freeze${habit.streakFreezes === 1 ? "" : "s"} banked`}
+                                >
+                                    <Snowflake className="h-3 w-3" aria-hidden />
+                                    {habit.streakFreezes}
+                                </span>
+                            )}
                             best {habit.longestStreak}
                         </span>
                     </div>
                 </DropdownMenuLabel>
+
+                {atRisk && (
+                    <p className="mb-2 rounded-lg border border-orange-400/40 bg-orange-400/10 px-2.5 py-1.5 text-xs font-medium text-orange-700 dark:text-orange-300">
+                        Practice today to keep your {habit.streak}-day streak.
+                    </p>
+                )}
 
                 <div className="rounded-xl border border-border/60 bg-muted/20 p-3">
                     <div className="mb-1.5 flex items-end justify-between">
