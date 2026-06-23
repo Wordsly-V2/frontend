@@ -19,6 +19,8 @@ export interface IRecordAnswerDto {
 
 export interface IBulkRecordAnswersDto {
     answers: IRecordAnswerDto[];
+    /** Client local calendar date (YYYY-MM-DD); powers the accuracy trend in the report. */
+    clientDate?: string;
 }
 
 export interface IWordProgressResponse {

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { BookOpen, GraduationCap, Settings, User, LogOut, LogIn, Smartphone, Search } from "lucide-react";
+import { BarChart3, BookOpen, GraduationCap, Settings, User, LogOut, LogIn, Smartphone, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { MyWordsSearch } from "@/components/common/my-words-search";
 import { StreakChip } from "@/components/common/app-nav/streak-chip";
@@ -42,6 +42,7 @@ export default function AppNav() {
 
     const isManageMode = pathname?.startsWith('/manage');
     const isLearnMode = pathname?.startsWith('/learn');
+    const isProgressMode = pathname?.startsWith('/progress');
     const isAuthPage = pathname?.startsWith('/auth');
 
     const handleLogoutChoice = async (fromAllDevices: boolean) => {
@@ -196,6 +197,16 @@ export default function AppNav() {
                                             >
                                                 <BookOpen className="h-4 w-4" />
                                                 <span>Learn</span>
+                                            </Button>
+                                        </Link>
+                                        <Link href="/progress">
+                                            <Button
+                                                variant={isProgressMode ? "default" : "ghost"}
+                                                size="sm"
+                                                className={`gap-1.5 rounded-lg px-3 ${isProgressMode ? "shadow-sm" : ""}`}
+                                            >
+                                                <BarChart3 className="h-4 w-4" />
+                                                <span>Progress</span>
                                             </Button>
                                         </Link>
                                         <Link href="/manage">

@@ -3,7 +3,7 @@
 import { useNextPracticeAction } from "@/hooks/useNextPracticeAction.hook";
 import { useUser } from "@/hooks/useUser.hook";
 import { cn } from "@/lib/utils";
-import { BookOpen, Dumbbell, Library, Settings, User } from "lucide-react";
+import { BarChart3, BookOpen, Dumbbell, Library, Settings, User } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -26,6 +26,12 @@ const TABS: Tab[] = [
         label: "Courses",
         icon: Library,
         match: (p) => p.startsWith("/learn/courses"),
+    },
+    {
+        href: "/progress",
+        label: "Progress",
+        icon: BarChart3,
+        match: (p) => p.startsWith("/progress"),
     },
     {
         href: "/manage",
@@ -69,7 +75,7 @@ export function BottomTabBar() {
                 aria-label="Primary"
                 className="fixed inset-x-0 bottom-0 z-40 border-t-2 border-border bg-background/95 pb-safe backdrop-blur-xl sm:hidden"
             >
-                <div className="mx-auto grid max-w-md grid-cols-5 items-end px-2 py-1.5">
+                <div className="mx-auto grid max-w-md grid-cols-6 items-end px-2 py-1.5">
                     {left.map((tab) => (
                         <TabButton key={tab.href} tab={tab} pathname={pathname} />
                     ))}

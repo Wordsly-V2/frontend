@@ -1,4 +1,5 @@
 import { recordAnswerBulkSync } from "@/apis/word-progress.api";
+import { localDateString } from "@/lib/daily-habit";
 import {
     enqueuePendingPracticeSave,
     getPendingPracticeSaves,
@@ -11,11 +12,17 @@ export type SaveSessionOutcome = "sync" | "queued";
 export async function saveSessionResults(
     payload: SessionCompletePayload,
 ): Promise<SaveSessionOutcome> {
+    // Stamp the session with the client-local date so the report's accuracy
+    // trend buckets it correctly even if the save is queued and retried later.
+    const body = {
+        answers: payload.wordResults,
+        clientDate: localDateString(),
+    };
     try {
-        await recordAnswerBulkSync({ answers: payload.wordResults });
+        await recordAnswerBulkSync(body);
         return "sync";
     } catch {
-        enqueuePendingPracticeSave({ answers: payload.wordResults });
+        enqueuePendingPracticeSave(body);
         return "queued";
     }
 }
