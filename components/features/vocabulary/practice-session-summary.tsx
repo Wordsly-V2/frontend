@@ -4,6 +4,7 @@ import { CountUp, Mascot } from "@/components/common/motion";
 import { Button } from "@/components/ui/button";
 import { dailyGoalProgress } from "@/lib/daily-habit";
 import { fireCelebrationConfetti } from "@/lib/confetti";
+import { useEnterKeyAction } from "@/lib/keyboard-utils";
 import { pickSessionCompleteMessage } from "@/lib/practice-feedback";
 import type { IDailyHabit } from "@/types/daily-habit/daily-habit.type";
 import { AnswerQuality } from "@/types/word-progress/word-progress.type";
@@ -41,6 +42,9 @@ export function PracticeSessionSummary({
     useEffect(() => {
         if (habitState.goalMetToday) fireCelebrationConfetti();
     }, [habitState.goalMetToday]);
+
+    // Let players keep their flow going with the keyboard.
+    useEnterKeyAction(onKeepGoing);
 
     const reveal = (delay: number) => ({
         initial: { opacity: 0, y: 16 },
@@ -132,6 +136,9 @@ export function PracticeSessionSummary({
                 >
                     Keep going
                     <ArrowRight className="h-4 w-4" aria-hidden />
+                    <span className="ml-0.5 text-xs opacity-70 font-normal">
+                        Enter
+                    </span>
                 </Button>
                 <Button
                     variant="playOutline"
