@@ -11,7 +11,8 @@ import { useGetCourseDetailByIdQuery } from "@/queries/courses.query";
 import { useGetDueWordIdsByWordIdsQuery } from "@/queries/word-progress.query";
 import { ILesson, IWord } from "@/types/courses/courses.type";
 import WordDetailDialog from "@/components/features/manage/word-detail-dialog";
-import { ArrowLeft, BookOpen, Brain, ChevronDown, ChevronRight, Eye, GraduationCap, List, Play, Search, Sparkles, Volume2 } from "lucide-react";
+import { ArrowLeft, BookOpen, Brain, ChevronDown, ChevronRight, Eye, GraduationCap, List, Play, Search, Shuffle, Sparkles, Volume2 } from "lucide-react";
+import { shuffleArray } from "@/lib/practice-utils";
 import Image from "next/image";
 import { buildWordsDetailsUrl } from "@/lib/search-params/word-selection";
 import { courseWordFocusSearchParams } from "@/lib/search-params/course-word-focus";
@@ -67,6 +68,7 @@ export default function LearnCourseDetailPage({ params }: { params: Promise<{ id
         courseStats,
         lessonStatsByLessonId,
         wordProgressByWordId,
+        isLoading: isProgressLoading,
     } = useCourseWordProgress(course, !!course);
 
     useEffect(() => {
@@ -160,6 +162,13 @@ export default function LearnCourseDetailPage({ params }: { params: Promise<{ id
             allWords.push(...lesson.words);
         }
     });
+
+    // Words the learner has already started (any progress record) — excludes new,
+    // never-studied words. This is the pool for random practice.
+    const studiedWordIds = allWords
+        .filter((w) => !!wordProgressByWordId[w.id])
+        .map((w) => w.id);
+    const studiedWordCount = studiedWordIds.length;
 
     const q = (searchQuery ?? "").trim().toLowerCase();
     const wordMatchesSearch = (w: IWord) =>
@@ -294,6 +303,23 @@ export default function LearnCourseDetailPage({ params }: { params: Promise<{ id
                 courseName: course.name,
                 wordIds: newWordIds,
                 kind: "new",
+            }),
+        );
+    };
+
+    const handlePracticeRandom = () => {
+        if (studiedWordCount === 0 || !course) {
+            toast.info("No studied words yet — learn some new words first!");
+            return;
+        }
+
+        const wordIds = shuffleArray(studiedWordIds).slice(0, dueWordsLimit);
+        router.push(
+            buildPracticeUrl({
+                courseId: id,
+                courseName: course.name,
+                wordIds,
+                kind: "review",
             }),
         );
     };
@@ -703,7 +729,7 @@ export default function LearnCourseDetailPage({ params }: { params: Promise<{ id
                             htmlFor="due-words-limit"
                             className="text-sm text-muted-foreground whitespace-nowrap"
                         >
-                            Due batch:
+                            Words per session:
                         </label>
                         <select
                             id="due-words-limit"
@@ -756,6 +782,20 @@ export default function LearnCourseDetailPage({ params }: { params: Promise<{ id
                                 {getLearnNewButtonLabel(practiceWordsLoading, newWordCount)}
                             </Button>
                         )}
+                        <Button
+                            variant="outline"
+                            onClick={() => {
+                                setActionsMenuOpen(false);
+                                handlePracticeRandom();
+                            }}
+                            disabled={isProgressLoading || studiedWordCount === 0}
+                            className="h-11 w-full rounded-xl border-primary/25 bg-primary/5 px-4 text-sm hover:bg-primary/10"
+                        >
+                            <Shuffle className="mr-2 h-4 w-4" />
+                            {isProgressLoading
+                                ? "Loading…"
+                                : `Practice random words (${Math.min(dueWordsLimit, studiedWordCount)})`}
+                        </Button>
                         <Button
                             variant="secondary"
                             onClick={() => {
