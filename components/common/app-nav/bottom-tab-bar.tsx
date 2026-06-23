@@ -59,31 +59,39 @@ export function BottomTabBar() {
     const [left, right] = [TABS.slice(0, 2), TABS.slice(2)];
 
     return (
-        <nav
-            aria-label="Primary"
-            className="fixed inset-x-0 bottom-0 z-40 border-t-2 border-border bg-background/95 pb-safe backdrop-blur-xl sm:hidden"
-        >
-            <div className="mx-auto grid max-w-md grid-cols-5 items-end px-2 py-1.5">
-                {left.map((tab) => (
-                    <TabButton key={tab.href} tab={tab} pathname={pathname} />
-                ))}
+        <>
+            {/* In-flow spacer so page content isn't hidden behind the fixed bar.
+                Renders only when the bar is visible (mobile, logged in). */}
+            <div
+                aria-hidden
+                className="h-[calc(4.5rem+env(safe-area-inset-bottom,0px))] sm:hidden"
+            />
+            <nav
+                aria-label="Primary"
+                className="fixed inset-x-0 bottom-0 z-40 border-t-2 border-border bg-background/95 pb-safe backdrop-blur-xl sm:hidden"
+            >
+                <div className="mx-auto grid max-w-md grid-cols-5 items-end px-2 py-1.5">
+                    {left.map((tab) => (
+                        <TabButton key={tab.href} tab={tab} pathname={pathname} />
+                    ))}
 
-                {/* Raised center Practice CTA */}
-                <div className="flex justify-center">
-                    <Link
-                        href={practiceHref}
-                        aria-label="Start practice"
-                        className="-mt-6 flex h-14 w-14 flex-col items-center justify-center rounded-full gradient-brand text-primary-foreground shadow-lg shadow-primary/30 ring-4 ring-background transition-transform active:scale-95"
-                    >
-                        <Dumbbell className="h-6 w-6" />
-                    </Link>
+                    {/* Raised center Practice CTA */}
+                    <div className="flex justify-center">
+                        <Link
+                            href={practiceHref}
+                            aria-label="Start practice"
+                            className="-mt-6 flex h-14 w-14 flex-col items-center justify-center rounded-full gradient-brand text-primary-foreground shadow-lg shadow-primary/30 ring-4 ring-background transition-transform active:scale-95"
+                        >
+                            <Dumbbell className="h-6 w-6" />
+                        </Link>
+                    </div>
+
+                    {right.map((tab) => (
+                        <TabButton key={tab.href} tab={tab} pathname={pathname} />
+                    ))}
                 </div>
-
-                {right.map((tab) => (
-                    <TabButton key={tab.href} tab={tab} pathname={pathname} />
-                ))}
-            </div>
-        </nav>
+            </nav>
+        </>
     );
 }
 
