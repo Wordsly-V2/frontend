@@ -1,4 +1,4 @@
-import { ACCESS_TOKEN_STORAGE_KEY, removeLocalStorageItem } from '@/lib/local-storage';
+import { ACCESS_TOKEN_STORAGE_KEY, REFRESH_TOKEN_STORAGE_KEY, removeLocalStorageItem } from '@/lib/local-storage';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { fetchProfile as fetchProfileAction, logout as logoutAction } from '@/store/slices/userSlice';
 import { useRouter } from 'next/navigation';
@@ -17,6 +17,7 @@ export const useUser = () => {
     function logout(isLoggedOutFromAllDevices?: boolean) {
         return dispatch(logoutAction({ isLoggedOutFromAllDevices })).then(() => {
             removeLocalStorageItem(ACCESS_TOKEN_STORAGE_KEY);
+            removeLocalStorageItem(REFRESH_TOKEN_STORAGE_KEY);
             router.replace('/');
             router.refresh();
         });

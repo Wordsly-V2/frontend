@@ -1,5 +1,5 @@
 "use client";
-import { ACCESS_TOKEN_STORAGE_KEY, setLocalStorageItem } from "@/lib/local-storage";
+import { ACCESS_TOKEN_STORAGE_KEY, REFRESH_TOKEN_STORAGE_KEY, setLocalStorageItem } from "@/lib/local-storage";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import Link from "next/link";
 import { redirect, useSearchParams } from "next/navigation";
@@ -8,6 +8,8 @@ import { useEffect } from "react";
 export default function RedirectContent() {
     const searchParams = useSearchParams();
     const accessToken = searchParams.get("access_token");
+    // Present only when the backend runs in 'body' refresh-token delivery mode.
+    const refreshToken = searchParams.get("refresh_token");
     const errorParam = searchParams.get("error");
     const redirectPath = searchParams.get("redirect") || "/learn";
 
@@ -21,8 +23,11 @@ export default function RedirectContent() {
         }
 
         setLocalStorageItem(ACCESS_TOKEN_STORAGE_KEY, accessToken);
+        if (refreshToken) {
+            setLocalStorageItem(REFRESH_TOKEN_STORAGE_KEY, refreshToken);
+        }
         redirect(redirectPath);
-    }, [accessToken, errorParam, redirectPath]);
+    }, [accessToken, refreshToken, errorParam, redirectPath]);
 
     if (errorParam) {
         return (

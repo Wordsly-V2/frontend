@@ -6,6 +6,10 @@ export const THEME_STORAGE_KEY = 'theme';
 
 export const ACCESS_TOKEN_STORAGE_KEY = 'access_token';
 
+// Only used when the backend runs in 'body' refresh-token delivery mode; in cookie
+// mode the refresh token never reaches the client and this stays empty.
+export const REFRESH_TOKEN_STORAGE_KEY = 'refresh_token';
+
 export function getLocalStorageItem(key: string): string | null {
     if (globalThis.window === undefined) return null;
     try {

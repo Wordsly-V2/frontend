@@ -1,6 +1,7 @@
 import axios from 'axios';
 import {
 	ACCESS_TOKEN_STORAGE_KEY,
+	REFRESH_TOKEN_STORAGE_KEY,
 	getLocalStorageItem,
 	setLocalStorageItem,
 } from '@/lib/local-storage';
@@ -69,13 +70,28 @@ axiosInstance.interceptors.response.use(
 			isRefreshing = true;
 
 			try {
+				// In 'body' delivery mode the refresh token lives in localStorage and must be
+				// sent via header; in cookie mode it is empty and the http cookie is used instead.
+				const storedRefreshToken = getLocalStorageItem(
+					REFRESH_TOKEN_STORAGE_KEY,
+				);
 				const res = await axios.get('/auth/refresh-token', {
 					baseURL: axiosInstance.defaults.baseURL,
 					withCredentials: true,
+					headers: storedRefreshToken
+						? { 'x-refresh-token': storedRefreshToken }
+						: undefined,
 				});
 				const newToken = res.data.accessToken;
 
 				setLocalStorageItem(ACCESS_TOKEN_STORAGE_KEY, newToken);
+				// Backend rotates the refresh token and returns it only in 'body' mode.
+				if (res.data.refreshToken) {
+					setLocalStorageItem(
+						REFRESH_TOKEN_STORAGE_KEY,
+						res.data.refreshToken,
+					);
+				}
 
 				processQueue(null, newToken);
 
