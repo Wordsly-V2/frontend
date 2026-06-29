@@ -29,7 +29,7 @@ import { getLastLearnCourse } from "@/lib/learning-session";
 import { recordSession } from "@/lib/session-history";
 import type { IDailyHabit } from "@/types/daily-habit/daily-habit.type";
 import { useRecordDailyPracticeMutation } from "@/queries/daily-habit.query";
-import { playAudioUrl, preloadAudioUrl } from "@/lib/practice-audio";
+import { playAudioUrl, preloadAudioUrl, stopAudio } from "@/lib/practice-audio";
 import { pickMilestoneMessage } from "@/lib/practice-feedback";
 import type { PracticeSessionKind } from "@/lib/practice-session";
 import {
@@ -123,6 +123,9 @@ export default function VocabularyPractice({
     const [introCompletedIds, setIntroCompletedIds] = useState<Set<string>>(
         () => new Set(),
     );
+    // Set once the user reports they can't hear the audio. For the rest of the
+    // session, every listening word falls back to typing from the meaning.
+    const [audioFallback, setAudioFallback] = useState(false);
     const inputRef = useRef<HTMLInputElement>(null);
     const wordStartTimeRef = useRef<number | null>(null);
     const sessionStreakRef = useRef(0);
@@ -160,7 +163,7 @@ export default function VocabularyPractice({
         if (mode !== "mixed") return null;
         return buildMixedModePlan(queue, stagesByWordId, { leechWordIds });
     }, [mode, queue, stagesByWordId, leechWordIds]);
-    const activeMode: ActivePracticeMode = currentWord
+    const resolvedMode: ActivePracticeMode = currentWord
         ? resolveActiveMode(
               mode,
               clozePrompt != null,
@@ -172,6 +175,14 @@ export default function VocabularyPractice({
               currentStage,
           )
         : "typing";
+    // If the user couldn't hear the audio, fall back to a text exercise:
+    // fill-in (cloze) when the word supports it, otherwise plain typing.
+    const activeMode: ActivePracticeMode =
+        resolvedMode === "listening" && audioFallback
+            ? clozePrompt != null
+                ? "cloze"
+                : "typing"
+            : resolvedMode;
 
     const rawExamples = useMemo(
         () => (currentWord ? getWordExamples(currentWord) : []),
@@ -380,6 +391,14 @@ export default function VocabularyPractice({
         }
         return correctWord;
     }, [currentWord, userAnswer]);
+
+    const handleUseTextFallback = useCallback(() => {
+        stopAudio();
+        setAudioFallback(true);
+        setUserAnswer("");
+        setHintsUsed(0);
+        focusPracticeInput();
+    }, [focusPracticeInput]);
 
     const handleGetHint = () => {
         const hint = getNextHint();
@@ -1107,6 +1126,13 @@ export default function VocabularyPractice({
                                                 </Button>
                                             )}
                                         </div>
+                                        <button
+                                            type="button"
+                                            onClick={handleUseTextFallback}
+                                            className="text-xs text-muted-foreground underline underline-offset-2 hover:text-foreground transition-colors"
+                                        >
+                                            Can&apos;t hear the audio? Switch to a text exercise for this session
+                                        </button>
                                     </div>
                                 )}
                             </PracticeExerciseBody>
