@@ -43,6 +43,16 @@ export interface IReportStreaks {
     longestGoalStreak: number;
 }
 
+export interface IReportLevel {
+    level: number;
+    rank: string;
+    totalXp: number;
+    currentLevelXp: number;
+    xpForThisLevel: number;
+    xpToNextLevel: number;
+    progress: number;
+}
+
 export type AchievementCategory = "streak" | "words" | "days";
 
 export interface IReportAchievement {
@@ -62,6 +72,7 @@ export interface ILearningReport {
     summary: IReportSummary;
     mastery: IReportMastery;
     streaks: IReportStreaks;
+    level: IReportLevel;
     achievements: IReportAchievement[];
 }
 

@@ -5,7 +5,10 @@ import {
     saveSessionResults,
 } from "@/lib/practice-session-persistence";
 import { fireCelebrationConfetti } from "@/lib/confetti";
+import { getUserLevel } from "@/apis/user-level.api";
+import { userLevelQueryKey } from "@/queries/user-level.query";
 import type { SessionCompletePayload } from "@/types/practice/practice.type";
+import type { IUserLevel } from "@/types/user-level/user-level.type";
 import type { IWordProgressResponse } from "@/types/word-progress/word-progress.type";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
@@ -48,6 +51,27 @@ export function usePracticeSessionPersistence({
         return () => globalThis.removeEventListener("beforeunload", onBeforeUnload);
     }, [hasUnsavedPractice]);
 
+    // Re-fetch the level after a session and celebrate if it crossed a boundary.
+    // Non-critical: any failure is swallowed so it never blocks the save flow.
+    const refreshLevelAndCelebrate = useCallback(async () => {
+        const previous = queryClient.getQueryData<IUserLevel>(
+            userLevelQueryKey(),
+        );
+        try {
+            const next = await getUserLevel();
+            queryClient.setQueryData(userLevelQueryKey(), next);
+            if (previous && next.level > previous.level) {
+                fireCelebrationConfetti();
+                toast.success(
+                    `Level up! You reached level ${next.level} — ${next.rank} 🎉`,
+                    { duration: 5000 },
+                );
+            }
+        } catch {
+            // Ignore — leveling is a non-blocking enhancement.
+        }
+    }, [queryClient]);
+
     const persistSessionInBackground = useCallback(
         async (payload: SessionCompletePayload) => {
             try {
@@ -56,6 +80,8 @@ export function usePracticeSessionPersistence({
 
                 if (outcome === "queued") {
                     toast.warning("Saved locally — we will sync when you are back online.");
+                } else {
+                    await refreshLevelAndCelebrate();
                 }
             } catch {
                 setHasUnsavedPractice(true);
@@ -63,7 +89,7 @@ export function usePracticeSessionPersistence({
                 toast.error("Could not save progress. It is queued for retry.");
             }
         },
-        [invalidateProgressQueries],
+        [invalidateProgressQueries, refreshLevelAndCelebrate],
     );
 
     const persistSession = useCallback(

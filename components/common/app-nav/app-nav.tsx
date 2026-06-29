@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { BarChart3, BookOpen, GraduationCap, Settings, User, LogOut, LogIn, Smartphone, Search } from "lucide-react";
+import { BarChart3, BookOpen, GraduationCap, Settings, User, LogOut, LogIn, Smartphone, Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { MyWordsSearch } from "@/components/common/my-words-search";
 import { StreakChip } from "@/components/common/app-nav/streak-chip";
@@ -234,7 +234,7 @@ export default function AppNav() {
                                 onClick={openCommandPalette}
                                 aria-label="Open command palette"
                             >
-                                <Search className="h-4 w-4 shrink-0" />
+                                <Menu className="h-4 w-4 shrink-0" />
                                 <kbd className="pointer-events-none hidden sm:inline-flex h-6 select-none items-center rounded-md border border-border/80 bg-muted/80 px-1.5 font-mono text-[10px] font-medium text-muted-foreground">
                                     ⌘K
                                 </kbd>

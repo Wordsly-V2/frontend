@@ -1,6 +1,7 @@
 "use client";
 
 import { DailyHabitActivityStrip } from "@/components/features/learn/daily-habit-activity-strip";
+import { LevelBadge } from "@/components/features/learn/level-badge";
 import { Button } from "@/components/ui/button";
 import {
     DropdownMenu,
@@ -41,6 +42,7 @@ export function DailyHabitCard() {
             className="mb-6 rounded-2xl border border-border/70 bg-card/80 p-4 shadow-sm sm:p-5"
         >
             <div className="flex flex-col gap-5">
+                <LevelBadge />
                 {showAtRisk && (
                     <div
                         role="alert"
