@@ -15,7 +15,6 @@ import {
 } from "@/queries/daily-habit.query";
 import {
     DAILY_GOAL_OPTIONS,
-    FREEZE_EARN_EVERY_GOAL_DAYS,
     MAX_STREAK_FREEZES,
     goalDaysUntilNextFreeze,
 } from "@/types/daily-habit/daily-habit.type";
@@ -247,8 +246,8 @@ function FreezeMeter({
                 </span>
             </div>
             <p className="mt-1.5 text-[11px] leading-snug text-muted-foreground">
-                A freeze auto-protects your streak on a missed day. Earn one for
-                every {FREEZE_EARN_EVERY_GOAL_DAYS} goal-met days.
+                A freeze auto-protects your streak on a missed day. Earn one
+                after a 3-day goal streak and another at 5.
             </p>
         </div>
     );

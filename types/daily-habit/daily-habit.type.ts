@@ -52,18 +52,20 @@ export interface IUpdateDailyGoalDto {
 export const DAILY_GOAL_OPTIONS = [5, 10, 15, 20, 30] as const;
 
 /** Freeze economy — mirrors the learning-service constants. */
-export const FREEZE_EARN_EVERY_GOAL_DAYS = 5;
+export const FREEZE_EARN_GOAL_STREAKS = [3, 5] as const;
 export const MAX_STREAK_FREEZES = 2;
 
 /**
  * Goal-met days remaining until the next freeze is earned, or null when the
- * balance is already full (no more to earn).
+ * balance is already full or all freeze thresholds have been passed.
  */
 export function goalDaysUntilNextFreeze(
     goalStreak: number,
     freezes: number,
 ): number | null {
     if (freezes >= MAX_STREAK_FREEZES) return null;
-    const remainder = goalStreak % FREEZE_EARN_EVERY_GOAL_DAYS;
-    return FREEZE_EARN_EVERY_GOAL_DAYS - remainder;
+    const next = FREEZE_EARN_GOAL_STREAKS.find(
+        (threshold) => threshold > goalStreak,
+    );
+    return next === undefined ? null : next - goalStreak;
 }
