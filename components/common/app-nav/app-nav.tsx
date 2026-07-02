@@ -3,8 +3,10 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { motion, useReducedMotion } from "motion/react";
 import { BarChart3, BookOpen, GraduationCap, Settings, User, LogOut, LogIn, Smartphone, Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { MyWordsSearch } from "@/components/common/my-words-search";
 import { StreakChip } from "@/components/common/app-nav/streak-chip";
 import {
@@ -33,16 +35,20 @@ function openCommandPalette() {
     globalThis.document.dispatchEvent(new Event("wordsly:open-command-palette"));
 }
 
+const NAV_SECTIONS = [
+    { href: "/learn", label: "Learn", icon: BookOpen },
+    { href: "/progress", label: "Progress", icon: BarChart3 },
+    { href: "/manage", label: "Manage", icon: Settings },
+] as const;
+
 export default function AppNav() {
     const pathname = usePathname();
     const router = useRouter();
     const { profile, isLoading, logout } = useUser();
     const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
     const [isLoggingOut, setIsLoggingOut] = useState(false);
+    const reduceMotion = useReducedMotion();
 
-    const isManageMode = pathname?.startsWith('/manage');
-    const isLearnMode = pathname?.startsWith('/learn');
-    const isProgressMode = pathname?.startsWith('/progress');
     const isAuthPage = pathname?.startsWith('/auth');
 
     const handleLogoutChoice = async (fromAllDevices: boolean) => {
@@ -158,7 +164,7 @@ export default function AppNav() {
 
         return (
             <Link href="/auth/login">
-                <Button size="sm" className="gap-1.5 sm:gap-2 rounded-xl gradient-brand text-white hover:opacity-95 transition-opacity shadow-md h-9 sm:h-10 px-3 sm:px-4">
+                <Button size="sm" className="gap-1.5 sm:gap-2 rounded-full gradient-brand glow-primary text-white hover:opacity-95 transition-opacity h-9 sm:h-10 px-3 sm:px-4">
                     <LogIn className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                     <span className="text-xs sm:text-sm">Login</span>
                 </Button>
@@ -168,18 +174,17 @@ export default function AppNav() {
 
     return (
         <header className="sticky top-0 z-50 pt-safe">
-            <nav className="border-b border-border/60 bg-background/90 backdrop-blur-xl md:border-b-0 md:bg-transparent md:backdrop-blur-none">
-                <div className="container mx-auto px-3 sm:px-4 md:px-5 md:pt-3 md:pb-2">
-                    <div className="flex min-h-[3.25rem] sm:min-h-[3.5rem] items-center justify-between gap-2 min-[900px]:grid min-[900px]:grid-cols-[1fr_auto_1fr] md:rounded-2xl md:border md:border-border/60 md:bg-card/85 md:px-3 md:py-2 md:shadow-[0_12px_40px_-12px_rgba(15,23,42,0.12)] dark:md:shadow-[0_12px_40px_-12px_rgba(0,0,0,0.45)]">
+            <nav aria-label="Main" className="container mx-auto px-2.5 sm:px-4 md:px-5 pt-2 md:pt-3 pb-1 md:pb-2">
+                <div className="glass-surface flex min-h-[3.25rem] sm:min-h-[3.5rem] items-center justify-between gap-2 min-[900px]:grid min-[900px]:grid-cols-[1fr_auto_1fr] rounded-full px-2.5 sm:px-3 py-1.5 md:py-2 shadow-[0_12px_40px_-12px_rgba(15,23,42,0.18)] dark:shadow-[0_12px_40px_-12px_rgba(0,0,0,0.55)]">
                         {/* Logo */}
                         <Link
                             href="/"
-                            className="flex min-w-0 shrink items-center gap-2 font-semibold text-base sm:text-lg tracking-tight hover:opacity-85 transition-opacity min-[900px]:justify-self-start"
+                            className="flex min-w-0 shrink items-center gap-2 font-bold text-base sm:text-lg tracking-tight hover:opacity-85 transition-opacity rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background min-[900px]:justify-self-start"
                         >
                             <div className="flex h-9 w-9 sm:h-10 sm:w-10 shrink-0 items-center justify-center rounded-xl gradient-brand shadow-md shadow-primary/20">
                                 <GraduationCap className="h-[1.15rem] w-[1.15rem] sm:h-5 sm:w-5 text-primary-foreground" />
                             </div>
-                            <span className="hidden min-[380px]:inline truncate">Wordsly</span>
+                            <span className="hidden min-[380px]:inline truncate text-gradient-brand">Wordsly</span>
                         </Link>
 
                         {/* Center - Search + Mode Toggle (desktop). Always rendered so the
@@ -188,37 +193,40 @@ export default function AppNav() {
                             {!isAuthPage && profile && (
                                 <>
                                     <MyWordsSearch />
-                                    <div className="flex items-center rounded-xl border border-border/70 bg-muted/40 p-0.5 dark:bg-muted/25">
-                                        <Link href="/learn">
-                                            <Button
-                                                variant={isLearnMode ? "default" : "ghost"}
-                                                size="sm"
-                                                className={`gap-1.5 rounded-lg px-3 ${isLearnMode ? "shadow-sm" : ""}`}
-                                            >
-                                                <BookOpen className="h-4 w-4" />
-                                                <span>Learn</span>
-                                            </Button>
-                                        </Link>
-                                        <Link href="/progress">
-                                            <Button
-                                                variant={isProgressMode ? "default" : "ghost"}
-                                                size="sm"
-                                                className={`gap-1.5 rounded-lg px-3 ${isProgressMode ? "shadow-sm" : ""}`}
-                                            >
-                                                <BarChart3 className="h-4 w-4" />
-                                                <span>Progress</span>
-                                            </Button>
-                                        </Link>
-                                        <Link href="/manage">
-                                            <Button
-                                                variant={isManageMode ? "default" : "ghost"}
-                                                size="sm"
-                                                className={`gap-1.5 rounded-lg px-3 ${isManageMode ? "shadow-sm" : ""}`}
-                                            >
-                                                <Settings className="h-4 w-4" />
-                                                <span>Manage</span>
-                                            </Button>
-                                        </Link>
+                                    <div className="flex items-center rounded-full border border-border/60 bg-muted/40 p-1 dark:bg-muted/25">
+                                        {NAV_SECTIONS.map(({ href, label, icon: Icon }) => {
+                                            const active = pathname?.startsWith(href) ?? false;
+                                            return (
+                                                <Link
+                                                    key={href}
+                                                    href={href}
+                                                    aria-current={active ? "page" : undefined}
+                                                    className={cn(
+                                                        "relative flex h-9 items-center gap-1.5 rounded-full px-3.5 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+                                                        active
+                                                            ? "text-primary-foreground"
+                                                            : "text-muted-foreground hover:text-foreground",
+                                                    )}
+                                                >
+                                                    {active && (
+                                                        <motion.span
+                                                            layoutId="app-nav-active-pill"
+                                                            aria-hidden
+                                                            transition={
+                                                                reduceMotion
+                                                                    ? { duration: 0 }
+                                                                    : { type: "spring", stiffness: 400, damping: 32 }
+                                                            }
+                                                            className="absolute inset-0 rounded-full gradient-brand shadow-md shadow-primary/25"
+                                                        />
+                                                    )}
+                                                    <span className="relative z-10 flex items-center gap-1.5">
+                                                        <Icon className="h-4 w-4" />
+                                                        <span>{label}</span>
+                                                    </span>
+                                                </Link>
+                                            );
+                                        })}
                                     </div>
                                 </>
                             )}
@@ -230,7 +238,7 @@ export default function AppNav() {
                                 type="button"
                                 variant="ghost"
                                 size="sm"
-                                className="h-9 gap-1.5 rounded-xl text-muted-foreground hover:text-foreground cursor-pointer"
+                                className="h-9 gap-1.5 rounded-full text-muted-foreground hover:text-foreground cursor-pointer"
                                 onClick={openCommandPalette}
                                 aria-label="Open command palette"
                             >
@@ -249,7 +257,6 @@ export default function AppNav() {
 
                             {renderUserSection()}
                         </div>
-                    </div>
                 </div>
             </nav>
         </header>

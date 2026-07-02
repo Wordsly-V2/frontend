@@ -3,7 +3,7 @@ import { IUserWordSearchResult, IWord } from "@/types/courses/courses.type";
 import { useQuery } from "@tanstack/react-query";
 
 export const useGetWordsByIdsQuery = (courseId: string, wordIds: string[] = [], enabled: boolean = true) => useQuery<IWord[]>({
-    queryKey: ['words', 'get', courseId, wordIds],
+    queryKey: ['words', 'get', courseId, [...wordIds].sort()],
     queryFn: () => getWordsByIds(courseId, wordIds),
     enabled,
 });

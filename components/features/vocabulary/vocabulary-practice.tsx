@@ -7,8 +7,9 @@ import { NewWordIntroPanel } from "@/components/features/vocabulary/new-word-int
 import { PracticeCardShell } from "@/components/features/vocabulary/practice-card-shell";
 import { PracticeExerciseBody } from "@/components/features/vocabulary/practice-exercise-body";
 import { PracticeExerciseHeader } from "@/components/features/vocabulary/practice-exercise-header";
-import { PracticeProgressHeader } from "@/components/features/vocabulary/practice-progress-header";
 import { PracticeResultPanel } from "@/components/features/vocabulary/practice-result-panel";
+import { PracticeSessionHeader } from "@/components/features/vocabulary/practice-session-header";
+import { PracticeShortcutsHint } from "@/components/features/vocabulary/practice-shortcuts-hint";
 import { PracticeToolbar } from "@/components/features/vocabulary/practice-toolbar";
 import { PracticeWordChoiceGrid } from "@/components/features/vocabulary/practice-word-choice-grid";
 import { WordPracticeHints } from "@/components/features/vocabulary/word-practice-hints";
@@ -60,6 +61,7 @@ import {
 } from "@/lib/practice-utils";
 import { useNewWordIntro } from "@/hooks/useNewWordIntro.hook";
 import { LONG_TEXT_WRAP } from "@/lib/long-text";
+import { cn } from "@/lib/utils";
 import type { SessionCompletePayload, WordResult } from "@/types/practice/practice.type";
 import { IWord } from "@/types/courses/courses.type";
 import {
@@ -78,6 +80,24 @@ import { toast } from "sonner";
 
 export type { SessionCompletePayload, WordResult } from "@/types/practice/practice.type";
 
+/**
+ * Merge an attempt into the session results keeping the WORST quality per word.
+ * Words can appear multiple times in a session (wrong answers re-queue until
+ * correct; new words get several interleaved rounds) — the recorded result must
+ * reflect the weakest attempt or accuracy inflates to 100% and failed words
+ * sync to the scheduler as remembered.
+ */
+function mergeWorstResult(results: WordResult[], result: WordResult): WordResult[] {
+    const existingIndex = results.findIndex((r) => r.wordId === result.wordId);
+    if (existingIndex < 0) {
+        return [...results, result];
+    }
+    if (result.quality >= results[existingIndex].quality) {
+        return results;
+    }
+    return results.map((r, i) => (i === existingIndex ? result : r));
+}
+
 interface VocabularyPracticeProps {
     /** All session words (used in summary). */
     words: IWord[];
@@ -86,6 +106,13 @@ interface VocabularyPracticeProps {
     stagesByWordId?: Record<string, WordLearningStage>;
     sessionKind?: PracticeSessionKind;
     leechWordIds?: Set<string>;
+    /** Shown in the floating session header for orientation. */
+    courseName?: string;
+    /** Secondary line under the course name in the session header. */
+    sessionSubtitle?: string;
+    /** Leave the session entirely (e.g. back to course). */
+    onExit?: () => void;
+    exitDisabled?: boolean;
     onComplete?: (payload: SessionCompletePayload, destination?: string) => void;
     onSummaryReady?: () => void;
 }
@@ -95,6 +122,10 @@ export default function VocabularyPractice({
     practiceQueue,
     stagesByWordId,
     leechWordIds,
+    courseName,
+    sessionSubtitle,
+    onExit,
+    exitDisabled = false,
     onComplete,
     onSummaryReady,
 }: Readonly<VocabularyPracticeProps>) {
@@ -221,15 +252,11 @@ export default function VocabularyPractice({
 
     const commitResult = useCallback(
         (result: WordResult) => {
-            setWordResults((prev) => {
-                const existingIndex = prev.findIndex((r) => r.wordId === result.wordId);
-                if (existingIndex >= 0) {
-                    const next = [...prev];
-                    next[existingIndex] = result;
-                    return next;
-                }
-                return [...prev, result];
-            });
+            // Worst attempt wins: a word seen multiple times (retry-until-correct,
+            // new-word rounds) keeps its lowest quality, so session accuracy and
+            // the FSRS sync reflect what the user actually knew. Retries that go
+            // better only affect the streak below, never the recorded result.
+            setWordResults((prev) => mergeWorstResult(prev, result));
             if (isWeakAnswer(result.quality)) {
                 sessionStreakRef.current = 0;
                 setSessionStreak(0);
@@ -311,13 +338,8 @@ export default function VocabularyPractice({
     );
 
     const mergeWordResult = useCallback(
-        (results: WordResult[], result: WordResult): WordResult[] => {
-            const existingIndex = results.findIndex((r) => r.wordId === result.wordId);
-            if (existingIndex >= 0) {
-                return results.map((r, i) => (i === existingIndex ? result : r));
-            }
-            return [...results, result];
-        },
+        (results: WordResult[], result: WordResult): WordResult[] =>
+            mergeWorstResult(results, result),
         [],
     );
 
@@ -325,7 +347,7 @@ export default function VocabularyPractice({
         setShowEndSessionDialog(false);
         setShowResultDialog(false);
         let results = wordResults;
-        if (pendingResult && !isWeakAnswer(pendingResult.quality)) {
+        if (pendingResult) {
             results = mergeWordResult(wordResults, pendingResult);
         }
         finishSession(results);
@@ -335,8 +357,9 @@ export default function VocabularyPractice({
     const advanceAfterAnswer = useCallback(
         (result: WordResult, word: IWord) => {
             if (isWeakAnswer(result.quality)) {
-                sessionStreakRef.current = 0;
-                setSessionStreak(0);
+                // Record the failure (first attempt wins), then re-queue the word
+                // so the learner still practices it until correct.
+                commitResult(result);
                 setQueue((prev) => [...prev, word]);
                 setCurrentIndex((i) => i + 1);
                 resetWordUi();
@@ -718,7 +741,7 @@ export default function VocabularyPractice({
             : "";
 
     const inputClassName =
-        "w-full px-4 py-4 text-xl text-center rounded-xl border-2 border-border bg-muted/30 focus:border-primary focus:bg-background outline-none transition-colors";
+        "w-full px-4 py-4 text-xl text-center rounded-xl border-2 border-border bg-muted/30 focus:border-primary focus:bg-background focus:ring-4 focus:ring-primary/10 outline-none transition-[color,background-color,border-color,box-shadow]";
 
     const savableResultCount =
         wordResults.length +
@@ -734,29 +757,33 @@ export default function VocabularyPractice({
 
     return (
         <div className="flex flex-col flex-1 min-h-0 w-full">
-            <div className="flex items-start gap-1 mb-4">
-                <PracticeProgressHeader
-                    currentIndex={currentIndex}
-                    total={queue.length}
-                    sessionStreak={sessionStreak}
-                    mode={showIntro ? undefined : activeMode}
-                    xp={sessionXp}
-                    onEndSession={() => setShowEndSessionDialog(true)}
-                    endSessionDisabled={showIntro || savableResultCount === 0}
-                    className="flex-1 min-w-0"
-                />
-                <PracticeToolbar
-                    showSettings={showSettings}
-                    showWordsList={showWordsList}
-                    queue={queue}
-                    currentIndex={currentIndex}
-                    onOpenSettings={() => setShowSettings(true)}
-                    onCloseSettings={() => setShowSettings(false)}
-                    onOpenWordsList={() => setShowWordsList(true)}
-                    onCloseWordsList={() => setShowWordsList(false)}
-                    hidden={showIntro}
-                />
-            </div>
+            <PracticeSessionHeader
+                currentIndex={currentIndex}
+                total={queue.length}
+                sessionStreak={sessionStreak}
+                mode={showIntro ? undefined : activeMode}
+                xp={sessionXp}
+                courseName={courseName}
+                subtitle={sessionSubtitle}
+                onExit={onExit}
+                exitDisabled={exitDisabled}
+                onEndSession={() => setShowEndSessionDialog(true)}
+                endSessionDisabled={showIntro || savableResultCount === 0}
+                className="mb-4"
+                actions={
+                    <PracticeToolbar
+                        showSettings={showSettings}
+                        showWordsList={showWordsList}
+                        queue={queue}
+                        currentIndex={currentIndex}
+                        onOpenSettings={() => setShowSettings(true)}
+                        onCloseSettings={() => setShowSettings(false)}
+                        onOpenWordsList={() => setShowWordsList(true)}
+                        onCloseWordsList={() => setShowWordsList(false)}
+                        hidden={showIntro}
+                    />
+                }
+            />
 
             <ConfirmDialog
                 isOpen={showEndSessionDialog}
@@ -778,7 +805,18 @@ export default function VocabularyPractice({
             {showIntro ? (
                 <NewWordIntroPanel word={currentWord} onStartExercise={startExercise} />
             ) : (
-                <PracticeCardShell variant={showResultDialog ? "result" : "default"}>
+                <PracticeCardShell
+                    variant={showResultDialog ? "result" : "default"}
+                    className={cn(
+                        // Elevated glass treatment over the ambient mesh backdrop.
+                        "bg-card/80 backdrop-blur-xl shadow-xl shadow-primary/10",
+                        // Unmistakable answer feedback: tinted border + glow on result.
+                        showResultDialog &&
+                            (typingResult === "correct"
+                                ? "border-[var(--brand-success)]/50 ring-2 ring-[var(--brand-success)]/25 shadow-[color:var(--brand-success)]/20"
+                                : "animate-wiggle border-destructive/50 ring-2 ring-destructive/25 shadow-destructive/20"),
+                    )}
+                >
                     {showResultDialog && activeMode !== "flashcard" ? (
                         <PracticeResultPanel
                             isCorrect={typingResult === "correct"}
@@ -825,6 +863,7 @@ export default function VocabularyPractice({
                                                         role="word"
                                                         as="h2"
                                                         align="center"
+                                                        className="font-display text-gradient-brand"
                                                     />
                                                     {currentWord.audioUrl && (
                                                         <Button
@@ -1028,7 +1067,7 @@ export default function VocabularyPractice({
                                                 role="word"
                                                 as="h2"
                                                 align="center"
-                                                className="mb-2"
+                                                className="mb-2 font-display text-gradient-brand"
                                             />
                                             <WordPracticeHints
                                                 maskedExamples={maskedExamples}
@@ -1139,6 +1178,10 @@ export default function VocabularyPractice({
                         </>
                     )}
                 </PracticeCardShell>
+            )}
+
+            {!showIntro && !showResultDialog && (
+                <PracticeShortcutsHint mode={activeMode} className="mt-4" />
             )}
         </div>
     );

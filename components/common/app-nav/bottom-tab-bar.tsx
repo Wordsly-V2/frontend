@@ -4,6 +4,7 @@ import { useNextPracticeAction } from "@/hooks/useNextPracticeAction.hook";
 import { useUser } from "@/hooks/useUser.hook";
 import { cn } from "@/lib/utils";
 import { BarChart3, BookOpen, Dumbbell, Library, Settings, User } from "lucide-react";
+import { motion, useReducedMotion } from "motion/react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -65,17 +66,17 @@ export function BottomTabBar() {
 
     return (
         <>
-            {/* In-flow spacer so page content isn't hidden behind the fixed bar.
+            {/* In-flow spacer so page content isn't hidden behind the floating bar.
                 Renders only when the bar is visible (mobile, logged in). */}
             <div
                 aria-hidden
-                className="h-[calc(4.5rem+env(safe-area-inset-bottom,0px))] sm:hidden"
+                className="h-[calc(5.25rem+env(safe-area-inset-bottom,0px))] sm:hidden"
             />
             <nav
                 aria-label="Primary"
-                className="fixed inset-x-0 bottom-0 z-40 border-t-2 border-border bg-background/95 pb-safe backdrop-blur-xl sm:hidden"
+                className="fixed inset-x-3 bottom-keyboard-safe z-40 sm:hidden"
             >
-                <div className="mx-auto grid max-w-md grid-cols-6 items-end px-2 py-1.5">
+                <div className="glass-surface mx-auto grid max-w-md grid-cols-6 items-end rounded-3xl px-2 py-1.5 shadow-[0_16px_48px_-12px_rgba(15,23,42,0.3)] dark:shadow-[0_16px_48px_-12px_rgba(0,0,0,0.6)]">
                     {left.map((tab) => (
                         <TabButton key={tab.href} tab={tab} pathname={pathname} />
                     ))}
@@ -85,7 +86,7 @@ export function BottomTabBar() {
                         <Link
                             href={practiceHref}
                             aria-label="Start practice"
-                            className="-mt-6 flex h-14 w-14 flex-col items-center justify-center rounded-full gradient-brand text-primary-foreground shadow-lg shadow-primary/30 ring-4 ring-background transition-transform active:scale-95"
+                            className="-mt-6 flex h-14 w-14 flex-col items-center justify-center rounded-full gradient-brand glow-primary text-primary-foreground ring-2 ring-white/25 transition-transform active:scale-95 motion-reduce:transition-none motion-reduce:active:scale-100 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ring"
                         >
                             <Dumbbell className="h-6 w-6" />
                         </Link>
@@ -103,17 +104,32 @@ export function BottomTabBar() {
 function TabButton({ tab, pathname }: { tab: Tab; pathname: string }) {
     const active = tab.match(pathname);
     const Icon = tab.icon;
+    const reduceMotion = useReducedMotion();
     return (
         <Link
             href={tab.href}
             aria-current={active ? "page" : undefined}
             className={cn(
-                "flex flex-col items-center gap-0.5 rounded-xl py-1.5 text-[10px] font-bold transition-colors",
+                "relative flex min-h-11 flex-col items-center justify-center gap-0.5 rounded-2xl py-1.5 text-[10px] font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                 active ? "text-primary" : "text-muted-foreground",
             )}
         >
-            <Icon className="h-5 w-5" />
-            <span>{tab.label}</span>
+            {active && (
+                <motion.span
+                    layoutId="bottom-tab-active"
+                    aria-hidden
+                    transition={
+                        reduceMotion
+                            ? { duration: 0 }
+                            : { type: "spring", stiffness: 400, damping: 32 }
+                    }
+                    className="absolute inset-x-1 inset-y-0.5 rounded-2xl bg-primary/12 dark:bg-primary/20"
+                />
+            )}
+            <span className="relative z-10 flex flex-col items-center gap-0.5">
+                <Icon className="h-5 w-5" />
+                <span>{tab.label}</span>
+            </span>
         </Link>
     );
 }

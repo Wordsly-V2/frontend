@@ -40,8 +40,8 @@ export default function LearnPage() {
                 <CoursePath />
 
                 {/* Progress — kept below the fold for the curious */}
-                <details className="group rounded-3xl border-2 border-border bg-card/60">
-                    <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-5 py-4 font-display text-base font-bold">
+                <details className="group glass-surface rounded-3xl">
+                    <summary className="flex cursor-pointer list-none items-center justify-between gap-2 rounded-3xl px-5 py-4 font-display text-base font-bold outline-none focus-visible:ring-[3px] focus-visible:ring-ring/45">
                         Your progress
                         <ChevronDown className="h-5 w-5 text-muted-foreground transition-transform group-open:rotate-180" />
                     </summary>

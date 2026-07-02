@@ -1,6 +1,7 @@
 "use client";
 
 import LoadingSection from "@/components/common/loading-section/loading-section";
+import { SavingOverlay } from "@/components/common/saving-overlay";
 import { PracticeSessionLayout } from "@/components/features/vocabulary/practice-session-layout";
 import { PracticeSessionOverview } from "@/components/features/vocabulary/practice-session-overview";
 import VocabularyPractice from "@/components/features/vocabulary/vocabulary-practice";
@@ -121,37 +122,49 @@ export default function PracticePage() {
         ? `${sessionPlan.practiceQueue.length} exercises · recall mode`
         : `${sessionPlan.practiceQueue.length} exercises`;
 
+    if (phase === "practice") {
+        // Immersive "focus mode": ambient mesh backdrop, floating glass
+        // session header (rendered inside VocabularyPractice) — no app chrome.
+        return (
+            <main className="mesh-page-bg flex min-h-dvh flex-col">
+                <SavingOverlay open={isPersisting} />
+                <div className="container mx-auto flex w-full max-w-3xl flex-1 flex-col px-3 pt-2 pb-6 pb-safe sm:px-4 sm:pt-3">
+                    <VocabularyPractice
+                        words={words}
+                        practiceQueue={sessionPlan.practiceQueue}
+                        stagesByWordId={sessionPlan.stagesByWordId}
+                        sessionKind={sessionKind}
+                        leechWordIds={leechWordIds}
+                        courseName={courseName ?? "Practice"}
+                        sessionSubtitle={practiceSubtitle}
+                        onExit={handleBackToCourse}
+                        exitDisabled={isPersisting}
+                        onSummaryReady={markUnsaved}
+                        onComplete={handlePracticeComplete}
+                    />
+                </div>
+            </main>
+        );
+    }
+
     return (
         <PracticeSessionLayout
-            variant={phase === "practice" ? "practice" : "overview"}
-            title={phase === "overview" ? "Session plan" : undefined}
-            subtitle={phase === "overview" ? overviewSubtitle : practiceSubtitle}
+            variant="overview"
+            title="Session plan"
+            subtitle={overviewSubtitle}
             courseName={courseName ?? ""}
             onBack={handleBackToCourse}
             backDisabled={isPersisting}
             isPersisting={isPersisting}
         >
-            {phase === "overview" && (
-                <PracticeSessionOverview
-                    counts={sessionPlan.counts}
-                    totalWords={words.length}
-                    exerciseCount={sessionPlan.practiceQueue.length}
-                    newWordCount={sessionPlan.introWords.length}
-                    isReviewSession={isReview}
-                    onStart={() => setPhase("practice")}
-                />
-            )}
-            {phase === "practice" && (
-                <VocabularyPractice
-                    words={words}
-                    practiceQueue={sessionPlan.practiceQueue}
-                    stagesByWordId={sessionPlan.stagesByWordId}
-                    sessionKind={sessionKind}
-                    leechWordIds={leechWordIds}
-                    onSummaryReady={markUnsaved}
-                    onComplete={handlePracticeComplete}
-                />
-            )}
+            <PracticeSessionOverview
+                counts={sessionPlan.counts}
+                totalWords={words.length}
+                exerciseCount={sessionPlan.practiceQueue.length}
+                newWordCount={sessionPlan.introWords.length}
+                isReviewSession={isReview}
+                onStart={() => setPhase("practice")}
+            />
         </PracticeSessionLayout>
     );
 }

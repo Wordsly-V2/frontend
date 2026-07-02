@@ -55,7 +55,7 @@ export const useGetDueWordIdsByWordIdsQuery = (
     includeNew?: boolean,
     enabled: boolean = true,
 ) => useQuery<{ wordIds: string[] }>({
-    queryKey: ['due-word-ids', 'by-word-ids', wordIds, limit, includeNew],
+    queryKey: ['due-word-ids', 'by-word-ids', [...wordIds].sort(), limit, includeNew],
     queryFn: () => getDueWordIdsByWordIds(wordIds, limit, includeNew),
     enabled: enabled && wordIds.length > 0,
 });
@@ -74,7 +74,7 @@ export const useGetProgressStatsByWordIdsQuery = (
     wordIds: string[],
     enabled: boolean = true,
 ) => useQuery<IWordProgressStats>({
-    queryKey: ['word-progress', 'stats', 'by-word-ids', wordIds],
+    queryKey: ['word-progress', 'stats', 'by-word-ids', [...wordIds].sort()],
     queryFn: () => getProgressStatsByWordIds(wordIds),
     enabled: enabled && wordIds.length > 0,
 });
@@ -83,7 +83,7 @@ export const useGetProgressStatsByCourseIdsQuery = (
     courseIds: string[],
     enabled: boolean = true,
 ) => useQuery<Record<string, IWordProgressStats>>({
-    queryKey: ['word-progress', 'stats', 'by-course-ids', courseIds],
+    queryKey: ['word-progress', 'stats', 'by-course-ids', [...courseIds].sort()],
     queryFn: () => getProgressStatsByCourseIds(courseIds),
     enabled: enabled && courseIds.length > 0,
 });
@@ -92,7 +92,7 @@ export const useGetProgressStatsByLessonIdsQuery = (
     lessonIds: string[],
     enabled: boolean = true,
 ) => useQuery<Record<string, IWordProgressStats>>({
-    queryKey: ['word-progress', 'stats', 'by-lesson-ids', lessonIds],
+    queryKey: ['word-progress', 'stats', 'by-lesson-ids', [...lessonIds].sort()],
     queryFn: () => getProgressStatsByLessonIds(lessonIds),
     enabled: enabled && lessonIds.length > 0,
 });
@@ -101,7 +101,7 @@ export const useGetProgressByWordIdsQuery = (
     wordIds: string[],
     enabled: boolean = true,
 ) => useQuery<Record<string, IWordProgressResponse | null>>({
-    queryKey: ['word-progress', 'by-word-ids', wordIds],
+    queryKey: ['word-progress', 'by-word-ids', [...wordIds].sort()],
     queryFn: () => getProgressByWordIds(wordIds),
     enabled: enabled && wordIds.length > 0,
 });

@@ -51,39 +51,39 @@
   /* Chunky, playful radius */
   --radius: 1.25rem;
 
-  /* Wordsly — Playful: grass-green hero, candy accents */
-  --brand-primary: oklch(0.72 0.2 142);
-  --brand-secondary: oklch(0.62 0.17 230);
-  --brand-accent: oklch(0.7 0.2 50);
-  --brand-success: oklch(0.72 0.2 142);
+  /* Wordsly — Aurora: electric violet hero, cyan + coral accents */
+  --brand-primary: oklch(0.58 0.235 295);
+  --brand-secondary: oklch(0.7 0.15 215);
+  --brand-accent: oklch(0.7 0.19 40);
+  --brand-success: oklch(0.72 0.2 150);
   --brand-warning: oklch(0.82 0.17 90);
   --brand-pink: oklch(0.68 0.2 350);
   --brand-orange: oklch(0.7 0.21 45);
 
   /* solid shadow color for 3D pressable controls */
-  --primary-shadow: oklch(0.58 0.19 142);
+  --primary-shadow: oklch(0.45 0.21 295);
 
-  --background: oklch(0.98 0.01 110);
-  --foreground: oklch(0.27 0.04 250);
+  --background: oklch(0.98 0.008 300);
+  --foreground: oklch(0.26 0.045 285);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.27 0.04 250);
+  --card-foreground: oklch(0.26 0.045 285);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.27 0.04 250);
+  --popover-foreground: oklch(0.26 0.045 285);
 
   --primary: var(--brand-primary);
-  --primary-foreground: oklch(0.24 0.07 142);
+  --primary-foreground: oklch(0.99 0.005 295);
 
-  --secondary: oklch(0.95 0.04 230);
-  --secondary-foreground: oklch(0.35 0.1 240);
-  --muted: oklch(0.96 0.01 250);
-  --muted-foreground: oklch(0.5 0.03 250);
+  --secondary: oklch(0.95 0.035 215);
+  --secondary-foreground: oklch(0.35 0.09 230);
+  --muted: oklch(0.96 0.012 295);
+  --muted-foreground: oklch(0.5 0.035 290);
 
-  --accent: oklch(0.95 0.06 90);
-  --accent-foreground: oklch(0.42 0.12 60);
+  --accent: oklch(0.95 0.05 60);
+  --accent-foreground: oklch(0.42 0.13 45);
 
   --destructive: oklch(0.62 0.23 27);
-  --border: oklch(0.9 0.015 250);
-  --input: oklch(0.94 0.012 250);
+  --border: oklch(0.9 0.02 295);
+  --input: oklch(0.94 0.016 295);
   --ring: var(--brand-primary);
 
   --chart-1: var(--brand-primary);
@@ -103,37 +103,37 @@
 }
 
 .dark {
-  --brand-primary: oklch(0.8 0.21 142);
-  --brand-secondary: oklch(0.74 0.16 230);
-  --brand-accent: oklch(0.78 0.19 55);
-  --brand-success: oklch(0.8 0.21 142);
+  --brand-primary: oklch(0.72 0.19 295);
+  --brand-secondary: oklch(0.78 0.13 215);
+  --brand-accent: oklch(0.78 0.17 45);
+  --brand-success: oklch(0.8 0.19 150);
   --brand-warning: oklch(0.86 0.16 90);
   --brand-pink: oklch(0.76 0.18 350);
   --brand-orange: oklch(0.78 0.19 50);
 
-  --primary-shadow: oklch(0.62 0.18 142);
+  --primary-shadow: oklch(0.55 0.19 295);
 
-  --background: oklch(0.2 0.025 255);
-  --foreground: oklch(0.96 0.01 250);
-  --card: oklch(0.25 0.03 255);
-  --card-foreground: oklch(0.96 0.01 250);
-  --popover: oklch(0.25 0.03 255);
-  --popover-foreground: oklch(0.96 0.01 250);
+  --background: oklch(0.17 0.03 290);
+  --foreground: oklch(0.96 0.012 290);
+  --card: oklch(0.22 0.035 290);
+  --card-foreground: oklch(0.96 0.012 290);
+  --popover: oklch(0.22 0.035 290);
+  --popover-foreground: oklch(0.96 0.012 290);
 
   --primary: var(--brand-primary);
-  --primary-foreground: oklch(0.18 0.04 142);
+  --primary-foreground: oklch(0.16 0.05 295);
 
-  --secondary: oklch(0.3 0.04 250);
+  --secondary: oklch(0.3 0.045 250);
   --secondary-foreground: oklch(0.92 0.02 250);
-  --muted: oklch(0.3 0.03 255);
-  --muted-foreground: oklch(0.72 0.03 250);
+  --muted: oklch(0.28 0.035 290);
+  --muted-foreground: oklch(0.73 0.03 290);
 
   --accent: oklch(0.32 0.06 90);
   --accent-foreground: oklch(0.88 0.1 90);
 
   --destructive: oklch(0.68 0.21 27);
-  --border: oklch(0.36 0.03 255);
-  --input: oklch(0.3 0.03 255);
+  --border: oklch(0.34 0.04 290);
+  --input: oklch(0.29 0.035 290);
   --ring: var(--brand-primary);
   
   --chart-1: var(--brand-primary);
@@ -142,13 +142,13 @@
   --chart-4: var(--brand-success);
   --chart-5: var(--brand-warning);
   
-  --sidebar: oklch(0.17 0.015 220);
-  --sidebar-foreground: oklch(0.98 0.005 220);
+  --sidebar: oklch(0.15 0.02 290);
+  --sidebar-foreground: oklch(0.98 0.005 290);
   --sidebar-primary: var(--brand-primary);
   --sidebar-primary-foreground: oklch(0.98 0 0);
-  --sidebar-accent: oklch(0.22 0.02 220);
-  --sidebar-accent-foreground: oklch(0.9 0.01 220);
-  --sidebar-border: oklch(0.28 0.02 220);
+  --sidebar-accent: oklch(0.21 0.025 290);
+  --sidebar-accent-foreground: oklch(0.9 0.01 290);
+  --sidebar-border: oklch(0.27 0.03 290);
   --sidebar-ring: var(--brand-primary);
 }
 
@@ -204,12 +204,14 @@
     padding-bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px));
   }
   
-  /* Brand surfaces — bold, candy gradients */
+  /* Brand surfaces — bold, candy gradients.
+     Stops derive from the --brand-* variables (via oklch relative colors) so
+     swapping the brand theme in :root/.dark re-themes every gradient. */
   .gradient-brand {
     background: linear-gradient(
       135deg,
-      oklch(0.74 0.2 142) 0%,
-      oklch(0.66 0.17 165) 100%
+      oklch(from var(--brand-primary) calc(l + 0.02) c h) 0%,
+      oklch(from var(--brand-primary) calc(l - 0.06) calc(c - 0.03) calc(h + 23)) 100%
     );
   }
 
@@ -225,7 +227,7 @@
     background: linear-gradient(
       135deg,
       var(--brand-success) 0%,
-      oklch(0.78 0.18 165) 100%
+      oklch(from var(--brand-success) calc(l + 0.06) calc(c - 0.02) calc(h + 23)) 100%
     );
   }
 
@@ -256,24 +258,66 @@
     );
   }
 
-  /* Ambient page backgrounds — candy wash */
+  /* Ambient page backgrounds — candy wash (hues follow the brand variables) */
   .mesh-page-bg {
     background-color: var(--background);
     background-image:
-      radial-gradient(ellipse 90% 60% at 0% -10%, oklch(0.78 0.18 142 / 0.16), transparent 50%),
-      radial-gradient(ellipse 70% 50% at 100% 0%, oklch(0.78 0.18 90 / 0.16), transparent 45%),
-      radial-gradient(ellipse 65% 45% at 50% 110%, oklch(0.75 0.18 350 / 0.14), transparent 55%);
+      radial-gradient(ellipse 90% 60% at 0% -10%, oklch(from var(--brand-primary) 0.78 0.18 h / 0.16), transparent 50%),
+      radial-gradient(ellipse 70% 50% at 100% 0%, oklch(from var(--brand-warning) 0.78 0.18 h / 0.16), transparent 45%),
+      radial-gradient(ellipse 65% 45% at 50% 110%, oklch(from var(--brand-pink) 0.75 0.18 h / 0.14), transparent 55%);
   }
 
   .dark .mesh-page-bg {
     background-image:
-      radial-gradient(ellipse 90% 60% at 0% -10%, oklch(0.55 0.16 142 / 0.28), transparent 50%),
-      radial-gradient(ellipse 70% 50% at 100% 0%, oklch(0.5 0.14 50 / 0.22), transparent 45%),
-      radial-gradient(ellipse 65% 45% at 50% 110%, oklch(0.45 0.14 350 / 0.22), transparent 55%);
+      radial-gradient(ellipse 90% 60% at 0% -10%, oklch(from var(--brand-primary) 0.55 0.16 h / 0.28), transparent 50%),
+      radial-gradient(ellipse 70% 50% at 100% 0%, oklch(from var(--brand-orange) 0.5 0.14 h / 0.22), transparent 45%),
+      radial-gradient(ellipse 65% 45% at 50% 110%, oklch(from var(--brand-pink) 0.45 0.14 h / 0.22), transparent 55%);
   }
   
   .text-balance {
     text-wrap: balance;
+  }
+
+  /* Aurora design language — glass, glow, gradient type */
+
+  /* Translucent, blurred surface for floating chrome (nav, bars, overlays) */
+  .glass-surface {
+    background: oklch(from var(--card) l c h / 0.72);
+    backdrop-filter: blur(16px) saturate(1.4);
+    -webkit-backdrop-filter: blur(16px) saturate(1.4);
+    border: 1px solid oklch(from var(--border) l c h / 0.6);
+  }
+
+  /* Soft colored halo for primary CTAs and highlighted cards */
+  .glow-primary {
+    box-shadow:
+      0 0 0 1px oklch(from var(--brand-primary) l c h / 0.25),
+      0 8px 30px -6px oklch(from var(--brand-primary) l c h / 0.45);
+  }
+
+  /* Headline gradient text — primary → secondary sweep */
+  .text-gradient-brand {
+    background: linear-gradient(
+      100deg,
+      var(--brand-primary) 0%,
+      oklch(from var(--brand-primary) calc(l + 0.1) c calc(h - 35)) 55%,
+      var(--brand-secondary) 100%
+    );
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  /* Rich hero wash — deeper, multi-stop version of gradient-brand */
+  .gradient-hero {
+    background:
+      radial-gradient(ellipse 80% 80% at 85% 10%, oklch(from var(--brand-secondary) l c h / 0.35), transparent 55%),
+      radial-gradient(ellipse 60% 70% at 10% 90%, oklch(from var(--brand-pink) l c h / 0.3), transparent 55%),
+      linear-gradient(
+        135deg,
+        oklch(from var(--brand-primary) calc(l + 0.04) c h) 0%,
+        oklch(from var(--brand-primary) calc(l - 0.08) calc(c + 0.02) calc(h + 15)) 100%
+      );
   }
   
   /* Badge variants for CEFR levels — saturated pills */
@@ -390,10 +434,10 @@
 
   @keyframes pulseGlow {
     0%, 100% {
-      box-shadow: 0 0 0 0 oklch(0.72 0.2 142 / 0.5);
+      box-shadow: 0 0 0 0 oklch(from var(--brand-primary) l c h / 0.5);
     }
     50% {
-      box-shadow: 0 0 0 8px oklch(0.72 0.2 142 / 0);
+      box-shadow: 0 0 0 8px oklch(from var(--brand-primary) l c h / 0);
     }
   }
 

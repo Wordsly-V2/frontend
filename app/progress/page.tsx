@@ -1,19 +1,59 @@
 "use client";
 
 import { useState } from "react";
+import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { Skeleton } from "@/components/common/states/skeleton";
 import { useUser } from "@/hooks/useUser.hook";
 import { useGetLearningReportQuery } from "@/queries/learning-report.query";
 import type { ReportPeriod } from "@/types/learning-report/learning-report.type";
-import { AccuracyTrendChart } from "@/components/features/progress/accuracy-trend-chart";
 import { AchievementsGrid } from "@/components/features/progress/achievements-grid";
-import { ConsistencyChart } from "@/components/features/progress/consistency-chart";
-import { MasteryBreakdownChart } from "@/components/features/progress/mastery-breakdown-chart";
 import { ReportPeriodToggle } from "@/components/features/progress/report-period-toggle";
 import { ReportSummaryCards } from "@/components/features/progress/report-summary-cards";
-import { WordsOverTimeChart } from "@/components/features/progress/words-over-time-chart";
+
+/** Placeholder matching ChartCard's shell while a chart chunk loads. */
+function ChartSkeleton() {
+    return (
+        <div className="rounded-2xl border border-border bg-card p-4 sm:p-5">
+            <Skeleton className="mb-1 h-4 w-32" />
+            <Skeleton className="mb-4 h-3 w-48" />
+            <Skeleton className="h-[240px] w-full rounded-xl" />
+        </div>
+    );
+}
+
+// Recharts-based charts are loaded on demand so the heavy charting library
+// stays out of the initial bundle (ssr: false — they render client-side only).
+const WordsOverTimeChart = dynamic(
+    () =>
+        import("@/components/features/progress/words-over-time-chart").then(
+            (m) => m.WordsOverTimeChart,
+        ),
+    { ssr: false, loading: () => <ChartSkeleton /> },
+);
+const AccuracyTrendChart = dynamic(
+    () =>
+        import("@/components/features/progress/accuracy-trend-chart").then(
+            (m) => m.AccuracyTrendChart,
+        ),
+    { ssr: false, loading: () => <ChartSkeleton /> },
+);
+const ConsistencyChart = dynamic(
+    () =>
+        import("@/components/features/progress/consistency-chart").then(
+            (m) => m.ConsistencyChart,
+        ),
+    { ssr: false, loading: () => <ChartSkeleton /> },
+);
+const MasteryBreakdownChart = dynamic(
+    () =>
+        import("@/components/features/progress/mastery-breakdown-chart").then(
+            (m) => m.MasteryBreakdownChart,
+        ),
+    { ssr: false, loading: () => <ChartSkeleton /> },
+);
 
 export default function ProgressPage() {
     const router = useRouter();

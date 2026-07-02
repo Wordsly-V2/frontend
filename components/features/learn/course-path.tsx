@@ -36,7 +36,7 @@ export function CoursePath() {
         <section aria-label="Continue learning" className="mb-8">
             <div className="mb-3 flex items-center justify-between">
                 <h2 className="font-display text-lg font-bold sm:text-xl">
-                    Jump back in
+                    <span className="text-gradient-brand">Jump back in</span>
                 </h2>
                 <Button variant="ghost" size="sm" asChild className="gap-1">
                     <Link href="/learn/courses">

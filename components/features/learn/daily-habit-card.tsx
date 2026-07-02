@@ -1,5 +1,6 @@
 "use client";
 
+import { StreakFlame } from "@/components/common/motion";
 import { DailyHabitActivityStrip } from "@/components/features/learn/daily-habit-activity-strip";
 import { LevelBadge } from "@/components/features/learn/level-badge";
 import { Button } from "@/components/ui/button";
@@ -10,6 +11,7 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { dailyGoalProgress, getLocalDailyHabit, localDateString } from "@/lib/daily-habit";
+import { cn } from "@/lib/utils";
 import {
     useDailyHabitDisplay,
     useUpdateDailyGoalMutation,
@@ -19,7 +21,7 @@ import {
     MAX_STREAK_FREEZES,
     goalDaysUntilNextFreeze,
 } from "@/types/daily-habit/daily-habit.type";
-import { AlertTriangle, Award, CalendarDays, ChevronDown, Flame, Snowflake, Sparkles, Target, Trophy } from "lucide-react";
+import { AlertTriangle, Award, CalendarDays, ChevronDown, Snowflake, Sparkles, Target, Trophy } from "lucide-react";
 import type { ReactNode } from "react";
 
 export function DailyHabitCard() {
@@ -37,32 +39,67 @@ export function DailyHabitCard() {
         milestone != null ? Math.round((habit.streak / milestone) * 100) : 0;
 
     return (
-        <section
-            aria-label="Daily practice goal"
-            className="mb-6 rounded-2xl border border-border/70 bg-card/80 p-4 shadow-sm sm:p-5"
-        >
-            <div className="flex flex-col gap-5">
-                <LevelBadge />
-                {showAtRisk && (
-                    <div
-                        role="alert"
-                        className="flex items-center gap-2 rounded-xl border border-orange-400/40 bg-orange-400/10 px-3 py-2 text-sm font-medium text-orange-700 dark:text-orange-300"
-                    >
-                        <AlertTriangle className="h-4 w-4 shrink-0" aria-hidden />
-                        <span>
-                            Your {habit.streak}-day streak ends tonight — practice now
-                            to keep it alive.
-                        </span>
-                    </div>
-                )}
-                <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                    <div className="min-w-0 flex-1 space-y-2">
+        <section aria-label="Daily practice goal" className="mb-6 space-y-3">
+            {/* Compact stat strip — small glass tiles */}
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:gap-3">
+                <GlassStat
+                    icon={
+                        <StreakFlame
+                            className="h-4 w-4"
+                            lit={habit.streak > 0}
+                        />
+                    }
+                    label="Streak"
+                    value={habit.streak}
+                    suffix="d"
+                />
+                <GlassStat
+                    icon={<Trophy className="h-4 w-4 text-amber-500" aria-hidden />}
+                    label="Best streak"
+                    value={habit.longestStreak}
+                    suffix="d"
+                />
+                <GlassStat
+                    icon={<Award className="h-4 w-4 text-primary" aria-hidden />}
+                    label="Goal streak"
+                    value={habit.goalStreak}
+                    suffix="d"
+                />
+                <GlassStat
+                    icon={
+                        <CalendarDays className="h-4 w-4 text-[var(--brand-secondary)]" aria-hidden />
+                    }
+                    label="This week"
+                    value={habit.wordsThisWeek}
+                    suffix="w"
+                />
+            </div>
+
+            <LevelBadge />
+
+            {showAtRisk && (
+                <div
+                    role="alert"
+                    className="flex items-center gap-2 rounded-2xl border border-[var(--brand-orange)]/40 bg-[var(--brand-orange)]/10 px-3 py-2 text-sm font-medium text-orange-700 dark:text-orange-300"
+                >
+                    <AlertTriangle className="h-4 w-4 shrink-0" aria-hidden />
+                    <span>
+                        Your {habit.streak}-day streak ends tonight — practice now
+                        to keep it alive.
+                    </span>
+                </div>
+            )}
+
+            {/* Habit details panel */}
+            <div className="glass-surface rounded-2xl p-4 sm:p-5">
+                <div className="flex flex-col gap-4">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
                         <div className="flex flex-wrap items-center gap-2">
                             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
                                 Daily habit
                             </p>
                             {habit.goalMetToday && (
-                                <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary">
+                                <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary animate-pop">
                                     <Sparkles className="h-3 w-3" aria-hidden />
                                     Goal met
                                 </span>
@@ -74,11 +111,6 @@ export function DailyHabitCard() {
                                 </span>
                             )}
                         </div>
-                        <p className="text-sm text-muted-foreground">
-                            {isLoading && !serverHabit
-                                ? "Loading your progress…"
-                                : habit.message}
-                        </p>
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                                 <Button
@@ -92,7 +124,7 @@ export function DailyHabitCard() {
                                     <ChevronDown className="h-3.5 w-3.5 opacity-60" aria-hidden />
                                 </Button>
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent align="start" className="min-w-[8rem]">
+                            <DropdownMenuContent align="end" className="min-w-[8rem]">
                                 {DAILY_GOAL_OPTIONS.map((value) => (
                                     <DropdownMenuItem
                                         key={value}
@@ -107,102 +139,77 @@ export function DailyHabitCard() {
                         </DropdownMenu>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:gap-3 shrink-0">
-                        <StatPill
-                            icon={<Flame className="h-4 w-4 text-orange-500" />}
-                            label="Streak"
-                            value={habit.streak}
-                            accent="bg-orange-500/10"
-                        />
-                        <StatPill
-                            icon={<Trophy className="h-4 w-4 text-amber-500" />}
-                            label="Best"
-                            value={habit.longestStreak}
-                            accent="bg-amber-500/10"
-                        />
-                        <StatPill
-                            icon={<Award className="h-4 w-4 text-violet-500" />}
-                            label="Goal streak"
-                            value={habit.goalStreak}
-                            accent="bg-violet-500/10"
-                        />
-                        <StatPill
-                            icon={<CalendarDays className="h-4 w-4 text-primary" />}
-                            label="This week"
-                            value={habit.wordsThisWeek}
-                            accent="bg-primary/10"
-                            suffix="w"
-                        />
-                    </div>
-                </div>
+                    <p className="text-sm text-muted-foreground">
+                        {isLoading && !serverHabit
+                            ? "Loading your progress…"
+                            : habit.message}
+                    </p>
 
-                <div className="rounded-xl border border-border/60 bg-muted/20 p-3 sm:p-4">
-                    <div className="mb-2 flex items-end justify-between gap-3">
-                        <div>
-                            <p className="text-xs text-muted-foreground">Today</p>
+                    <div>
+                        <div className="mb-2 flex items-end justify-between gap-3">
                             <p className="text-2xl font-bold tabular-nums leading-none">
                                 {habit.wordsToday}
                                 <span className="text-base font-medium text-muted-foreground">
-                                    /{goal.goal}
+                                    /{goal.goal} today
                                 </span>
                             </p>
+                            <p className="text-xs text-muted-foreground tabular-nums">
+                                {goal.met
+                                    ? "Done"
+                                    : `${goal.remaining} to go · ${habit.daysActiveThisWeek}/7 days active`}
+                            </p>
                         </div>
-                        <p className="text-xs text-muted-foreground tabular-nums">
-                            {goal.met
-                                ? "Done"
-                                : `${goal.remaining} to go · ${habit.daysActiveThisWeek}/7 days active`}
-                        </p>
-                    </div>
-                    <div className="h-2 bg-muted rounded-full overflow-hidden">
-                        <div
-                            className="h-full rounded-full bg-gradient-to-r from-primary to-[var(--brand-accent)] transition-all duration-500"
-                            style={{ width: `${goal.percent}%` }}
-                        />
-                    </div>
-                </div>
-
-                {showMilestone && milestone != null && (
-                    <div className="rounded-xl border border-violet-400/30 bg-violet-400/10 p-3">
-                        <div className="mb-1.5 flex items-center justify-between gap-2 text-xs">
-                            <span className="inline-flex items-center gap-1.5 font-semibold text-violet-700 dark:text-violet-300">
-                                <Award className="h-3.5 w-3.5" aria-hidden />
-                                {milestone - habit.streak === 0
-                                    ? `${milestone}-day milestone reached!`
-                                    : `${milestone - habit.streak} day${milestone - habit.streak === 1 ? "" : "s"} to a ${milestone}-day streak`}
-                            </span>
-                            <span className="tabular-nums text-muted-foreground">
-                                {habit.streak}/{milestone}
-                            </span>
-                        </div>
-                        <div className="h-1.5 overflow-hidden rounded-full bg-violet-400/20">
+                        <div className="h-2 overflow-hidden rounded-full bg-muted">
                             <div
-                                className="h-full rounded-full bg-violet-500 transition-all duration-500"
-                                style={{ width: `${milestoneProgress}%` }}
+                                className="gradient-brand h-full rounded-full transition-all duration-500 motion-reduce:transition-none"
+                                style={{ width: `${goal.percent}%` }}
                             />
                         </div>
                     </div>
-                )}
 
-                <FreezeMeter
-                    freezes={habit.streakFreezes}
-                    goalStreak={habit.goalStreak}
-                    shielded={habit.streakShielded}
-                />
+                    {showMilestone && milestone != null && (
+                        <div className="rounded-xl border border-primary/25 bg-primary/5 p-3">
+                            <div className="mb-1.5 flex items-center justify-between gap-2 text-xs">
+                                <span className="inline-flex items-center gap-1.5 font-semibold text-primary">
+                                    <Award className="h-3.5 w-3.5" aria-hidden />
+                                    {milestone - habit.streak === 0
+                                        ? `${milestone}-day milestone reached!`
+                                        : `${milestone - habit.streak} day${milestone - habit.streak === 1 ? "" : "s"} to a ${milestone}-day streak`}
+                                </span>
+                                <span className="tabular-nums text-muted-foreground">
+                                    {habit.streak}/{milestone}
+                                </span>
+                            </div>
+                            <div className="h-1.5 overflow-hidden rounded-full bg-primary/15">
+                                <div
+                                    className="h-full rounded-full bg-primary transition-all duration-500 motion-reduce:transition-none"
+                                    style={{ width: `${milestoneProgress}%` }}
+                                />
+                            </div>
+                        </div>
+                    )}
 
-                <DailyHabitActivityStrip
-                    days={habit.recentDays}
-                    today={clientDate}
-                />
+                    <FreezeMeter
+                        freezes={habit.streakFreezes}
+                        goalStreak={habit.goalStreak}
+                        shielded={habit.streakShielded}
+                    />
 
-                {habit.totalPracticeDays > 0 && (
-                    <p className="text-xs text-muted-foreground">
-                        Lifetime: {habit.totalWordsPracticed.toLocaleString()} words across{" "}
-                        {habit.totalPracticeDays} practice day
-                        {habit.totalPracticeDays === 1 ? "" : "s"}
-                        {habit.longestGoalStreak > 0 &&
-                            ` · best goal streak ${habit.longestGoalStreak}`}
-                    </p>
-                )}
+                    <DailyHabitActivityStrip
+                        days={habit.recentDays}
+                        today={clientDate}
+                    />
+
+                    {habit.totalPracticeDays > 0 && (
+                        <p className="text-xs text-muted-foreground">
+                            Lifetime: {habit.totalWordsPracticed.toLocaleString()} words across{" "}
+                            {habit.totalPracticeDays} practice day
+                            {habit.totalPracticeDays === 1 ? "" : "s"}
+                            {habit.longestGoalStreak > 0 &&
+                                ` · best goal streak ${habit.longestGoalStreak}`}
+                        </p>
+                    )}
+                </div>
             </div>
         </section>
     );
@@ -215,7 +222,7 @@ function FreezeMeter({
 }: Readonly<{ freezes: number; goalStreak: number; shielded: boolean }>) {
     const untilNext = goalDaysUntilNextFreeze(goalStreak, freezes);
     return (
-        <div className="rounded-xl border border-sky-400/30 bg-sky-400/10 p-3">
+        <div className="rounded-xl border border-[var(--brand-secondary)]/30 bg-[var(--brand-secondary)]/10 p-3">
             <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
                     <span
@@ -255,28 +262,38 @@ function FreezeMeter({
     );
 }
 
-function StatPill({
+/** Small glass stat tile for the dashboard strip. */
+function GlassStat({
     icon,
     label,
     value,
-    accent,
     suffix,
+    className,
 }: Readonly<{
     icon: ReactNode;
     label: string;
     value: number;
-    accent: string;
     suffix?: string;
+    className?: string;
 }>) {
     return (
-        <div className={`flex items-center gap-2 rounded-xl px-3 py-2 ${accent}`}>
+        <div
+            className={cn(
+                "glass-surface flex items-center gap-2 rounded-2xl px-3 py-2",
+                className,
+            )}
+        >
             {icon}
             <div className="min-w-0">
-                <p className="text-[10px] text-muted-foreground leading-none">{label}</p>
+                <p className="text-[10px] leading-none text-muted-foreground">
+                    {label}
+                </p>
                 <p className="text-lg font-bold tabular-nums leading-tight">
                     {value}
                     {suffix && (
-                        <span className="text-xs font-medium text-muted-foreground">{suffix}</span>
+                        <span className="text-xs font-medium text-muted-foreground">
+                            {suffix}
+                        </span>
                     )}
                 </p>
             </div>

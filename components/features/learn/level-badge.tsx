@@ -1,48 +1,46 @@
 "use client";
 
+import { cn } from "@/lib/utils";
 import { useGetUserLevelQuery } from "@/queries/user-level.query";
-import { Sparkles } from "lucide-react";
 
 /**
- * Compact learning-level badge: numeric level + rank, with a progress bar
- * toward the next level. Self-contained — fetches its own data and renders
- * nothing until a level is available.
+ * Compact learning-level glass tile: numeric level + rank, with a progress
+ * bar toward the next level. Self-contained — fetches its own data and
+ * renders nothing until a level is available. Sized to sit in the stat strip.
  */
-export function LevelBadge() {
+export function LevelBadge({ className }: Readonly<{ className?: string }>) {
     const { data: level } = useGetUserLevelQuery();
     if (!level) return null;
 
     return (
-        <div className="rounded-xl border border-border/60 bg-gradient-to-br from-primary/5 to-[var(--brand-accent)]/5 p-3">
-            <div className="mb-2 flex items-center justify-between gap-3">
-                <div className="flex items-center gap-2">
-                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary to-[var(--brand-accent)] text-sm font-bold text-primary-foreground tabular-nums">
-                        {level.level}
-                    </span>
-                    <div className="min-w-0">
-                        <p className="flex items-center gap-1 text-sm font-semibold leading-tight">
-                            <Sparkles className="h-3.5 w-3.5 text-primary" aria-hidden />
-                            Level {level.level}
-                        </p>
-                        <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
-                            {level.rank}
-                        </p>
-                    </div>
-                </div>
-                <span className="text-[11px] tabular-nums text-muted-foreground">
-                    {level.xpToNextLevel} XP to level {level.level + 1}
+        <div className={cn("glass-surface rounded-2xl px-3 py-2", className)}>
+            <div className="flex items-center gap-2">
+                <span className="gradient-brand flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white tabular-nums">
+                    {level.level}
                 </span>
+                <div className="min-w-0 flex-1">
+                    <p className="text-[10px] uppercase tracking-wide leading-none text-muted-foreground">
+                        {level.rank}
+                    </p>
+                    <p className="truncate text-lg font-bold tabular-nums leading-tight">
+                        Level {level.level}
+                        <span className="text-xs font-medium text-muted-foreground">
+                            {" "}
+                            · {level.xpToNextLevel} XP to next
+                        </span>
+                    </p>
+                </div>
             </div>
             <div
-                className="h-1.5 overflow-hidden rounded-full bg-muted"
+                className="mt-1.5 h-1 overflow-hidden rounded-full bg-muted"
                 role="progressbar"
                 aria-valuenow={level.progress}
                 aria-valuemin={0}
                 aria-valuemax={100}
-                aria-label={`${level.progress}% to next level`}
+                aria-label={`${level.progress}% to level ${level.level + 1}`}
             >
                 <div
-                    className="h-full rounded-full bg-gradient-to-r from-primary to-[var(--brand-accent)] transition-all duration-500"
+                    className="gradient-accent h-full rounded-full transition-all duration-500"
                     style={{ width: `${level.progress}%` }}
                 />
             </div>
