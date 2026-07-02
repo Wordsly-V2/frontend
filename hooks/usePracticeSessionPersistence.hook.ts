@@ -94,7 +94,9 @@ export function usePracticeSessionPersistence({
 
     const persistSession = useCallback(
         (payload: SessionCompletePayload, destination?: string) => {
-            const target = destination ?? `/learn/courses/${courseId}`;
+            const target =
+                destination ??
+                (courseId ? `/learn/courses/${courseId}` : "/learn");
             if (savedOnce || payload.wordResults.length === 0) {
                 router.replace(target);
                 return;

@@ -25,7 +25,9 @@ export default function PracticePage() {
     const [phase, setPhase] = useState<PracticePhase>("overview");
 
     const wordIdList = wordIds ?? [];
-    const paramsValid = Boolean(courseName && courseId && wordIdList.length > 0);
+    // courseId is optional: an all-courses review/learn session carries only
+    // word IDs (no single course). Words are then hydrated across all courses.
+    const paramsValid = wordIdList.length > 0;
 
     useEffect(() => {
         if (!paramsValid) {
@@ -38,7 +40,7 @@ export default function PracticePage() {
         isLoading: isWordsLoading,
         isError: isWordsError,
         refetch: refetchWords,
-    } = useGetWordsByIdsQuery(courseId ?? "", wordIdList, paramsValid);
+    } = useGetWordsByIdsQuery(courseId ?? undefined, wordIdList, paramsValid);
 
     const {
         data: progressByWordId,
@@ -60,7 +62,7 @@ export default function PracticePage() {
     });
 
     const handleBackToCourse = useCallback(() => {
-        router.push(`/learn/courses/${courseId}`);
+        router.push(courseId ? `/learn/courses/${courseId}` : "/learn");
     }, [router, courseId]);
 
     const handlePracticeComplete = useCallback(

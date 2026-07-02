@@ -64,10 +64,13 @@ export function useNextPracticeAction(): NextPracticeAction {
         });
     }, [pathname]);
 
-    const enabled = !!last?.id && dueWordsLimit > 0;
+    // Practice suggestions span ALL of the user's courses, not just the last
+    // one opened — a review is a review no matter which course a word lives in.
+    // Passing no courseId makes the gateway scope to every word the user owns.
+    const enabled = dueWordsLimit > 0;
 
     const { data: dueIds, isLoading: dueLoading } = useGetDueWordIdsQuery(
-        last?.id,
+        undefined,
         undefined,
         dueWordsLimit,
         false,
@@ -76,7 +79,7 @@ export function useNextPracticeAction(): NextPracticeAction {
 
     const { data: practiceBatch, isLoading: practiceBatchLoading } =
         useGetDueWordIdsQuery(
-            last?.id,
+            undefined,
             undefined,
             dueWordsLimit,
             true,
@@ -93,34 +96,32 @@ export function useNextPracticeAction(): NextPracticeAction {
     const wordsLoading = dueLoading || practiceBatchLoading;
 
     const reviewDueHref =
-        last && dueCount > 0
+        dueCount > 0
             ? buildPracticeUrl({
-                  courseId: last.id,
-                  courseName: last.name,
+                  courseName: "Review",
                   wordIds: dueIds!.wordIds,
                   kind: "review",
               })
             : null;
 
     const learnNewHref =
-        last && newCount > 0
+        newCount > 0
             ? buildPracticeUrl({
-                  courseId: last.id,
-                  courseName: last.name,
+                  courseName: "New words",
                   wordIds: newWordIds,
                   kind: "new",
               })
             : null;
 
     const finishGoalWords =
-        last && !goal.met && practicePoolCount > 0
+        !goal.met && practicePoolCount > 0
             ? Math.min(goal.remaining, practicePoolCount)
             : 0;
     const finishGoalHref =
-        last && finishGoalWords > 0
+        finishGoalWords > 0
             ? buildPracticeUrl({
-                  courseId: last.id,
-                  courseName: last.name,
+                  courseName:
+                      dueCount > 0 && newCount === 0 ? "Review" : "New words",
                   wordIds: practiceBatch!.wordIds.slice(0, finishGoalWords),
                   kind: dueCount > 0 && newCount === 0 ? "review" : "new",
               })

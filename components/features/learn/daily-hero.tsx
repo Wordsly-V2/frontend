@@ -7,6 +7,7 @@ import { useNextPracticeAction } from "@/hooks/useNextPracticeAction.hook";
 import { useUser } from "@/hooks/useUser.hook";
 import { getLocalDailyHabit } from "@/lib/daily-habit";
 import { cn } from "@/lib/utils";
+import { useGetMyCoursesTotalStatsQuery } from "@/queries/courses.query";
 import { useDailyHabitDisplay } from "@/queries/daily-habit.query";
 import { Brain, Play, Sparkles } from "lucide-react";
 import Link from "next/link";
@@ -28,10 +29,14 @@ export function DailyHero() {
     const { habit: serverHabit } = useDailyHabitDisplay();
     const habit = serverHabit ?? getLocalDailyHabit();
     const next = useNextPracticeAction();
+    const { data: totalStats } = useGetMyCoursesTotalStatsQuery();
     const firstName = profile?.displayName?.split(" ")[0] ?? "there";
     const { goal } = next;
     const atRisk = habit.streakAtRisk && !goal.met;
-    const allCaughtUp = next.allCaughtUp && next.last;
+    // Caught up only makes sense once the learner actually has words; a brand-new
+    // account with no words should be nudged to pick a course instead.
+    const hasWords = (totalStats?.totalWords ?? 0) > 0;
+    const allCaughtUp = next.allCaughtUp && hasWords;
 
     // One obvious next action: due review first, then new words, else browse.
     const ctaLabel = next.wordsLoading

@@ -11,14 +11,15 @@ export const practiceSessionSearchParams = {
 const serializePracticeSession = createSerializer(practiceSessionSearchParams);
 
 export function buildPracticeUrl(params: {
-    courseId: string;
-    courseName: string;
+    /** Omit for an all-courses session (e.g. review due words across every course). */
+    courseId?: string;
+    courseName?: string;
     wordIds: string[];
     kind?: PracticeSessionKind;
 }): string {
     return serializePracticeSession("/learn/practice", {
-        courseId: params.courseId,
-        courseName: params.courseName,
+        courseId: params.courseId ?? null,
+        courseName: params.courseName ?? null,
         wordIds: params.wordIds,
         kind: params.kind ?? "new",
     });

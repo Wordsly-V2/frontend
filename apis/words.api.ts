@@ -61,3 +61,7 @@ export const bulkMoveMyWordsFromCourse = (
 
 export const getWordsByIds = (courseId: string, wordIds: string[]): Promise<IWord[]> =>
     request((i) => i.get(`/courses/me/my-courses/${courseId}/words`, { params: { ids: wordIds.join(",") } }));
+
+/** Hydrate words by ID across all of the user's courses (ownership-scoped). */
+export const getWordsByIdsAllCourses = (wordIds: string[]): Promise<IWord[]> =>
+    request((i) => i.get(`/courses/me/my-words`, { params: { ids: wordIds.join(",") } }));
