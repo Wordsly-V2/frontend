@@ -9,6 +9,7 @@ import {
     TooltipTrigger,
 } from '@/components/ui/tooltip';
 import type { WordDetailsAutoNextFormValues } from '@/lib/schemas/word-details-auto-next';
+import { handleAudioPlayError } from "@/lib/audio-playback";
 import { IWord } from '@/types/courses/courses.type';
 import { ChevronLeft, ChevronRight, SlidersHorizontal } from 'lucide-react';
 import { getLocalStorageItem, setLocalStorageItem } from '@/lib/local-storage';
@@ -182,7 +183,7 @@ export default function WordDetailsCarousel({
             if (cancelled) return;
             audioEl = new Audio(word.audioUrl);
             audioEl.addEventListener('ended', onAudioEnded);
-            audioEl.play().catch(console.error);
+            audioEl.play().catch(handleAudioPlayError);
         } else if (autoAdvanceNext) {
             onAudioEnded();
         }

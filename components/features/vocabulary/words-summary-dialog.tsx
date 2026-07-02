@@ -1,6 +1,7 @@
 "use client";
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { handleAudioPlayError } from "@/lib/audio-playback";
 import { IWord } from "@/types/courses/courses.type";
 import { Volume2, BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -22,7 +23,7 @@ export default function WordsSummaryDialog({
         e.stopPropagation();
         if (audioUrl) {
             const audio = new Audio(audioUrl);
-            audio.play().catch(console.error);
+            audio.play().catch(handleAudioPlayError);
         }
     };
 

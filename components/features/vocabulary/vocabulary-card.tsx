@@ -1,6 +1,7 @@
 "use client";
 
 import { IWord } from "@/types/courses/courses.type";
+import { handleAudioPlayError } from "@/lib/audio-playback";
 import { Volume2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
@@ -25,7 +26,7 @@ export default function VocabularyCard({
             onPlayAudio();
         } else if (word.audioUrl) {
             const audio = new Audio(word.audioUrl);
-            audio.play().catch(console.error);
+            audio.play().catch(handleAudioPlayError);
         }
     };
 

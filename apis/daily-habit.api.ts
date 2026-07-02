@@ -1,49 +1,25 @@
-import axiosInstance from "@/lib/axios";
+import { request } from "@/lib/axios";
 import { localDateString } from "@/lib/daily-habit";
 import type {
     IDailyHabit,
     IRecordDailyPracticeDto,
     IUpdateDailyGoalDto,
 } from "@/types/daily-habit/daily-habit.type";
-import { AxiosError } from "axios";
 
-export const getDailyHabit = async (clientDate?: string): Promise<IDailyHabit> => {
-    try {
-        const response = await axiosInstance.get<IDailyHabit>("/daily-habit", {
-            params: { clientDate: clientDate ?? localDateString() },
-        });
-        return response.data;
-    } catch (error) {
-        throw (error as AxiosError).response?.data || error;
-    }
-};
+export const getDailyHabit = (clientDate?: string): Promise<IDailyHabit> =>
+    request((i) => i.get("/daily-habit", {
+        params: { clientDate: clientDate ?? localDateString() },
+    }));
 
-export const recordDailyPractice = async (
+export const recordDailyPractice = (
     data: IRecordDailyPracticeDto,
-): Promise<IDailyHabit> => {
-    try {
-        const response = await axiosInstance.post<IDailyHabit>(
-            "/daily-habit/record-practice",
-            data,
-        );
-        return response.data;
-    } catch (error) {
-        throw (error as AxiosError).response?.data || error;
-    }
-};
+): Promise<IDailyHabit> =>
+    request((i) => i.post("/daily-habit/record-practice", data));
 
-export const updateDailyGoal = async (
+export const updateDailyGoal = (
     data: IUpdateDailyGoalDto,
     clientDate?: string,
-): Promise<IDailyHabit> => {
-    try {
-        const response = await axiosInstance.patch<IDailyHabit>(
-            "/daily-habit/goal",
-            data,
-            { params: { clientDate: clientDate ?? localDateString() } },
-        );
-        return response.data;
-    } catch (error) {
-        throw (error as AxiosError).response?.data || error;
-    }
-};
+): Promise<IDailyHabit> =>
+    request((i) => i.patch("/daily-habit/goal", data, {
+        params: { clientDate: clientDate ?? localDateString() },
+    }));

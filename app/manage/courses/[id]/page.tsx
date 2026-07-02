@@ -3,6 +3,7 @@
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
 import { courseWordFocusSearchParams } from "@/lib/search-params/course-word-focus";
+import { handleAudioPlayError } from "@/lib/audio-playback";
 import { useQueryStates } from "nuqs";
 import { useRouter } from "next/navigation";
 import { use, useEffect, useRef, useState } from "react";
@@ -292,7 +293,7 @@ function SortableLesson({
                                                 onClick={(e) => {
                                                     e.stopPropagation();
                                                     const audio = new Audio(word.audioUrl);
-                                                    audio.play().catch(console.error);
+                                                    audio.play().catch(handleAudioPlayError);
                                                 }}
                                                 className="text-primary hover:text-primary h-7 w-7 p-0 sm:h-8 sm:w-8"
                                             >

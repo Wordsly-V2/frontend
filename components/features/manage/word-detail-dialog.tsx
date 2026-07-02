@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/dialog";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { getPlayPhraseSearchUrl } from "@/lib/playphrase";
+import { handleAudioPlayError } from "@/lib/audio-playback";
 import { WordDetailView } from "@/types/courses/courses.type";
 import { BookOpen, ExternalLink, Film, Plus, Volume2 } from "lucide-react";
 import Image from "next/image";
@@ -53,7 +54,7 @@ export default function WordDetailDialog({ word, isOpen, onClose, courseId, less
 
     const handlePlayAudio = () => {
         if (word!.audioUrl) {
-            new Audio(word!.audioUrl).play().catch(console.error);
+            new Audio(word!.audioUrl).play().catch(handleAudioPlayError);
         }
     };
 

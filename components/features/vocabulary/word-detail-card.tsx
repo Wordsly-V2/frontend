@@ -3,6 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { AdaptiveText } from "@/components/common/adaptive-text";
 import { LONG_TEXT_WRAP, SCROLLABLE_BODY } from "@/lib/long-text";
+import { handleAudioPlayError } from "@/lib/audio-playback";
 import { cn } from "@/lib/utils";
 import { getPlayPhraseSearchUrl } from "@/lib/playphrase";
 import { IWord } from "@/types/courses/courses.type";
@@ -45,7 +46,7 @@ export default function WordDetailCard({
 
     const handlePlayAudio = () => {
         if (word.audioUrl) {
-            new Audio(word.audioUrl).play().catch(console.error);
+            new Audio(word.audioUrl).play().catch(handleAudioPlayError);
         }
     };
 

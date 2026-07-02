@@ -13,6 +13,7 @@ import { ILesson, IWord } from "@/types/courses/courses.type";
 import WordDetailDialog from "@/components/features/manage/word-detail-dialog";
 import { ArrowLeft, BookOpen, Brain, ChevronDown, ChevronRight, Eye, GraduationCap, List, Play, Search, Shuffle, Sparkles, Volume2 } from "lucide-react";
 import { shuffleArray } from "@/lib/practice-utils";
+import { handleAudioPlayError } from "@/lib/audio-playback";
 import Image from "next/image";
 import { buildWordsDetailsUrl } from "@/lib/search-params/word-selection";
 import { courseWordFocusSearchParams } from "@/lib/search-params/course-word-focus";
@@ -258,7 +259,7 @@ export default function LearnCourseDetailPage({ params }: { params: Promise<{ id
         e.stopPropagation();
         if (audioUrl) {
             const audio = new Audio(audioUrl);
-            audio.play().catch(console.error);
+            audio.play().catch(handleAudioPlayError);
         }
     };
 

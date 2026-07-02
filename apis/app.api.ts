@@ -1,5 +1,4 @@
-import axiosInstance from '@/lib/axios';
-import type { AxiosError } from 'axios';
+import { request } from '@/lib/axios';
 import axios from 'axios';
 
 export type ServiceHealth = {
@@ -27,16 +26,12 @@ function getBootstrapServiceUrls(): string[] {
 }
 
 async function pingServiceHealth(url: string): Promise<string> {
-    try {
-        const response = await axios.get<string>(`${url}/ping`, {
-            timeout: RENDER_COLD_START_TIMEOUT_MS,
-            withCredentials: false,
-        });
+    const response = await axios.get<string>(`${url}/ping`, {
+        timeout: RENDER_COLD_START_TIMEOUT_MS,
+        withCredentials: false,
+    });
 
-        return response.data;
-    } catch (error) {
-        throw error;
-    }
+    return response.data;
 }
 
 export const getServiceHealth = async (): Promise<string[]> => {
@@ -51,11 +46,5 @@ export const getServiceHealth = async (): Promise<string[]> => {
     );
 };
 
-export const healthCheck = async (): Promise<ServiceHealth[]> => {
-    try {
-        const response = await axiosInstance.get('/ping');
-        return response.data;
-    } catch (error) {
-        throw (error as AxiosError).response?.data || error;
-    }
-};
+export const healthCheck = (): Promise<ServiceHealth[]> =>
+    request((i) => i.get('/ping'));

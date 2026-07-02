@@ -1,184 +1,77 @@
-import axiosInstance from "@/lib/axios";
+import { request } from "@/lib/axios";
 import {
     IBulkRecordAnswersDto,
     IDueWord,
     IWordProgressResponse,
     IWordProgressStats
 } from "@/types/word-progress/word-progress.type";
-import { AxiosError } from "axios";
 
 /** Record multiple answers synchronously (writes to DB directly). */
-export const recordAnswerBulkSync = async (
+export const recordAnswerBulkSync = (
     data: IBulkRecordAnswersDto,
-): Promise<IWordProgressResponse[]> => {
-    try {
-        const response = await axiosInstance.post<IWordProgressResponse[]>(
-            "/word-progress/record-answer/bulk-sync",
-            data,
-        );
-        return response.data;
-    } catch (error) {
-        throw (error as AxiosError).response?.data || error;
-    }
-};
+): Promise<IWordProgressResponse[]> =>
+    request((i) => i.post("/word-progress/record-answer/bulk-sync", data));
 
-export const getDueWords = async (
+export const getDueWords = (
     courseId?: string,
     lessonId?: string,
     limit?: number,
     includeNew?: boolean
-): Promise<IDueWord[]> => {
-    try {
-        const response = await axiosInstance.get<IDueWord[]>('/word-progress/due-words', {
-            params: {
-                courseId,
-                lessonId,
-                limit,
-                includeNew: includeNew?.toString(),
-            },
-        });
-        return response.data;
-    } catch (error) {
-        throw (error as AxiosError).response?.data || error;
-    }
-}
+): Promise<IDueWord[]> =>
+    request((i) => i.get('/word-progress/due-words', {
+        params: { courseId, lessonId, limit, includeNew: includeNew?.toString() },
+    }));
 
-export const getDueWordIds = async (
+export const getDueWordIds = (
     courseId?: string,
     lessonId?: string,
     limit?: number,
     includeNew?: boolean
-): Promise<{ wordIds: string[] }> => {
-    try {
-        const response = await axiosInstance.get<{ wordIds: string[] }>('/word-progress/due-word-ids', {
-            params: {
-                courseId,
-                lessonId,
-                limit,
-                includeNew: includeNew?.toString(),
-            },
-        });
-        return response.data;
-    } catch (error) {
-        throw (error as AxiosError).response?.data || error;
-    }
-}
+): Promise<{ wordIds: string[] }> =>
+    request((i) => i.get('/word-progress/due-word-ids', {
+        params: { courseId, lessonId, limit, includeNew: includeNew?.toString() },
+    }));
 
-export const getProgressStats = async (
+export const getProgressStats = (
     courseId?: string,
     lessonId?: string
-): Promise<IWordProgressStats> => {
-    try {
-        const response = await axiosInstance.get<IWordProgressStats>('/word-progress/stats', {
-            params: {
-                courseId,
-                lessonId,
-            },
-        });
-        return response.data;
-    } catch (error) {
-        throw (error as AxiosError).response?.data || error;
-    }
-};
+): Promise<IWordProgressStats> =>
+    request((i) => i.get('/word-progress/stats', {
+        params: { courseId, lessonId },
+    }));
 
-export const getProgressStatsByWordIds = async (
+export const getProgressStatsByWordIds = (
     wordIds: string[],
-): Promise<IWordProgressStats> => {
-    try {
-        const response = await axiosInstance.post<IWordProgressStats>(
-            '/word-progress/stats',
-            { wordIds },
-        );
-        return response.data;
-    } catch (error) {
-        throw (error as AxiosError).response?.data || error;
-    }
-};
+): Promise<IWordProgressStats> =>
+    request((i) => i.post('/word-progress/stats', { wordIds }));
 
-export const getDueWordIdsByWordIds = async (
+export const getDueWordIdsByWordIds = (
     wordIds: string[],
     limit?: number,
     includeNew?: boolean,
-): Promise<{ wordIds: string[] }> => {
-    try {
-        const response = await axiosInstance.post<{ wordIds: string[] }>(
-            '/word-progress/due-word-ids/by-word-ids',
-            { wordIds, limit, includeNew },
-        );
-        return response.data;
-    } catch (error) {
-        throw (error as AxiosError).response?.data || error;
-    }
-};
+): Promise<{ wordIds: string[] }> =>
+    request((i) => i.post('/word-progress/due-word-ids/by-word-ids', { wordIds, limit, includeNew }));
 
-export const getWordProgress = async (wordId: string): Promise<IWordProgressResponse | null> => {
-    try {
-        const response = await axiosInstance.get<IWordProgressResponse | null>(`/word-progress/words/${wordId}`);
-        return response.data;
-    } catch (error) {
-        throw (error as AxiosError).response?.data || error;
-    }
-}
+export const getWordProgress = (wordId: string): Promise<IWordProgressResponse | null> =>
+    request((i) => i.get(`/word-progress/words/${wordId}`));
 
-export const resetProgress = async (wordId: string): Promise<{ success: boolean }> => {
-    try {
-        const response = await axiosInstance.delete<{ success: boolean }>(`/word-progress/words/${wordId}/reset`);
-        return response.data;
-    } catch (error) {
-        throw (error as AxiosError).response?.data || error;
-    }
-};
+export const resetProgress = (wordId: string): Promise<{ success: boolean }> =>
+    request((i) => i.delete(`/word-progress/words/${wordId}/reset`));
 
-export const getProgressStatsByCourseIds = async (
+export const getProgressStatsByCourseIds = (
     courseIds: string[],
-): Promise<Record<string, IWordProgressStats>> => {
-    try {
-        const response = await axiosInstance.post<Record<string, IWordProgressStats>>(
-            '/word-progress/stats/by-course-ids',
-            { courseIds },
-        );
-        return response.data;
-    } catch (error) {
-        throw (error as AxiosError).response?.data || error;
-    }
-};
+): Promise<Record<string, IWordProgressStats>> =>
+    request((i) => i.post('/word-progress/stats/by-course-ids', { courseIds }));
 
-export const getProgressStatsByLessonIds = async (
+export const getProgressStatsByLessonIds = (
     lessonIds: string[],
-): Promise<Record<string, IWordProgressStats>> => {
-    try {
-        const response = await axiosInstance.post<Record<string, IWordProgressStats>>(
-            '/word-progress/stats/by-lesson-ids',
-            { lessonIds },
-        );
-        return response.data;
-    } catch (error) {
-        throw (error as AxiosError).response?.data || error;
-    }
-};
+): Promise<Record<string, IWordProgressStats>> =>
+    request((i) => i.post('/word-progress/stats/by-lesson-ids', { lessonIds }));
 
-export const getProgressByWordIds = async (
+export const getProgressByWordIds = (
     wordIds: string[],
-): Promise<Record<string, IWordProgressResponse | null>> => {
-    try {
-        const response = await axiosInstance.post<Record<string, IWordProgressResponse | null>>(
-            '/word-progress/by-word-ids',
-            { wordIds },
-        );
-        return response.data;
-    } catch (error) {
-        throw (error as AxiosError).response?.data || error;
-    }
-};
+): Promise<Record<string, IWordProgressResponse | null>> =>
+    request((i) => i.post('/word-progress/by-word-ids', { wordIds }));
 
-export const resetProgressBulk = async (wordIds: string[]): Promise<{ count: number }> => {
-    try {
-        const response = await axiosInstance.delete<{ count: number }>(
-            '/word-progress/words/bulk-reset',
-            { data: { wordIds } }
-        );
-        return response.data;
-    } catch (error) {
-        throw (error as AxiosError).response?.data || error;
-    }
-};
+export const resetProgressBulk = (wordIds: string[]): Promise<{ count: number }> =>
+    request((i) => i.delete('/word-progress/words/bulk-reset', { data: { wordIds } }));

@@ -1,137 +1,63 @@
-import axiosInstance from "@/lib/axios";
+import { request } from "@/lib/axios";
 import { CreateMyWord, IUserWordSearchResult, IWord } from "@/types/courses/courses.type";
-import { AxiosError } from "axios";
 
-export const createMyWordsBulk = async (
+export const createMyWordsBulk = (
     courseId: string,
     lessonId: string,
     words: CreateMyWord[]
-): Promise<{ success: boolean; count?: number }> => {
-    try {
-        const response = await axiosInstance.post<{ success: boolean; count?: number }>(
-            `/courses/me/my-courses/${courseId}/lessons/${lessonId}/words/bulk`,
-            { words }
-        );
-        return response.data;
-    } catch (error) {
-        throw (error as AxiosError).response?.data || error;
-    }
-};
+): Promise<{ success: boolean; count?: number }> =>
+    request((i) =>
+        i.post(`/courses/me/my-courses/${courseId}/lessons/${lessonId}/words/bulk`, { words })
+    );
 
-export const searchMyWords = async (word: string): Promise<IUserWordSearchResult[]> => {
-    try {
-        const response = await axiosInstance.get<IUserWordSearchResult[]>(
-            `/dictionary/my-words/search/${encodeURIComponent(word.trim())}`
-        );
-        return response.data;
-    } catch (error) {
-        throw (error as AxiosError).response?.data || error;
-    }
-};
+export const searchMyWords = (word: string): Promise<IUserWordSearchResult[]> =>
+    request((i) => i.get(`/dictionary/my-words/search/${encodeURIComponent(word.trim())}`));
 
-export const createMyWord = async (courseId: string, lessonId: string, word: CreateMyWord): Promise<{ success: boolean }> => {
-    try {
-        const response = await axiosInstance.post<{ success: boolean }>(`/courses/me/my-courses/${courseId}/lessons/${lessonId}/words`, word);
-        return response.data;
-    } catch (error) {
-        throw (error as AxiosError).response?.data || error;
-    }
-}
+export const createMyWord = (courseId: string, lessonId: string, word: CreateMyWord): Promise<{ success: boolean }> =>
+    request((i) => i.post(`/courses/me/my-courses/${courseId}/lessons/${lessonId}/words`, word));
 
-export const updateMyWord = async (courseId: string, lessonId: string, wordId: string, word: CreateMyWord): Promise<{ success: boolean }> => {
-    try {
-        const response = await axiosInstance.put<{ success: boolean }>(`/courses/me/my-courses/${courseId}/lessons/${lessonId}/words/${wordId}`, word);
-        return response.data;
-    } catch (error) {
-        throw (error as AxiosError).response?.data || error;
-    }
-}
+export const updateMyWord = (courseId: string, lessonId: string, wordId: string, word: CreateMyWord): Promise<{ success: boolean }> =>
+    request((i) => i.put(`/courses/me/my-courses/${courseId}/lessons/${lessonId}/words/${wordId}`, word));
 
-export const deleteMyWord = async (courseId: string, lessonId: string, wordId: string): Promise<{ success: boolean }> => {
-    try {
-        const response = await axiosInstance.delete<{ success: boolean }>(`/courses/me/my-courses/${courseId}/lessons/${lessonId}/words/${wordId}`);
-        return response.data;
-    } catch (error) {
-        throw (error as AxiosError).response?.data || error;
-    }
-}
+export const deleteMyWord = (courseId: string, lessonId: string, wordId: string): Promise<{ success: boolean }> =>
+    request((i) => i.delete(`/courses/me/my-courses/${courseId}/lessons/${lessonId}/words/${wordId}`));
 
-export const moveMyWord = async (
+export const moveMyWord = (
     courseId: string,
     lessonId: string,
     wordId: string,
     targetLessonId: string,
     targetCourseId?: string
 ): Promise<{ success: boolean }> => {
-    try {
-        const body = targetCourseId ? { targetLessonId, targetCourseId } : { targetLessonId };
-        const response = await axiosInstance.put<{ success: boolean }>(`/courses/me/my-courses/${courseId}/lessons/${lessonId}/words/${wordId}/move`, body);
-        return response.data;
-    } catch (error) {
-        throw (error as AxiosError).response?.data || error;
-    }
-}
+    const body = targetCourseId ? { targetLessonId, targetCourseId } : { targetLessonId };
+    return request((i) => i.put(`/courses/me/my-courses/${courseId}/lessons/${lessonId}/words/${wordId}/move`, body));
+};
 
-export const bulkDeleteMyWords = async (courseId: string, lessonId: string, wordIds: string[]): Promise<{ success: boolean }> => {
-    try {
-        const response = await axiosInstance.delete<{ success: boolean }>(`/courses/me/my-courses/${courseId}/lessons/${lessonId}/words/bulk-delete`, { data: { wordIds } });
-        return response.data;
-    } catch (error) {
-        throw (error as AxiosError).response?.data || error;
-    }
-}
+export const bulkDeleteMyWords = (courseId: string, lessonId: string, wordIds: string[]): Promise<{ success: boolean }> =>
+    request((i) => i.delete(`/courses/me/my-courses/${courseId}/lessons/${lessonId}/words/bulk-delete`, { data: { wordIds } }));
 
-export const bulkMoveMyWords = async (
+export const bulkMoveMyWords = (
     courseId: string,
     lessonId: string,
     wordIds: string[],
     targetLessonId: string,
     targetCourseId?: string
 ): Promise<{ success: boolean }> => {
-    try {
-        const body = targetCourseId ? { wordIds, targetLessonId, targetCourseId } : { wordIds, targetLessonId };
-        const response = await axiosInstance.put<{ success: boolean }>(`/courses/me/my-courses/${courseId}/lessons/${lessonId}/words/bulk-move`, body);
-        return response.data;
-    } catch (error) {
-        throw (error as AxiosError).response?.data || error;
-    }
+    const body = targetCourseId ? { wordIds, targetLessonId, targetCourseId } : { wordIds, targetLessonId };
+    return request((i) => i.put(`/courses/me/my-courses/${courseId}/lessons/${lessonId}/words/bulk-move`, body));
 };
 
 /** Delete multiple words from a course (words can be from any lesson). */
-export const bulkDeleteMyWordsFromCourse = async (courseId: string, wordIds: string[]): Promise<{ count: number }> => {
-    try {
-        const response = await axiosInstance.delete<{ count: number }>(
-            `/courses/me/my-courses/${courseId}/words/bulk-delete`,
-            { data: { wordIds } }
-        );
-        return response.data;
-    } catch (error) {
-        throw (error as AxiosError).response?.data || error;
-    }
-};
+export const bulkDeleteMyWordsFromCourse = (courseId: string, wordIds: string[]): Promise<{ count: number }> =>
+    request((i) => i.delete(`/courses/me/my-courses/${courseId}/words/bulk-delete`, { data: { wordIds } }));
 
 /** Move multiple words to a target lesson (words can be from any lesson in the course; target can be in another course). */
-export const bulkMoveMyWordsFromCourse = async (
+export const bulkMoveMyWordsFromCourse = (
     courseId: string,
     wordIds: string[],
     targetLessonId: string
-): Promise<{ count: number }> => {
-    try {
-        const response = await axiosInstance.put<{ count: number }>(
-            `/courses/me/my-courses/${courseId}/words/bulk-move`,
-            { wordIds, targetLessonId }
-        );
-        return response.data;
-    } catch (error) {
-        throw (error as AxiosError).response?.data || error;
-    }
-};
+): Promise<{ count: number }> =>
+    request((i) => i.put(`/courses/me/my-courses/${courseId}/words/bulk-move`, { wordIds, targetLessonId }));
 
-export const getWordsByIds = async (courseId: string, wordIds: string[]): Promise<IWord[]> => {
-    try {
-        const response = await axiosInstance.get<IWord[]>(`/courses/me/my-courses/${courseId}/words`, { params: { ids: wordIds.join(",") } });
-        return response.data;
-    } catch (error) {
-        throw (error as AxiosError).response?.data || error;
-    }
-}
+export const getWordsByIds = (courseId: string, wordIds: string[]): Promise<IWord[]> =>
+    request((i) => i.get(`/courses/me/my-courses/${courseId}/words`, { params: { ids: wordIds.join(",") } }));

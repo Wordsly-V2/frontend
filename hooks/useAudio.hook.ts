@@ -71,9 +71,9 @@ export const useAudio = (): UseAudioReturn => {
             setIsPlaying(false);
         };
 
-        // Play the audio
-        audio.play().catch((err) => {
-            console.error('Error playing audio:', err);
+        // Play the audio. The failure is surfaced to the user via `error` state
+        // below, so there's no need to also log it to the console.
+        audio.play().catch(() => {
             setIsPlaying(false);
             setError('Unable to play audio');
             audioRef.current = null;

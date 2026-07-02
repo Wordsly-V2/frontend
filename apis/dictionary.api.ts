@@ -1,4 +1,4 @@
-import axiosInstance from "@/lib/axios";
+import axiosInstance, { request } from "@/lib/axios";
 import { IWordPronunciation } from "@/types/courses/courses.type";
 import { AxiosError } from "axios";
 import { IWordSearchResult } from "@/types/courses/courses.type";
@@ -15,44 +15,28 @@ export type WordPronunciationResponse = {
 };
 
 export const fetchWordDetailsDictionary = async (word: string): Promise<WordPronunciationResponse> => {
-    try {
-        const response = await axiosInstance.get<WordPronunciationResponse>(
-            `/dictionary/pronunciation/${encodeURIComponent(word.trim())}`
-        );
-        const data = response.data;
-        const seen = new Set<string>();
-        const pronunciation = (data.pronunciation ?? []).filter((p) => {
-            if (seen.has(p.url)) return false;
-            seen.add(p.url);
-            return true;
-        });
-        return {
-            pronunciation,
-            ipas: Array.isArray(data.ipas) ? data.ipas : [],
-        };
-    } catch (error) {
-        throw (error as AxiosError).response?.data || error;
-    }
+    const data = await request<WordPronunciationResponse>((i) =>
+        i.get(`/dictionary/pronunciation/${encodeURIComponent(word.trim())}`)
+    );
+    const seen = new Set<string>();
+    const pronunciation = (data.pronunciation ?? []).filter((p) => {
+        if (seen.has(p.url)) return false;
+        seen.add(p.url);
+        return true;
+    });
+    return {
+        pronunciation,
+        ipas: Array.isArray(data.ipas) ? data.ipas : [],
+    };
 };
 
-export const searchWords = async (query: string): Promise<IWordSearchResult[]> => {
-    try {
-        if (query.trim().length === 0) return [];
-        const response = await axiosInstance.get<IWordSearchResult[]>(`/dictionary/search/${query}`);
-        return response.data;
-    } catch (error) {
-        throw (error as AxiosError).response?.data || error;
-    }
-}
-
-export const getWordExamples = async (word: string): Promise<string[]> => {
-    try {
-        const response = await axiosInstance.get<string[]>(`/dictionary/examples/${word}`);
-        return response.data;
-    } catch (error) {
-        throw (error as AxiosError).response?.data || error;
-    }
+export const searchWords = (query: string): Promise<IWordSearchResult[]> => {
+    if (query.trim().length === 0) return Promise.resolve([]);
+    return request((i) => i.get(`/dictionary/search/${query}`));
 };
+
+export const getWordExamples = (word: string): Promise<string[]> =>
+    request((i) => i.get(`/dictionary/examples/${word}`));
 
 /** Structured word details from GET word-details (extracted in vocabulary-service). */
 export interface LangeekWordDetailsResponse {

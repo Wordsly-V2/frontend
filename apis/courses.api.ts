@@ -1,66 +1,23 @@
-import axiosInstance from "@/lib/axios";
+import { request } from "@/lib/axios";
 import { IPaginatedResponse } from "@/types/common/pagination.type";
 import { CreateUpdateMyCourse, ICourse, ICourseTotalStats } from "@/types/courses/courses.type";
-import { AxiosError } from "axios";
 
-export const getMyCourses = async (limit: number = 10, page: number = 1, orderByField: 'createdAt' | 'name' = 'name', orderByDirection: 'asc' | 'desc' = 'asc', searchQuery: string = ""): Promise<IPaginatedResponse<ICourse>> => {
-    try {
-        const response = await axiosInstance.get<IPaginatedResponse<ICourse>>('/courses/me/my-courses', {
-            params: {
-                limit,
-                page,
-                orderByField,
-                orderByDirection,
-                searchQuery,
-            },
-        });
-        return response.data;
-    } catch (error) {
-        throw (error as AxiosError).response?.data || error;
-    }
-}
+export const getMyCourses = (limit: number = 10, page: number = 1, orderByField: 'createdAt' | 'name' = 'name', orderByDirection: 'asc' | 'desc' = 'asc', searchQuery: string = ""): Promise<IPaginatedResponse<ICourse>> =>
+    request((i) => i.get('/courses/me/my-courses', {
+        params: { limit, page, orderByField, orderByDirection, searchQuery },
+    }));
 
-export const createMyCourse = async (course: CreateUpdateMyCourse): Promise<{ success: boolean }> => {
-    try {
-        const response = await axiosInstance.post<{ success: boolean }>('/courses/me/my-courses', course);
-        return response.data;
-    } catch (error) {
-        throw (error as AxiosError).response?.data || error;
-    }
-}
+export const createMyCourse = (course: CreateUpdateMyCourse): Promise<{ success: boolean }> =>
+    request((i) => i.post('/courses/me/my-courses', course));
 
-export const getMyCoursesTotalStats = async (): Promise<ICourseTotalStats> => {
-    try {
-        const response = await axiosInstance.get<ICourseTotalStats>('/courses/me/my-courses/total-stats');
-        return response.data;
-    } catch (error) {
-        throw (error as AxiosError).response?.data || error;
-    }
-}
+export const getMyCoursesTotalStats = (): Promise<ICourseTotalStats> =>
+    request((i) => i.get('/courses/me/my-courses/total-stats'));
 
-export const deleteMyCourse = async (courseId: string): Promise<{ success: boolean }> => {
-    try {
-        const response = await axiosInstance.delete<{ success: boolean }>(`/courses/me/my-courses/${courseId}`);
-        return response.data;
-    } catch (error) {
-        throw (error as AxiosError).response?.data || error;
-    }
-}
+export const deleteMyCourse = (courseId: string): Promise<{ success: boolean }> =>
+    request((i) => i.delete(`/courses/me/my-courses/${courseId}`));
 
-export const updateMyCourse = async (courseId: string, course: CreateUpdateMyCourse): Promise<{ success: boolean }> => {
-    try {
-        const response = await axiosInstance.put<{ success: boolean }>(`/courses/me/my-courses/${courseId}`, course);
-        return response.data;
-    } catch (error) {
-        throw (error as AxiosError).response?.data || error;
-    }
-}
+export const updateMyCourse = (courseId: string, course: CreateUpdateMyCourse): Promise<{ success: boolean }> =>
+    request((i) => i.put(`/courses/me/my-courses/${courseId}`, course));
 
-export const getCourseDetailById = async (courseId: string): Promise<ICourse> => {
-    try {
-        const response = await axiosInstance.get<ICourse>(`/courses/me/my-courses/${courseId}`);
-        return response.data;
-    } catch (error) {
-        throw (error as AxiosError).response?.data || error;
-    }
-}
+export const getCourseDetailById = (courseId: string): Promise<ICourse> =>
+    request((i) => i.get(`/courses/me/my-courses/${courseId}`));

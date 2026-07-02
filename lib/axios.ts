@@ -1,4 +1,4 @@
-import axios from 'axios';
+import axios, { AxiosError, AxiosResponse } from 'axios';
 import {
 	ACCESS_TOKEN_STORAGE_KEY,
 	REFRESH_TOKEN_STORAGE_KEY,
@@ -121,5 +121,20 @@ axiosInstance.interceptors.response.use(
 		);
 	},
 );
+
+/**
+ * Runs an axios call and unwraps `response.data`, normalizing thrown errors to
+ * the server's error payload (`error.response.data`) when present. Lets every
+ * API function drop its own identical try/catch boilerplate.
+ */
+export async function request<T>(
+	fn: (instance: typeof axiosInstance) => Promise<AxiosResponse<T>>,
+): Promise<T> {
+	try {
+		return (await fn(axiosInstance)).data;
+	} catch (error) {
+		throw (error as AxiosError).response?.data || error;
+	}
+}
 
 export default axiosInstance;
