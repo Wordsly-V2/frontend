@@ -50,18 +50,67 @@ export function getClozePrompt(word: IWord): ClozePrompt | null {
     return { sentence, answer: target };
 }
 
-/** Build word options for cloze quiz (correct word + distractors from session). */
+/**
+ * Pick distractor texts + the correct answer for a choice question.
+ *
+ * - No duplicate options: texts are deduped case-insensitively and the correct
+ *   answer's text can never also appear as a distractor.
+ * - Rotation: when a `recentlyUsed` set is passed, distractors not shown in
+ *   recent questions are preferred so the same options don't keep reappearing.
+ *   Once the fresh pool runs dry the rotation resets and a new cycle begins.
+ */
+function pickChoiceOptions(
+    correctText: string,
+    poolTexts: string[],
+    optionCount: number,
+    recentlyUsed?: Set<string>,
+): string[] {
+    // Unique, non-empty distractor texts that aren't the correct answer.
+    const seen = new Set<string>([normalizeAnswer(correctText)]);
+    const candidates: string[] = [];
+    for (const text of poolTexts) {
+        const key = normalizeAnswer(text);
+        if (!key || seen.has(key)) continue;
+        seen.add(key);
+        candidates.push(text);
+    }
+
+    const need = Math.min(optionCount - 1, candidates.length);
+    const used = recentlyUsed ?? new Set<string>();
+
+    let fresh = shuffleArray(candidates.filter((t) => !used.has(normalizeAnswer(t))));
+    // Not enough unused distractors left — reset rotation and start a new cycle.
+    if (fresh.length < need) {
+        used.clear();
+        fresh = shuffleArray(candidates);
+    }
+
+    const chosen = fresh.slice(0, need);
+    for (const text of chosen) used.add(normalizeAnswer(text));
+
+    return shuffleArray([correctText, ...chosen]);
+}
+
+/** Build word options for cloze/word-bank quiz (correct word + rotating distractors). */
 export function generateWordChoiceOptions(
     correctWord: IWord,
     pool: IWord[],
     optionCount = 4,
+    recentlyUsed?: Set<string>,
 ): string[] {
-    const options = [correctWord.word];
-    const others = shuffleArray(pool.filter((w) => w.id !== correctWord.id));
-    for (let i = 0; i < Math.min(optionCount - 1, others.length); i++) {
-        options.push(others[i].word);
-    }
-    return shuffleArray(options);
+    const poolTexts = pool.filter((w) => w.id !== correctWord.id).map((w) => w.word);
+    return pickChoiceOptions(correctWord.word, poolTexts, optionCount, recentlyUsed);
+}
+
+/** Build meaning options for multiple-choice quiz (correct meaning + rotating distractors). */
+export function generateMeaningChoiceOptions(
+    correctWord: IWord,
+    pool: IWord[],
+    optionCount = 4,
+    recentlyUsed?: Set<string>,
+): string[] {
+    const poolTexts = pool.filter((w) => w.id !== correctWord.id).map((w) => w.meaning);
+    return pickChoiceOptions(correctWord.meaning, poolTexts, optionCount, recentlyUsed);
 }
 
 export function normalizeAnswer(value: string): string {

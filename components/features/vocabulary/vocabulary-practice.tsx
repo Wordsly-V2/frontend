@@ -51,6 +51,7 @@ import {
 } from "@/lib/practice-settings";
 import { usePracticeSettings } from "@/hooks/usePracticeSettings.hook";
 import {
+    generateMeaningChoiceOptions,
     generateWordChoiceOptions,
     getAnswerMatch,
     getClozePrompt,
@@ -546,16 +547,15 @@ export default function VocabularyPractice({
         advanceAfterAnswer(result, currentWord);
     };
 
-    const generateMultipleChoiceOptions = (correctWord: IWord, allWords: IWord[]): string[] => {
-        const options = [correctWord.meaning];
-        const others = shuffleArray(allWords.filter((w) => w.id !== correctWord.id));
-        for (let i = 0; i < Math.min(3, others.length); i++) options.push(others[i].meaning);
-        return shuffleArray(options);
-    };
+    // Rotation memory: distractor texts already shown in recent questions, so
+    // the same options don't keep reappearing. Word modes (word-bank/cloze)
+    // share a set; meaning-based multiple-choice tracks its own.
+    const usedWordDistractorsRef = useRef<Set<string>>(new Set());
+    const usedMeaningDistractorsRef = useRef<Set<string>>(new Set());
 
     const multipleChoiceOptions = useMemo(() => {
         if (activeMode === "multiple-choice" && currentWord) {
-            return generateMultipleChoiceOptions(currentWord, queue);
+            return generateMeaningChoiceOptions(currentWord, queue, 4, usedMeaningDistractorsRef.current);
         }
         return [];
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -563,7 +563,7 @@ export default function VocabularyPractice({
 
     const clozeWordOptions = useMemo(() => {
         if (activeMode === "cloze" && currentWord) {
-            return generateWordChoiceOptions(currentWord, queue);
+            return generateWordChoiceOptions(currentWord, queue, 4, usedWordDistractorsRef.current);
         }
         return [];
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -571,7 +571,7 @@ export default function VocabularyPractice({
 
     const wordBankOptions = useMemo(() => {
         if (activeMode === "word-bank" && currentWord) {
-            return generateWordChoiceOptions(currentWord, queue);
+            return generateWordChoiceOptions(currentWord, queue, 4, usedWordDistractorsRef.current);
         }
         return [];
         // eslint-disable-next-line react-hooks/exhaustive-deps
