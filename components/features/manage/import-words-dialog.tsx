@@ -417,22 +417,6 @@ export default function ImportWordsDialog({
                                                         type="button"
                                                         variant="ghost"
                                                         size="icon"
-                                                        onClick={() => enrichSingleRow(row)}
-                                                        disabled={enrichingRows.has(row.id) || !row.word.trim()}
-                                                        className="h-8 w-8 text-muted-foreground hover:text-primary"
-                                                        aria-label="Enrich this word from dictionary"
-                                                        title="Enrich this word"
-                                                    >
-                                                        {enrichingRows.has(row.id) ? (
-                                                            <LoadingSpinner size="sm" />
-                                                        ) : (
-                                                            <Wand2 className="h-3.5 w-3.5" />
-                                                        )}
-                                                    </Button>
-                                                    <Button
-                                                        type="button"
-                                                        variant="ghost"
-                                                        size="icon"
                                                         onClick={() => toggleRow(row.id)}
                                                         className="h-8 w-8 text-muted-foreground"
                                                         aria-label={isExpanded ? "Hide details" : "Show details"}
@@ -460,8 +444,15 @@ export default function ImportWordsDialog({
 
                                             {/* At-a-glance summary of the details filled in (esp. after enrich). */}
                                             <div className="flex flex-wrap items-center gap-1.5 mt-1 pl-1 text-xs text-muted-foreground">
-                                                {row.enriched && (
-                                                    <Sparkles className="h-3 w-3 text-primary" aria-label="Enriched" />
+                                                {enrichingRows.has(row.id) ? (
+                                                    <span className="inline-flex items-center gap-1 text-primary">
+                                                        <LoadingSpinner size="sm" />
+                                                        Fetching details…
+                                                    </span>
+                                                ) : (
+                                                    row.enriched && (
+                                                        <Sparkles className="h-3 w-3 text-primary" aria-label="Enriched" />
+                                                    )
                                                 )}
                                                 {row.partOfSpeech ? (
                                                     <Badge variant="secondary" className="px-1.5 py-0 text-[10px] font-medium">

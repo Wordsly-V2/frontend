@@ -204,7 +204,17 @@ function SortableLesson({
                         return (
                             <div
                                 key={word.id}
-                                className={`flex flex-col gap-2 p-3 sm:p-4 bg-background border rounded-lg transition-colors ${isSelected
+                                role="button"
+                                tabIndex={0}
+                                aria-pressed={isSelected}
+                                onClick={() => onToggleWordSelection(lesson.id, word.id)}
+                                onKeyDown={(e) => {
+                                    if (e.key === "Enter" || e.key === " ") {
+                                        e.preventDefault();
+                                        onToggleWordSelection(lesson.id, word.id);
+                                    }
+                                }}
+                                className={`flex flex-col gap-2 p-3 sm:p-4 bg-background border rounded-lg transition-colors cursor-pointer select-none outline-none focus-visible:ring-2 focus-visible:ring-ring ${isSelected
                                     ? 'border-primary bg-primary/5'
                                     : 'border-border hover:border-primary/50'
                                     }`}
@@ -212,8 +222,9 @@ function SortableLesson({
                                 <div className="flex items-start gap-2 sm:gap-3 flex-1 min-w-0">
                                     <Checkbox
                                         checked={isSelected}
-                                        onCheckedChange={() => onToggleWordSelection(lesson.id, word.id)}
-                                        className="mt-0.5 sm:mt-1 data-[state=checked]:bg-primary data-[state=checked]:border-primary flex-shrink-0"
+                                        tabIndex={-1}
+                                        aria-hidden
+                                        className="mt-0.5 sm:mt-1 pointer-events-none data-[state=checked]:bg-primary data-[state=checked]:border-primary flex-shrink-0"
                                     />
                                     {word.imageUrl && (
                                         <div className="relative w-12 h-12 sm:w-14 sm:h-14 rounded-lg overflow-hidden bg-muted/30 flex-shrink-0 border border-border">

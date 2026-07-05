@@ -6,8 +6,9 @@ export const createMyWordsBulk = (
     lessonId: string,
     words: CreateMyWord[]
 ): Promise<{ success: boolean; count?: number }> =>
+    // The gateway expects the bare array as the body (it re-wraps as { words }).
     request((i) =>
-        i.post(`/courses/me/my-courses/${courseId}/lessons/${lessonId}/words/bulk`, { words })
+        i.post(`/courses/me/my-courses/${courseId}/lessons/${lessonId}/words/bulk`, words)
     );
 
 export const searchMyWords = (word: string): Promise<IUserWordSearchResult[]> =>
