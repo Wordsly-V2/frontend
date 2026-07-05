@@ -2,6 +2,14 @@ import { getLangeekWordDetails, searchWords } from "@/apis/dictionary.api";
 import { CreateMyWord } from "@/types/courses/courses.type";
 import { normalizeAnswer } from "@/lib/practice-utils";
 
+/** One dictionary sense of a word — a word can have several across parts of speech. */
+export interface WordSense {
+    partOfSpeech: string;
+    meaning: string;
+    imageUrl: string;
+    langeekWordId: number;
+}
+
 /** A single word being staged for bulk import — examples kept as an array until submit. */
 export interface ImportWordRow {
     id: string;
@@ -14,6 +22,8 @@ export interface ImportWordRow {
     examples: string[];
     /** Set after a dictionary auto-enrich pass. */
     enriched?: boolean;
+    /** Alternative dictionary senses (different parts of speech), found during enrich. */
+    senses?: WordSense[];
 }
 
 let rowIdCounter = 0;
@@ -89,7 +99,14 @@ function assignCell(row: ImportWordRow, field: keyof ImportWordRow, raw: string)
     if (!value) return;
     if (field === "examples") {
         row.examples = [...new Set([...row.examples, ...parseExamplesValue(value)])];
-    } else if (field !== "id" && field !== "enriched") {
+    } else if (
+        field === "word" ||
+        field === "meaning" ||
+        field === "pronunciation" ||
+        field === "partOfSpeech" ||
+        field === "audioUrl" ||
+        field === "imageUrl"
+    ) {
         row[field] = value;
     }
 }
@@ -208,11 +225,73 @@ export function isRowValid(row: ImportWordRow): boolean {
     return row.word.trim().length > 0 && row.meaning.trim().length > 0;
 }
 
+/** Drop duplicate senses (same part of speech + meaning). */
+function dedupeSenses(senses: WordSense[]): WordSense[] {
+    const seen = new Set<string>();
+    const out: WordSense[] = [];
+    for (const sense of senses) {
+        const key = `${sense.partOfSpeech.toLowerCase()}::${sense.meaning.toLowerCase()}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        out.push(sense);
+    }
+    return out;
+}
+
+/** Whether a row currently reflects the given sense (part of speech + meaning). */
+export function isSenseActive(row: ImportWordRow, sense: WordSense): boolean {
+    return (
+        normalizeAnswer(row.partOfSpeech) === normalizeAnswer(sense.partOfSpeech) &&
+        normalizeAnswer(row.meaning) === normalizeAnswer(sense.meaning)
+    );
+}
+
 /**
- * Fill blank fields of a row from the dictionary. Never overwrites user-provided
- * values — only fills what's missing. Returns a new row.
+ * Switch a row to a chosen sense: overwrites meaning/part of speech/image with
+ * that sense, then re-fetches pronunciation/audio/examples for its part of speech.
  */
-export async function enrichWordRow(row: ImportWordRow): Promise<ImportWordRow> {
+export async function applySenseToRow(
+    row: ImportWordRow,
+    sense: WordSense,
+): Promise<ImportWordRow> {
+    const next: ImportWordRow = {
+        ...row,
+        meaning: sense.meaning || row.meaning,
+        partOfSpeech: sense.partOfSpeech,
+        imageUrl: sense.imageUrl || row.imageUrl,
+        enriched: true,
+    };
+    try {
+        const details = await getLangeekWordDetails(row.word.trim(), sense.partOfSpeech);
+        if (details) {
+            next.pronunciation = details.pronunciation || "";
+            next.audioUrl = details.audioUrl || "";
+            if (details.imageUrl) next.imageUrl = details.imageUrl;
+            next.examples = details.examples?.length ? [...new Set(details.examples)] : [];
+        }
+    } catch {
+        // keep the sense's basic fields even if the details fetch fails
+    }
+    return next;
+}
+
+export interface EnrichOptions {
+    /**
+     * Replace dictionary-derived fields with fresh values instead of only
+     * filling blanks. Use when re-enriching a single word the user just edited.
+     */
+    overwrite?: boolean;
+}
+
+/**
+ * Pull dictionary data into a row. By default only fills missing fields (safe for
+ * bulk enrich); with `overwrite`, refreshes all dictionary-derived fields for the
+ * current word (used by the per-row re-enrich after editing). Returns a new row.
+ */
+export async function enrichWordRow(
+    row: ImportWordRow,
+    { overwrite = false }: EnrichOptions = {},
+): Promise<ImportWordRow> {
     const query = row.word.trim();
     if (!query) return row;
 
@@ -222,25 +301,43 @@ export async function enrichWordRow(row: ImportWordRow): Promise<ImportWordRow> 
     } catch {
         return { ...row, enriched: true };
     }
-    const match =
-        results.find((r) => normalizeAnswer(r.word) === normalizeAnswer(query)) ?? results[0];
-    if (!match) return { ...row, enriched: true };
+    const exactMatches = results.filter(
+        (r) => normalizeAnswer(r.word) === normalizeAnswer(query),
+    );
+    const relevant = exactMatches.length > 0 ? exactMatches : results;
+    const match = relevant[0];
+    if (!match) return { ...row, enriched: true, senses: [] };
 
-    const next: ImportWordRow = { ...row, enriched: true };
-    if (!next.meaning && match.meaning) next.meaning = match.meaning;
-    if (!next.partOfSpeech && match.partOfSpeech) next.partOfSpeech = match.partOfSpeech;
-    if (!next.imageUrl && match.imageUrl) next.imageUrl = match.imageUrl;
+    // Collect distinct senses (a word can have noun/verb/adj… meanings).
+    const senses = dedupeSenses(
+        relevant
+            .filter((r) => r.partOfSpeech?.trim())
+            .map((r) => ({
+                partOfSpeech: r.partOfSpeech.trim(),
+                meaning: r.meaning ?? "",
+                imageUrl: r.imageUrl ?? "",
+                langeekWordId: r.langeekWordId,
+            })),
+    );
+
+    const next: ImportWordRow = { ...row, enriched: true, senses };
+    const shouldSet = (current: string) => overwrite || !current;
+    if (shouldSet(next.meaning) && match.meaning) next.meaning = match.meaning;
+    if (shouldSet(next.partOfSpeech) && match.partOfSpeech) next.partOfSpeech = match.partOfSpeech;
+    if (shouldSet(next.imageUrl) && match.imageUrl) next.imageUrl = match.imageUrl;
 
     const pos = match.partOfSpeech?.trim();
     if (match.langeekWordId != null && pos) {
         try {
             const details = await getLangeekWordDetails(match.word, pos);
             if (details) {
-                if (!next.pronunciation && details.pronunciation) next.pronunciation = details.pronunciation;
-                if (!next.audioUrl && details.audioUrl) next.audioUrl = details.audioUrl;
-                if (!next.imageUrl && details.imageUrl) next.imageUrl = details.imageUrl;
+                if (shouldSet(next.pronunciation) && details.pronunciation) next.pronunciation = details.pronunciation;
+                if (shouldSet(next.audioUrl) && details.audioUrl) next.audioUrl = details.audioUrl;
+                if (shouldSet(next.imageUrl) && details.imageUrl) next.imageUrl = details.imageUrl;
                 if (details.examples?.length) {
-                    next.examples = [...new Set([...next.examples, ...details.examples])];
+                    next.examples = overwrite
+                        ? [...new Set(details.examples)]
+                        : [...new Set([...next.examples, ...details.examples])];
                 }
             }
         } catch {

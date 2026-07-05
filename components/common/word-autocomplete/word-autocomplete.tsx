@@ -35,11 +35,13 @@ export function WordAutocomplete({
     autoComplete = "off",
 }: Readonly<WordAutocompleteProps>) {
     const debouncedQuery = useDebounce(value.trim(), 300);
+    const [suggestionsOpen, setSuggestionsOpen] = useState(false);
+    // Only search while the dropdown is open (focused/typing). Prevents firing a
+    // lookup for every field when many autocompletes are mounted (e.g. import list).
     const { data: searchWords, isLoading: isSearchWordsLoading } = useSearchWordsQuery(
         debouncedQuery,
-        debouncedQuery.length > 0
+        debouncedQuery.length > 0 && suggestionsOpen
     );
-    const [suggestionsOpen, setSuggestionsOpen] = useState(false);
     const containerRef = useRef<HTMLDivElement>(null);
 
     const showSuggestions =
