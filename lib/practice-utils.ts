@@ -68,6 +68,57 @@ export function normalizeAnswer(value: string): string {
     return value.trim().toLowerCase().replaceAll(/\s+/g, " ");
 }
 
+/** Strip accents/diacritics so "café" and "cafe" compare equal. */
+function stripDiacritics(value: string): string {
+    return value.normalize("NFD").replaceAll(/[\u0300-\u036f]/g, "");
+}
+
+/** Levenshtein edit distance between two strings (insert/delete/substitute = 1). */
+export function levenshteinDistance(a: string, b: string): number {
+    if (a === b) return 0;
+    if (a.length === 0) return b.length;
+    if (b.length === 0) return a.length;
+
+    let prev = Array.from({ length: b.length + 1 }, (_, i) => i);
+    let curr = new Array<number>(b.length + 1);
+    for (let i = 1; i <= a.length; i++) {
+        curr[0] = i;
+        for (let j = 1; j <= b.length; j++) {
+            const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+            curr[j] = Math.min(prev[j] + 1, curr[j - 1] + 1, prev[j - 1] + cost);
+        }
+        [prev, curr] = [curr, prev];
+    }
+    return prev[b.length];
+}
+
+export type AnswerMatch = "exact" | "near" | "wrong";
+
+/**
+ * Grade a typed answer against the expected word with typo tolerance.
+ * "near" = a small spelling slip (or a missing accent) — counted as correct
+ * so a single-letter typo doesn't punish the learner. Tolerance scales with
+ * length; very short words demand an exact match (a typo becomes another word).
+ */
+export function getAnswerMatch(userAnswer: string, expected: string): AnswerMatch {
+    const user = normalizeAnswer(userAnswer);
+    const target = normalizeAnswer(expected);
+    if (!user || !target) return "wrong";
+    if (user === target) return "exact";
+
+    const userBase = stripDiacritics(user);
+    const targetBase = stripDiacritics(target);
+    if (userBase === targetBase) return "near"; // only accents differ
+
+    // Allowed edits grow with word length; short words stay strict.
+    let allowed = 0;
+    if (targetBase.length >= 8) allowed = 2;
+    else if (targetBase.length >= 4) allowed = 1;
+    if (allowed === 0) return "wrong";
+
+    return levenshteinDistance(userBase, targetBase) <= allowed ? "near" : "wrong";
+}
+
 /** Like normalize but only trims leading whitespace for hint prefix matching. */
 export function normalizeForHintPrefix(value: string): string {
     return value.trimStart().toLowerCase().replaceAll(/\s+/g, " ");

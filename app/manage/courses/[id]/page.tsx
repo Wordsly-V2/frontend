@@ -14,6 +14,7 @@ import LoadingSection from "@/components/common/loading-section/loading-section"
 import { LearningProgressSection, WordProgressBadge, WordProgressStatsInline } from "@/components/common/word-progress-stats";
 import CourseFormDialog from "@/components/features/manage/course-form-dialog";
 import ExportWordsDialog from "@/components/features/manage/export-words-dialog";
+import ImportWordsDialog from "@/components/features/manage/import-words-dialog";
 import LessonFormDialog from "@/components/features/manage/lesson-form-dialog";
 import MoveWordDialog from "@/components/features/manage/move-word-dialog";
 import WordFormDialog from "@/components/features/manage/word-form-dialog";
@@ -21,14 +22,14 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { useCourses } from "@/hooks/useCourses.hook";
 import { useLessons } from "@/hooks/useLessons.hook";
-import { useLoadingOverlay } from "@/hooks/useLoadingOverlay.hook";
 import { useWords } from "@/hooks/useWords.hook";
 import { getCourseDetailById } from "@/apis/courses.api";
 import { useCourseWordProgress } from "@/hooks/useCourseWordProgress.hook";
 import { useGetCourseDetailByIdQuery, useGetMyCoursesQuery } from "@/queries/courses.query";
 import type { IWordProgressResponse, IWordProgressStats } from "@/types/word-progress/word-progress.type";
-import { useQueries } from "@tanstack/react-query";
+import { useQueries, useQueryClient } from "@tanstack/react-query";
 import { CreateMyLesson, CreateMyWord, ICourse, ILesson, IWord } from "@/types/courses/courses.type";
+import { ImportWordRow, rowToCreateMyWord } from "@/lib/word-import";
 import {
     closestCenter,
     DndContext,
@@ -39,6 +40,7 @@ import {
     useSensors,
 } from "@dnd-kit/core";
 import {
+    arrayMove,
     SortableContext,
     sortableKeyboardCoordinates,
     useSortable,
@@ -54,7 +56,7 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ArrowLeft, ArrowRightLeft, BookOpen, ChevronDown, ChevronRight, Download, Edit, Eye, GripVertical, MoreHorizontal, Plus, Search, Trash2, Volume2, X } from "lucide-react";
+import { ArrowLeft, ArrowRightLeft, BookOpen, ChevronDown, ChevronRight, Download, Edit, Eye, FileUp, GripVertical, MoreHorizontal, Plus, Search, Trash2, Volume2, X } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
 
@@ -339,10 +341,25 @@ export default function ManageCourseDetailPage({ params }: { params: Promise<{ i
     const [deleteConfirm, setDeleteConfirm] = useState<{ type: 'lesson' | 'word' | 'bulk-words'; item: ILesson | IWord | null; lessonId?: string } | null>(null);
     const [moveWordDialog, setMoveWordDialog] = useState<{ words: IWord[]; sourceLesson?: ILesson } | null>(null);
     const [exportWordsDialogOpen, setExportWordsDialogOpen] = useState(false);
+    const [importWordsDialogOpen, setImportWordsDialogOpen] = useState(false);
     const [viewingWord, setViewingWord] = useState<IWord | null>(null);
     const [bulkActionsOpen, setBulkActionsOpen] = useState(false);
 
     const { data: course, isLoading, isError, refetch: loadCourseDetail } = useGetCourseDetailByIdQuery(id, !!id);
+
+    const queryClient = useQueryClient();
+    const courseDetailKey = ["courses", "get", "course-detail", id];
+
+    /**
+     * Apply an immediate, in-place edit to the cached course so the UI updates
+     * without waiting for the network. The subsequent loadCourseDetail() call
+     * reconciles with the server (and reverts on error).
+     */
+    const patchCourseCache = (updater: (course: ICourse) => ICourse) => {
+        queryClient.setQueryData<ICourse>(courseDetailKey, (prev) =>
+            prev ? updater(prev) : prev,
+        );
+    };
 
     useEffect(() => {
         if (course) {
@@ -405,9 +422,7 @@ export default function ManageCourseDetailPage({ params }: { params: Promise<{ i
         return () => clearTimeout(t);
     }, [course, searchQuery, urlLessonId, expandedLessons]);
     const { mutationCreateMyCourseLesson, mutationUpdateMyCourseLesson, mutationDeleteMyCourseLesson, mutationReorderMyCourseLessons } = useLessons();
-    const { mutationCreateMyWord, mutationUpdateMyWord, mutationDeleteMyWord, mutationBulkDeleteMyWords, mutationBulkDeleteMyWordsFromCourse, mutationBulkMoveMyWordsFromCourse } = useWords();
-
-    useLoadingOverlay({ isPending: mutationReorderMyCourseLessons.isPending, label: "Reordering lessons..." });
+    const { mutationCreateMyWord, mutationCreateMyWordsBulk, mutationUpdateMyWord, mutationDeleteMyWord, mutationBulkDeleteMyWords, mutationBulkDeleteMyWordsFromCourse, mutationBulkMoveMyWordsFromCourse } = useWords();
 
     const sensors = useSensors(
         useSensor(PointerSensor),
@@ -428,19 +443,34 @@ export default function ManageCourseDetailPage({ params }: { params: Promise<{ i
 
     const handleDragEnd = (event: DragEndEvent) => {
         const { active, over } = event;
-        if (over && active.id !== over.id) {
-            const newIndex = (course?.lessons?.findIndex((l: ILesson) => l.id === over.id) || 0) + 1;
+        if (!over || active.id === over.id) return;
 
-            mutationReorderMyCourseLessons.mutate({ courseId: id, lessonId: active.id as string, targetOrderIndex: newIndex }, {
-                onSuccess: () => {
-                    loadCourseDetail();
-                    toast.success('Lessons reordered successfully');
-                },
-                onError: (err) => {
-                    toast.error('Failed to reorder lessons: ' + err.message);
-                }
-            });
-        }
+        const lessons = course?.lessons ?? [];
+        const oldIndex = lessons.findIndex((l: ILesson) => l.id === active.id);
+        const overIndex = lessons.findIndex((l: ILesson) => l.id === over.id);
+        if (oldIndex < 0 || overIndex < 0) return;
+
+        // The backend inserts at (targetOrderIndex - 1) after removing the dragged
+        // lesson, matching arrayMove — so targetOrderIndex is the 1-based drop slot.
+        const targetOrderIndex = overIndex + 1;
+
+        // Optimistically reorder in the cache so the drag lands instantly.
+        patchCourseCache((prev) => ({
+            ...prev,
+            lessons: arrayMove(prev.lessons ?? [], oldIndex, overIndex).map(
+                (lesson, index) => ({ ...lesson, orderIndex: index + 1 }),
+            ),
+        }));
+
+        mutationReorderMyCourseLessons.mutate({ courseId: id, lessonId: active.id as string, targetOrderIndex }, {
+            onSuccess: () => {
+                loadCourseDetail();
+            },
+            onError: (err) => {
+                loadCourseDetail(); // revert to server truth
+                toast.error('Failed to reorder lessons: ' + err.message);
+            }
+        });
     };
 
     const handleUpdateMyCourse = (courseId: string, courseData: Pick<ICourse, 'name' | 'coverImageUrl'>) => {
@@ -533,17 +563,45 @@ export default function ManageCourseDetailPage({ params }: { params: Promise<{ i
         }
     }
 
+    const handleImportWords = (lessonId: string, rows: ImportWordRow[]) => {
+        const words = rows.map(rowToCreateMyWord);
+        mutationCreateMyWordsBulk.mutate({ courseId: id, lessonId, words }, {
+            onSuccess: (res) => {
+                loadCourseDetail();
+                setImportWordsDialogOpen(false);
+                setExpandedLessons((prev) => new Set(prev).add(lessonId));
+                const count = res?.count ?? words.length;
+                toast.success(`Imported ${count} word${count === 1 ? "" : "s"}`);
+            },
+            onError: (err) => {
+                toast.error('Failed to import words: ' + err.message);
+            },
+        });
+    }
+
     const handleUpdateMyWord = (wordData: CreateMyWord) => {
         if (editingWord && activeLesson) {
-            mutationUpdateMyWord.mutate({ courseId: id, lessonId: activeLesson?.id, wordId: editingWord?.id, word: wordData }, {
+            const lessonId = activeLesson.id;
+            const wordId = editingWord.id;
+            // Optimistically patch the word and close the form immediately.
+            patchCourseCache((prev) => ({
+                ...prev,
+                lessons: prev.lessons?.map((l) =>
+                    l.id === lessonId
+                        ? { ...l, words: l.words?.map((w) => (w.id === wordId ? { ...w, ...wordData } : w)) }
+                        : l,
+                ),
+            }));
+            setEditingWord(undefined);
+            setActiveLesson(undefined);
+            setWordFormOpen(false);
+            mutationUpdateMyWord.mutate({ courseId: id, lessonId, wordId, word: wordData }, {
                 onSuccess: () => {
                     loadCourseDetail();
-                    setEditingWord(undefined);
-                    setActiveLesson(undefined);
-                    setWordFormOpen(false);
                     toast.success('Word updated successfully');
                 },
                 onError: (err) => {
+                    loadCourseDetail(); // revert to server truth
                     toast.error('Failed to update word: ' + err.message);
                 },
             });
@@ -553,14 +611,25 @@ export default function ManageCourseDetailPage({ params }: { params: Promise<{ i
     const handleDeleteMyWord = () => {
         if (deleteConfirm && deleteConfirm.type === 'word' && activeLesson && deleteConfirm.item) {
             const wordItem = deleteConfirm.item as IWord;
-            mutationDeleteMyWord.mutate({ courseId: id, lessonId: activeLesson?.id, wordId: wordItem.id }, {
+            const lessonId = activeLesson.id;
+            // Optimistically remove the word and close the dialog immediately.
+            patchCourseCache((prev) => ({
+                ...prev,
+                lessons: prev.lessons?.map((l) =>
+                    l.id === lessonId
+                        ? { ...l, words: l.words?.filter((w) => w.id !== wordItem.id) }
+                        : l,
+                ),
+            }));
+            setDeleteConfirm(null);
+            setActiveLesson(undefined);
+            mutationDeleteMyWord.mutate({ courseId: id, lessonId, wordId: wordItem.id }, {
                 onSuccess: () => {
                     loadCourseDetail();
-                    setDeleteConfirm(null);
-                    setActiveLesson(undefined);
                     toast.success('Word deleted successfully');
                 },
                 onError: (err) => {
+                    loadCourseDetail(); // restore the word from server truth
                     toast.error('Failed to delete word: ' + err.message);
                 },
             });
@@ -779,6 +848,13 @@ export default function ManageCourseDetailPage({ params }: { params: Promise<{ i
                                         </Button>
                                     </DropdownMenuTrigger>
                                     <DropdownMenuContent align="end" className="w-48">
+                                        <DropdownMenuItem
+                                            onClick={() => setImportWordsDialogOpen(true)}
+                                            disabled={!course?.lessons?.length}
+                                        >
+                                            <FileUp className="h-4 w-4" />
+                                            Import words
+                                        </DropdownMenuItem>
                                         <DropdownMenuItem
                                             onClick={() => setExportWordsDialogOpen(true)}
                                             disabled={!course?.lessons?.length}
@@ -1061,6 +1137,14 @@ export default function ManageCourseDetailPage({ params }: { params: Promise<{ i
                 onClose={() => setExportWordsDialogOpen(false)}
                 lessons={course?.lessons || []}
                 courseName={course?.name ?? ""}
+            />
+
+            <ImportWordsDialog
+                isOpen={importWordsDialogOpen}
+                onClose={() => setImportWordsDialogOpen(false)}
+                lessons={course?.lessons || []}
+                isImporting={mutationCreateMyWordsBulk.isPending}
+                onImport={handleImportWords}
             />
             {viewingWord && (
                 <WordDetailDialog word={viewingWord} isOpen={!!viewingWord} onClose={() => setViewingWord(null)} />

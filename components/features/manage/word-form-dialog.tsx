@@ -149,6 +149,8 @@ function WordFormDialogForm({
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
+        // Don't submit while dictionary autofill is still populating fields.
+        if (isFetchingLangeekDetails) return;
         if (formData.word.trim() && formData.meaning.trim()) {
             onSubmit({
                 word: formData.word.trim() ,
@@ -387,7 +389,7 @@ function WordFormDialogForm({
                         <Button type="button" variant="outline" onClick={handleClose} disabled={isLoading} className="w-full sm:w-auto text-sm">
                             Cancel
                         </Button>
-                        <Button type="submit" disabled={isLoading} className="w-full sm:w-auto text-sm">
+                        <Button type="submit" disabled={isLoading || isFetchingLangeekDetails} className="w-full sm:w-auto text-sm">
                             {
                                 (isLoading || isFetchingLangeekDetails) ? (
                                     <LoadingSpinner size="sm" />

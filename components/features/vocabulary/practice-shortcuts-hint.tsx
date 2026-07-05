@@ -19,11 +19,15 @@ const SHORTCUTS_BY_MODE: Record<ActivePracticeMode, ShortcutItem[]> = {
     "multiple-choice": [
         { keys: ["A", "B", "C", "D"], label: "Pick answer" },
     ],
+    "word-bank": [
+        { keys: ["A", "B", "C", "D"], label: "Pick answer" },
+    ],
     cloze: [
         { keys: ["A", "B", "C", "D"], label: "Pick answer" },
     ],
     typing: [{ keys: ["Enter"], label: "Submit" }],
     listening: [{ keys: ["Enter"], label: "Submit" }],
+    context: [{ keys: ["Enter"], label: "Submit" }],
 };
 
 function KeyChip({ children }: Readonly<{ children: React.ReactNode }>) {

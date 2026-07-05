@@ -4,6 +4,7 @@ import {
     bulkMoveMyWords,
     bulkMoveMyWordsFromCourse,
     createMyWord,
+    createMyWordsBulk,
     deleteMyWord,
     moveMyWord,
     updateMyWord,
@@ -28,6 +29,10 @@ export const useWords = () => {
         mutationFn: ({ courseId, lessonId, wordId, targetLessonId, targetCourseId }: { courseId: string, lessonId: string, wordId: string, targetLessonId: string, targetCourseId?: string }) => moveMyWord(courseId, lessonId, wordId, targetLessonId, targetCourseId),
     });
 
+    const mutationCreateMyWordsBulk = useMutation({
+        mutationFn: ({ courseId, lessonId, words }: { courseId: string, lessonId: string, words: CreateMyWord[] }) => createMyWordsBulk(courseId, lessonId, words),
+    });
+
     const mutationBulkDeleteMyWords = useMutation({
         mutationFn: ({ courseId, lessonId, wordIds }: { courseId: string, lessonId: string, wordIds: string[] }) => bulkDeleteMyWords(courseId, lessonId, wordIds),
     });
@@ -46,6 +51,7 @@ export const useWords = () => {
 
     return {
         mutationCreateMyWord,
+        mutationCreateMyWordsBulk,
         mutationUpdateMyWord,
         mutationDeleteMyWord,
         mutationMoveMyWord,

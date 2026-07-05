@@ -13,6 +13,7 @@ import {
     Volume2,
     MessageSquare,
     ImageIcon,
+    LayoutGrid,
     Shuffle,
     TextCursorInput,
     Bell,
@@ -21,7 +22,9 @@ import {
 export type PracticeMode =
     | "flashcard"
     | "typing"
+    | "context"
     | "multiple-choice"
+    | "word-bank"
     | "listening"
     | "cloze"
     | "mixed";
@@ -70,14 +73,18 @@ function PracticeSettingsForm({
         isMixed ||
         tempMode === "typing" ||
         tempMode === "listening" ||
+        tempMode === "context" ||
         tempMode === "multiple-choice" ||
+        tempMode === "word-bank" ||
         tempMode === "cloze";
 
     const modes: { id: PracticeMode; icon: typeof Sparkles; label: string; desc: string }[] = [
         { id: "mixed", icon: Shuffle, label: "Mixed", desc: "Best for memory" },
         { id: "typing", icon: Keyboard, label: "Typing", desc: "Type the word" },
         { id: "listening", icon: Volume2, label: "Listening", desc: "Listen and type" },
+        { id: "context", icon: MessageSquare, label: "In context", desc: "Type the word in a sentence" },
         { id: "cloze", icon: TextCursorInput, label: "Fill-in", desc: "Pick the word in context" },
+        { id: "word-bank", icon: LayoutGrid, label: "Word bank", desc: "Pick the word for a meaning" },
         { id: "multiple-choice", icon: CheckSquare, label: "Quiz", desc: "Pick the meaning" },
         { id: "flashcard", icon: Sparkles, label: "Flashcard", desc: "Reveal and rate" },
     ];

@@ -43,26 +43,33 @@ export function readPracticeSettingsFromStorage(): PracticeSettings {
 export const MIXED_PRACTICE_MODES = [
     'typing',
     'listening',
+    'context',
     'multiple-choice',
+    'word-bank',
     'cloze',
 ] as const;
 
 export const NEW_WORD_MIXED_MODES = [
     'typing',
     'multiple-choice',
+    'word-bank',
     'cloze',
 ] as const;
 export const LEARNING_MIXED_MODES = [
     'typing',
     'listening',
+    'context',
     'multiple-choice',
+    'word-bank',
     'cloze',
 ] as const;
 export const REVIEW_MIXED_MODES = [
     'typing',
     'listening',
+    'context',
     'cloze',
     'multiple-choice',
+    'word-bank',
 ] as const;
 
 export type ActivePracticeMode =
@@ -91,7 +98,9 @@ function applyModeFallbacks(
     clozeAvailable: boolean,
     listeningAvailable: boolean,
 ): ActivePracticeMode {
-    if (mode === 'cloze' && !clozeAvailable) {
+    // Cloze (pick word in a sentence) and context (type word in a sentence)
+    // both need an example; fall back when the word has none.
+    if ((mode === 'cloze' || mode === 'context') && !clozeAvailable) {
         return resolveClozeFallback(listeningAvailable);
     }
     return mode;
@@ -171,7 +180,7 @@ export function resolveActiveMode(
             (modes[fallbackIndex % modes.length] as ActivePracticeMode);
         return applyModeFallbacks(mode, clozeAvailable, listeningAvailable);
     }
-    if (settingsMode === 'cloze' && !clozeAvailable) {
+    if ((settingsMode === 'cloze' || settingsMode === 'context') && !clozeAvailable) {
         return resolveClozeFallback(listeningAvailable);
     }
     return settingsMode;

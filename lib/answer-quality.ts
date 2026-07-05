@@ -24,6 +24,7 @@ export function calculateAnswerQuality(
     isCorrect: boolean,
     hintsUsed = 0,
     timeSpentSeconds?: number,
+    nearMiss = false,
 ): AnswerQuality {
     if (!isCorrect) {
         return AnswerQuality.INCORRECT;
@@ -35,6 +36,12 @@ export function calculateAnswerQuality(
     } else if (hintsUsed === 1) {
         quality = AnswerQuality.CORRECT_WITH_HESITATION;
     } else {
+        quality = AnswerQuality.CORRECT_WITH_DIFFICULTY;
+    }
+
+    // A typo-tolerant "near" answer counts as correct, but never as a flawless
+    // recall — cap it so FSRS still schedules the word for reinforcement.
+    if (nearMiss && quality > AnswerQuality.CORRECT_WITH_DIFFICULTY) {
         quality = AnswerQuality.CORRECT_WITH_DIFFICULTY;
     }
 

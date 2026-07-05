@@ -13,6 +13,8 @@ import { useEffect, useRef } from "react";
 
 export interface PracticeResultPanelProps {
     isCorrect: boolean;
+    /** Correct despite a small typo/accent slip — shown as "Almost, close enough!". */
+    isNear?: boolean;
     userAnswer: string;
     correctAnswer: string;
     meaning: string;
@@ -31,6 +33,7 @@ export interface PracticeResultPanelProps {
 /** Inline answer feedback — keeps the learner in the exercise card instead of a modal. */
 export function PracticeResultPanel({
     isCorrect,
+    isNear = false,
     userAnswer,
     correctAnswer,
     meaning,
@@ -92,7 +95,21 @@ export function PracticeResultPanel({
             )}
         >
             <div className="mb-4">
-                {isCorrect ? (
+                {isCorrect && isNear ? (
+                    <div className="space-y-2">
+                        <div className="animate-pop inline-flex items-center justify-center w-14 h-14 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 ring-4 ring-amber-400/20">
+                            <CheckCircle2 className="h-7 w-7 text-white" />
+                        </div>
+                        <h3 className="text-xl font-bold text-amber-600 dark:text-amber-400">
+                            Almost — close enough! ✓
+                        </h3>
+                        {userAnswer && (
+                            <p className="text-sm text-muted-foreground">
+                                You wrote <span className="font-medium">{userAnswer}</span> — mind the spelling.
+                            </p>
+                        )}
+                    </div>
+                ) : isCorrect ? (
                     <div className="space-y-2">
                         <div className="animate-pop inline-flex items-center justify-center w-14 h-14 rounded-full bg-gradient-to-br from-green-400 to-emerald-500 ring-4 ring-[var(--brand-success)]/20">
                             <CheckCircle2 className="h-7 w-7 text-white" />

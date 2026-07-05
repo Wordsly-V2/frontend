@@ -5,7 +5,9 @@ import type { IWord } from "@/types/courses/courses.type";
 export type PedagogyPracticeMode =
     | "typing"
     | "listening"
+    | "context"
     | "multiple-choice"
+    | "word-bank"
     | "cloze"
     | "flashcard";
 
@@ -32,8 +34,8 @@ export const PEDAGOGY = {
 
 export type PracticeDirection = "production" | "recognition";
 
-export const PRODUCTION_MODES = ["typing", "listening"] as const;
-export const RECOGNITION_MODES = ["multiple-choice", "cloze"] as const;
+export const PRODUCTION_MODES = ["typing", "listening", "context"] as const;
+export const RECOGNITION_MODES = ["multiple-choice", "word-bank", "cloze"] as const;
 
 export function modeDirection(mode: string): PracticeDirection | null {
     if ((PRODUCTION_MODES as readonly string[]).includes(mode)) return "production";
@@ -46,7 +48,8 @@ function modeAvailable(
     clozeAvailable: boolean,
     listeningAvailable: boolean,
 ): boolean {
-    if (mode === "cloze" && !clozeAvailable) return false;
+    // Both cloze and context need an example sentence containing the word.
+    if ((mode === "cloze" || mode === "context") && !clozeAvailable) return false;
     if (mode === "listening" && !listeningAvailable) return false;
     return true;
 }
