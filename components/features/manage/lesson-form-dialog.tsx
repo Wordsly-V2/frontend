@@ -13,7 +13,7 @@ interface LessonFormDialogProps {
     isLoading: boolean;
     isOpen: boolean;
     onClose: () => void;
-    onSubmit: (lesson: Omit<ILesson, 'id' | 'courseId' | 'createdAt' | 'updatedAt' | 'words' | 'orderIndex' | 'wordProgressStats' | 'maxWords'> & { maxWords?: number | null }) => void;
+    onSubmit: (lesson: Omit<ILesson, 'id' | 'courseId' | 'createdAt' | 'updatedAt' | 'words' | 'orderIndex' | 'wordProgressStats' | 'maxWords' | 'coverImageUrl'> & { maxWords?: number | null; coverImageUrl?: string | null }) => void;
     lesson?: ILesson;
     title: string;
 }
@@ -57,7 +57,7 @@ export default function LessonFormDialog({
             const maxWordsValue = formData.maxWords.trim();
             onSubmit({
                 name: formData.name.trim(),
-                coverImageUrl: formData.coverImageUrl.trim() || undefined,
+                coverImageUrl: formData.coverImageUrl.trim() || null,
                 maxWords: maxWordsValue ? Number.parseInt(maxWordsValue, 10) : null,
             });
         }
