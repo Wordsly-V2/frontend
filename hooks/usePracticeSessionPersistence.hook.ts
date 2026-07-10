@@ -6,6 +6,7 @@ import {
 } from "@/lib/practice-session-persistence";
 import { fireCelebrationConfetti } from "@/lib/confetti";
 import { getUserLevel } from "@/apis/user-level.api";
+import { queryKeys } from "@/lib/query-keys";
 import { userLevelQueryKey } from "@/queries/user-level.query";
 import type { SessionCompletePayload } from "@/types/practice/practice.type";
 import type { IUserLevel } from "@/types/user-level/user-level.type";
@@ -32,9 +33,9 @@ export function usePracticeSessionPersistence({
     const [hasUnsavedPractice, setHasUnsavedPractice] = useState(false);
 
     const invalidateProgressQueries = useCallback(async () => {
-        await queryClient.invalidateQueries({ queryKey: ["word-progress"] });
-        await queryClient.invalidateQueries({ queryKey: ["due-words"] });
-        await queryClient.invalidateQueries({ queryKey: ["due-word-ids"] });
+        await queryClient.invalidateQueries({ queryKey: queryKeys.wordProgress.all });
+        await queryClient.invalidateQueries({ queryKey: queryKeys.dueWords.all });
+        await queryClient.invalidateQueries({ queryKey: queryKeys.dueWordIds.all });
     }, [queryClient]);
 
     useEffect(() => {

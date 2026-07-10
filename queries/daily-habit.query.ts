@@ -13,10 +13,11 @@ import type {
     IRecordDailyPracticeDto,
     IUpdateDailyGoalDto,
 } from "@/types/daily-habit/daily-habit.type";
+import { queryKeys } from "@/lib/query-keys";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 export const dailyHabitQueryKey = (clientDate: string) =>
-    ["daily-habit", clientDate] as const;
+    queryKeys.dailyHabit.byDate(clientDate);
 
 export const useGetDailyHabitQuery = (enabled = true) => {
     const clientDate = localDateString();

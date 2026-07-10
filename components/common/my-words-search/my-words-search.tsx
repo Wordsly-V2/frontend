@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import QuickAddWordDialog from "@/components/features/manage/quick-add-word-dialog";
 import WordDetailDialog from "@/components/features/manage/word-detail-dialog";
-import { useDebounce } from "@/hooks/useDebounce";
+import { useDebounce } from "@/hooks/useDebounce.hook";
 import { useLangeekWordDetailsQuery, useSearchWordsQuery } from "@/queries/dictionary.query";
 import { useGetWordsByIdsQuery, useSearchMyWordsQuery } from "@/queries/words.query";
 import { IUserWordSearchResult, IWordSearchResult, WordDetailView } from "@/types/courses/courses.type";

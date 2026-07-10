@@ -1,10 +1,10 @@
 "use client";
 
 import { getWordLearningStage, stageLabel } from "@/lib/word-progress-stage";
-import { IWordProgress } from "@/types/courses/courses.type";
+import { IWordProgressResponse } from "@/types/word-progress/word-progress.type";
 
 interface WordProgressBadgeProps {
-    progress: IWordProgress;
+    progress: IWordProgressResponse;
     className?: string;
 }
 

@@ -1,7 +1,6 @@
 import { getLocalStorageItem } from '@/lib/local-storage';
 import { assignMixedPracticeMode } from '@/lib/learning-pedagogy';
 import { shuffleArray } from '@/lib/practice-utils';
-import type { PracticeSettings } from '@/components/features/vocabulary/practice-settings-dialog';
 import type { WordLearningStage } from '@/lib/word-progress-stage';
 import type { IWord } from '@/types/courses/courses.type';
 
@@ -16,6 +15,25 @@ export const MIXED_PRACTICE_MODES = [
 ] as const;
 
 export type MixedPracticeMethod = (typeof MIXED_PRACTICE_MODES)[number];
+
+/** Every selectable practice mode (concrete methods + the meta "mixed" mode). */
+export type PracticeMode =
+    | 'flashcard'
+    | 'context'
+    | 'word-bank'
+    | 'listening'
+    | 'cloze'
+    | 'mixed';
+
+export interface PracticeSettings {
+    mode: PracticeMode;
+    /** Which methods the mixed mode may rotate through. Empty = all. */
+    mixedModes: MixedPracticeMethod[];
+    autoCheck: boolean;
+    showExampleHints: boolean;
+    showImageHints: boolean;
+    soundEnabled: boolean;
+}
 
 export const DEFAULT_PRACTICE_SETTINGS: PracticeSettings = {
     mode: 'mixed',

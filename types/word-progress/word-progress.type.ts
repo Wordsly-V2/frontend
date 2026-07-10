@@ -50,3 +50,11 @@ export interface IWordProgressStats {
     dueToday: number;
     overallSuccessRate: number;
 }
+
+/** Scope for due-words / due-word-ids / progress-stats queries. */
+export interface WordProgressScope {
+    courseId?: string;
+    lessonId?: string;
+    limit?: number;
+    includeNew?: boolean;
+}

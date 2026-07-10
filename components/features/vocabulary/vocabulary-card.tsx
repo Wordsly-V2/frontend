@@ -4,6 +4,7 @@ import { IWord } from "@/types/courses/courses.type";
 import { handleAudioPlayError } from "@/lib/audio-playback";
 import { Volume2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { WordPill } from "@/components/common/word-pill";
 import { useState } from "react";
 
 interface VocabularyCardProps {
@@ -37,9 +38,7 @@ export default function VocabularyCard({
                     <div className="flex items-center gap-2">
                         <span className="font-medium">{word.word}</span>
                         {word.partOfSpeech && (
-                            <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary">
-                                {word.partOfSpeech}
-                            </span>
+                            <WordPill>{word.partOfSpeech}</WordPill>
                         )}
                     </div>
                     {word.pronunciation && (
@@ -77,9 +76,7 @@ export default function VocabularyCard({
                         <div className="flex items-center gap-3 mb-2">
                             <h3 className="text-2xl font-bold">{word.word}</h3>
                             {word.partOfSpeech && (
-                                <span className="text-xs px-2.5 py-1 rounded-full bg-primary/10 text-primary font-medium">
-                                    {word.partOfSpeech}
-                                </span>
+                                <WordPill className="font-medium">{word.partOfSpeech}</WordPill>
                             )}
                         </div>
                         {word.pronunciation && (

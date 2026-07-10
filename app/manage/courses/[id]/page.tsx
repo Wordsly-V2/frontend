@@ -14,18 +14,43 @@ import LoadingSection from "@/components/common/loading-section/loading-section"
 import { LearningProgressSection, WordProgressBadge, WordProgressStatsInline } from "@/components/common/word-progress-stats";
 import CourseFormDialog from "@/components/features/manage/course-form-dialog";
 import ExportWordsDialog from "@/components/features/manage/export-words-dialog";
-import ImportWordsDialog from "@/components/features/manage/import-words-dialog";
+import dynamic from "next/dynamic";
+
+// Heavy, rarely-opened wizard (parsing + enrichment). Keep it out of the manage
+// bundle and load on demand when the user opens it.
+const ImportWordsDialog = dynamic(
+    () => import("@/components/features/manage/import-words-dialog"),
+    { ssr: false },
+);
 import LessonFormDialog from "@/components/features/manage/lesson-form-dialog";
 import MoveWordDialog from "@/components/features/manage/move-word-dialog";
 import WordFormDialog from "@/components/features/manage/word-form-dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
-import { useCourses } from "@/hooks/useCourses.hook";
-import { useLessons } from "@/hooks/useLessons.hook";
-import { useWords } from "@/hooks/useWords.hook";
 import { getCourseDetailById } from "@/apis/courses.api";
 import { useCourseWordProgress } from "@/hooks/useCourseWordProgress.hook";
-import { useGetCourseDetailByIdQuery, useGetMyCoursesQuery } from "@/queries/courses.query";
+import { queryKeys } from "@/lib/query-keys";
+import {
+    useDeleteMyCourseMutation,
+    useGetCourseDetailByIdQuery,
+    useGetMyCoursesQuery,
+    useUpdateMyCourseMutation,
+} from "@/queries/courses.query";
+import {
+    useCreateMyCourseLessonMutation,
+    useDeleteMyCourseLessonMutation,
+    useReorderMyCourseLessonsMutation,
+    useUpdateMyCourseLessonMutation,
+} from "@/queries/lessons.query";
+import {
+    useBulkDeleteMyWordsFromCourseMutation,
+    useBulkDeleteMyWordsMutation,
+    useBulkMoveMyWordsFromCourseMutation,
+    useCreateMyWordMutation,
+    useCreateMyWordsBulkMutation,
+    useDeleteMyWordMutation,
+    useUpdateMyWordMutation,
+} from "@/queries/words.query";
 import type { IWordProgressResponse, IWordProgressStats } from "@/types/word-progress/word-progress.type";
 import { useQueries, useQueryClient } from "@tanstack/react-query";
 import { CreateMyLesson, CreateMyWord, ICourse, ILesson, IWord } from "@/types/courses/courses.type";
@@ -359,7 +384,7 @@ export default function ManageCourseDetailPage({ params }: { params: Promise<{ i
     const { data: course, isLoading, isError, refetch: loadCourseDetail } = useGetCourseDetailByIdQuery(id, !!id);
 
     const queryClient = useQueryClient();
-    const courseDetailKey = ["courses", "get", "course-detail", id];
+    const courseDetailKey = queryKeys.courses.detail(id);
 
     /**
      * Apply an immediate, in-place edit to the cached course so the UI updates
@@ -382,16 +407,20 @@ export default function ManageCourseDetailPage({ params }: { params: Promise<{ i
         lessonStatsByLessonId,
         wordProgressByWordId,
     } = useCourseWordProgress(course, !!course);
-    const { mutationUpdateMyCourse, mutationDeleteMyCourse } = useCourses();
+    const mutationUpdateMyCourse = useUpdateMyCourseMutation();
+    const mutationDeleteMyCourse = useDeleteMyCourseMutation();
 
     // When move dialog is open, fetch other courses and their lessons for cross-course move
-    const { data: coursesList } = useGetMyCoursesQuery(50, 1, "name", "asc", "", !!moveWordDialog);
+    const { data: coursesList } = useGetMyCoursesQuery(
+        { itemsPerPage: 50, currentPage: 1 },
+        !!moveWordDialog,
+    );
     const otherCourseIds = moveWordDialog
         ? (coursesList?.items ?? []).filter((c: ICourse) => c.id !== id).map((c: ICourse) => c.id)
         : [];
     const otherCoursesDetailsQueries = useQueries({
         queries: otherCourseIds.map((courseId: string) => ({
-            queryKey: ["courses", "get", "course-detail", courseId],
+            queryKey: queryKeys.courses.detail(courseId),
             queryFn: () => getCourseDetailById(courseId),
             enabled: !!moveWordDialog && !!courseId,
         })),
@@ -432,8 +461,17 @@ export default function ManageCourseDetailPage({ params }: { params: Promise<{ i
         const t = setTimeout(() => tryScroll(0), 50);
         return () => clearTimeout(t);
     }, [course, searchQuery, urlLessonId, expandedLessons]);
-    const { mutationCreateMyCourseLesson, mutationUpdateMyCourseLesson, mutationDeleteMyCourseLesson, mutationReorderMyCourseLessons } = useLessons();
-    const { mutationCreateMyWord, mutationCreateMyWordsBulk, mutationUpdateMyWord, mutationDeleteMyWord, mutationBulkDeleteMyWords, mutationBulkDeleteMyWordsFromCourse, mutationBulkMoveMyWordsFromCourse } = useWords();
+    const mutationCreateMyCourseLesson = useCreateMyCourseLessonMutation();
+    const mutationUpdateMyCourseLesson = useUpdateMyCourseLessonMutation();
+    const mutationDeleteMyCourseLesson = useDeleteMyCourseLessonMutation();
+    const mutationReorderMyCourseLessons = useReorderMyCourseLessonsMutation();
+    const mutationCreateMyWord = useCreateMyWordMutation();
+    const mutationCreateMyWordsBulk = useCreateMyWordsBulkMutation();
+    const mutationUpdateMyWord = useUpdateMyWordMutation();
+    const mutationDeleteMyWord = useDeleteMyWordMutation();
+    const mutationBulkDeleteMyWords = useBulkDeleteMyWordsMutation();
+    const mutationBulkDeleteMyWordsFromCourse = useBulkDeleteMyWordsFromCourseMutation();
+    const mutationBulkMoveMyWordsFromCourse = useBulkMoveMyWordsFromCourseMutation();
 
     const sensors = useSensors(
         useSensor(PointerSensor),

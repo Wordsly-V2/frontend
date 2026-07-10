@@ -3,6 +3,7 @@
 import { useState, useCallback } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { WordPill } from "@/components/common/word-pill";
 import { Label } from "@/components/ui/label";
 import { ILesson, IWord } from "@/types/courses/courses.type";
 import { ArrowRight, ChevronDown, ChevronRight } from "lucide-react";
@@ -99,9 +100,9 @@ export default function MoveWordDialog({
                                     <div key={word.id} className="flex items-center gap-2 text-xs sm:text-sm">
                                         <span className="font-medium truncate">{word.word}</span>
                                         {word.partOfSpeech && (
-                                            <span className="text-xs px-1.5 py-0.5 rounded bg-primary/10 text-primary flex-shrink-0">
+                                            <WordPill shape="rounded" className="flex-shrink-0">
                                                 {word.partOfSpeech}
-                                            </span>
+                                            </WordPill>
                                         )}
                                     </div>
                                 ))}
@@ -112,9 +113,7 @@ export default function MoveWordDialog({
                             <div className="flex items-center gap-2 mb-1 flex-wrap">
                                 <span className="font-semibold text-sm sm:text-base">{words[0].word}</span>
                                 {words[0].partOfSpeech && (
-                                    <span className="text-xs px-1.5 sm:px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium">
-                                        {words[0].partOfSpeech}
-                                    </span>
+                                    <WordPill className="font-medium">{words[0].partOfSpeech}</WordPill>
                                 )}
                             </div>
                             <p className="text-xs sm:text-sm text-muted-foreground break-words">{words[0].meaning}</p>

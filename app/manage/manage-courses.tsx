@@ -7,9 +7,13 @@ import CourseFormDialog from "@/components/features/manage/course-form-dialog";
 import ManageCourseCard from "@/components/features/manage/manage-course-card";
 import { Button } from "@/components/ui/button";
 import { Pagination } from "@/components/ui/pagination";
-import { useCourses } from "@/hooks/useCourses.hook";
 import { coursesListSearchParams } from "@/lib/search-params/courses-list";
-import { useGetMyCoursesQuery } from "@/queries/courses.query";
+import {
+    useCreateMyCourseMutation,
+    useDeleteMyCourseMutation,
+    useGetMyCoursesQuery,
+    useUpdateMyCourseMutation,
+} from "@/queries/courses.query";
 import { useGetProgressStatsByCourseIdsQuery } from "@/queries/word-progress.query";
 import { ICourse } from "@/types/courses/courses.type";
 import { Plus } from "lucide-react";
@@ -31,19 +35,21 @@ export default function ManageCourses({ onRegisterCreateCourse }: Readonly<Manag
     const [deleteConfirm, setDeleteConfirm] = useState<ICourse | null>(null);
     const itemsPerPage = 10;
 
-    const { data: paginatedData, isLoading, isError, refetch: loadCourses } = useGetMyCoursesQuery(
+    const { data: paginatedData, isLoading, isError, refetch: loadCourses } = useGetMyCoursesQuery({
         itemsPerPage,
         currentPage,
-        "name",
-        "asc",
+        orderByField: "name",
+        orderByDirection: "asc",
         searchQuery,
-    );
+    });
     const courseIds = paginatedData?.items.map((course) => course.id) ?? [];
     const { data: statsByCourseId } = useGetProgressStatsByCourseIdsQuery(
         courseIds,
         courseIds.length > 0,
     );
-    const { mutationCreateMyCourse, mutationUpdateMyCourse, mutationDeleteMyCourse } = useCourses();
+    const mutationCreateMyCourse = useCreateMyCourseMutation();
+    const mutationUpdateMyCourse = useUpdateMyCourseMutation();
+    const mutationDeleteMyCourse = useDeleteMyCourseMutation();
 
     const openCreateDialog = useCallback(() => {
         setEditingCourse(undefined);

@@ -37,18 +37,12 @@ export function LearnQuickActions() {
     }, [pathname]);
 
     const { data: dueIds, isLoading: dueLoading } = useGetDueWordIdsQuery(
-        last?.id,
-        undefined,
-        dueWordsLimit,
-        false,
+        { courseId: last?.id, limit: dueWordsLimit, includeNew: false },
         !!last?.id && dueWordsLimit > 0,
     );
 
     const { data: practiceBatch, isLoading: practiceBatchLoading } = useGetDueWordIdsQuery(
-        last?.id,
-        undefined,
-        dueWordsLimit,
-        true,
+        { courseId: last?.id, limit: dueWordsLimit, includeNew: true },
         !!last?.id && dueWordsLimit > 0,
     );
 

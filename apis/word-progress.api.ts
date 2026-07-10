@@ -3,7 +3,8 @@ import {
     IBulkRecordAnswersDto,
     IDueWord,
     IWordProgressResponse,
-    IWordProgressStats
+    IWordProgressStats,
+    WordProgressScope
 } from "@/types/word-progress/word-progress.type";
 
 /** Record multiple answers synchronously (writes to DB directly). */
@@ -13,28 +14,21 @@ export const recordAnswerBulkSync = (
     request((i) => i.post("/word-progress/record-answer/bulk-sync", data));
 
 export const getDueWords = (
-    courseId?: string,
-    lessonId?: string,
-    limit?: number,
-    includeNew?: boolean
+    { courseId, lessonId, limit, includeNew }: WordProgressScope = {},
 ): Promise<IDueWord[]> =>
     request((i) => i.get('/word-progress/due-words', {
         params: { courseId, lessonId, limit, includeNew: includeNew?.toString() },
     }));
 
 export const getDueWordIds = (
-    courseId?: string,
-    lessonId?: string,
-    limit?: number,
-    includeNew?: boolean
+    { courseId, lessonId, limit, includeNew }: WordProgressScope = {},
 ): Promise<{ wordIds: string[] }> =>
     request((i) => i.get('/word-progress/due-word-ids', {
         params: { courseId, lessonId, limit, includeNew: includeNew?.toString() },
     }));
 
 export const getProgressStats = (
-    courseId?: string,
-    lessonId?: string
+    { courseId, lessonId }: Pick<WordProgressScope, "courseId" | "lessonId"> = {},
 ): Promise<IWordProgressStats> =>
     request((i) => i.get('/word-progress/stats', {
         params: { courseId, lessonId },
@@ -72,6 +66,3 @@ export const getProgressByWordIds = (
     wordIds: string[],
 ): Promise<Record<string, IWordProgressResponse | null>> =>
     request((i) => i.post('/word-progress/by-word-ids', { wordIds }));
-
-export const resetProgressBulk = (wordIds: string[]): Promise<{ count: number }> =>
-    request((i) => i.delete('/word-progress/words/bulk-reset', { data: { wordIds } }));

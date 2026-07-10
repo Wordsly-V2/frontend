@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { WordPill } from "@/components/common/word-pill";
 import {
     Dialog,
     DialogContent,
@@ -54,9 +55,7 @@ export default function UserWordViewDialog({ word, isOpen, onClose }: Readonly<U
                     <DialogTitle className="flex items-center gap-2 flex-wrap">
                         <span>{word.word}</span>
                         {word.partOfSpeech && (
-                            <span className="text-sm font-normal px-2 py-0.5 rounded-full bg-primary/10 text-primary">
-                                {word.partOfSpeech}
-                            </span>
+                            <WordPill className="text-sm font-normal">{word.partOfSpeech}</WordPill>
                         )}
                     </DialogTitle>
                 </DialogHeader>

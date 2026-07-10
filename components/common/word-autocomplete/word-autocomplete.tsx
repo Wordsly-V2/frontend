@@ -3,7 +3,7 @@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
-import { useDebounce } from "@/hooks/useDebounce";
+import { useDebounce } from "@/hooks/useDebounce.hook";
 import { useSearchWordsQuery } from "@/queries/dictionary.query";
 import { IWordSearchResult } from "@/types/courses/courses.type";
 import Image from "next/image";

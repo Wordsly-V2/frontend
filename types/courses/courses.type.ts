@@ -3,15 +3,16 @@ import type {
     IWordProgressStats,
 } from "@/types/word-progress/word-progress.type";
 
-export type { IWordProgressResponse as IWordProgress, IWordProgressStats };
+export type { IWordProgressStats };
 
 export interface ICourse {
   id: string;
   name: string;
   coverImageUrl?: string;
   userLoginId?: string;
-  createdAt?: Date;
-  updatedAt?: Date;
+  // API-sourced timestamps are ISO strings at runtime (JSON), not Date objects.
+  createdAt?: string;
+  updatedAt?: string;
   lessons?: ILesson[];
   totalLessonsCount?: number;
   totalWordsCount?: number;
@@ -28,8 +29,8 @@ export interface ILesson {
   maxWords?: number;
   orderIndex?: number;
   courseId: string;
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt: string;
+  updatedAt: string;
   words?: IWord[];
   wordProgressStats?: IWordProgressStats;
 }
@@ -48,15 +49,17 @@ export interface ILessonSummary {
 }
 
 export interface IWord {
-  id: string; word: string;
+  id: string;
+  word: string;
   meaning: string;
   pronunciation?: string;
   partOfSpeech?: string;
   audioUrl?: string;
   imageUrl?: string;
   example?: string;
-  lessonId: string; createdAt: Date;
-  updatedAt: Date;
+  lessonId: string;
+  createdAt: string;
+  updatedAt: string;
   wordProgress?: IWordProgressResponse;
 }
 
@@ -66,9 +69,23 @@ export interface ICourseTotalStats {
   totalWords: number;
 }
 
+export interface MyCoursesQueryOptions {
+  itemsPerPage?: number;
+  currentPage?: number;
+  orderByField?: "createdAt" | "name";
+  orderByDirection?: "asc" | "desc";
+  searchQuery?: string;
+}
+
+export interface MyCoursesInfiniteQueryOptions {
+  orderByField?: "createdAt" | "name";
+  orderByDirection?: "asc" | "desc";
+  searchQuery?: string;
+}
+
 export type CreateMyLesson = Omit<Pick<ILesson, 'name' | 'coverImageUrl' | 'maxWords' | 'orderIndex'>, 'maxWords' | 'coverImageUrl'> & { maxWords?: number | null; coverImageUrl?: string | null };
 
-export type CreateUpdateMyCourse = Pick<ILesson, 'name' | 'coverImageUrl'>;
+export type CreateUpdateMyCourse = Pick<ICourse, 'name' | 'coverImageUrl'>;
 
 export type CreateMyWord = Pick<IWord, 'word' | 'meaning' | 'pronunciation' | 'partOfSpeech' | 'audioUrl' | 'imageUrl' | 'example'>;
 

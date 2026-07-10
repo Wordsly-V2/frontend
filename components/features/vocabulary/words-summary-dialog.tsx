@@ -5,6 +5,7 @@ import { handleAudioPlayError } from "@/lib/audio-playback";
 import { IWord } from "@/types/courses/courses.type";
 import { Volume2, BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { WordPill } from "@/components/common/word-pill";
 
 interface WordsSummaryDialogProps {
     isOpen: boolean;
@@ -73,9 +74,7 @@ export default function WordsSummaryDialog({
                                     <div className="flex items-center gap-2 flex-wrap mb-1">
                                         <span className="font-semibold text-lg">{word.word}</span>
                                         {word.partOfSpeech && (
-                                            <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium">
-                                                {word.partOfSpeech}
-                                            </span>
+                                            <WordPill className="font-medium">{word.partOfSpeech}</WordPill>
                                         )}
                                         {index === currentIndex && (
                                             <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/10 text-green-600 font-medium">

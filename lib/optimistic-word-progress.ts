@@ -1,4 +1,5 @@
 import type { QueryClient } from "@tanstack/react-query";
+import { queryKeys } from "@/lib/query-keys";
 import type {
     IBulkRecordAnswersDto,
     IWordProgressResponse,
@@ -65,8 +66,7 @@ export function applyOptimisticWordProgress(
         );
     }
 
-    queryClient.setQueryData(
-        ["word-progress", "by-word-ids", wordIds],
-        merged,
-    );
+    // Must use the same (sorted) key the query reads under, or the optimistic
+    // write lands on a different cache entry than the UI subscribes to.
+    queryClient.setQueryData(queryKeys.wordProgress.byWordIds(wordIds), merged);
 }

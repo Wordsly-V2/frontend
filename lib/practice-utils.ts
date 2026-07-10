@@ -11,7 +11,7 @@ export function shuffleArray<T>(array: T[]): T[] {
     return shuffled;
 }
 
-export function getWordExamples(word: IWord): string[] {
+export function getWordExamples(word: Pick<IWord, "example">): string[] {
     try {
         const ex = JSON.parse(word.example ?? "[]");
         return Array.isArray(ex) ? ex.filter((e): e is string => typeof e === "string") : [];

@@ -1,9 +1,9 @@
 "use client";
 
-import type { PracticeSettings } from "@/components/features/vocabulary/practice-settings-dialog";
 import { setLocalStorageItem } from "@/lib/local-storage";
 import {
     DEFAULT_PRACTICE_SETTINGS,
+    type PracticeSettings,
     readPracticeSettingsFromStorage,
     SETTINGS_STORAGE_KEY,
 } from "@/lib/practice-settings";

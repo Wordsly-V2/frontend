@@ -1,6 +1,5 @@
 "use client";
 
-import { AdaptiveText } from "@/components/common/adaptive-text";
 import { LeechWordBanner } from "@/components/features/vocabulary/leech-word-banner";
 import { NewWordIntroPanel } from "@/components/features/vocabulary/new-word-intro-panel";
 import { PracticeCardShell } from "@/components/features/vocabulary/practice-card-shell";
@@ -10,10 +9,14 @@ import { PracticeResultPanel } from "@/components/features/vocabulary/practice-r
 import { PracticeSessionHeader } from "@/components/features/vocabulary/practice-session-header";
 import { PracticeShortcutsHint } from "@/components/features/vocabulary/practice-shortcuts-hint";
 import { PracticeToolbar } from "@/components/features/vocabulary/practice-toolbar";
-import { PracticeWordChoiceGrid } from "@/components/features/vocabulary/practice-word-choice-grid";
 import { WordPracticeHints } from "@/components/features/vocabulary/word-practice-hints";
 import { PracticeSessionSummary } from "@/components/features/vocabulary/practice-session-summary";
-import { Button } from "@/components/ui/button";
+import { AdaptiveText } from "@/components/common/adaptive-text";
+import { WordPill } from "@/components/common/word-pill";
+import { ChoiceMode } from "@/components/features/vocabulary/modes/choice-mode";
+import { ContextMode } from "@/components/features/vocabulary/modes/context-mode";
+import { FlashcardMode } from "@/components/features/vocabulary/modes/flashcard-mode";
+import { ListeningMode } from "@/components/features/vocabulary/modes/listening-mode";
 import {
     calculateAnswerQuality,
     flashcardRatingToQuality,
@@ -60,15 +63,9 @@ import {
     shuffleArray,
 } from "@/lib/practice-utils";
 import { useNewWordIntro } from "@/hooks/useNewWordIntro.hook";
-import { LONG_TEXT_WRAP } from "@/lib/long-text";
 import { cn } from "@/lib/utils";
 import type { SessionCompletePayload, WordResult } from "@/types/practice/practice.type";
 import { IWord } from "@/types/courses/courses.type";
-import {
-    Lightbulb,
-    Play,
-    Volume2,
-} from "lucide-react";
 import {
     useCallback,
     useEffect,
@@ -529,8 +526,8 @@ export default function VocabularyPractice({
         submit();
     };
 
+    // Context and listening modes grade the same way (typed answer vs. the word).
     const handleCheckTypingAnswer = () => checkTypedAnswer(currentWord?.word ?? "");
-    const handleCheckListeningAnswer = () => checkTypedAnswer(currentWord?.word ?? "");
 
     const handleChoiceInteraction = (
         option: string,
@@ -578,6 +575,18 @@ export default function VocabularyPractice({
         advanceAfterAnswer(result, currentWord);
     };
 
+    const handleFlashcardReveal = () => {
+        setShowAnswer(true);
+        if (currentWord?.audioUrl) {
+            setTimeout(() => playAudioUrl(currentWord.audioUrl), 300);
+        }
+    };
+
+    const handleListeningPlay = () => {
+        playAudioUrl(currentWord?.audioUrl);
+        setHasPlayedAudio(true);
+    };
+
     // Rotation memory: distractor texts already shown in recent questions, so
     // the same options don't keep reappearing. The word modes (word-bank/cloze)
     // share one set.
@@ -611,7 +620,7 @@ export default function VocabularyPractice({
         if (isWordChoiceMode) {
             wordStartTimeRef.current = Date.now();
         }
-    }, [currentIndex, activeMode, showIntro]);
+    }, [currentIndex, activeMode, showIntro, isWordChoiceMode]);
 
     useEffect(() => {
         if (currentWord?.audioUrl) {
@@ -873,336 +882,116 @@ export default function VocabularyPractice({
                             )}
                             <PracticeExerciseBody>
                                 {activeMode === "flashcard" && (
-                                    <>
-                                        <PracticeExerciseHeader
-                                            mode="flashcard"
-                                            stage={currentStage}
-                                        />
-                                        <div className="space-y-4 sm:space-y-6 text-center">
-                                            <div>
-                                                <div className="flex flex-wrap items-center justify-center gap-3 mb-3 max-w-full">
-                                                    <AdaptiveText
-                                                        text={currentWord.word}
-                                                        role="word"
-                                                        as="h2"
-                                                        align="center"
-                                                        className="font-display text-gradient-brand"
-                                                    />
-                                                    {currentWord.audioUrl && (
-                                                        <Button
-                                                            variant="outline"
-                                                            size="icon"
-                                                            onClick={() => playAudioUrl(currentWord.audioUrl)}
-                                                            className="rounded-xl shrink-0"
-                                                        >
-                                                            <Volume2 className="h-5 w-5" />
-                                                        </Button>
-                                                    )}
-                                                </div>
-                                                {currentWord.pronunciation && (
-                                                    <p className={`text-muted-foreground text-lg mb-2 ${LONG_TEXT_WRAP}`}>
-                                                        {currentWord.pronunciation}
-                                                    </p>
-                                                )}
-                                                {currentWord.partOfSpeech && (
-                                                    <span className="inline-block px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-semibold">
-                                                        {currentWord.partOfSpeech}
-                                                    </span>
-                                                )}
-                                                {!showAnswer && (
-                                                    <WordPracticeHints
-                                                        maskedExamples={maskedExamples}
-                                                        imageUrl={currentWord.imageUrl}
-                                                        showImageHints={effectiveImageHints}
-                                                    />
-                                                )}
-                                            </div>
-                                            {showAnswer && (
-                                                <div className="pt-4 border-t border-dashed border-border animate-in fade-in">
-                                                    <AdaptiveText
-                                                        text={currentWord.meaning}
-                                                        role="meaning"
-                                                        align="center"
-                                                    />
-                                                </div>
-                                            )}
-                                        </div>
-                                        <div className="mt-6">
-                                            {!showAnswer ? (
-                                                <div className="flex justify-center">
-                                                    <Button
-                                                        size="lg"
-                                                        onClick={() => {
-                                                            setShowAnswer(true);
-                                                            if (currentWord.audioUrl) {
-                                                                setTimeout(
-                                                                    () => playAudioUrl(currentWord.audioUrl),
-                                                                    300,
-                                                                );
-                                                            }
-                                                        }}
-                                                        className="rounded-xl min-w-[180px]"
-                                                    >
-                                                        Reveal meaning
-                                                    </Button>
-                                                </div>
-                                            ) : (
-                                                <div className="space-y-3 animate-in fade-in">
-                                                    <p className="text-sm text-muted-foreground text-center">
-                                                        How well did you know it?
-                                                    </p>
-                                                    <div className="grid grid-cols-2 gap-2">
-                                                        <Button
-                                                            variant="outline"
-                                                            onClick={() => handleFlashcardRate("easy")}
-                                                            className="rounded-xl border-green-200 text-green-700 bg-green-50 hover:bg-green-100 dark:bg-green-950/30 dark:border-green-800/50 dark:text-green-400"
-                                                        >
-                                                            Easy <span className="text-xs opacity-70 ml-1">1</span>
-                                                        </Button>
-                                                        <Button
-                                                            variant="outline"
-                                                            onClick={() => handleFlashcardRate("good")}
-                                                            className="rounded-xl border-teal-200 text-teal-700 bg-teal-50 hover:bg-teal-100 dark:bg-teal-950/30 dark:border-teal-800/50 dark:text-teal-400"
-                                                        >
-                                                            Got it <span className="text-xs opacity-70 ml-1">2</span>
-                                                        </Button>
-                                                        <Button
-                                                            variant="outline"
-                                                            onClick={() => handleFlashcardRate("hard")}
-                                                            className="rounded-xl border-orange-200 text-orange-700 bg-orange-50 hover:bg-orange-100 dark:bg-orange-950/30 dark:border-orange-800/50 dark:text-orange-400"
-                                                        >
-                                                            Hard <span className="text-xs opacity-70 ml-1">3</span>
-                                                        </Button>
-                                                        <Button
-                                                            variant="outline"
-                                                            onClick={() => handleFlashcardRate("forgot")}
-                                                            className="rounded-xl border-red-200 text-red-700 bg-red-50 hover:bg-red-100 dark:bg-red-950/30 dark:border-red-800/50 dark:text-red-400"
-                                                        >
-                                                            Forgot <span className="text-xs opacity-70 ml-1">4</span>
-                                                        </Button>
-                                                    </div>
-                                                </div>
-                                            )}
-                                        </div>
-                                    </>
+                                    <FlashcardMode
+                                        word={currentWord}
+                                        stage={currentStage}
+                                        showAnswer={showAnswer}
+                                        maskedExamples={maskedExamples}
+                                        showImageHints={effectiveImageHints}
+                                        onReveal={handleFlashcardReveal}
+                                        onRate={handleFlashcardRate}
+                                    />
                                 )}
 
                                 {activeMode === "context" && clozePrompt && (
-                                    <div className="space-y-5 text-center">
-                                        <div>
-                                            <AdaptiveText
-                                                text={clozePrompt.sentence}
-                                                role="sentence"
-                                                align="center"
-                                                className="px-2 mb-2 text-foreground/90"
-                                            />
-                                            <AdaptiveText
-                                                text={currentWord.meaning}
-                                                role="meaning"
-                                                align="center"
-                                                className="mb-2"
-                                            />
-                                            {currentWord.partOfSpeech && (
-                                                <span className="inline-block px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-semibold">
-                                                    {currentWord.partOfSpeech}
-                                                </span>
-                                            )}
-                                            <WordPracticeHints
-                                                maskedExamples={maskedExamples}
-                                                imageUrl={currentWord.imageUrl}
-                                                showImageHints={effectiveImageHints}
-                                            />
-                                        </div>
-                                        <input
-                                            ref={inputRef}
-                                            type="text"
-                                            autoFocus
-                                            placeholder="Type the missing word…"
-                                            value={userAnswer}
-                                            onChange={(e) =>
-                                                setUserAnswer(String(e.target.value).toLowerCase())
-                                            }
-                                            onKeyDown={(e) =>
-                                                submitAnswerOnEnter(e, handleCheckTypingAnswer)
-                                            }
-                                            className={inputClassName}
-                                        />
-                                        <div className="flex flex-wrap justify-center gap-2">
-                                            <Button
-                                                variant="outline"
-                                                onClick={handleGetHint}
-                                                className="gap-2 rounded-xl"
-                                            >
-                                                <Lightbulb className="h-4 w-4" />
-                                                Hint {hintsUsed > 0 ? `(${hintsUsed})` : ""}
-                                            </Button>
-                                            {!autoCheck && (
-                                                <Button
-                                                    onClick={handleCheckTypingAnswer}
-                                                    disabled={!userAnswer.trim()}
-                                                    className="rounded-xl"
-                                                >
-                                                    Check
-                                                </Button>
-                                            )}
-                                        </div>
-                                    </div>
+                                    <ContextMode
+                                        word={currentWord}
+                                        sentence={clozePrompt.sentence}
+                                        maskedExamples={maskedExamples}
+                                        showImageHints={effectiveImageHints}
+                                        inputRef={inputRef}
+                                        inputClassName={inputClassName}
+                                        userAnswer={userAnswer}
+                                        onAnswerChange={setUserAnswer}
+                                        onSubmitEnter={(e) =>
+                                            submitAnswerOnEnter(e, handleCheckTypingAnswer)
+                                        }
+                                        onHint={handleGetHint}
+                                        hintsUsed={hintsUsed}
+                                        autoCheck={autoCheck}
+                                        onCheck={handleCheckTypingAnswer}
+                                    />
                                 )}
 
                                 {activeMode === "cloze" && clozePrompt && (
-                                    <div className="space-y-5">
-                                        <div className="text-center">
-                                            <AdaptiveText
-                                                text={clozePrompt.sentence}
-                                                role="sentence"
-                                                align="center"
-                                                className="px-2 text-foreground/90"
-                                            />
-                                            <WordPracticeHints
-                                                maskedExamples={maskedExamples}
-                                                imageUrl={currentWord.imageUrl}
-                                                showImageHints={effectiveImageHints}
-                                            />
-                                        </div>
-                                        <PracticeWordChoiceGrid
-                                            options={clozeWordOptions}
-                                            onSelect={(option) =>
-                                                handleChoiceInteraction(option, handleClozeWordSelect)
-                                            }
-                                            selectedOption={!autoCheck ? selectedChoice : null}
-                                            disabled={!!typingResult}
-                                        />
-                                        {!autoCheck && (
-                                            <div className="flex justify-center">
-                                                <Button
-                                                    onClick={() =>
-                                                        handleConfirmChoice(handleClozeWordSelect)
-                                                    }
-                                                    disabled={!selectedChoice || !!typingResult}
-                                                    className="rounded-xl"
-                                                >
-                                                    Check
-                                                </Button>
-                                            </div>
-                                        )}
-                                    </div>
+                                    <ChoiceMode
+                                        prompt={
+                                            <>
+                                                <AdaptiveText
+                                                    text={clozePrompt.sentence}
+                                                    role="sentence"
+                                                    align="center"
+                                                    className="px-2 text-foreground/90"
+                                                />
+                                                <WordPracticeHints
+                                                    maskedExamples={maskedExamples}
+                                                    imageUrl={currentWord.imageUrl}
+                                                    showImageHints={effectiveImageHints}
+                                                />
+                                            </>
+                                        }
+                                        options={clozeWordOptions}
+                                        onSelect={(option) =>
+                                            handleChoiceInteraction(option, handleClozeWordSelect)
+                                        }
+                                        selectedOption={selectedChoice}
+                                        disabled={!!typingResult}
+                                        autoCheck={autoCheck}
+                                        onCheck={() => handleConfirmChoice(handleClozeWordSelect)}
+                                        checkDisabled={!selectedChoice || !!typingResult}
+                                    />
                                 )}
 
                                 {activeMode === "word-bank" && (
-                                    <div className="space-y-5">
-                                        <div className="text-center">
-                                            <AdaptiveText
-                                                text={currentWord.meaning}
-                                                role="meaning"
-                                                align="center"
-                                                className="mb-2"
-                                            />
-                                            {currentWord.partOfSpeech && (
-                                                <span className="inline-block px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-semibold">
-                                                    {currentWord.partOfSpeech}
-                                                </span>
-                                            )}
-                                            <WordPracticeHints
-                                                maskedExamples={maskedExamples}
-                                                imageUrl={currentWord.imageUrl}
-                                                showImageHints={effectiveImageHints}
-                                            />
-                                        </div>
-                                        <PracticeWordChoiceGrid
-                                            options={wordBankOptions}
-                                            onSelect={(option) =>
-                                                handleChoiceInteraction(option, handleWordBankSelect)
-                                            }
-                                            selectedOption={!autoCheck ? selectedChoice : null}
-                                            disabled={!!typingResult}
-                                        />
-                                        {!autoCheck && (
-                                            <div className="flex justify-center">
-                                                <Button
-                                                    onClick={() =>
-                                                        handleConfirmChoice(handleWordBankSelect)
-                                                    }
-                                                    disabled={!selectedChoice || !!typingResult}
-                                                    className="rounded-xl"
-                                                >
-                                                    Check
-                                                </Button>
-                                            </div>
-                                        )}
-                                    </div>
+                                    <ChoiceMode
+                                        prompt={
+                                            <>
+                                                <AdaptiveText
+                                                    text={currentWord.meaning}
+                                                    role="meaning"
+                                                    align="center"
+                                                    className="mb-2"
+                                                />
+                                                {currentWord.partOfSpeech && (
+                                                    <WordPill size="md">{currentWord.partOfSpeech}</WordPill>
+                                                )}
+                                                <WordPracticeHints
+                                                    maskedExamples={maskedExamples}
+                                                    imageUrl={currentWord.imageUrl}
+                                                    showImageHints={effectiveImageHints}
+                                                />
+                                            </>
+                                        }
+                                        options={wordBankOptions}
+                                        onSelect={(option) =>
+                                            handleChoiceInteraction(option, handleWordBankSelect)
+                                        }
+                                        selectedOption={selectedChoice}
+                                        disabled={!!typingResult}
+                                        autoCheck={autoCheck}
+                                        onCheck={() => handleConfirmChoice(handleWordBankSelect)}
+                                        checkDisabled={!selectedChoice || !!typingResult}
+                                    />
                                 )}
 
                                 {activeMode === "listening" && (
-                                    <div className="space-y-5 text-center">
-                                        <p className="text-sm text-muted-foreground">
-                                            {hasPlayedAudio ? "Type what you heard" : "Playing audio…"}
-                                        </p>
-                                        <Button
-                                            size="lg"
-                                            onClick={() => {
-                                                playAudioUrl(currentWord.audioUrl);
-                                                setHasPlayedAudio(true);
-                                            }}
-                                            disabled={!currentWord.audioUrl}
-                                            className="h-16 w-16 sm:h-20 sm:w-20 rounded-full gradient-brand text-white shadow-md"
-                                            aria-label="Replay audio"
-                                        >
-                                            {currentWord.audioUrl ? (
-                                                <Volume2 className="h-7 w-7 sm:h-8 sm:w-8" />
-                                            ) : (
-                                                <Play className="h-7 w-7 sm:h-8 sm:w-8" />
-                                            )}
-                                        </Button>
-                                        <input
-                                            ref={inputRef}
-                                            type="text"
-                                            autoFocus
-                                            placeholder="Type what you heard…"
-                                            value={userAnswer}
-                                            onChange={(e) => setUserAnswer(e.target.value)}
-                                            onKeyDown={(e) =>
-                                                submitAnswerOnEnter(
-                                                    e,
-                                                    handleCheckListeningAnswer,
-                                                    hasPlayedAudio,
-                                                )
-                                            }
-                                            className={inputClassName}
-                                        />
-                                        <div className="flex justify-center gap-2 flex-wrap">
-                                            <Button
-                                                variant="outline"
-                                                onClick={() => playAudioUrl(currentWord.audioUrl)}
-                                                className="rounded-xl"
-                                            >
-                                                Replay
-                                            </Button>
-                                            <Button
-                                                variant="outline"
-                                                onClick={handleGetHint}
-                                                disabled={!hasPlayedAudio}
-                                                className="rounded-xl"
-                                            >
-                                                Hint
-                                            </Button>
-                                            {!autoCheck && (
-                                                <Button
-                                                    onClick={handleCheckListeningAnswer}
-                                                    disabled={!userAnswer.trim() || !hasPlayedAudio}
-                                                    className="rounded-xl"
-                                                >
-                                                    Check
-                                                </Button>
-                                            )}
-                                        </div>
-                                        <button
-                                            type="button"
-                                            onClick={handleUseTextFallback}
-                                            className="text-xs text-muted-foreground underline underline-offset-2 hover:text-foreground transition-colors"
-                                        >
-                                            Can&apos;t hear the audio? Switch to a text exercise for this session
-                                        </button>
-                                    </div>
+                                    <ListeningMode
+                                        audioUrl={currentWord.audioUrl}
+                                        hasPlayedAudio={hasPlayedAudio}
+                                        inputRef={inputRef}
+                                        inputClassName={inputClassName}
+                                        userAnswer={userAnswer}
+                                        onAnswerChange={setUserAnswer}
+                                        onSubmitEnter={(e) =>
+                                            submitAnswerOnEnter(e, handleCheckTypingAnswer, hasPlayedAudio)
+                                        }
+                                        onPlay={handleListeningPlay}
+                                        onReplay={() => playAudioUrl(currentWord.audioUrl)}
+                                        onHint={handleGetHint}
+                                        autoCheck={autoCheck}
+                                        onCheck={handleCheckTypingAnswer}
+                                        onUseTextFallback={handleUseTextFallback}
+                                    />
                                 )}
                             </PracticeExerciseBody>
                         </>

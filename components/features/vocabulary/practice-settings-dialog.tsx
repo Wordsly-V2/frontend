@@ -5,6 +5,8 @@ import { usePracticeSettings } from "@/hooks/usePracticeSettings.hook";
 import {
     MIXED_PRACTICE_MODES,
     type MixedPracticeMethod,
+    type PracticeMode,
+    type PracticeSettings,
 } from "@/lib/practice-settings";
 import { getPracticeModeMeta } from "@/lib/practice-mode-meta";
 import { cn } from "@/lib/utils";
@@ -23,23 +25,9 @@ import {
     Bell,
 } from "lucide-react";
 
-export type PracticeMode =
-    | "flashcard"
-    | "context"
-    | "word-bank"
-    | "listening"
-    | "cloze"
-    | "mixed";
-
-export interface PracticeSettings {
-    mode: PracticeMode;
-    /** Which methods the mixed mode may rotate through. Empty = all. */
-    mixedModes: MixedPracticeMethod[];
-    autoCheck: boolean;
-    showExampleHints: boolean;
-    showImageHints: boolean;
-    soundEnabled: boolean;
-}
+// Re-exported from lib/practice-settings (their canonical home) so existing
+// imports from this component keep working.
+export type { PracticeMode, PracticeSettings };
 
 interface PracticeSettingsDialogProps {
     isOpen: boolean;

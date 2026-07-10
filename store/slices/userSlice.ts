@@ -20,7 +20,7 @@ export const fetchProfile = createAsyncThunk(
     'user/fetchProfile',
     async (_, { rejectWithValue }) => {
         try {
-            return getUserProfile();
+            return await getUserProfile();
         } catch (error) {
             return rejectWithValue(error);
         }
@@ -35,7 +35,7 @@ export const fetchProfile = createAsyncThunk(
 
 export const logout = createAsyncThunk('user/logout', async ({ isLoggedOutFromAllDevices }: { isLoggedOutFromAllDevices?: boolean }, { rejectWithValue }) => {
     try {
-        return logoutApi(isLoggedOutFromAllDevices);
+        return await logoutApi(isLoggedOutFromAllDevices);
     } catch (error) {
         return rejectWithValue(error);
     }

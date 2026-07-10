@@ -1,37 +1,46 @@
-import { getLessonsByCourseId } from "@/apis/lessons.api";
-import { getCourseDetailById, getMyCourses, getMyCoursesTotalStats } from "@/apis/courses.api";
-import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
+import {
+    createMyCourse,
+    deleteMyCourse,
+    getCourseDetailById,
+    getMyCourses,
+    getMyCoursesTotalStats,
+    updateMyCourse,
+} from "@/apis/courses.api";
+import { queryKeys } from "@/lib/query-keys";
 import { IPaginatedResponse } from "@/types/common/pagination.type";
-import { ICourse, ICourseTotalStats, ILessonSummary } from "@/types/courses/courses.type";
+import {
+    CreateUpdateMyCourse,
+    ICourse,
+    ICourseTotalStats,
+    MyCoursesInfiniteQueryOptions,
+    MyCoursesQueryOptions,
+} from "@/types/courses/courses.type";
+import {
+    useInfiniteQuery,
+    useMutation,
+    useQuery,
+    useQueryClient,
+} from "@tanstack/react-query";
 
-export const useGetLessonsByCourseIdQuery = (courseId: string, enabled: boolean = true) =>
-    useQuery<ILessonSummary[]>({
-        queryKey: ["courses", "get", "lessons", courseId],
-        queryFn: () => getLessonsByCourseId(courseId),
+export const useGetMyCoursesQuery = (
+    options: MyCoursesQueryOptions = {},
+    enabled: boolean = true,
+) =>
+    useQuery<IPaginatedResponse<ICourse>>({
+        queryKey: queryKeys.courses.list(options),
+        queryFn: () => getMyCourses(options),
         enabled,
     });
 
-export const useGetMyCoursesQuery = (
-    itemsPerPage: number = 10,
-    currentPage: number = 1,
-    orderByField: 'createdAt' | 'name' = 'name',
-    orderByDirection: 'asc' | 'desc' = 'asc',
-    searchQuery: string = "",
-    enabled: boolean = true
-) => useQuery<IPaginatedResponse<ICourse>>({
-    queryKey: ['courses', 'get', 'my-courses', itemsPerPage, currentPage, orderByField, orderByDirection, searchQuery],
-    queryFn: () => getMyCourses(itemsPerPage, currentPage, orderByField, orderByDirection, searchQuery),
-    enabled,
-});
-
-export const useGetMyCoursesTotalStatsQuery = () => useQuery<ICourseTotalStats>({
-    queryKey: ['courses', 'get', 'my-courses', 'total-stats'],
-    queryFn: () => getMyCoursesTotalStats(),
-});
+export const useGetMyCoursesTotalStatsQuery = () =>
+    useQuery<ICourseTotalStats>({
+        queryKey: queryKeys.courses.totalStats(),
+        queryFn: () => getMyCoursesTotalStats(),
+    });
 
 export const useGetCourseDetailByIdQuery = (courseId: string, enabled: boolean = true) =>
     useQuery<ICourse>({
-        queryKey: ["courses", "get", "course-detail", courseId],
+        queryKey: queryKeys.courses.detail(courseId),
         queryFn: () => getCourseDetailById(courseId),
         enabled,
     });
@@ -39,29 +48,17 @@ export const useGetCourseDetailByIdQuery = (courseId: string, enabled: boolean =
 const COURSES_PAGE_SIZE = 10;
 
 export const useGetMyCoursesInfiniteQuery = (
-    orderByField: "createdAt" | "name" = "name",
-    orderByDirection: "asc" | "desc" = "asc",
-    searchQuery: string = "",
-    enabled: boolean = true
+    options: MyCoursesInfiniteQueryOptions = {},
+    enabled: boolean = true,
 ) =>
     useInfiniteQuery<IPaginatedResponse<ICourse>>({
-        queryKey: [
-            "courses",
-            "get",
-            "my-courses",
-            "infinite",
-            orderByField,
-            orderByDirection,
-            searchQuery,
-        ],
+        queryKey: queryKeys.courses.listInfinite(options),
         queryFn: ({ pageParam }) =>
-            getMyCourses(
-                COURSES_PAGE_SIZE,
-                pageParam as number,
-                orderByField,
-                orderByDirection,
-                searchQuery
-            ),
+            getMyCourses({
+                ...options,
+                itemsPerPage: COURSES_PAGE_SIZE,
+                currentPage: pageParam as number,
+            }),
         initialPageParam: 1,
         getNextPageParam: (lastPage) =>
             lastPage.currentPage < lastPage.totalPages
@@ -69,3 +66,32 @@ export const useGetMyCoursesInfiniteQuery = (
                 : undefined,
         enabled,
     });
+
+/**
+ * Course create/update/delete all change the course library, per-course detail,
+ * and total stats — so every mutation invalidates the whole `courses` root.
+ */
+export const useCreateMyCourseMutation = () => {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (course: CreateUpdateMyCourse) => createMyCourse(course),
+        onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.courses.all }),
+    });
+};
+
+export const useUpdateMyCourseMutation = () => {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: ({ courseId, courseData }: { courseId: string; courseData: CreateUpdateMyCourse }) =>
+            updateMyCourse(courseId, courseData),
+        onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.courses.all }),
+    });
+};
+
+export const useDeleteMyCourseMutation = () => {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (courseId: string) => deleteMyCourse(courseId),
+        onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.courses.all }),
+    });
+};

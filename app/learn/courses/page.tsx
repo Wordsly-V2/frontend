@@ -22,13 +22,13 @@ export default function CoursesLibraryPage() {
         isLoading,
         isError,
         refetch,
-    } = useGetMyCoursesQuery(
+    } = useGetMyCoursesQuery({
         itemsPerPage,
         currentPage,
-        "name",
-        "asc",
+        orderByField: "name",
+        orderByDirection: "asc",
         searchQuery,
-    );
+    });
 
     const isEmpty =
         !!paginatedData && paginatedData.items.length === 0 && !searchQuery;

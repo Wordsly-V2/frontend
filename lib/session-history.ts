@@ -2,6 +2,8 @@
  * Lightweight local session history (no backend). Appended on session finish,
  * surfaced on the profile page. Capped to the most recent entries.
  */
+import { getLocalStorageItem, setLocalStorageItem } from "@/lib/local-storage";
+
 export const SESSION_HISTORY_KEY = "wordsly.sessionHistory";
 const MAX_ENTRIES = 30;
 
@@ -15,10 +17,9 @@ export type SessionHistoryEntry = {
 };
 
 export function getSessionHistory(): SessionHistoryEntry[] {
-    if (globalThis.window === undefined) return [];
+    const raw = getLocalStorageItem(SESSION_HISTORY_KEY);
+    if (!raw) return [];
     try {
-        const raw = globalThis.localStorage.getItem(SESSION_HISTORY_KEY);
-        if (!raw) return [];
         const parsed = JSON.parse(raw);
         return Array.isArray(parsed) ? (parsed as SessionHistoryEntry[]) : [];
     } catch {
@@ -33,7 +34,7 @@ let snapshotValue: SessionHistoryEntry[] = [];
 
 export function getSessionHistorySnapshot(): SessionHistoryEntry[] {
     if (globalThis.window === undefined) return snapshotValue;
-    const raw = globalThis.localStorage.getItem(SESSION_HISTORY_KEY);
+    const raw = getLocalStorageItem(SESSION_HISTORY_KEY);
     if (raw !== snapshotRaw) {
         snapshotRaw = raw;
         snapshotValue = getSessionHistory();
@@ -45,15 +46,7 @@ export function recordSession(
     entry: Omit<SessionHistoryEntry, "at">,
     at: string,
 ): void {
-    if (globalThis.window === undefined) return;
-    try {
-        const history = getSessionHistory();
-        const updated = [{ at, ...entry }, ...history].slice(0, MAX_ENTRIES);
-        globalThis.localStorage.setItem(
-            SESSION_HISTORY_KEY,
-            JSON.stringify(updated),
-        );
-    } catch {
-        // ignore
-    }
+    const history = getSessionHistory();
+    const updated = [{ at, ...entry }, ...history].slice(0, MAX_ENTRIES);
+    setLocalStorageItem(SESSION_HISTORY_KEY, JSON.stringify(updated));
 }

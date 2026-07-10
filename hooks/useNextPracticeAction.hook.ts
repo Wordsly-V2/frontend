@@ -70,19 +70,13 @@ export function useNextPracticeAction(): NextPracticeAction {
     const enabled = dueWordsLimit > 0;
 
     const { data: dueIds, isLoading: dueLoading } = useGetDueWordIdsQuery(
-        undefined,
-        undefined,
-        dueWordsLimit,
-        false,
+        { limit: dueWordsLimit, includeNew: false },
         enabled,
     );
 
     const { data: practiceBatch, isLoading: practiceBatchLoading } =
         useGetDueWordIdsQuery(
-            undefined,
-            undefined,
-            dueWordsLimit,
-            true,
+            { limit: dueWordsLimit, includeNew: true },
             enabled,
         );
 

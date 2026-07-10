@@ -6,18 +6,10 @@ import { LONG_TEXT_WRAP, SCROLLABLE_BODY } from "@/lib/long-text";
 import { handleAudioPlayError } from "@/lib/audio-playback";
 import { cn } from "@/lib/utils";
 import { getPlayPhraseSearchUrl } from "@/lib/playphrase";
+import { getWordExamples } from "@/lib/practice-utils";
 import { IWord } from "@/types/courses/courses.type";
 import { Film, Volume2 } from "lucide-react";
 import Image from "next/image";
-
-export function getWordExamples(word: Pick<IWord, "example">): string[] {
-    try {
-        const ex = JSON.parse(word.example ?? "[]");
-        return Array.isArray(ex) ? ex.filter((e): e is string => typeof e === "string") : [];
-    } catch {
-        return [];
-    }
-}
 
 export type WordDetailCardWord = Pick<
     IWord,

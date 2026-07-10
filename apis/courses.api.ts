@@ -1,11 +1,19 @@
 import { request } from "@/lib/axios";
 import { IPaginatedResponse } from "@/types/common/pagination.type";
-import { CreateUpdateMyCourse, ICourse, ICourseTotalStats } from "@/types/courses/courses.type";
+import { CreateUpdateMyCourse, ICourse, ICourseTotalStats, MyCoursesQueryOptions } from "@/types/courses/courses.type";
 
-export const getMyCourses = (limit: number = 10, page: number = 1, orderByField: 'createdAt' | 'name' = 'name', orderByDirection: 'asc' | 'desc' = 'asc', searchQuery: string = ""): Promise<IPaginatedResponse<ICourse>> =>
-    request((i) => i.get('/courses/me/my-courses', {
-        params: { limit, page, orderByField, orderByDirection, searchQuery },
+export const getMyCourses = (options: MyCoursesQueryOptions = {}): Promise<IPaginatedResponse<ICourse>> => {
+    const {
+        itemsPerPage = 10,
+        currentPage = 1,
+        orderByField = "name",
+        orderByDirection = "asc",
+        searchQuery = "",
+    } = options;
+    return request((i) => i.get('/courses/me/my-courses', {
+        params: { limit: itemsPerPage, page: currentPage, orderByField, orderByDirection, searchQuery },
     }));
+};
 
 export const createMyCourse = (course: CreateUpdateMyCourse): Promise<{ success: boolean }> =>
     request((i) => i.post('/courses/me/my-courses', course));

@@ -4,12 +4,13 @@ import type {
     ILearningReport,
     ReportPeriod,
 } from "@/types/learning-report/learning-report.type";
+import { queryKeys } from "@/lib/query-keys";
 import { useQuery } from "@tanstack/react-query";
 
 export const learningReportQueryKey = (
     period: ReportPeriod,
     clientDate: string,
-) => ["learning-report", period, clientDate] as const;
+) => queryKeys.learningReport.byPeriod(period, clientDate);
 
 export const useGetLearningReportQuery = (
     period: ReportPeriod,

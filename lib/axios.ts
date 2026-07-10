@@ -126,13 +126,21 @@ axiosInstance.interceptors.response.use(
  * Runs an axios call and unwraps `response.data`, normalizing thrown errors to
  * the server's error payload (`error.response.data`) when present. Lets every
  * API function drop its own identical try/catch boilerplate.
+ *
+ * Pass `{ notFoundAsNull: true }` for endpoints where a 404 is an expected
+ * "no result" (e.g. optional dictionary lookups) rather than an error — the
+ * call resolves to `null` instead of throwing.
  */
 export async function request<T>(
 	fn: (instance: typeof axiosInstance) => Promise<AxiosResponse<T>>,
+	options?: { notFoundAsNull?: boolean },
 ): Promise<T> {
 	try {
 		return (await fn(axiosInstance)).data;
 	} catch (error) {
+		if (options?.notFoundAsNull && (error as AxiosError).response?.status === 404) {
+			return null as T;
+		}
 		throw (error as AxiosError).response?.data || error;
 	}
 }

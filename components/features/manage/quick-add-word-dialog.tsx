@@ -9,11 +9,9 @@ import {
     DialogTitle,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { useWords } from "@/hooks/useWords.hook";
-import {
-    useGetLessonsByCourseIdQuery,
-    useGetMyCoursesInfiniteQuery,
-} from "@/queries/courses.query";
+import { useCreateMyWordMutation } from "@/queries/words.query";
+import { useGetLessonsByCourseIdQuery } from "@/queries/lessons.query";
+import { useGetMyCoursesInfiniteQuery } from "@/queries/courses.query";
 import { CreateMyWord, ICourse, ILessonSummary, WordDetailView } from "@/types/courses/courses.type";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -41,7 +39,7 @@ export default function QuickAddWordDialog({
         fetchNextPage: fetchNextCoursesPage,
         hasNextPage: hasNextCoursesPage,
         isFetchingNextPage: isFetchingNextCourses,
-    } = useGetMyCoursesInfiniteQuery("name", "asc", "", isOpen);
+    } = useGetMyCoursesInfiniteQuery({}, isOpen);
     const courses: ICourse[] =
         coursesInfinite?.pages.flatMap((p) => p.items) ?? [];
 
@@ -86,7 +84,7 @@ export default function QuickAddWordDialog({
         }
     }, [hasNextCoursesPage, isFetchingNextCourses, fetchNextCoursesPage]);
 
-    const { mutationCreateMyWord } = useWords();
+    const mutationCreateMyWord = useCreateMyWordMutation();
 
     const handleSubmitWord = useCallback(
         (wordData: CreateMyWord) => {

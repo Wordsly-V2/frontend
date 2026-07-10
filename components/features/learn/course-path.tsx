@@ -13,7 +13,7 @@ import { startTransition, useEffect, useMemo, useState } from "react";
 /** "Jump back in" — last-opened course first, then a few more. */
 export function CoursePath() {
     const [lastId, setLastId] = useState<string | null>(null);
-    const { data, isLoading } = useGetMyCoursesQuery(6, 1, "name", "asc", "");
+    const { data, isLoading } = useGetMyCoursesQuery({ itemsPerPage: 6, currentPage: 1 });
 
     useEffect(() => {
         startTransition(() => setLastId(getLastLearnCourse()?.id ?? null));

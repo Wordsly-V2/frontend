@@ -8,7 +8,9 @@ import {
     DialogTitle,
 } from "@/components/ui/dialog";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { WordPill } from "@/components/common/word-pill";
 import { getPlayPhraseSearchUrl } from "@/lib/playphrase";
+import { getWordExamples } from "@/lib/practice-utils";
 import { handleAudioPlayError } from "@/lib/audio-playback";
 import { WordDetailView } from "@/types/courses/courses.type";
 import { BookOpen, ExternalLink, Film, Plus, Volume2 } from "lucide-react";
@@ -18,15 +20,6 @@ import {
     buildLearnCourseWordUrl,
     buildManageCourseWordUrl,
 } from "@/lib/search-params/course-word-focus";
-
-function getWordExamples(word: WordDetailView): string[] {
-    try {
-        const ex = JSON.parse(word.example ?? "[]");
-        return Array.isArray(ex) ? ex.filter((e): e is string => typeof e === "string") : [];
-    } catch {
-        return [];
-    }
-}
 
 interface WordDetailDialogProps {
     readonly word: WordDetailView;
@@ -106,9 +99,7 @@ export default function WordDetailDialog({ word, isOpen, onClose, courseId, less
                     <DialogTitle className="flex items-center gap-2 flex-wrap">
                         <span>{word!.word}</span>
                         {word!.partOfSpeech && (
-                            <span className="text-sm font-normal px-2 py-0.5 rounded-full bg-primary/10 text-primary">
-                                {word!.partOfSpeech}
-                            </span>
+                            <WordPill className="text-sm font-normal">{word!.partOfSpeech}</WordPill>
                         )}
                     </DialogTitle>
                 </DialogHeader>
