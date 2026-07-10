@@ -9,7 +9,6 @@ export const SETTINGS_STORAGE_KEY = 'vocabulary-practice-settings';
 
 /** Concrete methods a user can opt in/out of within a mixed session. */
 export const MIXED_PRACTICE_MODES = [
-    'typing',
     'listening',
     'context',
     'multiple-choice',
@@ -27,6 +26,23 @@ export const DEFAULT_PRACTICE_SETTINGS: PracticeSettings = {
     showImageHints: true,
     soundEnabled: false,
 };
+
+/** Every selectable practice mode (concrete methods + meta modes). */
+const VALID_PRACTICE_MODES = new Set<string>([
+    ...MIXED_PRACTICE_MODES,
+    'flashcard',
+    'mixed',
+]);
+
+/** Coerce an unknown stored mode to a valid one (e.g. drop legacy 'typing'). */
+function parsePracticeMode(
+    value: unknown,
+    fallback: PracticeSettings['mode'],
+): PracticeSettings['mode'] {
+    return typeof value === 'string' && VALID_PRACTICE_MODES.has(value)
+        ? (value as PracticeSettings['mode'])
+        : fallback;
+}
 
 /** Keep only valid, de-duplicated mix methods; empty/invalid falls back to all. */
 function parseMixedModes(
@@ -49,7 +65,7 @@ export function parsePracticeSettings(
     try {
         const parsed = JSON.parse(raw) as Partial<PracticeSettings>;
         return {
-            mode: parsed.mode ?? initial.mode,
+            mode: parsePracticeMode(parsed.mode, initial.mode),
             mixedModes: parseMixedModes(parsed.mixedModes, initial.mixedModes),
             autoCheck: parsed.autoCheck ?? initial.autoCheck,
             showExampleHints: parsed.showExampleHints ?? initial.showExampleHints,
@@ -67,13 +83,12 @@ export function readPracticeSettingsFromStorage(): PracticeSettings {
 }
 
 export const NEW_WORD_MIXED_MODES = [
-    'typing',
+    'context',
     'multiple-choice',
     'word-bank',
     'cloze',
 ] as const;
 export const LEARNING_MIXED_MODES = [
-    'typing',
     'listening',
     'context',
     'multiple-choice',
@@ -81,7 +96,6 @@ export const LEARNING_MIXED_MODES = [
     'cloze',
 ] as const;
 export const REVIEW_MIXED_MODES = [
-    'typing',
     'listening',
     'context',
     'cloze',
@@ -107,7 +121,9 @@ function mixedModesForStage(stage: WordLearningStage): readonly string[] {
 }
 
 function resolveClozeFallback(listeningAvailable: boolean): ActivePracticeMode {
-    return listeningAvailable ? 'listening' : 'typing';
+    // Sentence-based modes need an example; without one fall back to listening
+    // when there's audio, otherwise a recognition exercise (always renderable).
+    return listeningAvailable ? 'listening' : 'multiple-choice';
 }
 
 function applyModeFallbacks(

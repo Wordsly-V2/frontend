@@ -3,7 +3,6 @@ import type { LucideIcon } from "lucide-react";
 import {
     CheckSquare,
     Headphones,
-    Keyboard,
     Layers,
     ListChecks,
     TextCursorInput,
@@ -18,12 +17,6 @@ export interface PracticeModeMeta {
 }
 
 export const PRACTICE_MODE_META: Record<ActivePracticeMode, PracticeModeMeta> = {
-    typing: {
-        label: "Type the word",
-        shortLabel: "Typing",
-        instruction: "Read the meaning, then type the English word",
-        icon: Keyboard,
-    },
     listening: {
         label: "Listening",
         shortLabel: "Listening",

@@ -11,7 +11,7 @@ const STEPS = [
         icon: Layers,
         chip: "gradient-accent",
         title: "Practice in five modes",
-        body: "Flashcards, typing, listening, multiple choice, and cloze — the same word, five angles.",
+        body: "Flashcards, in-context typing, listening, multiple choice, and cloze — the same word, five angles.",
     },
     {
         icon: TrendingUp,

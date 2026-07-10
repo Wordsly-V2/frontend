@@ -25,7 +25,6 @@ import {
 
 export type PracticeMode =
     | "flashcard"
-    | "typing"
     | "context"
     | "multiple-choice"
     | "word-bank"
@@ -96,7 +95,6 @@ function PracticeSettingsForm({
     const isMixed = tempMode === "mixed";
     const supportsAutoCheck =
         isMixed ||
-        tempMode === "typing" ||
         tempMode === "listening" ||
         tempMode === "context" ||
         tempMode === "multiple-choice" ||

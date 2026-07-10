@@ -25,7 +25,6 @@ const SHORTCUTS_BY_MODE: Record<ActivePracticeMode, ShortcutItem[]> = {
     cloze: [
         { keys: ["A", "B", "C", "D"], label: "Pick answer" },
     ],
-    typing: [{ keys: ["Enter"], label: "Submit" }],
     listening: [{ keys: ["Enter"], label: "Submit" }],
     context: [{ keys: ["Enter"], label: "Submit" }],
 };

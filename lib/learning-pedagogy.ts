@@ -3,7 +3,6 @@ import type { WordLearningStage } from "@/lib/word-progress-stage";
 import type { IWord } from "@/types/courses/courses.type";
 
 export type PedagogyPracticeMode =
-    | "typing"
     | "listening"
     | "context"
     | "multiple-choice"
@@ -34,7 +33,7 @@ export const PEDAGOGY = {
 
 export type PracticeDirection = "production" | "recognition";
 
-export const PRODUCTION_MODES = ["typing", "listening", "context"] as const;
+export const PRODUCTION_MODES = ["listening", "context"] as const;
 export const RECOGNITION_MODES = ["multiple-choice", "word-bank", "cloze"] as const;
 
 export function modeDirection(mode: string): PracticeDirection | null {
@@ -111,7 +110,7 @@ export interface AssignMixedModeInput {
     preferProduction: boolean;
     /** 0-based occurrence of this word in the current session queue. */
     newWordRound?: number;
-    /** Separate counters so prod/rec alternation still rotates typing ↔ listening, quiz ↔ cloze. */
+    /** Separate counters so prod/rec alternation still rotates listening ↔ context, quiz ↔ cloze. */
     productionSlotIndex?: number;
     recognitionSlotIndex?: number;
 }
@@ -163,7 +162,7 @@ export function assignMixedPracticeMode(input: AssignMixedModeInput): {
             roundPool = PRODUCTION_MODES;
             poolKind = "production";
         } else if (listeningAvailable) {
-            roundPool = ["listening", "typing"];
+            roundPool = ["listening", "context"];
             poolKind = "production";
         } else {
             roundPool = PRODUCTION_MODES;
@@ -209,7 +208,7 @@ export function assignMixedPracticeMode(input: AssignMixedModeInput): {
             clozeAvailable,
             listeningAvailable,
             fallbackSlot,
-        ) ?? "typing";
+        ) ?? "multiple-choice";
     const poolUsed: PracticeModePool =
         modeDirection(fallback) === "production" ? "production" : "recognition";
 

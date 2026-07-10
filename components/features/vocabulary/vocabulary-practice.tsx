@@ -158,7 +158,7 @@ export default function VocabularyPractice({
         () => new Set(),
     );
     // Set once the user reports they can't hear the audio. For the rest of the
-    // session, every listening word falls back to typing from the meaning.
+    // session, every listening word falls back to a text or recognition exercise.
     const [audioFallback, setAudioFallback] = useState(false);
     const inputRef = useRef<HTMLInputElement>(null);
     const wordStartTimeRef = useRef<number | null>(null);
@@ -211,14 +211,14 @@ export default function VocabularyPractice({
               currentIndex,
               currentStage,
           )
-        : "typing";
-    // If the user couldn't hear the audio, fall back to a text exercise:
-    // fill-in (cloze) when the word supports it, otherwise plain typing.
+        : "multiple-choice";
+    // If the user couldn't hear the audio, fall back to a non-audio exercise:
+    // fill-in (cloze) when the word supports it, otherwise a recognition quiz.
     const activeMode: ActivePracticeMode =
         resolvedMode === "listening" && audioFallback
             ? clozePrompt != null
                 ? "cloze"
-                : "typing"
+                : "multiple-choice"
             : resolvedMode;
 
     const rawExamples = useMemo(
@@ -587,7 +587,7 @@ export default function VocabularyPractice({
 
     useEffect(() => {
         if (showIntro) return;
-        if (["typing", "listening", "context"].includes(activeMode)) {
+        if (["listening", "context"].includes(activeMode)) {
             wordStartTimeRef.current = Date.now();
         }
         if (isWordChoiceMode) {
@@ -627,7 +627,7 @@ export default function VocabularyPractice({
             typingResult ||
             showResultDialog ||
             !currentWord ||
-            !["typing", "listening", "context"].includes(activeMode)
+            !["listening", "context"].includes(activeMode)
         ) {
             return;
         }
@@ -648,7 +648,7 @@ export default function VocabularyPractice({
     useEffect(() => {
         if (showIntro) return;
         if (typingResult || showResultDialog) return;
-        if (!["typing", "listening"].includes(activeMode)) return;
+        if (!["listening", "context"].includes(activeMode)) return;
         focusPracticeInput();
     }, [activeMode, typingResult, showResultDialog, currentIndex, hasPlayedAudio, focusPracticeInput, showIntro]);
 
@@ -996,62 +996,6 @@ export default function VocabularyPractice({
                                             )}
                                         </div>
                                     </>
-                                )}
-
-                                {activeMode === "typing" && (
-                                    <div className="space-y-5 text-center">
-                                        <div>
-                                            <AdaptiveText
-                                                text={currentWord.meaning}
-                                                role="meaning"
-                                                align="center"
-                                                className="mb-2"
-                                            />
-                                            {currentWord.partOfSpeech && (
-                                                <span className="inline-block px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-semibold">
-                                                    {currentWord.partOfSpeech}
-                                                </span>
-                                            )}
-                                            <WordPracticeHints
-                                                maskedExamples={maskedExamples}
-                                                imageUrl={currentWord.imageUrl}
-                                                showImageHints={effectiveImageHints}
-                                            />
-                                        </div>
-                                        <input
-                                            ref={inputRef}
-                                            type="text"
-                                            autoFocus
-                                            placeholder="Type your answer…"
-                                            value={userAnswer}
-                                            onChange={(e) =>
-                                                setUserAnswer(String(e.target.value).toLowerCase())
-                                            }
-                                            onKeyDown={(e) =>
-                                                submitAnswerOnEnter(e, handleCheckTypingAnswer)
-                                            }
-                                            className={inputClassName}
-                                        />
-                                        <div className="flex flex-wrap justify-center gap-2">
-                                            <Button
-                                                variant="outline"
-                                                onClick={handleGetHint}
-                                                className="gap-2 rounded-xl"
-                                            >
-                                                <Lightbulb className="h-4 w-4" />
-                                                Hint {hintsUsed > 0 ? `(${hintsUsed})` : ""}
-                                            </Button>
-                                            {!autoCheck && (
-                                                <Button
-                                                    onClick={handleCheckTypingAnswer}
-                                                    disabled={!userAnswer.trim()}
-                                                    className="rounded-xl"
-                                                >
-                                                    Check
-                                                </Button>
-                                            )}
-                                        </div>
-                                    </div>
                                 )}
 
                                 {activeMode === "context" && clozePrompt && (
