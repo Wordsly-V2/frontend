@@ -92,13 +92,12 @@ export function usePracticeSessionPersistence({
         [invalidateProgressQueries, refreshLevelAndCelebrate],
     );
 
-    const persistSession = useCallback(
-        (payload: SessionCompletePayload, destination?: string) => {
-            const target =
-                destination ??
-                (courseId ? `/learn/courses/${courseId}` : "/learn");
+    // Commit the graded results (optimistic cache update + background sync)
+    // without navigating. Idempotent: safe to call once when the summary
+    // appears and again when the learner leaves — the second call no-ops.
+    const saveSession = useCallback(
+        (payload: SessionCompletePayload) => {
             if (savedOnce || payload.wordResults.length === 0) {
-                router.replace(target);
                 return;
             }
             setSavedOnce(true);
@@ -112,14 +111,11 @@ export function usePracticeSessionPersistence({
             );
 
             fireCelebrationConfetti();
-            router.replace(target);
 
             void persistSessionInBackground(payload);
         },
         [
             savedOnce,
-            courseId,
-            router,
             progressByWordId,
             queryClient,
             wordIdList,
@@ -127,7 +123,19 @@ export function usePracticeSessionPersistence({
         ],
     );
 
+    const persistSession = useCallback(
+        (payload: SessionCompletePayload, destination?: string) => {
+            const target =
+                destination ??
+                (courseId ? `/learn/courses/${courseId}` : "/learn");
+            saveSession(payload);
+            router.replace(target);
+        },
+        [saveSession, courseId, router],
+    );
+
     return {
+        saveSession,
         persistSession,
         isPersisting: false,
         markUnsaved: () => setHasUnsavedPractice(true),

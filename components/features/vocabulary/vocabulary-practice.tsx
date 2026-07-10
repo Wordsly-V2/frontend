@@ -115,7 +115,12 @@ interface VocabularyPracticeProps {
     onExit?: () => void;
     exitDisabled?: boolean;
     onComplete?: (payload: SessionCompletePayload, destination?: string) => void;
-    onSummaryReady?: () => void;
+    /**
+     * Fired the moment the session finishes and the summary appears, carrying
+     * the graded results so they can be submitted right away — the learner no
+     * longer has to leave the summary to commit their progress.
+     */
+    onSummaryReady?: (payload: SessionCompletePayload) => void;
 }
 
 export default function VocabularyPractice({
@@ -311,7 +316,11 @@ export default function VocabularyPractice({
             setWordResults(results);
             setHabitState(localHabit);
             setPhase("summary");
-            onSummaryReady?.();
+            onSummaryReady?.({
+                score: scoreFromResults(results),
+                wordResults: results,
+                habitState: localHabit,
+            });
 
             // Local-only session history (no backend).
             recordSession(

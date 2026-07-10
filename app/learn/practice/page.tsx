@@ -55,7 +55,7 @@ export default function PracticePage() {
         kind,
     );
 
-    const { persistSession, isPersisting, markUnsaved } = usePracticeSessionPersistence({
+    const { saveSession, persistSession, isPersisting } = usePracticeSessionPersistence({
         courseId: courseId ?? "",
         wordIdList,
         progressByWordId,
@@ -141,7 +141,7 @@ export default function PracticePage() {
                         sessionSubtitle={practiceSubtitle}
                         onExit={handleBackToCourse}
                         exitDisabled={isPersisting}
-                        onSummaryReady={markUnsaved}
+                        onSummaryReady={saveSession}
                         onComplete={handlePracticeComplete}
                     />
                 </div>
