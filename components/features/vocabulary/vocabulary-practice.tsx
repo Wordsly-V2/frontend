@@ -1,6 +1,5 @@
 "use client";
 
-import ConfirmDialog from "@/components/common/confirm-dialog/confirm-dialog";
 import { AdaptiveText } from "@/components/common/adaptive-text";
 import { LeechWordBanner } from "@/components/features/vocabulary/leech-word-banner";
 import { NewWordIntroPanel } from "@/components/features/vocabulary/new-word-intro-panel";
@@ -148,7 +147,6 @@ export default function VocabularyPractice({
     const [showSettings, setShowSettings] = useState(false);
     const [showResultDialog, setShowResultDialog] = useState(false);
     const [showWordsList, setShowWordsList] = useState(false);
-    const [showEndSessionDialog, setShowEndSessionDialog] = useState(false);
     const [hintsUsed, setHintsUsed] = useState(0);
     const [selectedChoice, setSelectedChoice] = useState<string | null>(null);
     const [hasPlayedAudio, setHasPlayedAudio] = useState(false);
@@ -380,17 +378,6 @@ export default function VocabularyPractice({
             mergeWorstResult(results, result),
         [],
     );
-
-    const handleConfirmEndSession = useCallback(() => {
-        setShowEndSessionDialog(false);
-        setShowResultDialog(false);
-        let results = wordResults;
-        if (pendingResult) {
-            results = mergeWordResult(wordResults, pendingResult);
-        }
-        finishSession(results);
-        resetWordUi();
-    }, [finishSession, wordResults, pendingResult, mergeWordResult, resetWordUi]);
 
     // Submit-on-leave: whenever the learner leaves an in-progress session by
     // ANY route — the X button, the browser back button, an in-app link — the
@@ -798,17 +785,9 @@ export default function VocabularyPractice({
     const inputClassName =
         "w-full px-4 py-4 text-xl text-center rounded-xl border-2 border-border bg-muted/30 focus:border-primary focus:bg-background focus:ring-4 focus:ring-primary/10 outline-none transition-[color,background-color,border-color,box-shadow]";
 
-    const savableResultCount =
-        wordResults.length +
-        (pendingResult && !isWeakAnswer(pendingResult.quality) &&
-        !wordResults.some((r) => r.wordId === pendingResult.wordId)
-            ? 1
-            : 0);
-
     // XP is presentation-only: 10 per non-weak (correct) answer recorded so far.
     const sessionXp =
         wordResults.filter((r) => !isWeakAnswer(r.quality)).length * 10;
-    const skippedCount = Math.max(0, queue.length - savableResultCount);
 
     return (
         <div className="flex flex-col flex-1 min-h-0 w-full">
@@ -822,8 +801,6 @@ export default function VocabularyPractice({
                 subtitle={sessionSubtitle}
                 onExit={onExit}
                 exitDisabled={exitDisabled}
-                onEndSession={() => setShowEndSessionDialog(true)}
-                endSessionDisabled={showIntro || savableResultCount === 0}
                 className="mb-4"
                 actions={
                     <PracticeToolbar
@@ -838,16 +815,6 @@ export default function VocabularyPractice({
                         hidden={showIntro}
                     />
                 }
-            />
-
-            <ConfirmDialog
-                isOpen={showEndSessionDialog}
-                onClose={() => setShowEndSessionDialog(false)}
-                onConfirm={handleConfirmEndSession}
-                title="End session early?"
-                description={`${savableResultCount} word${savableResultCount === 1 ? "" : "s"} will be saved${skippedCount > 0 ? ` · ${skippedCount} remaining will be skipped` : ""}. Your progress is kept.`}
-                confirmText="End and save"
-                cancelText="Keep practicing"
             />
 
             {isLeech && !showIntro && !showResultDialog && (

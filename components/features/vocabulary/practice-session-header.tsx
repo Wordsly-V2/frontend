@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { PRACTICE_MODE_META } from "@/lib/practice-mode-meta";
 import type { ActivePracticeMode } from "@/lib/practice-settings";
 import { cn } from "@/lib/utils";
-import { Flag, Sparkles, X } from "lucide-react";
+import { Sparkles, X } from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
 import type { ReactNode } from "react";
 
@@ -24,9 +24,6 @@ interface PracticeSessionHeaderProps {
     /** Leave the session entirely (back to course). */
     onExit?: () => void;
     exitDisabled?: boolean;
-    /** End early but save the answered words. */
-    onEndSession?: () => void;
-    endSessionDisabled?: boolean;
     /** Right-aligned slot for toolbar actions (words list, settings…). */
     actions?: ReactNode;
     className?: string;
@@ -48,8 +45,6 @@ export function PracticeSessionHeader({
     subtitle,
     onExit,
     exitDisabled = false,
-    onEndSession,
-    endSessionDisabled = false,
     actions,
     className,
 }: Readonly<PracticeSessionHeaderProps>) {
@@ -113,21 +108,6 @@ export function PracticeSessionHeader({
                             <Sparkles className="h-3 w-3" aria-hidden />
                             {xp} XP
                         </span>
-                    )}
-
-                    {onEndSession && (
-                        <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={onEndSession}
-                            disabled={endSessionDisabled}
-                            className="h-7 shrink-0 gap-1 rounded-lg px-2 text-xs text-muted-foreground hover:text-foreground"
-                            aria-label="End session and save progress"
-                        >
-                            <Flag className="h-3.5 w-3.5" aria-hidden />
-                            <span className="hidden sm:inline">End session</span>
-                        </Button>
                     )}
 
                     {actions && (
