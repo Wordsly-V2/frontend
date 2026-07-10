@@ -137,7 +137,7 @@ export default function VocabularyPractice({
     const [showAnswer, setShowAnswer] = useState(false);
     const [userAnswer, setUserAnswer] = useState("");
     const { settings: practiceSettings } = usePracticeSettings();
-    const { mode, autoCheck, showExampleHints, showImageHints, soundEnabled } = practiceSettings;
+    const { mode, mixedModes, autoCheck, showExampleHints, showImageHints, soundEnabled } = practiceSettings;
     const [typingResult, setTypingResult] = useState<"correct" | "incorrect" | null>(null);
     const [isNearMiss, setIsNearMiss] = useState(false);
     const [showSettings, setShowSettings] = useState(false);
@@ -195,8 +195,11 @@ export default function VocabularyPractice({
     );
     const mixedModePlan = useMemo(() => {
         if (mode !== "mixed") return null;
-        return buildMixedModePlan(queue, stagesByWordId, { leechWordIds });
-    }, [mode, queue, stagesByWordId, leechWordIds]);
+        return buildMixedModePlan(queue, stagesByWordId, {
+            leechWordIds,
+            enabledModes: mixedModes,
+        });
+    }, [mode, mixedModes, queue, stagesByWordId, leechWordIds]);
     const resolvedMode: ActivePracticeMode = currentWord
         ? resolveActiveMode(
               mode,

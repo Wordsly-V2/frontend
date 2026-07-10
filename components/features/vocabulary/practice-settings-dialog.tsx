@@ -2,6 +2,12 @@
 
 import { useState } from "react";
 import { usePracticeSettings } from "@/hooks/usePracticeSettings.hook";
+import {
+    MIXED_PRACTICE_MODES,
+    type MixedPracticeMethod,
+} from "@/lib/practice-settings";
+import { getPracticeModeMeta } from "@/lib/practice-mode-meta";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
@@ -29,6 +35,8 @@ export type PracticeMode =
 
 export interface PracticeSettings {
     mode: PracticeMode;
+    /** Which methods the mixed mode may rotate through. Empty = all. */
+    mixedModes: MixedPracticeMethod[];
     autoCheck: boolean;
     showExampleHints: boolean;
     showImageHints: boolean;
@@ -50,14 +58,33 @@ function PracticeSettingsForm({
     onClose: () => void;
 }>) {
     const [tempMode, setTempMode] = useState(currentSettings.mode);
+    const [tempMixedModes, setTempMixedModes] = useState<MixedPracticeMethod[]>(
+        currentSettings.mixedModes.length > 0
+            ? currentSettings.mixedModes
+            : [...MIXED_PRACTICE_MODES],
+    );
     const [tempAutoCheck, setTempAutoCheck] = useState(currentSettings.autoCheck);
     const [tempShowExampleHints, setTempShowExampleHints] = useState(currentSettings.showExampleHints);
     const [tempShowImageHints, setTempShowImageHints] = useState(currentSettings.showImageHints);
     const [tempSoundEnabled, setTempSoundEnabled] = useState(currentSettings.soundEnabled);
 
+    // Preserve the canonical mix order so the plan rotates predictably.
+    const toggleMixedMode = (method: MixedPracticeMethod) => {
+        setTempMixedModes((prev) => {
+            const next = prev.includes(method)
+                ? prev.filter((m) => m !== method)
+                : MIXED_PRACTICE_MODES.filter(
+                      (m) => m === method || prev.includes(m),
+                  );
+            // Never allow an empty mix — keep at least the last selected method.
+            return next.length > 0 ? next : prev;
+        });
+    };
+
     const handleSave = () => {
         onSave({
             mode: tempMode,
+            mixedModes: tempMixedModes,
             autoCheck: tempAutoCheck,
             showExampleHints: tempShowExampleHints,
             showImageHints: tempShowImageHints,
@@ -111,9 +138,35 @@ function PracticeSettingsForm({
                         ))}
                     </div>
                     {isMixed && (
-                        <p className="text-xs text-muted-foreground mt-2">
-                            Rotates typing, listening, quiz, and fill-in for stronger recall.
-                        </p>
+                        <div className="mt-4">
+                            <p className="text-xs text-muted-foreground mb-3">
+                                Choose which methods to mix. All are on for the strongest recall.
+                            </p>
+                            <div className="flex flex-wrap gap-2">
+                                {MIXED_PRACTICE_MODES.map((method) => {
+                                    const meta = getPracticeModeMeta(method);
+                                    const MethodIcon = meta.icon;
+                                    const selected = tempMixedModes.includes(method);
+                                    return (
+                                        <button
+                                            key={method}
+                                            type="button"
+                                            aria-pressed={selected}
+                                            onClick={() => toggleMixedMode(method)}
+                                            className={cn(
+                                                "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
+                                                selected
+                                                    ? "border-primary bg-primary text-primary-foreground"
+                                                    : "border-border bg-transparent text-muted-foreground hover:bg-muted",
+                                            )}
+                                        >
+                                            <MethodIcon className="h-3.5 w-3.5" />
+                                            {meta.shortLabel}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </div>
                     )}
                 </div>
 
@@ -212,7 +265,7 @@ export default function PracticeSettingsDialog({
 }: Readonly<PracticeSettingsDialogProps>) {
     // Stateful: the dialog owns its settings via the shared hook.
     const { settings, setSettings } = usePracticeSettings();
-    const settingsKey = `${settings.mode}-${settings.autoCheck}-${settings.showExampleHints}-${settings.showImageHints}-${settings.soundEnabled}`;
+    const settingsKey = `${settings.mode}-${settings.mixedModes.join(",")}-${settings.autoCheck}-${settings.showExampleHints}-${settings.showImageHints}-${settings.soundEnabled}`;
 
     return (
         <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>

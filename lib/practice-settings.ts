@@ -7,13 +7,39 @@ import type { IWord } from '@/types/courses/courses.type';
 
 export const SETTINGS_STORAGE_KEY = 'vocabulary-practice-settings';
 
+/** Concrete methods a user can opt in/out of within a mixed session. */
+export const MIXED_PRACTICE_MODES = [
+    'typing',
+    'listening',
+    'context',
+    'multiple-choice',
+    'word-bank',
+    'cloze',
+] as const;
+
+export type MixedPracticeMethod = (typeof MIXED_PRACTICE_MODES)[number];
+
 export const DEFAULT_PRACTICE_SETTINGS: PracticeSettings = {
     mode: 'mixed',
+    mixedModes: [...MIXED_PRACTICE_MODES],
     autoCheck: true,
     showExampleHints: true,
     showImageHints: true,
     soundEnabled: false,
 };
+
+/** Keep only valid, de-duplicated mix methods; empty/invalid falls back to all. */
+function parseMixedModes(
+    value: unknown,
+    fallback: MixedPracticeMethod[],
+): MixedPracticeMethod[] {
+    if (!Array.isArray(value)) return fallback;
+    const valid = new Set<string>(MIXED_PRACTICE_MODES);
+    const picked = MIXED_PRACTICE_MODES.filter(
+        (mode) => value.includes(mode) && valid.has(mode),
+    );
+    return picked.length > 0 ? [...picked] : fallback;
+}
 
 export function parsePracticeSettings(
     raw: string | null,
@@ -24,6 +50,7 @@ export function parsePracticeSettings(
         const parsed = JSON.parse(raw) as Partial<PracticeSettings>;
         return {
             mode: parsed.mode ?? initial.mode,
+            mixedModes: parseMixedModes(parsed.mixedModes, initial.mixedModes),
             autoCheck: parsed.autoCheck ?? initial.autoCheck,
             showExampleHints: parsed.showExampleHints ?? initial.showExampleHints,
             showImageHints: parsed.showImageHints ?? initial.showImageHints,
@@ -38,16 +65,6 @@ export function readPracticeSettingsFromStorage(): PracticeSettings {
     const raw = getLocalStorageItem(SETTINGS_STORAGE_KEY);
     return parsePracticeSettings(raw, DEFAULT_PRACTICE_SETTINGS);
 }
-
-/** Modes available in mixed sessions. */
-export const MIXED_PRACTICE_MODES = [
-    'typing',
-    'listening',
-    'context',
-    'multiple-choice',
-    'word-bank',
-    'cloze',
-] as const;
 
 export const NEW_WORD_MIXED_MODES = [
     'typing',
@@ -124,6 +141,8 @@ export function wordOccurrenceAtIndex(queue: IWord[], index: number): number {
 
 export interface MixedModePlanOptions {
     leechWordIds?: Set<string>;
+    /** Restrict the mix to these methods (user choice). Empty/undefined = all. */
+    enabledModes?: readonly string[];
 }
 
 /** Assign an evidence-based practice method to each word in a mixed session. */
@@ -132,7 +151,9 @@ export function buildMixedModePlan(
     stagesByWordId?: Record<string, WordLearningStage>,
     options?: MixedModePlanOptions,
 ): Map<string, ActivePracticeMode> {
-    const { leechWordIds } = options ?? {};
+    const { leechWordIds, enabledModes } = options ?? {};
+    const enabled =
+        enabledModes && enabledModes.length > 0 ? new Set(enabledModes) : null;
     const plan = new Map<string, ActivePracticeMode>();
     let preferProduction = shuffleArray([true, false])[0];
     let productionSlotIndex = 0;
@@ -141,7 +162,16 @@ export function buildMixedModePlan(
 
     for (const word of queue) {
         const stage = stagesByWordId?.[word.id] ?? 'new';
-        const allowed = new Set(mixedModesForStage(stage));
+        let allowed = new Set(mixedModesForStage(stage));
+        if (enabled) {
+            // Keep only the methods the user opted into. If the intersection is
+            // empty for this stage, keep the full stage pool so the word still
+            // gets a usable exercise rather than being dropped.
+            const restricted = new Set(
+                [...allowed].filter((mode) => enabled.has(mode)),
+            );
+            if (restricted.size > 0) allowed = restricted;
+        }
         const newWordRound = occurrenceByWordId.get(word.id) ?? 0;
         occurrenceByWordId.set(word.id, newWordRound + 1);
 
