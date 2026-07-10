@@ -6,6 +6,7 @@ import CourseCard from "@/components/features/courses/course-card";
 import { Button } from "@/components/ui/button";
 import { getLastLearnCourse } from "@/lib/learning-session";
 import { useGetMyCoursesQuery } from "@/queries/courses.query";
+import { useGetProgressStatsByCourseIdsQuery } from "@/queries/word-progress.query";
 import { ArrowRight } from "lucide-react";
 import Link from "next/link";
 import { startTransition, useEffect, useMemo, useState } from "react";
@@ -30,6 +31,12 @@ export function CoursePath() {
         return sorted.slice(0, 3);
     }, [data?.items, lastId]);
 
+    const courseIds = courses.map((course) => course.id);
+    const { data: statsByCourseId } = useGetProgressStatsByCourseIdsQuery(
+        courseIds,
+        courses.length > 0,
+    );
+
     if (!isLoading && courses.length === 0) return null;
 
     return (
@@ -53,7 +60,10 @@ export function CoursePath() {
                       ))
                     : courses.map((course) => (
                           <Bounce key={course.id}>
-                              <CourseCard course={course} />
+                              <CourseCard
+                                  course={course}
+                                  wordProgressStats={statsByCourseId?.[course.id]}
+                              />
                           </Bounce>
                       ))}
             </div>

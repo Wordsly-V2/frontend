@@ -10,7 +10,6 @@ import {
     useGetMyCoursesTotalStatsQuery,
 } from "@/queries/courses.query";
 import { useGetProgressStatsQuery } from "@/queries/word-progress.query";
-import { ChevronDown } from "lucide-react";
 
 export default function LearnPage() {
     const {
@@ -37,14 +36,11 @@ export default function LearnPage() {
 
                 <DailyHabitCard />
 
-                <CoursePath />
-
-                {/* Progress — kept below the fold for the curious */}
-                <details className="group glass-surface rounded-3xl">
-                    <summary className="flex cursor-pointer list-none items-center justify-between gap-2 rounded-3xl px-5 py-4 font-display text-base font-bold outline-none focus-visible:ring-[3px] focus-visible:ring-ring/45">
+                {/* Progress — surfaced above the course list */}
+                <section className="glass-surface mb-8 rounded-3xl">
+                    <h2 className="px-5 py-4 font-display text-base font-bold">
                         Your progress
-                        <ChevronDown className="h-5 w-5 text-muted-foreground transition-transform group-open:rotate-180" />
-                    </summary>
+                    </h2>
                     <div className="space-y-6 px-5 pb-5">
                         <StatsCards
                             items={courseTotalStats}
@@ -71,7 +67,9 @@ export default function LearnPage() {
                             isError={isErrorProgressStats}
                         />
                     </div>
-                </details>
+                </section>
+
+                <CoursePath />
             </div>
         </main>
     );
