@@ -116,11 +116,12 @@ interface VocabularyPracticeProps {
     exitDisabled?: boolean;
     onComplete?: (payload: SessionCompletePayload, destination?: string) => void;
     /**
-     * Fired the moment the session finishes and the summary appears, carrying
-     * the graded results so they can be submitted right away — the learner no
-     * longer has to leave the summary to commit their progress.
+     * Submit the graded results without navigating. Fired both when the session
+     * finishes and the summary appears, and when the learner leaves mid-session
+     * by any route — so progress is committed right away, never deferred to a
+     * manual action. Must be idempotent (may be called more than once).
      */
-    onSummaryReady?: (payload: SessionCompletePayload) => void;
+    onSubmitResults?: (payload: SessionCompletePayload) => void;
 }
 
 export default function VocabularyPractice({
@@ -133,7 +134,7 @@ export default function VocabularyPractice({
     onExit,
     exitDisabled = false,
     onComplete,
-    onSummaryReady,
+    onSubmitResults,
 }: Readonly<VocabularyPracticeProps>) {
     const [queue, setQueue] = useState(() => practiceQueue ?? shuffleArray(words));
     const [currentIndex, setCurrentIndex] = useState(0);
@@ -309,18 +310,23 @@ export default function VocabularyPractice({
         setPendingResult(null);
     }, []);
 
-    const finishSession = useCallback(
-        (results: WordResult[]) => {
+    // Guards finalizeSession so the daily habit / history is recorded exactly
+    // once, even though both the summary path and the leave-the-session flush
+    // may call it. Holds the payload so repeat calls return it unchanged.
+    const finalizedPayloadRef = useRef<SessionCompletePayload | null>(null);
+
+    // Record the daily habit (locally + backend) and local session history,
+    // then return the completion payload. Shared by the "finished all words"
+    // / "end early" summary path and the "leave the session" flush. Idempotent.
+    const finalizeSession = useCallback(
+        (results: WordResult[]): SessionCompletePayload => {
+            if (finalizedPayloadRef.current) {
+                return finalizedPayloadRef.current;
+            }
             const wordCount = results.length;
             const localHabit = recordPracticeWordsLocally(wordCount);
             setWordResults(results);
             setHabitState(localHabit);
-            setPhase("summary");
-            onSummaryReady?.({
-                score: scoreFromResults(results),
-                wordResults: results,
-                habitState: localHabit,
-            });
 
             // Local-only session history (no backend).
             recordSession(
@@ -348,8 +354,25 @@ export default function VocabularyPractice({
                     },
                 },
             );
+
+            const payload: SessionCompletePayload = {
+                score: scoreFromResults(results),
+                wordResults: results,
+                habitState: localHabit,
+            };
+            finalizedPayloadRef.current = payload;
+            return payload;
         },
-        [recordDailyPractice, onSummaryReady],
+        [recordDailyPractice],
+    );
+
+    const finishSession = useCallback(
+        (results: WordResult[]) => {
+            const payload = finalizeSession(results);
+            setPhase("summary");
+            onSubmitResults?.(payload);
+        },
+        [finalizeSession, onSubmitResults],
     );
 
     const mergeWordResult = useCallback(
@@ -368,6 +391,32 @@ export default function VocabularyPractice({
         finishSession(results);
         resetWordUi();
     }, [finishSession, wordResults, pendingResult, mergeWordResult, resetWordUi]);
+
+    // Submit-on-leave: whenever the learner leaves an in-progress session by
+    // ANY route — the X button, the browser back button, an in-app link — the
+    // engine unmounts. We flush whatever has been answered so far (record the
+    // daily habit + sync word progress) so progress is never lost, regardless
+    // of how they left. finalizeSession/onSubmitResults are both idempotent, so
+    // this is a no-op when the session already ended via the summary.
+    //
+    // Latest state is mirrored into refs because the unmount cleanup runs once
+    // and must not close over stale values (and must not re-fire mid-session).
+    const wordResultsRef = useRef(wordResults);
+    const pendingResultRef = useRef(pendingResult);
+    const submitOnLeaveRef = useRef<() => void>(() => {});
+    useEffect(() => {
+        wordResultsRef.current = wordResults;
+        pendingResultRef.current = pendingResult;
+        submitOnLeaveRef.current = () => {
+            let results = wordResultsRef.current;
+            if (pendingResultRef.current) {
+                results = mergeWordResult(results, pendingResultRef.current);
+            }
+            if (results.length === 0) return;
+            onSubmitResults?.(finalizeSession(results));
+        };
+    });
+    useEffect(() => () => submitOnLeaveRef.current(), []);
 
     const advanceAfterAnswer = useCallback(
         (result: WordResult, word: IWord) => {

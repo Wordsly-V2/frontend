@@ -141,7 +141,7 @@ export default function PracticePage() {
                         sessionSubtitle={practiceSubtitle}
                         onExit={handleBackToCourse}
                         exitDisabled={isPersisting}
-                        onSummaryReady={saveSession}
+                        onSubmitResults={saveSession}
                         onComplete={handlePracticeComplete}
                     />
                 </div>

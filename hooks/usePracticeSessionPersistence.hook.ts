@@ -138,6 +138,5 @@ export function usePracticeSessionPersistence({
         saveSession,
         persistSession,
         isPersisting: false,
-        markUnsaved: () => setHasUnsavedPractice(true),
     };
 }
