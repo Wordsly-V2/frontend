@@ -70,11 +70,11 @@ export function BottomTabBar() {
                 Renders only when the bar is visible (mobile, logged in). */}
             <div
                 aria-hidden
-                className="h-[calc(5.25rem+env(safe-area-inset-bottom,0px))] sm:hidden"
+                className="h-[calc(5.25rem+env(safe-area-inset-bottom,0px))]"
             />
             <nav
                 aria-label="Primary"
-                className="fixed inset-x-3 bottom-keyboard-safe z-40 sm:hidden"
+                className="fixed inset-x-3 bottom-keyboard-safe z-40"
             >
                 <div className="glass-surface mx-auto grid max-w-md grid-cols-6 items-end rounded-3xl px-2 py-1.5 shadow-[0_16px_48px_-12px_rgba(15,23,42,0.3)] dark:shadow-[0_16px_48px_-12px_rgba(0,0,0,0.6)]">
                     {left.map((tab) => (

@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { motion, useReducedMotion } from "motion/react";
-import { BarChart3, BookOpen, GraduationCap, Settings, User, LogOut, LogIn, Smartphone, Menu } from "lucide-react";
+import { BarChart3, BookOpen, Dumbbell, GraduationCap, Library, Settings, User, LogOut, LogIn, Smartphone, Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { MyWordsSearch } from "@/components/common/my-words-search";
@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useUser } from "@/hooks/useUser.hook";
+import { useNextPracticeAction } from "@/hooks/useNextPracticeAction.hook";
 import { ChangeThemeToggle } from "@/components/common/change-theme-toggle/change-theme-toggle";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 
@@ -37,6 +38,7 @@ function openCommandPalette() {
 
 const NAV_SECTIONS = [
     { href: "/learn", label: "Learn", icon: BookOpen },
+    { href: "/learn/courses", label: "Courses", icon: Library },
     { href: "/progress", label: "Progress", icon: BarChart3 },
     { href: "/manage", label: "Manage", icon: Settings },
 ] as const;
@@ -48,8 +50,10 @@ export default function AppNav() {
     const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
     const [isLoggingOut, setIsLoggingOut] = useState(false);
     const reduceMotion = useReducedMotion();
+    const nextPractice = useNextPracticeAction();
 
     const isAuthPage = pathname?.startsWith('/auth');
+    const practiceHref = nextPractice.primary?.href ?? "/learn";
 
     const handleLogoutChoice = async (fromAllDevices: boolean) => {
         setIsLoggingOut(true);
@@ -175,7 +179,7 @@ export default function AppNav() {
     return (
         <header className="sticky top-0 z-50 pt-safe">
             <nav aria-label="Main" className="container mx-auto px-2.5 sm:px-4 md:px-5 pt-2 md:pt-3 pb-1 md:pb-2">
-                <div className="glass-surface flex min-h-[3.25rem] sm:min-h-[3.5rem] items-center justify-between gap-2 min-[900px]:grid min-[900px]:grid-cols-[1fr_auto_1fr] rounded-full px-2.5 sm:px-3 py-1.5 md:py-2 shadow-[0_12px_40px_-12px_rgba(15,23,42,0.18)] dark:shadow-[0_12px_40px_-12px_rgba(0,0,0,0.55)]">
+                <div className="glass-surface flex min-h-[3.25rem] sm:min-h-[3.5rem] items-center justify-between gap-2 rounded-full px-2.5 sm:px-3 py-1.5 md:py-2 shadow-[0_12px_40px_-12px_rgba(15,23,42,0.18)] dark:shadow-[0_12px_40px_-12px_rgba(0,0,0,0.55)]">
                         {/* Logo */}
                         <Link
                             href="/"
@@ -187,15 +191,19 @@ export default function AppNav() {
                             <span className="hidden min-[380px]:inline truncate text-gradient-brand">Wordsly</span>
                         </Link>
 
-                        {/* Center - Search + Mode Toggle (desktop). Always rendered so the
-                            grid keeps its middle column; content is gated on profile. */}
-                        <div className="hidden min-[900px]:flex items-center gap-2 min-[900px]:justify-self-center min-w-0">
+                        {/* Center - desktop nav links. Hidden: the app always uses the
+                            mobile layout (bottom tab bar), at every width. */}
+                        <div className="hidden">
                             {!isAuthPage && profile && (
                                 <>
                                     <MyWordsSearch />
                                     <div className="flex items-center rounded-full border border-border/60 bg-muted/40 p-1 dark:bg-muted/25">
                                         {NAV_SECTIONS.map(({ href, label, icon: Icon }) => {
-                                            const active = pathname?.startsWith(href) ?? false;
+                                            const activeHref = NAV_SECTIONS
+                                                .map((s) => s.href)
+                                                .filter((h) => pathname?.startsWith(h))
+                                                .sort((a, b) => b.length - a.length)[0];
+                                            const active = href === activeHref;
                                             return (
                                                 <Link
                                                     key={href}
@@ -248,9 +256,22 @@ export default function AppNav() {
                                 </kbd>
                             </Button>
                             {!isAuthPage && profile && (
-                                <div className="flex min-[900px]:hidden items-center gap-1">
+                                <div className="flex items-center gap-1">
                                     <MyWordsSearch className="max-w-[min(42vw,11rem)] sm:max-w-[200px]" />
                                 </div>
+                            )}
+
+                            {!isAuthPage && profile && (
+                                <Link href={practiceHref} className="hidden">
+                                    <Button
+                                        size="sm"
+                                        aria-label="Quick practice"
+                                        className="gap-1.5 rounded-full gradient-brand glow-primary text-white hover:opacity-95 transition-opacity h-9 px-3.5"
+                                    >
+                                        <Dumbbell className="h-4 w-4" />
+                                        <span className="text-sm">Practice</span>
+                                    </Button>
+                                </Link>
                             )}
 
                             {!isAuthPage && profile && <StreakChip />}
