@@ -11,7 +11,6 @@ export const SETTINGS_STORAGE_KEY = 'vocabulary-practice-settings';
 export const MIXED_PRACTICE_MODES = [
     'listening',
     'context',
-    'multiple-choice',
     'word-bank',
     'cloze',
 ] as const;
@@ -84,14 +83,12 @@ export function readPracticeSettingsFromStorage(): PracticeSettings {
 
 export const NEW_WORD_MIXED_MODES = [
     'context',
-    'multiple-choice',
     'word-bank',
     'cloze',
 ] as const;
 export const LEARNING_MIXED_MODES = [
     'listening',
     'context',
-    'multiple-choice',
     'word-bank',
     'cloze',
 ] as const;
@@ -99,7 +96,6 @@ export const REVIEW_MIXED_MODES = [
     'listening',
     'context',
     'cloze',
-    'multiple-choice',
     'word-bank',
 ] as const;
 
@@ -122,8 +118,8 @@ function mixedModesForStage(stage: WordLearningStage): readonly string[] {
 
 function resolveClozeFallback(listeningAvailable: boolean): ActivePracticeMode {
     // Sentence-based modes need an example; without one fall back to listening
-    // when there's audio, otherwise a recognition exercise (always renderable).
-    return listeningAvailable ? 'listening' : 'multiple-choice';
+    // when there's audio, otherwise the word-bank exercise (always renderable).
+    return listeningAvailable ? 'listening' : 'word-bank';
 }
 
 function applyModeFallbacks(

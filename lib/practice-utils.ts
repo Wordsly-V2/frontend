@@ -102,17 +102,6 @@ export function generateWordChoiceOptions(
     return pickChoiceOptions(correctWord.word, poolTexts, optionCount, recentlyUsed);
 }
 
-/** Build meaning options for multiple-choice quiz (correct meaning + rotating distractors). */
-export function generateMeaningChoiceOptions(
-    correctWord: IWord,
-    pool: IWord[],
-    optionCount = 4,
-    recentlyUsed?: Set<string>,
-): string[] {
-    const poolTexts = pool.filter((w) => w.id !== correctWord.id).map((w) => w.meaning);
-    return pickChoiceOptions(correctWord.meaning, poolTexts, optionCount, recentlyUsed);
-}
-
 export function normalizeAnswer(value: string): string {
     return value.trim().toLowerCase().replaceAll(/\s+/g, " ");
 }

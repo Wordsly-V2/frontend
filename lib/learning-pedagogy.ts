@@ -5,7 +5,6 @@ import type { IWord } from "@/types/courses/courses.type";
 export type PedagogyPracticeMode =
     | "listening"
     | "context"
-    | "multiple-choice"
     | "word-bank"
     | "cloze"
     | "flashcard";
@@ -34,7 +33,7 @@ export const PEDAGOGY = {
 export type PracticeDirection = "production" | "recognition";
 
 export const PRODUCTION_MODES = ["listening", "context"] as const;
-export const RECOGNITION_MODES = ["multiple-choice", "word-bank", "cloze"] as const;
+export const RECOGNITION_MODES = ["word-bank", "cloze"] as const;
 
 export function modeDirection(mode: string): PracticeDirection | null {
     if ((PRODUCTION_MODES as readonly string[]).includes(mode)) return "production";
@@ -208,7 +207,7 @@ export function assignMixedPracticeMode(input: AssignMixedModeInput): {
             clozeAvailable,
             listeningAvailable,
             fallbackSlot,
-        ) ?? "multiple-choice";
+        ) ?? "word-bank";
     const poolUsed: PracticeModePool =
         modeDirection(fallback) === "production" ? "production" : "recognition";
 

@@ -26,7 +26,6 @@ import {
 export type PracticeMode =
     | "flashcard"
     | "context"
-    | "multiple-choice"
     | "word-bank"
     | "listening"
     | "cloze"
@@ -97,7 +96,6 @@ function PracticeSettingsForm({
         isMixed ||
         tempMode === "listening" ||
         tempMode === "context" ||
-        tempMode === "multiple-choice" ||
         tempMode === "word-bank" ||
         tempMode === "cloze";
 

@@ -16,9 +16,6 @@ const SHORTCUTS_BY_MODE: Record<ActivePracticeMode, ShortcutItem[]> = {
         { keys: ["3"], label: "Hard" },
         { keys: ["4"], label: "Forgot" },
     ],
-    "multiple-choice": [
-        { keys: ["A", "B", "C", "D"], label: "Pick answer" },
-    ],
     "word-bank": [
         { keys: ["A", "B", "C", "D"], label: "Pick answer" },
     ],

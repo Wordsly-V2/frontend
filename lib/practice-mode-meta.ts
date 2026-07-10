@@ -4,7 +4,6 @@ import {
     CheckSquare,
     Headphones,
     Layers,
-    ListChecks,
     TextCursorInput,
     TextQuote,
 } from "lucide-react";
@@ -35,15 +34,9 @@ export const PRACTICE_MODE_META: Record<ActivePracticeMode, PracticeModeMeta> = 
         instruction: "Read the meaning, then choose the correct word",
         icon: CheckSquare,
     },
-    "multiple-choice": {
-        label: "Pick the meaning",
-        shortLabel: "Multiple choice",
-        instruction: "Choose the correct meaning for this word",
-        icon: ListChecks,
-    },
     cloze: {
-        label: "Fill the blank",
-        shortLabel: "Cloze",
+        label: "Fill-in",
+        shortLabel: "Fill-in",
         instruction: "Complete the sentence with the right word",
         icon: TextQuote,
     },

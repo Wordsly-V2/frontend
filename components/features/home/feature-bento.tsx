@@ -14,10 +14,10 @@ import {
 
 const PRACTICE_MODES = [
     { icon: Layers, label: "Flashcard" },
-    { icon: Keyboard, label: "Typing" },
+    { icon: Keyboard, label: "In context" },
     { icon: Headphones, label: "Listening" },
-    { icon: ListChecks, label: "Multiple choice" },
-    { icon: PencilLine, label: "Cloze" },
+    { icon: ListChecks, label: "Word bank" },
+    { icon: PencilLine, label: "Fill-in" },
 ] as const;
 
 const REVIEW_INTERVALS = ["10m", "1d", "4d", "12d", "1mo"] as const;

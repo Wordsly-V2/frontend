@@ -51,7 +51,6 @@ import {
 } from "@/lib/practice-settings";
 import { usePracticeSettings } from "@/hooks/usePracticeSettings.hook";
 import {
-    generateMeaningChoiceOptions,
     generateWordChoiceOptions,
     getAnswerMatch,
     getClozePrompt,
@@ -211,14 +210,14 @@ export default function VocabularyPractice({
               currentIndex,
               currentStage,
           )
-        : "multiple-choice";
+        : "word-bank";
     // If the user couldn't hear the audio, fall back to a non-audio exercise:
-    // fill-in (cloze) when the word supports it, otherwise a recognition quiz.
+    // fill-in (cloze) when the word supports it, otherwise the word bank.
     const activeMode: ActivePracticeMode =
         resolvedMode === "listening" && audioFallback
             ? clozePrompt != null
                 ? "cloze"
-                : "multiple-choice"
+                : "word-bank"
             : resolvedMode;
 
     const rawExamples = useMemo(
@@ -528,22 +527,6 @@ export default function VocabularyPractice({
         handleWordChoiceSelect(selectedWord, currentWord?.word ?? "");
     };
 
-    const handleMultipleChoiceSelect = (selectedMeaning: string) => {
-        if (!currentWord || typingResult) return;
-        const elapsed =
-            wordStartTimeRef.current != null
-                ? (Date.now() - wordStartTimeRef.current) / 1000
-                : undefined;
-        if (elapsed != null) setTimeSpentSeconds(elapsed);
-        setSelectedChoice(selectedMeaning);
-        const isCorrect = selectedMeaning === currentWord.meaning;
-        const quality = calculateAnswerQuality(isCorrect, 0, elapsed);
-        stageResult({ wordId: currentWord.id, quality });
-        setTypingResult(isCorrect ? "correct" : "incorrect");
-        playResultSound(isCorrect);
-        setShowResultDialog(true);
-    };
-
     const handleFlashcardRate = (rating: FlashcardRating) => {
         if (!currentWord) return;
         const result = { wordId: currentWord.id, quality: flashcardRatingToQuality(rating) };
@@ -551,18 +534,9 @@ export default function VocabularyPractice({
     };
 
     // Rotation memory: distractor texts already shown in recent questions, so
-    // the same options don't keep reappearing. Word modes (word-bank/cloze)
-    // share a set; meaning-based multiple-choice tracks its own.
+    // the same options don't keep reappearing. The word modes (word-bank/cloze)
+    // share one set.
     const usedWordDistractorsRef = useRef<Set<string>>(new Set());
-    const usedMeaningDistractorsRef = useRef<Set<string>>(new Set());
-
-    const multipleChoiceOptions = useMemo(() => {
-        if (activeMode === "multiple-choice" && currentWord) {
-            return generateMeaningChoiceOptions(currentWord, queue, 4, usedMeaningDistractorsRef.current);
-        }
-        return [];
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [currentIndex, activeMode, currentWord, queue]);
 
     const clozeWordOptions = useMemo(() => {
         if (activeMode === "cloze" && currentWord) {
@@ -581,7 +555,6 @@ export default function VocabularyPractice({
     }, [currentIndex, activeMode, currentWord, queue]);
 
     const isWordChoiceMode =
-        activeMode === "multiple-choice" ||
         activeMode === "cloze" ||
         activeMode === "word-bank";
 
@@ -660,14 +633,8 @@ export default function VocabularyPractice({
         ) {
             return;
         }
-        let options: string[];
-        if (activeMode === "multiple-choice") {
-            options = multipleChoiceOptions;
-        } else if (activeMode === "word-bank") {
-            options = wordBankOptions;
-        } else {
-            options = clozeWordOptions;
-        }
+        const options: string[] =
+            activeMode === "word-bank" ? wordBankOptions : clozeWordOptions;
         if (options.length === 0) return;
 
         const onKeyDown = (e: KeyboardEvent) => {
@@ -685,9 +652,7 @@ export default function VocabularyPractice({
             if (!option) return;
             e.preventDefault();
             if (autoCheck) {
-                if (activeMode === "multiple-choice") {
-                    handleMultipleChoiceSelect(option);
-                } else if (activeMode === "word-bank") {
+                if (activeMode === "word-bank") {
                     handleWordBankSelect(option);
                 } else {
                     handleClozeWordSelect(option);
@@ -704,7 +669,6 @@ export default function VocabularyPractice({
         isWordChoiceMode,
         typingResult,
         showResultDialog,
-        multipleChoiceOptions,
         clozeWordOptions,
         wordBankOptions,
         currentIndex,
@@ -1090,49 +1054,6 @@ export default function VocabularyPractice({
                                                         handleConfirmChoice(handleClozeWordSelect)
                                                     }
                                                     disabled={!selectedChoice || !!typingResult}
-                                                    className="rounded-xl"
-                                                >
-                                                    Check
-                                                </Button>
-                                            </div>
-                                        )}
-                                    </div>
-                                )}
-
-                                {activeMode === "multiple-choice" && (
-                                    <div className="space-y-5">
-                                        <div className="text-center">
-                                            <AdaptiveText
-                                                text={currentWord.word}
-                                                role="word"
-                                                as="h2"
-                                                align="center"
-                                                className="mb-2 font-display text-gradient-brand"
-                                            />
-                                            <WordPracticeHints
-                                                maskedExamples={maskedExamples}
-                                                imageUrl={currentWord.imageUrl}
-                                                showImageHints={effectiveImageHints}
-                                            />
-                                        </div>
-                                        <PracticeWordChoiceGrid
-                                            options={multipleChoiceOptions}
-                                            onSelect={(option) =>
-                                                handleChoiceInteraction(
-                                                    option,
-                                                    handleMultipleChoiceSelect,
-                                                )
-                                            }
-                                            selectedOption={!autoCheck ? selectedChoice : null}
-                                            disabled={typingResult !== null}
-                                        />
-                                        {!autoCheck && (
-                                            <div className="flex justify-center">
-                                                <Button
-                                                    onClick={() =>
-                                                        handleConfirmChoice(handleMultipleChoiceSelect)
-                                                    }
-                                                    disabled={!selectedChoice || typingResult !== null}
                                                     className="rounded-xl"
                                                 >
                                                     Check
