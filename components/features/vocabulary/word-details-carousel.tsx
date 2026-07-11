@@ -13,6 +13,7 @@ import { handleAudioPlayError } from "@/lib/audio-playback";
 import { IWord } from '@/types/courses/courses.type';
 import { ChevronLeft, ChevronRight, SlidersHorizontal } from 'lucide-react';
 import { getLocalStorageItem, setLocalStorageItem } from '@/lib/local-storage';
+import { WORD_DETAILS_AUTO_NEXT_STORAGE_KEY } from '@/lib/user-local-data';
 import { motion, useReducedMotion } from 'motion/react';
 import { startTransition, useCallback, useEffect, useRef, useState } from 'react';
 import type { Swiper as SwiperType } from 'swiper';
@@ -20,8 +21,6 @@ import { Keyboard } from 'swiper/modules';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import 'swiper/css';
 import WordDetailCard from './word-detail-card';
-
-const WORD_DETAILS_AUTO_NEXT_STORAGE_KEY = 'wordsly.wordDetails.autoNext';
 
 const DELAY_BETWEEN_WORDS_MIN_SEC = 1;
 const DELAY_BETWEEN_WORDS_MAX_SEC = 600;

@@ -1,7 +1,7 @@
 import { getLocalStorageItem, setLocalStorageItem } from "@/lib/local-storage";
 import type { IBulkRecordAnswersDto } from "@/types/word-progress/word-progress.type";
 
-const PENDING_SAVES_KEY = "practice-pending-saves";
+export const PENDING_SAVES_KEY = "practice-pending-saves";
 
 export interface PendingPracticeSave {
     id: string;
