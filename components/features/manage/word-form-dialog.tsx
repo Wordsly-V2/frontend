@@ -418,7 +418,7 @@ export default function WordFormDialog({
         <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
             <DialogContent
                 className="max-w-lg w-[calc(100vw-1.5rem)] sm:w-full max-h-[85dvh] overflow-y-auto overflow-x-hidden mx-auto"
-                onOpenAutoFocus={(e) => word ? e.preventDefault() : undefined}
+                onOpenAutoFocus={(e) => (word || initialData) ? e.preventDefault() : undefined}
             >
                 {isOpen && (
                     <WordFormDialogForm

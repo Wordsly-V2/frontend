@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
     Dialog,
     DialogContent,
@@ -32,6 +33,7 @@ export default function QuickAddWordDialog({
     const [selectedCourseId, setSelectedCourseId] = useState<string>("");
     const [selectedLessonId, setSelectedLessonId] = useState<string>("");
     const [wordFormOpen, setWordFormOpen] = useState(false);
+    const [reviewWord, setReviewWord] = useState(false);
     const coursesListRef = useRef<HTMLDivElement>(null);
 
     const {
@@ -58,6 +60,7 @@ export default function QuickAddWordDialog({
                 setSelectedCourseId("");
                 setSelectedLessonId("");
                 setWordFormOpen(false);
+                setReviewWord(false);
                 onClose();
             }
         },
@@ -70,6 +73,7 @@ export default function QuickAddWordDialog({
                 setSelectedCourseId("");
                 setSelectedLessonId("");
                 setWordFormOpen(false);
+                setReviewWord(false);
             }, 0);
             return () => clearTimeout(id);
         }
@@ -107,8 +111,24 @@ export default function QuickAddWordDialog({
         [selectedCourseId, selectedLessonValue, mutationCreateMyWord, onClose]
     );
 
-    const handleOpenWordForm = () => {
-        setWordFormOpen(true);
+    // Primary action: when "review" is off, add the word directly using the
+    // dictionary data without opening the review dialog; when on, keep the
+    // existing flow of opening the review dialog first.
+    const handlePrimaryAction = () => {
+        if (reviewWord) {
+            setWordFormOpen(true);
+            return;
+        }
+        if (!initialWord) return;
+        handleSubmitWord({
+            word: initialWord.word,
+            meaning: initialWord.meaning,
+            pronunciation: initialWord.pronunciation || "",
+            partOfSpeech: initialWord.partOfSpeech || "",
+            audioUrl: initialWord.audioUrl || "",
+            imageUrl: initialWord.imageUrl || "",
+            example: initialWord.example || "[]",
+        });
     };
 
     if (!initialWord) return null;
@@ -183,17 +203,27 @@ export default function QuickAddWordDialog({
                                 <p className="text-xs text-muted-foreground">No lessons in this course yet.</p>
                             )}
                         </div>
+                        <div className="flex items-center gap-2 pt-1">
+                            <Checkbox
+                                id="quick-add-review"
+                                checked={reviewWord}
+                                onCheckedChange={(checked) => setReviewWord(checked === true)}
+                            />
+                            <Label htmlFor="quick-add-review" className="text-sm font-normal cursor-pointer">
+                                Review word before adding
+                            </Label>
+                        </div>
                     </div>
                     <DialogFooter className="gap-2">
                         <Button variant="outline" onClick={onClose} className="w-full sm:w-auto text-sm">
                             Cancel
                         </Button>
                         <Button
-                            onClick={handleOpenWordForm}
-                            disabled={!canAdd}
+                            onClick={handlePrimaryAction}
+                            disabled={!canAdd || isLoadingCreate}
                             className="w-full sm:w-auto text-sm"
                         >
-                            Next Step
+                            {reviewWord ? "Next Step" : "Add word"}
                         </Button>
                     </DialogFooter>
                 </DialogContent>
