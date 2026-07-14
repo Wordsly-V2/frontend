@@ -1,19 +1,32 @@
 "use client";
 
-import { useState } from "react";
+import {
+    forwardRef,
+    useImperativeHandle,
+    useRef,
+    useState,
+} from "react";
 import { usePracticeSettings } from "@/hooks/usePracticeSettings.hook";
+import { useDueWordsLimit, setDueWordsLimit } from "@/hooks/useDueWordsLimit.hook";
 import {
     MIXED_PRACTICE_MODES,
     type MixedPracticeMethod,
     type PracticeMode,
     type PracticeSettings,
 } from "@/lib/practice-settings";
+import { DUE_WORDS_LIMIT_OPTIONS } from "@/lib/due-words-limit";
+import {
+    useDailyHabitDisplay,
+    useUpdateDailyGoalMutation,
+} from "@/queries/daily-habit.query";
+import { DAILY_GOAL_OPTIONS } from "@/types/daily-habit/daily-habit.type";
 import { getPracticeModeMeta } from "@/lib/practice-mode-meta";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { toast } from "sonner";
 import {
     Sparkles,
     Volume2,
@@ -23,6 +36,8 @@ import {
     Shuffle,
     TextCursorInput,
     Bell,
+    ListOrdered,
+    Target,
 } from "lucide-react";
 
 // Re-exported from lib/practice-settings (their canonical home) so existing
@@ -32,17 +47,31 @@ export type { PracticeMode, PracticeSettings };
 interface PracticeSettingsDialogProps {
     isOpen: boolean;
     onClose: () => void;
+    /**
+     * When true, also surface session-scope prefs (words per session, daily
+     * goal) so the dialog works as a pre-practice setup hub on the Learn page.
+     * Left off inside a running session — those aren't meaningful mid-session.
+     */
+    includeSessionPrefs?: boolean;
+}
+
+/** Imperative handle so the form's single Save button can commit session prefs. */
+interface SessionPrefsHandle {
+    commit: () => void;
 }
 
 function PracticeSettingsForm({
     currentSettings,
     onSave,
     onClose,
+    includeSessionPrefs = false,
 }: Readonly<{
     currentSettings: PracticeSettings;
     onSave: (settings: PracticeSettings) => void;
     onClose: () => void;
+    includeSessionPrefs?: boolean;
 }>) {
+    const sessionPrefsRef = useRef<SessionPrefsHandle>(null);
     const [tempMode, setTempMode] = useState(currentSettings.mode);
     const [tempMixedModes, setTempMixedModes] = useState<MixedPracticeMethod[]>(
         currentSettings.mixedModes.length > 0
@@ -76,6 +105,7 @@ function PracticeSettingsForm({
             showImageHints: tempShowImageHints,
             soundEnabled: tempSoundEnabled,
         });
+        if (includeSessionPrefs) sessionPrefsRef.current?.commit();
         onClose();
     };
 
@@ -229,6 +259,8 @@ function PracticeSettingsForm({
                         />
                     </div>
                 </div>
+
+                {includeSessionPrefs && <SessionPrefsFields ref={sessionPrefsRef} />}
             </div>
 
             <DialogFooter className="gap-2">
@@ -243,9 +275,97 @@ function PracticeSettingsForm({
     );
 }
 
+/**
+ * Session-scope prefs (words per session + daily goal), shown only on the
+ * pre-practice setup dialog. Owns its own temp state and commits on Save via
+ * the imperative handle so the form keeps a single Save button.
+ */
+const SessionPrefsFields = forwardRef<SessionPrefsHandle>(function SessionPrefsFields(_props, ref) {
+    const { dueWordsLimit } = useDueWordsLimit();
+    const { goal } = useDailyHabitDisplay();
+    const updateGoal = useUpdateDailyGoalMutation();
+
+    const [tempLimit, setTempLimit] = useState(dueWordsLimit);
+    // Null until the user picks — falls back to the current (or default) goal.
+    const [tempGoal, setTempGoal] = useState<number | null>(null);
+    const selectedGoal = tempGoal ?? goal ?? DAILY_GOAL_OPTIONS[1];
+
+    useImperativeHandle(ref, () => ({
+        commit: () => {
+            setDueWordsLimit(tempLimit);
+            if (tempGoal != null && tempGoal !== goal) {
+                updateGoal.mutate(
+                    { dailyGoal: tempGoal },
+                    { onError: () => toast.error("Couldn't update your daily goal") },
+                );
+            }
+        },
+    }));
+
+    const selectClassName =
+        "h-10 rounded-lg border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring";
+
+    return (
+        <>
+            <div className="space-y-3 pt-4 border-t border-border">
+                <div className="flex items-center justify-between gap-4">
+                    <div className="flex-1">
+                        <Label htmlFor="words-per-session" className="text-sm font-medium flex items-center gap-2">
+                            <ListOrdered className="h-4 w-4 text-muted-foreground" />
+                            Words per session
+                        </Label>
+                        <p className="text-xs text-muted-foreground mt-1">
+                            How many words each practice batch includes
+                        </p>
+                    </div>
+                    <select
+                        id="words-per-session"
+                        value={tempLimit}
+                        onChange={(e) => setTempLimit(Number(e.target.value))}
+                        className={selectClassName}
+                    >
+                        {DUE_WORDS_LIMIT_OPTIONS.map((n) => (
+                            <option key={n} value={n}>
+                                {n}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+            </div>
+
+            <div className="space-y-3 pt-4 border-t border-border">
+                <div className="flex items-center justify-between gap-4">
+                    <div className="flex-1">
+                        <Label htmlFor="daily-goal" className="text-sm font-medium flex items-center gap-2">
+                            <Target className="h-4 w-4 text-muted-foreground" />
+                            Daily goal
+                        </Label>
+                        <p className="text-xs text-muted-foreground mt-1">
+                            Words to practice each day to keep your streak
+                        </p>
+                    </div>
+                    <select
+                        id="daily-goal"
+                        value={selectedGoal}
+                        onChange={(e) => setTempGoal(Number(e.target.value))}
+                        className={selectClassName}
+                    >
+                        {DAILY_GOAL_OPTIONS.map((n) => (
+                            <option key={n} value={n}>
+                                {n}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+            </div>
+        </>
+    );
+});
+
 export default function PracticeSettingsDialog({
     isOpen,
     onClose,
+    includeSessionPrefs = false,
 }: Readonly<PracticeSettingsDialogProps>) {
     // Stateful: the dialog owns its settings via the shared hook.
     const { settings, setSettings } = usePracticeSettings();
@@ -260,6 +380,7 @@ export default function PracticeSettingsDialog({
                         currentSettings={settings}
                         onSave={setSettings}
                         onClose={onClose}
+                        includeSessionPrefs={includeSessionPrefs}
                     />
                 )}
             </DialogContent>

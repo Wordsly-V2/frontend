@@ -6,12 +6,17 @@ import LearningProgressSection from "@/components/common/word-progress-stats/lea
 import { CoursePath } from "@/components/features/learn/course-path";
 import { DailyHabitCard } from "@/components/features/learn/daily-habit-card";
 import { DailyHero } from "@/components/features/learn/daily-hero";
+import PracticeSettingsDialog from "@/components/features/vocabulary/practice-settings-dialog";
+import { Button } from "@/components/ui/button";
 import {
     useGetMyCoursesTotalStatsQuery,
 } from "@/queries/courses.query";
 import { useGetProgressStatsQuery } from "@/queries/word-progress.query";
+import { Settings2 } from "lucide-react";
+import { useState } from "react";
 
 export default function LearnPage() {
+    const [settingsOpen, setSettingsOpen] = useState(false);
     const {
         data: courseTotalStats,
         isLoading: isLoadingCourseTotalStats,
@@ -32,6 +37,19 @@ export default function LearnPage() {
     return (
         <main className="min-h-dvh">
             <div className="container mx-auto max-w-5xl px-3 pb-24 pt-5 sm:px-4 sm:pb-12 sm:pt-6 md:py-8">
+                <div className="mb-3 flex justify-end">
+                    <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="gap-2 rounded-xl"
+                        onClick={() => setSettingsOpen(true)}
+                    >
+                        <Settings2 className="h-4 w-4" aria-hidden />
+                        Practice settings
+                    </Button>
+                </div>
+
                 <DailyHero />
 
                 <DailyHabitCard />
@@ -71,6 +89,12 @@ export default function LearnPage() {
 
                 <CoursePath />
             </div>
+
+            <PracticeSettingsDialog
+                isOpen={settingsOpen}
+                includeSessionPrefs
+                onClose={() => setSettingsOpen(false)}
+            />
         </main>
     );
 }

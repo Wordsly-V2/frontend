@@ -11,8 +11,8 @@ import {
     deriveNewWordIds,
     getLearnNewButtonLabel,
     getReviewDueButtonLabel,
-    readDueWordsLimitFromStorage,
 } from "@/lib/due-words-limit";
+import { useDueWordsLimit } from "@/hooks/useDueWordsLimit.hook";
 import { getLastLearnCourse } from "@/lib/learning-session";
 import { useDailyHabitDisplay } from "@/queries/daily-habit.query";
 import { useGetDueWordIdsQuery } from "@/queries/word-progress.query";
@@ -24,7 +24,7 @@ export function LearnQuickActions() {
     const router = useRouter();
     const pathname = usePathname();
     const [last, setLast] = useState<ReturnType<typeof getLastLearnCourse>>(null);
-    const [dueWordsLimit, setDueWordsLimit] = useState(readDueWordsLimitFromStorage);
+    const { dueWordsLimit } = useDueWordsLimit();
     const { habit: serverHabit } = useDailyHabitDisplay();
     const habit = serverHabit ?? getLocalDailyHabit();
     const goal = dailyGoalProgress(habit.wordsToday, habit.goal);
@@ -32,7 +32,6 @@ export function LearnQuickActions() {
     useEffect(() => {
         startTransition(() => {
             setLast(getLastLearnCourse());
-            setDueWordsLimit(readDueWordsLimitFromStorage());
         });
     }, [pathname]);
 

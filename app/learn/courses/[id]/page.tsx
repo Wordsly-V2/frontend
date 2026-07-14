@@ -21,16 +21,14 @@ import { useQueryStates } from "nuqs";
 import { useRouter } from "next/navigation";
 import {
     DUE_WORDS_LIMIT_OPTIONS,
-    DUE_WORDS_LIMIT_STORAGE_KEY,
     deriveNewWordIds,
     getLearnNewButtonLabel,
     getPracticeBannerCopy,
     getReviewDueButtonLabel,
-    readDueWordsLimitFromStorage,
 } from "@/lib/due-words-limit";
+import { useDueWordsLimit } from "@/hooks/useDueWordsLimit.hook";
 import { setLastLearnCourse } from "@/lib/learning-session";
 import { buildPracticeUrl } from "@/lib/practice-session";
-import { setLocalStorageItem } from "@/lib/local-storage";
 import { startTransition, use, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
@@ -60,7 +58,7 @@ export default function LearnCourseDetailPage({ params }: { params: Promise<{ id
     const appliedFocusRef = useRef(false);
     const [expandedLessons, setExpandedLessons] = useState<Set<string>>(new Set());
     const [selectedWords, setSelectedWords] = useState<Set<string>>(new Set());
-    const [dueWordsLimit, setDueWordsLimit] = useState(readDueWordsLimitFromStorage);
+    const { dueWordsLimit, setDueWordsLimit } = useDueWordsLimit();
     const [viewingWord, setViewingWord] = useState<IWord | null>(null);
     const [actionsMenuOpen, setActionsMenuOpen] = useState(false);
 
@@ -77,10 +75,6 @@ export default function LearnCourseDetailPage({ params }: { params: Promise<{ id
             setLastLearnCourse({ id: course.id, name: course.name });
         }
     }, [course]);
-
-    useEffect(() => {
-        setLocalStorageItem(DUE_WORDS_LIMIT_STORAGE_KEY, JSON.stringify(dueWordsLimit));
-    }, [dueWordsLimit]);
 
     // When opening from nav word search: expand the target lesson
     useEffect(() => {
