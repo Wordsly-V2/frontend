@@ -75,7 +75,7 @@ export default function LearnPage() {
 
     return (
         <main className="min-h-dvh">
-            <div className="container mx-auto max-w-5xl px-3 pb-24 pt-5 sm:px-4 sm:pb-12 sm:pt-6 md:py-8 lg:max-w-6xl lg:pb-12">
+            <div className="container mx-auto max-w-5xl px-3 pb-24 pt-5 sm:px-4 sm:pb-12 sm:pt-6 md:py-8">
                 <div className="mb-3 flex justify-end">
                     <Button
                         type="button"
@@ -89,47 +89,27 @@ export default function LearnPage() {
                     </Button>
                 </div>
 
-                <div className="lg:grid lg:grid-cols-3 lg:items-start lg:gap-6">
-                    {/* Primary column — hero + course path (span 2 at lg). */}
-                    <div className="lg:col-span-2">
-                        <DailyHero />
+                <DailyHero />
 
-                        {/* Below lg the habit card + full progress sit inline here. */}
-                        <div className="lg:hidden">
-                            <DailyHabitCard />
-                            <section className="glass-surface mb-8 rounded-3xl">
-                                <h2 className="px-5 py-4 font-display text-base font-bold">
-                                    Your progress
-                                </h2>
-                                <div className="space-y-6 px-5 pb-5">
-                                    {progressStatsCards}
-                                    {learningProgress}
-                                    <LearningProgressChart
-                                        stats={wordProgressStats}
-                                        isLoading={isLoadingProgressStats}
-                                        isError={isErrorProgressStats}
-                                    />
-                                </div>
-                            </section>
-                        </div>
+                <DailyHabitCard />
 
-                        <CoursePath />
+                {/* Progress — surfaced above the course list */}
+                <section className="glass-surface mb-8 rounded-3xl">
+                    <h2 className="px-5 py-4 font-display text-base font-bold">
+                        Your progress
+                    </h2>
+                    <div className="space-y-6 px-5 pb-5">
+                        {progressStatsCards}
+                        {learningProgress}
+                        <LearningProgressChart
+                            stats={wordProgressStats}
+                            isLoading={isLoadingProgressStats}
+                            isError={isErrorProgressStats}
+                        />
                     </div>
+                </section>
 
-                    {/* Sticky side column at lg — habit card + condensed progress. */}
-                    <aside className="hidden lg:sticky lg:top-24 lg:block lg:self-start">
-                        <DailyHabitCard />
-                        <section className="glass-surface rounded-3xl">
-                            <h2 className="px-5 py-4 font-display text-base font-bold">
-                                Your progress
-                            </h2>
-                            <div className="space-y-6 px-5 pb-5">
-                                {progressStatsCards}
-                                {learningProgress}
-                            </div>
-                        </section>
-                    </aside>
-                </div>
+                <CoursePath />
             </div>
 
             <PracticeSettingsDialog
