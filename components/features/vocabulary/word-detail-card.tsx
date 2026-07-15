@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { AdaptiveText } from "@/components/common/adaptive-text";
-import { LONG_TEXT_WRAP, SCROLLABLE_BODY } from "@/lib/long-text";
+import { LONG_TEXT_WRAP } from "@/lib/long-text";
 import { handleAudioPlayError } from "@/lib/audio-playback";
 import { cn } from "@/lib/utils";
 import { getPlayPhraseSearchUrl } from "@/lib/playphrase";
@@ -22,7 +22,7 @@ export interface WordDetailCardProps {
     layout?: "horizontal" | "stack";
     /** Card style: "default" (neutral), "compact" (smaller). */
     variant?: "default" | "compact";
-    /** When true, card fits in viewport; only examples section scrolls (like practice-result-dialog). */
+    /** When true, card fits in viewport; the whole card body scrolls. */
     constrainHeight?: boolean;
     className?: string;
 }
@@ -67,11 +67,11 @@ export default function WordDetailCard({
                     layout === "stack"
                         ? cn(
                               "flex flex-col",
-                              constrainHeight && "flex-1 min-h-0",
+                              constrainHeight && "flex-1 min-h-0 overflow-y-auto overscroll-contain",
                           )
                         : cn(
                               "flex flex-col sm:flex-row gap-4 sm:gap-6 items-stretch",
-                              constrainHeight && "flex-1 min-h-0",
+                              constrainHeight && "flex-1 min-h-0 overflow-y-auto overscroll-contain",
                           )
                 }
             >
@@ -94,7 +94,7 @@ export default function WordDetailCard({
                         />
                     </div>
                 )}
-                <div className={`flex-1 min-w-0 flex flex-col p-4 sm:p-5 md:p-6 ${constrainHeight ? "min-h-0 overflow-hidden" : ""}`}>
+                <div className="flex-1 min-w-0 flex flex-col p-4 sm:p-5 md:p-6">
                     <div className="flex items-start justify-between gap-3 shrink-0">
                         <div className="min-w-0 flex-1">
                             <AdaptiveText
@@ -144,10 +144,11 @@ export default function WordDetailCard({
                             )}
                         </div>
                     </div>
-                    <div className={constrainHeight ? cn(SCROLLABLE_BODY, "mt-2 sm:mt-3") : "mt-2 sm:mt-3"}>
+                    <div className="mt-2 sm:mt-3">
                         <AdaptiveText
                             text={word.meaning}
                             role="meaning"
+                            scrollWhenLong={!constrainHeight}
                             className={`text-foreground/90 ${isCompact ? "!text-sm sm:!text-base" : ""}`}
                         />
                         {examples.length > 0 && (
@@ -161,6 +162,7 @@ export default function WordDetailCard({
                                             <AdaptiveText
                                                 text={`"${ex}"`}
                                                 role="example"
+                                                scrollWhenLong={!constrainHeight}
                                                 className={`text-foreground/90 italic ${isCompact ? "!text-xs sm:!text-sm" : ""}`}
                                             />
                                         </li>
