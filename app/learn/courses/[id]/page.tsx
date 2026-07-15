@@ -23,9 +23,11 @@ import {
     DUE_WORDS_LIMIT_OPTIONS,
     deriveNewWordIds,
     getLearnNewButtonLabel,
+    getPacingBannerCopy,
     getPracticeBannerCopy,
     getReviewDueButtonLabel,
 } from "@/lib/due-words-limit";
+import { DifficultWordsCard } from "@/components/features/learn/difficult-words-card";
 import { useDueWordsLimit } from "@/hooks/useDueWordsLimit.hook";
 import { setLastLearnCourse } from "@/lib/learning-session";
 import { buildPracticeUrl } from "@/lib/practice-session";
@@ -194,6 +196,16 @@ export default function LearnCourseDetailPage({ params }: { params: Promise<{ id
         courseStats?.dueToday,
         courseStats?.newWords,
     );
+
+    const pacingBanner = getPacingBannerCopy(
+        practiceBatch?.pacing ?? dueWordIds?.pacing,
+    );
+
+    // Word lookup for the difficult-words card (resolves leech ids → text).
+    const wordsById: Record<string, IWord> = {};
+    for (const word of allWords) {
+        wordsById[word.id] = word;
+    }
 
     const toggleLesson = (lessonId: string) => {
         const newExpanded = new Set(expandedLessons);
@@ -430,6 +442,25 @@ export default function LearnCourseDetailPage({ params }: { params: Promise<{ id
                         </div>
                     </div>
                 )}
+
+                {/* Daily pacing banner — shown once a daily limit is reached */}
+                {pacingBanner && (
+                    <div className="mb-6 rounded-2xl border border-amber-200/80 bg-amber-50/90 p-4 dark:border-amber-800/50 dark:bg-amber-950/30">
+                        <p className="text-sm font-semibold text-amber-900 dark:text-amber-100">
+                            {pacingBanner.title}
+                        </p>
+                        <p className="mt-0.5 text-xs text-amber-700/90 dark:text-amber-300/90">
+                            {pacingBanner.subtitle}
+                        </p>
+                    </div>
+                )}
+
+                {/* Tricky (leech) words — remediation */}
+                <DifficultWordsCard
+                    courseId={id}
+                    courseName={course.name}
+                    wordsById={wordsById}
+                />
 
                 {/* Word Progress Stats */}
                 <LearningProgressSection

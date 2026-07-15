@@ -5,16 +5,24 @@ import {
     saveSessionResults,
 } from "@/lib/practice-session-persistence";
 import { fireCelebrationConfetti } from "@/lib/confetti";
-import { getUserLevel } from "@/apis/user-level.api";
 import { queryKeys } from "@/lib/query-keys";
 import { userLevelQueryKey } from "@/queries/user-level.query";
 import type { SessionCompletePayload } from "@/types/practice/practice.type";
 import type { IUserLevel } from "@/types/user-level/user-level.type";
-import type { IWordProgressResponse } from "@/types/word-progress/word-progress.type";
+import type {
+    ILevelEvent,
+    IWordProgressResponse,
+} from "@/types/word-progress/word-progress.type";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
+
+/** Result of a live session sync, surfaced to the summary for celebration. */
+export interface SessionSyncResult {
+    levelEvent?: ILevelEvent;
+    xpMultiplier: number;
+}
 
 interface UsePracticeSessionPersistenceOptions {
     courseId: string;
@@ -31,6 +39,8 @@ export function usePracticeSessionPersistence({
     const queryClient = useQueryClient();
     const [savedOnce, setSavedOnce] = useState(false);
     const [hasUnsavedPractice, setHasUnsavedPractice] = useState(false);
+    const [sessionSyncResult, setSessionSyncResult] =
+        useState<SessionSyncResult | null>(null);
 
     const invalidateProgressQueries = useCallback(async () => {
         await queryClient.invalidateQueries({ queryKey: queryKeys.wordProgress.all });
@@ -52,37 +62,41 @@ export function usePracticeSessionPersistence({
         return () => globalThis.removeEventListener("beforeunload", onBeforeUnload);
     }, [hasUnsavedPractice]);
 
-    // Re-fetch the level after a session and celebrate if it crossed a boundary.
-    // Non-critical: any failure is swallowed so it never blocks the save flow.
-    const refreshLevelAndCelebrate = useCallback(async () => {
-        const previous = queryClient.getQueryData<IUserLevel>(
-            userLevelQueryKey(),
-        );
-        try {
-            const next = await getUserLevel();
-            queryClient.setQueryData(userLevelQueryKey(), next);
-            if (previous && next.level > previous.level) {
-                fireCelebrationConfetti();
-                toast.success(
-                    `Level up! You reached level ${next.level} — ${next.rank} 🎉`,
-                    { duration: 5000 },
-                );
-            }
-        } catch {
-            // Ignore — leveling is a non-blocking enhancement.
-        }
-    }, [queryClient]);
+    // Refresh the cached level snapshot from a live sync's authoritative level
+    // event, so the level UI elsewhere reflects the XP just earned. The visible
+    // level-up celebration itself is owned by the session summary.
+    const applyLevelEvent = useCallback(
+        (levelEvent: ILevelEvent) => {
+            const snapshot: IUserLevel = {
+                level: levelEvent.level,
+                rank: levelEvent.rank,
+                totalXp: levelEvent.totalXp,
+                currentLevelXp: levelEvent.currentLevelXp,
+                xpForThisLevel: levelEvent.xpForThisLevel,
+                xpToNextLevel: levelEvent.xpToNextLevel,
+                progress: levelEvent.progress,
+            };
+            queryClient.setQueryData(userLevelQueryKey(), snapshot);
+        },
+        [queryClient],
+    );
 
     const persistSessionInBackground = useCallback(
         async (payload: SessionCompletePayload) => {
             try {
-                const outcome = await saveSessionResults(payload);
+                const result = await saveSessionResults(payload);
                 await invalidateProgressQueries();
 
-                if (outcome === "queued") {
+                if (result.outcome === "queued") {
                     toast.warning("Saved locally — we will sync when you are back online.");
                 } else {
-                    await refreshLevelAndCelebrate();
+                    // Live sync: surface the server-authoritative XP/level info to
+                    // the summary so it can celebrate with real numbers.
+                    if (result.levelEvent) applyLevelEvent(result.levelEvent);
+                    setSessionSyncResult({
+                        levelEvent: result.levelEvent,
+                        xpMultiplier: result.xpMultiplier ?? 1,
+                    });
                 }
             } catch {
                 setHasUnsavedPractice(true);
@@ -90,7 +104,7 @@ export function usePracticeSessionPersistence({
                 toast.error("Could not save progress. It is queued for retry.");
             }
         },
-        [invalidateProgressQueries, refreshLevelAndCelebrate],
+        [invalidateProgressQueries, applyLevelEvent],
     );
 
     // Commit the graded results (optimistic cache update + background sync)
@@ -139,5 +153,7 @@ export function usePracticeSessionPersistence({
         saveSession,
         persistSession,
         isPersisting: false,
+        /** Populated once a LIVE sync returns; null while offline/queued. */
+        sessionSyncResult,
     };
 }

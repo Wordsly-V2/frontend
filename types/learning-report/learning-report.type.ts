@@ -81,3 +81,37 @@ export const REPORT_PERIOD_LABELS: Record<ReportPeriod, string> = {
     month: "Month",
     year: "Year",
 };
+
+/** Selectable forecast windows. */
+export type ForecastDays = 7 | 30;
+
+export interface IForecastBucket {
+    /** 'YYYY-MM-DD'. */
+    date: string;
+    count: number;
+}
+
+/** Response for GET /learning-report/forecast. */
+export interface IReviewForecast {
+    days: number;
+    start: string;
+    /** Reviews already overdue (not counted in the per-day buckets). */
+    overdue: number;
+    /** Total reviews across the window (incl. overdue). */
+    total: number;
+    buckets: IForecastBucket[];
+}
+
+export interface IActivityDay {
+    /** 'YYYY-MM-DD'. */
+    date: string;
+    wordsPracticed: number;
+    goalMet: boolean;
+}
+
+/** Response for GET /learning-report/activity-calendar. */
+export interface IActivityCalendar {
+    start: string;
+    end: string;
+    days: IActivityDay[];
+}

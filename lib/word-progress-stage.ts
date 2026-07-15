@@ -150,6 +150,9 @@ export function buildPracticeSessionPlan(
 
 export function isLeechWord(progress: IWordProgressResponse | null | undefined): boolean {
     if (!progress) return false;
+    // Prefer the server-authoritative flag when present; fall back to the
+    // success-rate heuristic for progress rows that predate it.
+    if (typeof progress.isLeech === "boolean") return progress.isLeech;
     return (
         progress.totalReviews >= PEDAGOGY.leechMinReviews &&
         progress.successRate < PEDAGOGY.leechSuccessRateMax
@@ -185,6 +188,8 @@ export function inferPracticeSessionKind(
     counts: SessionStageCounts,
     urlKind: PracticeSessionKind,
 ): PracticeSessionKind {
+    // A leech remediation session is explicit — never re-inferred from counts.
+    if (urlKind === "leech") return "leech";
     if (urlKind === "review") return "review";
     if (counts.new === 0 && (counts.due > 0 || counts.learning > 0)) return "review";
     return "new";

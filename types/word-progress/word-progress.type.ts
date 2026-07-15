@@ -35,6 +35,74 @@ export interface IWordProgressResponse {
     totalReviews: number;
     correctReviews: number;
     successRate: number;
+    /** FSRS card state (e.g. "New" | "Learning" | "Review" | "Relearning"). */
+    state?: string;
+    /** Number of times the word lapsed (forgotten after being learned). */
+    lapses?: number;
+    /** Server-authoritative leech flag; prefer over the client heuristic. */
+    isLeech?: boolean;
+    /** When the word was auto-suspended as a leech, else null/absent. */
+    suspendedAt?: string | Date | null;
+}
+
+/** Level snapshot + XP delta returned by the bulk-sync endpoint. */
+export interface ILevelEvent {
+    level: number;
+    rank: string;
+    totalXp: number;
+    currentLevelXp: number;
+    xpForThisLevel: number;
+    xpToNextLevel: number;
+    progress: number;
+    /** XP earned by this batch of answers. */
+    xpEarned: number;
+    /** True when this batch pushed the learner across a level boundary. */
+    leveledUp: boolean;
+    previousLevel: number;
+}
+
+/** Response shape for POST /word-progress/record-answer/bulk-sync. */
+export interface IBulkRecordAnswersResponse {
+    results: IWordProgressResponse[];
+    levelEvent?: ILevelEvent;
+    /** Streak-bonus multiplier applied to XP (1 = no bonus). */
+    xpMultiplier: number;
+}
+
+/** Daily pacing snapshot returned alongside due-word-ids. */
+export interface IDailyPacing {
+    newWordsRemainingToday: number;
+    reviewsRemainingToday: number;
+    dailyNewWordLimit: number;
+    dailyReviewLimit: number;
+}
+
+/** Response shape for the due-word-ids endpoints (ids + optional pacing). */
+export interface IDueWordIdsResponse {
+    wordIds: string[];
+    pacing?: IDailyPacing;
+}
+
+/** A leech (repeatedly-failed) word surfaced for remediation. */
+export interface ILeechWord {
+    wordId: string;
+    lapses: number;
+    state: string;
+    totalReviews: number;
+    correctReviews: number;
+    successRate: number;
+    suspendedAt: string | null;
+    nextReviewAt: string;
+}
+
+export interface ILeechesResponse {
+    leeches: ILeechWord[];
+}
+
+/** Scope for the leeches query. */
+export interface LeechScope {
+    courseId?: string;
+    lessonId?: string;
 }
 
 export interface IDueWord extends IWordProgressResponse {

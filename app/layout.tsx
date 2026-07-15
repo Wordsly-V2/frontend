@@ -1,5 +1,6 @@
 import AppNav from '@/components/common/app-nav/app-nav';
 import { BottomTabBar } from '@/components/common/app-nav/bottom-tab-bar';
+import { ServiceWorkerRegistration } from '@/components/common/pwa/service-worker-registration';
 import { Toaster } from '@/components/ui/sonner';
 import type { Metadata, Viewport } from 'next';
 import { Baloo_2, Geist_Mono, Nunito } from 'next/font/google';
@@ -33,6 +34,7 @@ export const viewport: Viewport = {
     width: 'device-width',
     initialScale: 1,
     viewportFit: 'cover',
+    themeColor: '#7c3aed',
 };
 
 export default function RootLayout({
@@ -51,6 +53,7 @@ export default function RootLayout({
                         {children}
                         <BottomTabBar />
                         <Toaster />
+                        <ServiceWorkerRegistration />
                     </Providers>
                 </NuqsAdapter>
             </body>

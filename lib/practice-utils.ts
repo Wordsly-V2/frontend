@@ -1,4 +1,4 @@
-import { IWord } from "@/types/courses/courses.type";
+import { IWord, IWordExample } from "@/types/courses/courses.type";
 
 export const MASK_PLACEHOLDER = "***";
 
@@ -11,13 +11,47 @@ export function shuffleArray<T>(array: T[]): T[] {
     return shuffled;
 }
 
-export function getWordExamples(word: Pick<IWord, "example">): string[] {
+/** Parse the legacy `example` JSON string into a list of sentence strings. */
+function parseLegacyExamples(example: string | undefined): string[] {
     try {
-        const ex = JSON.parse(word.example ?? "[]");
+        const ex = JSON.parse(example ?? "[]");
         return Array.isArray(ex) ? ex.filter((e): e is string => typeof e === "string") : [];
     } catch {
         return [];
     }
+}
+
+/**
+ * Example sentence texts for a word. Prefers the structured `examples` array
+ * (new dictionary-enriched shape); falls back to the legacy `example` JSON
+ * string so cloze/context/masking keep working for older data.
+ */
+export function getWordExamples(word: Pick<IWord, "example" | "examples">): string[] {
+    if (word.examples && word.examples.length > 0) {
+        return word.examples
+            .map((e) => e.text)
+            .filter((t): t is string => typeof t === "string" && t.trim().length > 0);
+    }
+    return parseLegacyExamples(word.example);
+}
+
+/**
+ * Full example objects for audio-aware display (text + optional translation and
+ * per-example audio). Legacy string examples are lifted into objects with a
+ * synthetic id and no audio so callers can render both shapes uniformly.
+ */
+export function getWordExampleObjects(
+    word: Pick<IWord, "example" | "examples">,
+): IWordExample[] {
+    if (word.examples && word.examples.length > 0) {
+        return [...word.examples]
+            .filter((e) => typeof e.text === "string" && e.text.trim().length > 0)
+            .sort((a, b) => (a.orderIndex ?? 0) - (b.orderIndex ?? 0));
+    }
+    return parseLegacyExamples(word.example).map((text, index) => ({
+        id: `legacy-${index}`,
+        text,
+    }));
 }
 
 export function maskWordInExamples(word: string, examples: string[]): string[] {

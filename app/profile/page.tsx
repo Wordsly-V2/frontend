@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { NotificationReminderCard } from "@/components/features/profile/notification-reminder-card";
 import { RecentSessions } from "@/components/features/profile/recent-sessions";
 import { useUser } from "@/hooks/useUser.hook";
 import { Info } from "lucide-react";
@@ -104,6 +105,8 @@ export default function ProfilePage() {
                         </div>
                     </CardContent>
                 </Card>
+
+                <NotificationReminderCard />
 
                 <RecentSessions />
             </div>

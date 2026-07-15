@@ -10,6 +10,7 @@ export const SETTINGS_STORAGE_KEY = 'vocabulary-practice-settings';
 export const MIXED_PRACTICE_MODES = [
     'listening',
     'context',
+    'speaking',
     'word-bank',
     'cloze',
 ] as const;
@@ -22,6 +23,7 @@ export type PracticeMode =
     | 'context'
     | 'word-bank'
     | 'listening'
+    | 'speaking'
     | 'cloze'
     | 'mixed';
 
@@ -33,6 +35,8 @@ export interface PracticeSettings {
     showExampleHints: boolean;
     showImageHints: boolean;
     soundEnabled: boolean;
+    /** Use the speaking (pronunciation) exercise when the browser supports it. */
+    speakingEnabled: boolean;
 }
 
 export const DEFAULT_PRACTICE_SETTINGS: PracticeSettings = {
@@ -42,11 +46,13 @@ export const DEFAULT_PRACTICE_SETTINGS: PracticeSettings = {
     showExampleHints: true,
     showImageHints: true,
     soundEnabled: false,
+    speakingEnabled: true,
 };
 
 /** Every selectable practice mode (concrete methods + meta modes). */
 const VALID_PRACTICE_MODES = new Set<string>([
     ...MIXED_PRACTICE_MODES,
+    'speaking',
     'flashcard',
     'mixed',
 ]);
@@ -88,6 +94,7 @@ export function parsePracticeSettings(
             showExampleHints: parsed.showExampleHints ?? initial.showExampleHints,
             showImageHints: parsed.showImageHints ?? initial.showImageHints,
             soundEnabled: parsed.soundEnabled ?? initial.soundEnabled,
+            speakingEnabled: parsed.speakingEnabled ?? initial.speakingEnabled,
         };
     } catch {
         return initial;
@@ -107,12 +114,14 @@ export const NEW_WORD_MIXED_MODES = [
 export const LEARNING_MIXED_MODES = [
     'listening',
     'context',
+    'speaking',
     'word-bank',
     'cloze',
 ] as const;
 export const REVIEW_MIXED_MODES = [
     'listening',
     'context',
+    'speaking',
     'cloze',
     'word-bank',
 ] as const;
@@ -144,11 +153,17 @@ function applyModeFallbacks(
     mode: ActivePracticeMode,
     clozeAvailable: boolean,
     listeningAvailable: boolean,
+    speakingAvailable: boolean,
 ): ActivePracticeMode {
     // Cloze (pick word in a sentence) and context (type word in a sentence)
     // both need an example; fall back when the word has none.
     if ((mode === 'cloze' || mode === 'context') && !clozeAvailable) {
         return resolveClozeFallback(listeningAvailable);
+    }
+    // Speaking needs speech recognition (browser support + user setting): fall
+    // back to listening when there's audio, otherwise the always-renderable bank.
+    if (mode === 'speaking' && !speakingAvailable) {
+        return listeningAvailable ? 'listening' : 'word-bank';
     }
     return mode;
 }
@@ -173,6 +188,8 @@ export interface MixedModePlanOptions {
     leechWordIds?: Set<string>;
     /** Restrict the mix to these methods (user choice). Empty/undefined = all. */
     enabledModes?: readonly string[];
+    /** Session capability: speech recognition supported and enabled by the user. */
+    speakingAvailable?: boolean;
 }
 
 /** Assign an evidence-based practice method to each word in a mixed session. */
@@ -181,7 +198,7 @@ export function buildMixedModePlan(
     stagesByWordId?: Record<string, WordLearningStage>,
     options?: MixedModePlanOptions,
 ): Map<string, ActivePracticeMode> {
-    const { leechWordIds, enabledModes } = options ?? {};
+    const { leechWordIds, enabledModes, speakingAvailable = false } = options ?? {};
     const enabled =
         enabledModes && enabledModes.length > 0 ? new Set(enabledModes) : null;
     const plan = new Map<string, ActivePracticeMode>();
@@ -212,6 +229,7 @@ export function buildMixedModePlan(
             allowed,
             isLeech: leechWordIds?.has(word.id) ?? false,
             preferProduction,
+            speakingAvailable,
             newWordRound: stage === 'new' ? newWordRound : undefined,
             productionSlotIndex,
             recognitionSlotIndex,
@@ -232,16 +250,25 @@ export function resolveActiveMode(
     assignedMixedMode?: ActivePracticeMode,
     fallbackIndex = 0,
     fallbackStage: WordLearningStage = 'learning',
+    speakingAvailable = false,
 ): ActivePracticeMode {
     if (settingsMode === 'mixed') {
         const modes = mixedModesForStage(fallbackStage);
         const mode =
             assignedMixedMode ??
             (modes[fallbackIndex % modes.length] as ActivePracticeMode);
-        return applyModeFallbacks(mode, clozeAvailable, listeningAvailable);
+        return applyModeFallbacks(
+            mode,
+            clozeAvailable,
+            listeningAvailable,
+            speakingAvailable,
+        );
     }
     if ((settingsMode === 'cloze' || settingsMode === 'context') && !clozeAvailable) {
         return resolveClozeFallback(listeningAvailable);
+    }
+    if (settingsMode === 'speaking' && !speakingAvailable) {
+        return listeningAvailable ? 'listening' : 'word-bank';
     }
     return settingsMode;
 }

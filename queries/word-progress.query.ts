@@ -2,6 +2,7 @@ import {
     getDueWordIds,
     getDueWordIdsByWordIds,
     getDueWords,
+    getLeeches,
     getProgressByWordIds,
     getProgressStats,
     getProgressStatsByCourseIds,
@@ -9,20 +10,25 @@ import {
     getProgressStatsByWordIds,
     getWordProgress,
     recordAnswerBulkSync,
-    resetProgress
+    resetProgress,
+    unsuspendWord
 } from "@/apis/word-progress.api";
 import { queryKeys } from "@/lib/query-keys";
 import {
     IBulkRecordAnswersDto,
+    IBulkRecordAnswersResponse,
     IDueWord,
+    IDueWordIdsResponse,
+    ILeechesResponse,
     IWordProgressResponse,
     IWordProgressStats,
+    LeechScope,
     WordProgressScope
 } from "@/types/word-progress/word-progress.type";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 export const useRecordAnswerBulkSyncMutation = () => {
-    return useMutation<IWordProgressResponse[], Error, IBulkRecordAnswersDto>({
+    return useMutation<IBulkRecordAnswersResponse, Error, IBulkRecordAnswersDto>({
         mutationFn: recordAnswerBulkSync,
     });
 };
@@ -39,7 +45,7 @@ export const useGetDueWordsQuery = (
 export const useGetDueWordIdsQuery = (
     scope: WordProgressScope = {},
     enabled: boolean = true
-) => useQuery<{ wordIds: string[] }>({
+) => useQuery<IDueWordIdsResponse>({
     queryKey: queryKeys.dueWordIds.list(scope),
     queryFn: () => getDueWordIds(scope),
     enabled,
@@ -50,7 +56,7 @@ export const useGetDueWordIdsByWordIdsQuery = (
     limit?: number,
     includeNew?: boolean,
     enabled: boolean = true,
-) => useQuery<{ wordIds: string[] }>({
+) => useQuery<IDueWordIdsResponse>({
     queryKey: queryKeys.dueWordIds.byWordIds(wordIds, limit, includeNew),
     queryFn: () => getDueWordIdsByWordIds(wordIds, limit, includeNew),
     enabled: enabled && wordIds.length > 0,
@@ -110,6 +116,31 @@ export const useGetWordProgressQuery = (
     queryFn: () => getWordProgress(wordId),
     enabled,
 });
+
+export const useGetLeechesQuery = (
+    scope: LeechScope = {},
+    enabled: boolean = true,
+) => useQuery<ILeechesResponse>({
+    queryKey: queryKeys.leeches.list(scope.courseId, scope.lessonId),
+    queryFn: () => getLeeches(scope),
+    enabled,
+});
+
+export const useUnsuspendWordMutation = () => {
+    const queryClient = useQueryClient();
+
+    return useMutation<{ success: boolean }, Error, string>({
+        mutationFn: unsuspendWord,
+        onSuccess: () => {
+            // Unsuspending re-enters the word into the review/due queues and
+            // clears its leech/suspended state, so refresh those roots.
+            queryClient.invalidateQueries({ queryKey: queryKeys.wordProgress.all });
+            queryClient.invalidateQueries({ queryKey: queryKeys.dueWords.all });
+            queryClient.invalidateQueries({ queryKey: queryKeys.dueWordIds.all });
+            queryClient.invalidateQueries({ queryKey: queryKeys.leeches.all });
+        },
+    });
+};
 
 export const useResetProgressMutation = () => {
     const queryClient = useQueryClient();

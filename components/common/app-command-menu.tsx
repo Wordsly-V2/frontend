@@ -10,12 +10,14 @@ import {
     CommandSeparator,
     CommandShortcut,
 } from "@/components/ui/command";
+import { DictionaryLookupDialog } from "@/components/features/dictionary/dictionary-lookup-dialog";
 import { useUser } from "@/hooks/useUser.hook";
 import {
     BookOpen,
     GraduationCap,
     Home,
     LayoutDashboard,
+    Search,
     User,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -23,6 +25,7 @@ import { useEffect, useState } from "react";
 
 export function AppCommandMenu() {
     const [open, setOpen] = useState(false);
+    const [lookupOpen, setLookupOpen] = useState(false);
     const router = useRouter();
     const { profile } = useUser();
 
@@ -53,7 +56,13 @@ export function AppCommandMenu() {
         router.push(href);
     };
 
+    const openLookup = () => {
+        setOpen(false);
+        setLookupOpen(true);
+    };
+
     return (
+        <>
         <CommandDialog open={open} onOpenChange={setOpen} title="Command palette" description="Go to a page">
             <CommandInput placeholder="Search pages…" />
             <CommandList>
@@ -84,6 +93,13 @@ export function AppCommandMenu() {
                             >
                                 <GraduationCap className="text-muted-foreground" />
                                 <span>Manage courses</span>
+                            </CommandItem>
+                            <CommandItem
+                                className="cursor-pointer"
+                                onSelect={openLookup}
+                            >
+                                <Search className="text-muted-foreground" />
+                                <span>Look up a word</span>
                             </CommandItem>
                         </CommandGroup>
                         <CommandSeparator />
@@ -121,5 +137,9 @@ export function AppCommandMenu() {
                 </CommandGroup>
             </CommandList>
         </CommandDialog>
+        {profile && (
+            <DictionaryLookupDialog open={lookupOpen} onOpenChange={setLookupOpen} />
+        )}
+        </>
     );
 }

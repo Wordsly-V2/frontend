@@ -7,6 +7,7 @@ import {
     useState,
 } from "react";
 import { usePracticeSettings } from "@/hooks/usePracticeSettings.hook";
+import { useSpeechRecognitionSupported } from "@/hooks/useSpeechRecognition.hook";
 import { useDueWordsLimit, setDueWordsLimit } from "@/hooks/useDueWordsLimit.hook";
 import {
     MIXED_PRACTICE_MODES,
@@ -19,7 +20,15 @@ import {
     useDailyHabitDisplay,
     useUpdateDailyGoalMutation,
 } from "@/queries/daily-habit.query";
+import {
+    useGetLearningSettingsQuery,
+    useUpdateLearningSettingsMutation,
+} from "@/queries/learning-settings.query";
 import { DAILY_GOAL_OPTIONS } from "@/types/daily-habit/daily-habit.type";
+import {
+    DAILY_NEW_WORD_LIMIT_OPTIONS,
+    DAILY_REVIEW_LIMIT_OPTIONS,
+} from "@/types/learning-settings/learning-settings.type";
 import { getPracticeModeMeta } from "@/lib/practice-mode-meta";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -38,6 +47,9 @@ import {
     Bell,
     ListOrdered,
     Target,
+    Sunrise,
+    RefreshCw,
+    Mic,
 } from "lucide-react";
 
 // Re-exported from lib/practice-settings (their canonical home) so existing
@@ -82,6 +94,8 @@ function PracticeSettingsForm({
     const [tempShowExampleHints, setTempShowExampleHints] = useState(currentSettings.showExampleHints);
     const [tempShowImageHints, setTempShowImageHints] = useState(currentSettings.showImageHints);
     const [tempSoundEnabled, setTempSoundEnabled] = useState(currentSettings.soundEnabled);
+    const [tempSpeakingEnabled, setTempSpeakingEnabled] = useState(currentSettings.speakingEnabled);
+    const speechSupported = useSpeechRecognitionSupported();
 
     // Preserve the canonical mix order so the plan rotates predictably.
     const toggleMixedMode = (method: MixedPracticeMethod) => {
@@ -104,6 +118,7 @@ function PracticeSettingsForm({
             showExampleHints: tempShowExampleHints,
             showImageHints: tempShowImageHints,
             soundEnabled: tempSoundEnabled,
+            speakingEnabled: tempSpeakingEnabled,
         });
         if (includeSessionPrefs) sessionPrefsRef.current?.commit();
         onClose();
@@ -157,7 +172,10 @@ function PracticeSettingsForm({
                                 Choose which methods to mix. All are on for the strongest recall.
                             </p>
                             <div className="flex flex-wrap gap-2">
-                                {MIXED_PRACTICE_MODES.map((method) => {
+                                {/* Speaking has its own capability toggle below. */}
+                                {MIXED_PRACTICE_MODES.filter(
+                                    (method) => method !== "speaking",
+                                ).map((method) => {
                                     const meta = getPracticeModeMeta(method);
                                     const MethodIcon = meta.icon;
                                     const selected = tempMixedModes.includes(method);
@@ -258,6 +276,25 @@ function PracticeSettingsForm({
                             onCheckedChange={setTempSoundEnabled}
                         />
                     </div>
+                    <div className="flex items-start justify-between gap-4">
+                        <div className="flex-1">
+                            <Label htmlFor="speaking-enabled" className="text-sm font-medium flex items-center gap-2">
+                                <Mic className="h-4 w-4 text-muted-foreground" />
+                                Speaking practice
+                            </Label>
+                            <p className="text-xs text-muted-foreground mt-1">
+                                {speechSupported
+                                    ? "Say the word out loud and we'll check your pronunciation"
+                                    : "Not supported in this browser"}
+                            </p>
+                        </div>
+                        <Switch
+                            id="speaking-enabled"
+                            checked={tempSpeakingEnabled && speechSupported}
+                            onCheckedChange={setTempSpeakingEnabled}
+                            disabled={!speechSupported}
+                        />
+                    </div>
                 </div>
 
                 {includeSessionPrefs && <SessionPrefsFields ref={sessionPrefsRef} />}
@@ -284,11 +321,24 @@ const SessionPrefsFields = forwardRef<SessionPrefsHandle>(function SessionPrefsF
     const { dueWordsLimit } = useDueWordsLimit();
     const { goal } = useDailyHabitDisplay();
     const updateGoal = useUpdateDailyGoalMutation();
+    const { data: learningSettings } = useGetLearningSettingsQuery();
+    const updateLearningSettings = useUpdateLearningSettingsMutation();
 
     const [tempLimit, setTempLimit] = useState(dueWordsLimit);
     // Null until the user picks — falls back to the current (or default) goal.
     const [tempGoal, setTempGoal] = useState<number | null>(null);
     const selectedGoal = tempGoal ?? goal ?? DAILY_GOAL_OPTIONS[1];
+    // Null until the user picks — falls back to the server (or default) limits.
+    const [tempNewWordLimit, setTempNewWordLimit] = useState<number | null>(null);
+    const [tempReviewLimit, setTempReviewLimit] = useState<number | null>(null);
+    const selectedNewWordLimit =
+        tempNewWordLimit ??
+        learningSettings?.dailyNewWordLimit ??
+        DAILY_NEW_WORD_LIMIT_OPTIONS[1];
+    const selectedReviewLimit =
+        tempReviewLimit ??
+        learningSettings?.dailyReviewLimit ??
+        DAILY_REVIEW_LIMIT_OPTIONS[1];
 
     useImperativeHandle(ref, () => ({
         commit: () => {
@@ -297,6 +347,21 @@ const SessionPrefsFields = forwardRef<SessionPrefsHandle>(function SessionPrefsF
                 updateGoal.mutate(
                     { dailyGoal: tempGoal },
                     { onError: () => toast.error("Couldn't update your daily goal") },
+                );
+            }
+            const newWordChanged =
+                tempNewWordLimit != null &&
+                tempNewWordLimit !== learningSettings?.dailyNewWordLimit;
+            const reviewChanged =
+                tempReviewLimit != null &&
+                tempReviewLimit !== learningSettings?.dailyReviewLimit;
+            if (newWordChanged || reviewChanged) {
+                updateLearningSettings.mutate(
+                    {
+                        ...(newWordChanged ? { dailyNewWordLimit: tempNewWordLimit } : {}),
+                        ...(reviewChanged ? { dailyReviewLimit: tempReviewLimit } : {}),
+                    },
+                    { onError: () => toast.error("Couldn't update your daily limits") },
                 );
             }
         },
@@ -358,6 +423,62 @@ const SessionPrefsFields = forwardRef<SessionPrefsHandle>(function SessionPrefsF
                     </select>
                 </div>
             </div>
+
+            <div className="space-y-4 pt-4 border-t border-border">
+                <div>
+                    <Label className="text-sm font-medium">Daily limits</Label>
+                    <p className="text-xs text-muted-foreground mt-1">
+                        Cap how much new material and review each day so practice
+                        stays steady.
+                    </p>
+                </div>
+                <div className="flex items-center justify-between gap-4">
+                    <div className="flex-1">
+                        <Label htmlFor="daily-new-word-limit" className="text-sm font-medium flex items-center gap-2">
+                            <Sunrise className="h-4 w-4 text-muted-foreground" />
+                            New words / day
+                        </Label>
+                        <p className="text-xs text-muted-foreground mt-1">
+                            Most new words we&apos;ll introduce in a day
+                        </p>
+                    </div>
+                    <select
+                        id="daily-new-word-limit"
+                        value={selectedNewWordLimit}
+                        onChange={(e) => setTempNewWordLimit(Number(e.target.value))}
+                        className={selectClassName}
+                    >
+                        {DAILY_NEW_WORD_LIMIT_OPTIONS.map((n) => (
+                            <option key={n} value={n}>
+                                {n}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+                <div className="flex items-center justify-between gap-4">
+                    <div className="flex-1">
+                        <Label htmlFor="daily-review-limit" className="text-sm font-medium flex items-center gap-2">
+                            <RefreshCw className="h-4 w-4 text-muted-foreground" />
+                            Reviews / day
+                        </Label>
+                        <p className="text-xs text-muted-foreground mt-1">
+                            Most due reviews we&apos;ll surface in a day
+                        </p>
+                    </div>
+                    <select
+                        id="daily-review-limit"
+                        value={selectedReviewLimit}
+                        onChange={(e) => setTempReviewLimit(Number(e.target.value))}
+                        className={selectClassName}
+                    >
+                        {DAILY_REVIEW_LIMIT_OPTIONS.map((n) => (
+                            <option key={n} value={n}>
+                                {n}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+            </div>
         </>
     );
 });
@@ -369,7 +490,7 @@ export default function PracticeSettingsDialog({
 }: Readonly<PracticeSettingsDialogProps>) {
     // Stateful: the dialog owns its settings via the shared hook.
     const { settings, setSettings } = usePracticeSettings();
-    const settingsKey = `${settings.mode}-${settings.mixedModes.join(",")}-${settings.autoCheck}-${settings.showExampleHints}-${settings.showImageHints}-${settings.soundEnabled}`;
+    const settingsKey = `${settings.mode}-${settings.mixedModes.join(",")}-${settings.autoCheck}-${settings.showExampleHints}-${settings.showImageHints}-${settings.soundEnabled}-${settings.speakingEnabled}`;
 
     return (
         <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>

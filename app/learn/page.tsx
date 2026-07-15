@@ -8,14 +8,17 @@ import { DailyHabitCard } from "@/components/features/learn/daily-habit-card";
 import { DailyHero } from "@/components/features/learn/daily-hero";
 import PracticeSettingsDialog from "@/components/features/vocabulary/practice-settings-dialog";
 import { Button } from "@/components/ui/button";
+import { isOnboardingDone } from "@/lib/onboarding";
 import {
     useGetMyCoursesTotalStatsQuery,
 } from "@/queries/courses.query";
 import { useGetProgressStatsQuery } from "@/queries/word-progress.query";
 import { Settings2 } from "lucide-react";
-import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 
 export default function LearnPage() {
+    const router = useRouter();
     const [settingsOpen, setSettingsOpen] = useState(false);
     const {
         data: courseTotalStats,
@@ -27,6 +30,19 @@ export default function LearnPage() {
         isLoadingCourseTotalStats ||
         isErrorCourseTotalStats ||
         !courseTotalStats;
+
+    // First-run onboarding: once the stats resolve (never while loading/erroring),
+    // a brand-new learner with no courses and no local "done" flag is sent to the
+    // wizard. The wizard route lives at /learn/onboarding, so this never loops.
+    useEffect(() => {
+        if (isLoadingCourseTotalStats || isErrorCourseTotalStats || !courseTotalStats) {
+            return;
+        }
+        if (courseTotalStats.totalCourses === 0 && !isOnboardingDone()) {
+            router.replace("/learn/onboarding");
+        }
+    }, [isLoadingCourseTotalStats, isErrorCourseTotalStats, courseTotalStats, router]);
+
     const {
         data: wordProgressStats,
         isLoading: isLoadingProgressStats,
@@ -34,9 +50,32 @@ export default function LearnPage() {
         refetch: refetchProgressStats,
     } = useGetProgressStatsQuery(undefined, undefined, true);
 
+    const progressStatsCards = (
+        <StatsCards
+            items={courseTotalStats}
+            isLoading={isLoadingStats}
+            isError={isErrorCourseTotalStats}
+            onCardClick={() => {
+                if (isErrorCourseTotalStats) refetchCourseTotalStats();
+            }}
+        />
+    );
+    const learningProgress = (
+        <LearningProgressSection
+            stats={wordProgressStats}
+            title="Learning Progress (All Courses)"
+            isLoading={isLoadingProgressStats}
+            isError={isErrorProgressStats}
+            onCardClick={() => {
+                if (isLoadingProgressStats || isErrorProgressStats)
+                    refetchProgressStats();
+            }}
+        />
+    );
+
     return (
         <main className="min-h-dvh">
-            <div className="container mx-auto max-w-5xl px-3 pb-24 pt-5 sm:px-4 sm:pb-12 sm:pt-6 md:py-8">
+            <div className="container mx-auto max-w-5xl px-3 pb-24 pt-5 sm:px-4 sm:pb-12 sm:pt-6 md:py-8 lg:max-w-6xl lg:pb-12">
                 <div className="mb-3 flex justify-end">
                     <Button
                         type="button"
@@ -50,44 +89,47 @@ export default function LearnPage() {
                     </Button>
                 </div>
 
-                <DailyHero />
+                <div className="lg:grid lg:grid-cols-3 lg:items-start lg:gap-6">
+                    {/* Primary column — hero + course path (span 2 at lg). */}
+                    <div className="lg:col-span-2">
+                        <DailyHero />
 
-                <DailyHabitCard />
+                        {/* Below lg the habit card + full progress sit inline here. */}
+                        <div className="lg:hidden">
+                            <DailyHabitCard />
+                            <section className="glass-surface mb-8 rounded-3xl">
+                                <h2 className="px-5 py-4 font-display text-base font-bold">
+                                    Your progress
+                                </h2>
+                                <div className="space-y-6 px-5 pb-5">
+                                    {progressStatsCards}
+                                    {learningProgress}
+                                    <LearningProgressChart
+                                        stats={wordProgressStats}
+                                        isLoading={isLoadingProgressStats}
+                                        isError={isErrorProgressStats}
+                                    />
+                                </div>
+                            </section>
+                        </div>
 
-                {/* Progress — surfaced above the course list */}
-                <section className="glass-surface mb-8 rounded-3xl">
-                    <h2 className="px-5 py-4 font-display text-base font-bold">
-                        Your progress
-                    </h2>
-                    <div className="space-y-6 px-5 pb-5">
-                        <StatsCards
-                            items={courseTotalStats}
-                            isLoading={isLoadingStats}
-                            isError={isErrorCourseTotalStats}
-                            onCardClick={() => {
-                                if (isErrorCourseTotalStats)
-                                    refetchCourseTotalStats();
-                            }}
-                        />
-                        <LearningProgressSection
-                            stats={wordProgressStats}
-                            title="Learning Progress (All Courses)"
-                            isLoading={isLoadingProgressStats}
-                            isError={isErrorProgressStats}
-                            onCardClick={() => {
-                                if (isLoadingProgressStats || isErrorProgressStats)
-                                    refetchProgressStats();
-                            }}
-                        />
-                        <LearningProgressChart
-                            stats={wordProgressStats}
-                            isLoading={isLoadingProgressStats}
-                            isError={isErrorProgressStats}
-                        />
+                        <CoursePath />
                     </div>
-                </section>
 
-                <CoursePath />
+                    {/* Sticky side column at lg — habit card + condensed progress. */}
+                    <aside className="hidden lg:sticky lg:top-24 lg:block lg:self-start">
+                        <DailyHabitCard />
+                        <section className="glass-surface rounded-3xl">
+                            <h2 className="px-5 py-4 font-display text-base font-bold">
+                                Your progress
+                            </h2>
+                            <div className="space-y-6 px-5 pb-5">
+                                {progressStatsCards}
+                                {learningProgress}
+                            </div>
+                        </section>
+                    </aside>
+                </div>
             </div>
 
             <PracticeSettingsDialog

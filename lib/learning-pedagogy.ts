@@ -5,9 +5,20 @@ import type { IWord } from "@/types/courses/courses.type";
 export type PedagogyPracticeMode =
     | "listening"
     | "context"
+    | "speaking"
     | "word-bank"
     | "cloze"
     | "flashcard";
+
+/** Per-word / per-session availability of the exercise types that can't always run. */
+export interface ModeAvailability {
+    /** An example sentence containing the word exists (cloze + context). */
+    cloze: boolean;
+    /** The word has audio (listening). */
+    listening: boolean;
+    /** Speech recognition is supported and enabled this session (speaking). */
+    speaking: boolean;
+}
 
 /**
  * Evidence-based vocabulary learning constants for Wordsly.
@@ -32,7 +43,7 @@ export const PEDAGOGY = {
 
 export type PracticeDirection = "production" | "recognition";
 
-export const PRODUCTION_MODES = ["listening", "context"] as const;
+export const PRODUCTION_MODES = ["listening", "context", "speaking"] as const;
 export const RECOGNITION_MODES = ["word-bank", "cloze"] as const;
 
 export function modeDirection(mode: string): PracticeDirection | null {
@@ -41,14 +52,11 @@ export function modeDirection(mode: string): PracticeDirection | null {
     return null;
 }
 
-function modeAvailable(
-    mode: string,
-    clozeAvailable: boolean,
-    listeningAvailable: boolean,
-): boolean {
+function modeAvailable(mode: string, availability: ModeAvailability): boolean {
     // Both cloze and context need an example sentence containing the word.
-    if ((mode === "cloze" || mode === "context") && !clozeAvailable) return false;
-    if (mode === "listening" && !listeningAvailable) return false;
+    if ((mode === "cloze" || mode === "context") && !availability.cloze) return false;
+    if (mode === "listening" && !availability.listening) return false;
+    if (mode === "speaking" && !availability.speaking) return false;
     return true;
 }
 
@@ -56,14 +64,11 @@ function modeAvailable(
 export function pickPracticeMode(
     pool: readonly string[],
     allowed: Set<string>,
-    clozeAvailable: boolean,
-    listeningAvailable: boolean,
+    availability: ModeAvailability,
     slotIndex = 0,
 ): PedagogyPracticeMode | null {
     const available = pool.filter(
-        (mode) =>
-            allowed.has(mode) &&
-            modeAvailable(mode, clozeAvailable, listeningAvailable),
+        (mode) => allowed.has(mode) && modeAvailable(mode, availability),
     );
     if (available.length === 0) return null;
     return available[slotIndex % available.length] as PedagogyPracticeMode;
@@ -73,8 +78,7 @@ export function pickPracticeMode(
 export function alternatePracticeMode(
     mode: PedagogyPracticeMode,
     allowed: Set<string>,
-    clozeAvailable: boolean,
-    listeningAvailable: boolean,
+    availability: ModeAvailability,
 ): PedagogyPracticeMode {
     const direction = modeDirection(mode);
     let pool: readonly string[];
@@ -87,12 +91,11 @@ export function alternatePracticeMode(
     }
 
     return (
-        pickPracticeMode(pool, allowed, clozeAvailable, listeningAvailable, 0) ??
+        pickPracticeMode(pool, allowed, availability, 0) ??
         pickPracticeMode(
             [...PRODUCTION_MODES, ...RECOGNITION_MODES],
             allowed,
-            clozeAvailable,
-            listeningAvailable,
+            availability,
             0,
         ) ??
         mode
@@ -107,6 +110,8 @@ export interface AssignMixedModeInput {
     allowed: Set<string>;
     isLeech: boolean;
     preferProduction: boolean;
+    /** Session capability: speech recognition supported and enabled by the user. */
+    speakingAvailable: boolean;
     /** 0-based occurrence of this word in the current session queue. */
     newWordRound?: number;
     /** Separate counters so prod/rec alternation still rotates listening ↔ context, quiz ↔ cloze. */
@@ -131,19 +136,22 @@ export function assignMixedPracticeMode(input: AssignMixedModeInput): {
         allowed,
         isLeech,
         preferProduction,
+        speakingAvailable,
         newWordRound,
         productionSlotIndex = 0,
         recognitionSlotIndex = 0,
     } = input;
 
-    const clozeAvailable = getClozePrompt(word) != null;
-    const listeningAvailable = Boolean(word.audioUrl);
+    const availability: ModeAvailability = {
+        cloze: getClozePrompt(word) != null,
+        listening: Boolean(word.audioUrl),
+        speaking: speakingAvailable,
+    };
     const pick = (pool: readonly string[], poolKind: PracticeModePool) =>
         pickPracticeMode(
             pool,
             allowed,
-            clozeAvailable,
-            listeningAvailable,
+            availability,
             poolKind === "production" ? productionSlotIndex : recognitionSlotIndex,
         );
 
@@ -160,7 +168,7 @@ export function assignMixedPracticeMode(input: AssignMixedModeInput): {
         } else if (newWordRound === 1) {
             roundPool = PRODUCTION_MODES;
             poolKind = "production";
-        } else if (listeningAvailable) {
+        } else if (availability.listening) {
             roundPool = ["listening", "context"];
             poolKind = "production";
         } else {
@@ -204,8 +212,7 @@ export function assignMixedPracticeMode(input: AssignMixedModeInput): {
         pickPracticeMode(
             [...RECOGNITION_MODES, ...PRODUCTION_MODES],
             allowed,
-            clozeAvailable,
-            listeningAvailable,
+            availability,
             fallbackSlot,
         ) ?? "word-bank";
     const poolUsed: PracticeModePool =

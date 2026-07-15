@@ -17,6 +17,8 @@ import { ChoiceMode } from "@/components/features/vocabulary/modes/choice-mode";
 import { ContextMode } from "@/components/features/vocabulary/modes/context-mode";
 import { FlashcardMode } from "@/components/features/vocabulary/modes/flashcard-mode";
 import { ListeningMode } from "@/components/features/vocabulary/modes/listening-mode";
+import { SpeakingMode } from "@/components/features/vocabulary/modes/speaking-mode";
+import { useSpeechRecognitionSupported } from "@/hooks/useSpeechRecognition.hook";
 import {
     calculateAnswerQuality,
     flashcardRatingToQuality,
@@ -35,6 +37,7 @@ import { useRecordDailyPracticeMutation } from "@/queries/daily-habit.query";
 import { playAudioUrl, preloadAudioUrl, stopAudio } from "@/lib/practice-audio";
 import { pickMilestoneMessage } from "@/lib/practice-feedback";
 import type { PracticeSessionKind } from "@/lib/practice-session";
+import type { ILevelEvent } from "@/types/word-progress/word-progress.type";
 import {
     playPracticeErrorSound,
     playPracticeSuccessSound,
@@ -118,6 +121,10 @@ interface VocabularyPracticeProps {
      * manual action. Must be idempotent (may be called more than once).
      */
     onSubmitResults?: (payload: SessionCompletePayload) => void;
+    /** Server level snapshot + XP delta from the live sync (for the summary). */
+    levelEvent?: ILevelEvent;
+    /** Streak-bonus XP multiplier from the live sync (1 = no bonus). */
+    xpMultiplier?: number;
 }
 
 export default function VocabularyPractice({
@@ -131,6 +138,8 @@ export default function VocabularyPractice({
     exitDisabled = false,
     onComplete,
     onSubmitResults,
+    levelEvent,
+    xpMultiplier,
 }: Readonly<VocabularyPracticeProps>) {
     const [queue, setQueue] = useState(() => practiceQueue ?? shuffleArray(words));
     const [currentIndex, setCurrentIndex] = useState(0);
@@ -138,7 +147,9 @@ export default function VocabularyPractice({
     const [showAnswer, setShowAnswer] = useState(false);
     const [userAnswer, setUserAnswer] = useState("");
     const { settings: practiceSettings } = usePracticeSettings();
-    const { mode, mixedModes, autoCheck, showExampleHints, showImageHints, soundEnabled } = practiceSettings;
+    const { mode, mixedModes, autoCheck, showExampleHints, showImageHints, soundEnabled, speakingEnabled } = practiceSettings;
+    const speakingSupported = useSpeechRecognitionSupported();
+    const speakingAvailable = speakingSupported && speakingEnabled;
     const [typingResult, setTypingResult] = useState<"correct" | "incorrect" | null>(null);
     const [isNearMiss, setIsNearMiss] = useState(false);
     const [showSettings, setShowSettings] = useState(false);
@@ -160,6 +171,9 @@ export default function VocabularyPractice({
     // Set once the user reports they can't hear the audio. For the rest of the
     // session, every listening word falls back to a text or recognition exercise.
     const [audioFallback, setAudioFallback] = useState(false);
+    // Set once the user can't use their mic (denied/unsupported). For the rest of
+    // the session, every speaking word falls back to a typed exercise.
+    const [speakingFallback, setSpeakingFallback] = useState(false);
     const inputRef = useRef<HTMLInputElement>(null);
     const wordStartTimeRef = useRef<number | null>(null);
     const sessionStreakRef = useRef(0);
@@ -193,13 +207,21 @@ export default function VocabularyPractice({
         () => (currentWord ? getClozePrompt(currentWord) : null),
         [currentWord],
     );
+    // Speaking's on/off lives in its own `speakingEnabled` setting (with a
+    // dedicated toggle), not in the mixed-method chips — so derive the effective
+    // method list from both rather than relying on `mixedModes` membership.
+    const enabledMixedModes = useMemo(() => {
+        const base = mixedModes.filter((m) => m !== "speaking");
+        return speakingEnabled ? [...base, "speaking"] : base;
+    }, [mixedModes, speakingEnabled]);
     const mixedModePlan = useMemo(() => {
         if (mode !== "mixed") return null;
         return buildMixedModePlan(queue, stagesByWordId, {
             leechWordIds,
-            enabledModes: mixedModes,
+            enabledModes: enabledMixedModes,
+            speakingAvailable,
         });
-    }, [mode, mixedModes, queue, stagesByWordId, leechWordIds]);
+    }, [mode, enabledMixedModes, queue, stagesByWordId, leechWordIds, speakingAvailable]);
     const resolvedMode: ActivePracticeMode = currentWord
         ? resolveActiveMode(
               mode,
@@ -210,16 +232,18 @@ export default function VocabularyPractice({
               ),
               currentIndex,
               currentStage,
+              speakingAvailable,
           )
         : "word-bank";
-    // If the user couldn't hear the audio, fall back to a non-audio exercise:
-    // fill-in (cloze) when the word supports it, otherwise the word bank.
-    const activeMode: ActivePracticeMode =
-        resolvedMode === "listening" && audioFallback
-            ? clozePrompt != null
-                ? "cloze"
-                : "word-bank"
-            : resolvedMode;
+    // If the user couldn't hear the audio / use their mic, fall back to a text
+    // exercise: listening → fill-in (cloze) when supported, else the word bank;
+    // speaking → type-in-context when there's an example, else the word bank.
+    let activeMode: ActivePracticeMode = resolvedMode;
+    if (resolvedMode === "listening" && audioFallback) {
+        activeMode = clozePrompt != null ? "cloze" : "word-bank";
+    } else if (resolvedMode === "speaking" && speakingFallback) {
+        activeMode = clozePrompt != null ? "context" : "word-bank";
+    }
 
     const rawExamples = useMemo(
         () => (currentWord ? getWordExamples(currentWord) : []),
@@ -471,6 +495,34 @@ export default function VocabularyPractice({
         focusPracticeInput();
     }, [focusPracticeInput]);
 
+    const handleUseSpeakingFallback = useCallback(() => {
+        setSpeakingFallback(true);
+        setUserAnswer("");
+        setHintsUsed(0);
+        focusPracticeInput();
+    }, [focusPracticeInput]);
+
+    // Speaking mode reports one final verdict (after its own retries); grade it
+    // like the typed-answer path so the result panel + worst-attempt merge match.
+    const handleSpeakingResult = useCallback(
+        ({ correct, near, transcript }: { correct: boolean; near: boolean; transcript: string }) => {
+            if (!currentWord || typingResult || showResultDialog) return;
+            const elapsed =
+                wordStartTimeRef.current != null
+                    ? (Date.now() - wordStartTimeRef.current) / 1000
+                    : undefined;
+            if (elapsed != null) setTimeSpentSeconds(elapsed);
+            const quality = calculateAnswerQuality(correct, 0, elapsed, near);
+            setUserAnswer(transcript);
+            stageResult({ wordId: currentWord.id, quality });
+            setTypingResult(correct ? "correct" : "incorrect");
+            setIsNearMiss(near);
+            playResultSound(correct);
+            setShowResultDialog(true);
+        },
+        [currentWord, typingResult, showResultDialog, stageResult, playResultSound],
+    );
+
     const handleGetHint = () => {
         const hint = getNextHint();
         setUserAnswer(hint);
@@ -614,7 +666,7 @@ export default function VocabularyPractice({
 
     useEffect(() => {
         if (showIntro) return;
-        if (["listening", "context"].includes(activeMode)) {
+        if (["listening", "context", "speaking"].includes(activeMode)) {
             wordStartTimeRef.current = Date.now();
         }
         if (isWordChoiceMode) {
@@ -763,6 +815,8 @@ export default function VocabularyPractice({
                 wordResults={wordResults}
                 score={scoreFromResults(wordResults)}
                 habitState={habitState}
+                levelEvent={levelEvent}
+                xpMultiplier={xpMultiplier}
                 onKeepGoing={() =>
                     onComplete?.({
                         score: scoreFromResults(wordResults),
@@ -971,6 +1025,18 @@ export default function VocabularyPractice({
                                         autoCheck={autoCheck}
                                         onCheck={() => handleConfirmChoice(handleWordBankSelect)}
                                         checkDisabled={!selectedChoice || !!typingResult}
+                                    />
+                                )}
+
+                                {activeMode === "speaking" && (
+                                    <SpeakingMode
+                                        key={`${currentWord.id}:${currentOccurrence}`}
+                                        word={currentWord}
+                                        targetWord={currentWord.word}
+                                        maskedExamples={maskedExamples}
+                                        showImageHints={effectiveImageHints}
+                                        onResult={handleSpeakingResult}
+                                        onUseTextFallback={handleUseSpeakingFallback}
                                     />
                                 )}
 

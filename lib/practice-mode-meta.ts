@@ -4,6 +4,7 @@ import {
     CheckSquare,
     Headphones,
     Layers,
+    Mic,
     TextCursorInput,
     TextQuote,
 } from "lucide-react";
@@ -27,6 +28,12 @@ export const PRACTICE_MODE_META: Record<ActivePracticeMode, PracticeModeMeta> = 
         shortLabel: "In context",
         instruction: "Complete the sentence by typing the missing word",
         icon: TextCursorInput,
+    },
+    speaking: {
+        label: "Speaking",
+        shortLabel: "Speaking",
+        instruction: "Read the meaning, then say the word out loud",
+        icon: Mic,
     },
     "word-bank": {
         label: "Pick the word",

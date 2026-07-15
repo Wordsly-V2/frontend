@@ -48,6 +48,15 @@ export interface ILessonSummary {
   wordsCount: number;
 }
 
+/** Structured example sentence for a word (from the vocabulary-service). */
+export interface IWordExample {
+  id: string;
+  text: string;
+  translation?: string;
+  audioUrl?: string;
+  orderIndex?: number;
+}
+
 export interface IWord {
   id: string;
   word: string;
@@ -61,6 +70,17 @@ export interface IWord {
   createdAt: string;
   updatedAt: string;
   wordProgress?: IWordProgressResponse;
+  /** UK/US pronunciation audio + IPA (dictionary-enriched). */
+  ukAudioUrl?: string;
+  usAudioUrl?: string;
+  ukIpa?: string;
+  usIpa?: string;
+  /** Smaller image for compact layouts. */
+  imageThumbnailUrl?: string;
+  /** Related word forms (e.g. plural, past tense). */
+  wordForms?: string[];
+  /** Structured examples; falls back to the legacy `example` JSON string. */
+  examples?: IWordExample[];
 }
 
 export interface ICourseTotalStats {

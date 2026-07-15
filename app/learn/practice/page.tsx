@@ -55,11 +55,12 @@ export default function PracticePage() {
         kind,
     );
 
-    const { saveSession, persistSession, isPersisting } = usePracticeSessionPersistence({
-        courseId: courseId ?? "",
-        wordIdList,
-        progressByWordId,
-    });
+    const { saveSession, persistSession, isPersisting, sessionSyncResult } =
+        usePracticeSessionPersistence({
+            courseId: courseId ?? "",
+            wordIdList,
+            progressByWordId,
+        });
 
     const handleBackToCourse = useCallback(() => {
         router.push(courseId ? `/learn/courses/${courseId}` : "/learn");
@@ -143,6 +144,8 @@ export default function PracticePage() {
                         exitDisabled={isPersisting}
                         onSubmitResults={saveSession}
                         onComplete={handlePracticeComplete}
+                        levelEvent={sessionSyncResult?.levelEvent}
+                        xpMultiplier={sessionSyncResult?.xpMultiplier}
                     />
                 </div>
             </main>

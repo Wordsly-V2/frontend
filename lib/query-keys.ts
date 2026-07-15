@@ -83,6 +83,14 @@ export const queryKeys = {
         byWordIds: (wordIds: string[], limit?: number, includeNew?: boolean) =>
             ["due-word-ids", "by-word-ids", sortedIds(wordIds), limit, includeNew] as const,
     },
+    leeches: {
+        all: ["leeches"] as const,
+        list: (courseId?: string, lessonId?: string) =>
+            ["leeches", courseId, lessonId] as const,
+    },
+    learningSettings: {
+        all: ["learning-settings"] as const,
+    },
     dictionary: {
         all: ["dictionary"] as const,
         pronunciation: (word: string) => ["dictionary", "pronunciation", word] as const,
@@ -98,8 +106,17 @@ export const queryKeys = {
         all: ["learning-report"] as const,
         byPeriod: (period: string, clientDate: string) =>
             ["learning-report", period, clientDate] as const,
+        forecast: (days: number, clientDate: string) =>
+            ["learning-report", "forecast", days, clientDate] as const,
+        activityCalendar: (clientDate: string) =>
+            ["learning-report", "activity-calendar", clientDate] as const,
     },
     userLevel: {
         all: ["user-level"] as const,
+    },
+    notifications: {
+        all: ["notifications"] as const,
+        preferences: () => ["notifications", "preferences"] as const,
+        vapidPublicKey: () => ["notifications", "vapid-public-key"] as const,
     },
 } as const;

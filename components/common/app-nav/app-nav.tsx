@@ -191,9 +191,9 @@ export default function AppNav() {
                             <span className="hidden min-[380px]:inline truncate text-gradient-brand">Wordsly</span>
                         </Link>
 
-                        {/* Center - desktop nav links. Hidden: the app always uses the
-                            mobile layout (bottom tab bar), at every width. */}
-                        <div className="hidden">
+                        {/* Center - desktop nav links. Shown at lg+; below that the
+                            bottom tab bar handles primary navigation. */}
+                        <div className="hidden lg:flex items-center gap-3">
                             {!isAuthPage && profile && (
                                 <>
                                     <MyWordsSearch />
@@ -256,13 +256,13 @@ export default function AppNav() {
                                 </kbd>
                             </Button>
                             {!isAuthPage && profile && (
-                                <div className="flex items-center gap-1">
+                                <div className="flex items-center gap-1 lg:hidden">
                                     <MyWordsSearch className="max-w-[min(42vw,11rem)] sm:max-w-[200px]" />
                                 </div>
                             )}
 
                             {!isAuthPage && profile && (
-                                <Link href={practiceHref} className="hidden">
+                                <Link href={practiceHref} className="hidden lg:inline-flex">
                                     <Button
                                         size="sm"
                                         aria-label="Quick practice"

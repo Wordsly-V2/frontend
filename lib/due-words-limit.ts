@@ -1,4 +1,5 @@
 import { getLocalStorageItem } from "@/lib/local-storage";
+import type { IDailyPacing } from "@/types/word-progress/word-progress.type";
 
 /**
  * Shared "due words batch" limit for Learn (course page + quick actions).
@@ -81,4 +82,31 @@ export function getPracticeBannerCopy(
         title: `${newTotal.toLocaleString()} new word${newTotal === 1 ? "" : "s"} to learn`,
         subtitle: "Start a fresh batch — introductions and guided practice for words you haven't studied yet.",
     };
+}
+
+/**
+ * Daily-pacing banner copy. Returns null while there's still headroom today —
+ * a banner only appears once the learner hits a daily limit.
+ */
+export function getPacingBannerCopy(
+    pacing: IDailyPacing | undefined,
+): { title: string; subtitle: string } | null {
+    if (!pacing) return null;
+    const { newWordsRemainingToday, reviewsRemainingToday } = pacing;
+
+    if (newWordsRemainingToday === 0 && reviewsRemainingToday === 0) {
+        return {
+            title: "Daily limit reached — come back tomorrow",
+            subtitle: "You've hit today's new-word and review limits. Rest counts too — spaced repetition works best over days.",
+        };
+    }
+
+    if (newWordsRemainingToday === 0) {
+        return {
+            title: "You've reached today's new-word limit — reviews only",
+            subtitle: `${reviewsRemainingToday} review${reviewsRemainingToday === 1 ? "" : "s"} left today. Keep the words you know fresh.`,
+        };
+    }
+
+    return null;
 }

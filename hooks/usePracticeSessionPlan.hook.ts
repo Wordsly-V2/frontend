@@ -34,11 +34,19 @@ export function usePracticeSessionPlan(
         const sessionPlan = buildPracticeSessionPlan(words, progressByWordId);
         const sessionKind = inferPracticeSessionKind(sessionPlan.counts, urlSessionKind);
 
+        // A leech session treats every word as a leech (flashcard + context) so
+        // the whole batch gets the remediation pedagogy, not just detected ones.
+        const leechWordIds =
+            sessionKind === "leech"
+                ? new Set(words.map((w) => w.id))
+                : buildLeechWordIds(progressByWordId);
+
         return {
             sessionKind,
             sessionPlan,
-            leechWordIds: buildLeechWordIds(progressByWordId),
-            isReview: sessionKind === "review",
+            leechWordIds,
+            // Leech remediation is recall-flavoured, so treat it like review.
+            isReview: sessionKind === "review" || sessionKind === "leech",
         };
     }, [words, progressByWordId, urlSessionKind]);
 }

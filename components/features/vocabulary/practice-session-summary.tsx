@@ -4,14 +4,26 @@ import { CountUp, Mascot } from "@/components/common/motion";
 import { Button } from "@/components/ui/button";
 import { dailyGoalProgress } from "@/lib/daily-habit";
 import { fireCelebrationConfetti } from "@/lib/confetti";
+import { playLevelUpSound } from "@/lib/practice-sounds";
 import { useEnterKeyAction } from "@/lib/keyboard-utils";
 import { pickSessionCompleteMessage } from "@/lib/practice-feedback";
 import type { IDailyHabit } from "@/types/daily-habit/daily-habit.type";
 import { AnswerQuality } from "@/types/word-progress/word-progress.type";
+import type { ILevelEvent } from "@/types/word-progress/word-progress.type";
 import type { WordResult } from "@/types/practice/practice.type";
 import { motion } from "motion/react";
-import { ArrowRight, Flame, Home, Sparkles, Target } from "lucide-react";
-import { useEffect } from "react";
+import {
+    ArrowRight,
+    Award,
+    Flame,
+    Home,
+    Sparkles,
+    Target,
+    TrendingUp,
+    Zap,
+} from "lucide-react";
+import { useEffect, useRef } from "react";
+import { toast } from "sonner";
 
 export type SessionWordResult = WordResult;
 
@@ -19,6 +31,10 @@ export interface PracticeSessionSummaryProps {
     wordResults: SessionWordResult[];
     score: number;
     habitState: IDailyHabit;
+    /** Server level snapshot + XP delta from a live sync (undefined when queued). */
+    levelEvent?: ILevelEvent;
+    /** Streak-bonus XP multiplier from a live sync (1 = no bonus). */
+    xpMultiplier?: number;
     onKeepGoing: () => void;
     onBackToDashboard: () => void;
 }
@@ -27,13 +43,19 @@ export function PracticeSessionSummary({
     wordResults,
     score,
     habitState,
+    levelEvent,
+    xpMultiplier,
     onKeepGoing,
     onBackToDashboard,
 }: Readonly<PracticeSessionSummaryProps>) {
     const strongCount = wordResults.filter(
         (r) => r.quality >= AnswerQuality.CORRECT_WITH_HESITATION,
     ).length;
-    const xp = strongCount * 10;
+    // Prefer the server-authoritative XP for this session; fall back to a local
+    // estimate only while the live sync is still in flight (or offline).
+    const xp = levelEvent?.xpEarned ?? strongCount * 10;
+    const leveledUp = levelEvent?.leveledUp ?? false;
+    const hasStreakBonus = (xpMultiplier ?? 1) > 1;
     const goal = dailyGoalProgress(habitState.wordsToday, habitState.goal);
     const headline = pickSessionCompleteMessage(score, wordResults.length);
 
@@ -42,6 +64,36 @@ export function PracticeSessionSummary({
     useEffect(() => {
         if (habitState.goalMetToday) fireCelebrationConfetti();
     }, [habitState.goalMetToday]);
+
+    // Level-up payoff: fire once when the server confirms a boundary crossing.
+    const leveledUpCelebrated = useRef(false);
+    useEffect(() => {
+        if (leveledUp && !leveledUpCelebrated.current) {
+            leveledUpCelebrated.current = true;
+            fireCelebrationConfetti();
+            playLevelUpSound();
+        }
+    }, [leveledUp]);
+
+    // Achievement unlocks: one celebratory toast per newly-earned badge, fired
+    // once (keyed) so a re-render can't double-toast.
+    const toastedAchievementsRef = useRef<Set<string>>(new Set());
+    useEffect(() => {
+        const unlocked = habitState.unlockedAchievements ?? [];
+        for (const achievement of unlocked) {
+            if (toastedAchievementsRef.current.has(achievement.key)) continue;
+            toastedAchievementsRef.current.add(achievement.key);
+            toast.success(`Achievement unlocked! ${achievement.label}`, {
+                icon: "🏆",
+                duration: 5000,
+                id: `achievement-${achievement.key}`,
+                description:
+                    achievement.xpAwarded > 0
+                        ? `+${achievement.xpAwarded} XP`
+                        : undefined,
+            });
+        }
+    }, [habitState.unlockedAchievements]);
 
     // Let players keep their flow going with the keyboard.
     useEnterKeyAction(onKeepGoing);
@@ -70,6 +122,36 @@ export function PracticeSessionSummary({
             >
                 {wordResults.length} word{wordResults.length === 1 ? "" : "s"} practiced
             </motion.p>
+
+            {hasStreakBonus && (
+                <motion.p
+                    {...reveal(0.18)}
+                    className="inline-flex items-center gap-1.5 rounded-full bg-[var(--brand-accent)]/10 px-3 py-1 text-sm font-bold text-[var(--brand-accent)] mb-4"
+                >
+                    <Zap className="h-4 w-4" aria-hidden />
+                    ×{xpMultiplier} streak bonus
+                </motion.p>
+            )}
+
+            {leveledUp && levelEvent && (
+                <motion.div
+                    {...reveal(0.2)}
+                    className="mx-auto mb-4 flex max-w-sm items-center gap-3 rounded-2xl border-2 border-primary/40 bg-primary/10 px-4 py-3 text-left"
+                >
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/20 text-primary">
+                        <TrendingUp className="h-5 w-5" aria-hidden />
+                    </div>
+                    <div className="min-w-0">
+                        <p className="font-display text-base font-bold text-primary">
+                            Level up! You reached level {levelEvent.level}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                            {levelEvent.rank} · keep it going!
+                        </p>
+                    </div>
+                    <Award className="ml-auto h-5 w-5 shrink-0 text-primary" aria-hidden />
+                </motion.div>
+            )}
 
             {habitState.goalMetToday && (
                 <motion.p

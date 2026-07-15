@@ -2,10 +2,11 @@
 
 import LoadingSection from "@/components/common/loading-section/loading-section";
 import WordDetailsCarousel from "@/components/features/vocabulary/word-details-carousel";
+import { DictionaryLookupDialog } from "@/components/features/dictionary/dictionary-lookup-dialog";
 import { Button } from "@/components/ui/button";
 import { wordSelectionSearchParams } from "@/lib/search-params/word-selection";
 import { useGetWordsByIdsQuery } from "@/queries/words.query";
-import { ArrowLeft, BookOpen } from "lucide-react";
+import { ArrowLeft, BookOpen, Search } from "lucide-react";
 import { useQueryStates } from "nuqs";
 import { useRouter } from "next/navigation";
 import { motion, useReducedMotion } from "motion/react";
@@ -15,6 +16,7 @@ export default function WordsDetailsPage() {
     const router = useRouter();
     const [{ courseId, courseName, wordIds }] = useQueryStates(wordSelectionSearchParams);
     const [currentIndex, setCurrentIndex] = useState(0);
+    const [lookupOpen, setLookupOpen] = useState(false);
     const reduceMotion = useReducedMotion();
 
     const wordIdList = wordIds ?? [];
@@ -78,15 +80,25 @@ export default function WordsDetailsPage() {
     return (
         <main className="bg-gradient-to-b from-background via-background to-muted/30">
             <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 md:py-8 max-w-3xl flex flex-col">
-                <Button
-                    variant="ghost"
-                    onClick={handleBackToCourse}
-                    className="mb-4 self-start text-muted-foreground hover:text-foreground"
-                    size="sm"
-                >
-                    <ArrowLeft className="h-4 w-4 mr-2" />
-                    Back to Course
-                </Button>
+                <div className="mb-4 flex items-center justify-between gap-2">
+                    <Button
+                        variant="ghost"
+                        onClick={handleBackToCourse}
+                        className="text-muted-foreground hover:text-foreground"
+                        size="sm"
+                    >
+                        <ArrowLeft className="h-4 w-4 mr-2" />
+                        Back to Course
+                    </Button>
+                    <Button
+                        variant="outline"
+                        onClick={() => setLookupOpen(true)}
+                        size="sm"
+                    >
+                        <Search className="h-4 w-4 sm:mr-2" />
+                        <span className="hidden sm:inline">Look up a word</span>
+                    </Button>
+                </div>
 
                 <header className="text-center mb-6 sm:mb-8 flex-shrink-0">
                     <motion.h1
@@ -128,6 +140,8 @@ export default function WordsDetailsPage() {
                     />
                 </section>
             </div>
+
+            <DictionaryLookupDialog open={lookupOpen} onOpenChange={setLookupOpen} />
         </main>
     );
 }

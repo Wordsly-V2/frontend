@@ -4,6 +4,16 @@ export interface IDailyHabitDay {
     goalMet: boolean;
 }
 
+/** An achievement newly unlocked by a practice session (record-practice response). */
+export interface IUnlockedAchievement {
+    key: string;
+    label: string;
+    category: string;
+    xpAwarded: number;
+    streakFreezeAwarded: number;
+    unlockedAt: string;
+}
+
 export interface IDailyHabit {
     date: string;
     wordsToday: number;
@@ -27,6 +37,8 @@ export interface IDailyHabit {
     streakFreezes: number;
     /** A banked freeze is currently bridging one or more missed days. */
     streakShielded: boolean;
+    /** Achievements newly unlocked by the session that produced this snapshot. */
+    unlockedAchievements?: IUnlockedAchievement[];
     message: string;
 }
 

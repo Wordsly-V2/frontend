@@ -10,6 +10,7 @@ import { useUser } from "@/hooks/useUser.hook";
 import { useGetLearningReportQuery } from "@/queries/learning-report.query";
 import type { ReportPeriod } from "@/types/learning-report/learning-report.type";
 import { AchievementsGrid } from "@/components/features/progress/achievements-grid";
+import { ActivityHeatmap } from "@/components/features/progress/activity-heatmap";
 import { ReportPeriodToggle } from "@/components/features/progress/report-period-toggle";
 import { ReportSummaryCards } from "@/components/features/progress/report-summary-cards";
 
@@ -51,6 +52,13 @@ const MasteryBreakdownChart = dynamic(
     () =>
         import("@/components/features/progress/mastery-breakdown-chart").then(
             (m) => m.MasteryBreakdownChart,
+        ),
+    { ssr: false, loading: () => <ChartSkeleton /> },
+);
+const UpcomingReviewsChart = dynamic(
+    () =>
+        import("@/components/features/progress/upcoming-reviews-chart").then(
+            (m) => m.UpcomingReviewsChart,
         ),
     { ssr: false, loading: () => <ChartSkeleton /> },
 );
@@ -147,7 +155,9 @@ export default function ProgressPage() {
                                 goalMetDays={report.summary.goalMetDays}
                             />
                             <MasteryBreakdownChart mastery={report.mastery} />
+                            <UpcomingReviewsChart />
                         </div>
+                        <ActivityHeatmap />
                         <AchievementsGrid achievements={report.achievements} />
                     </div>
                 )}

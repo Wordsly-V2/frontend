@@ -68,3 +68,12 @@ export function playPracticeErrorSound(): void {
     playNote(311.13, { delay: 0, duration: 0.16, type: "sine", peak: 0.09 });
     playNote(233.08, { delay: 0.12, duration: 0.22, type: "sine", peak: 0.08 });
 }
+
+/** Triumphant rising fanfare (C5 → E5 → G5 → C6 → E6) for a level-up. */
+export function playLevelUpSound(): void {
+    playNote(523.25, { delay: 0, duration: 0.14, peak: 0.11 });
+    playNote(659.25, { delay: 0.1, duration: 0.14, peak: 0.11 });
+    playNote(783.99, { delay: 0.2, duration: 0.14, peak: 0.11 });
+    playNote(1046.5, { delay: 0.3, duration: 0.16, peak: 0.12 });
+    playNote(1318.51, { delay: 0.44, duration: 0.32, peak: 0.13 });
+}
