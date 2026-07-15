@@ -19,6 +19,29 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
     return output;
 }
 
+/**
+ * `navigator.serviceWorker.ready` never resolves when no service worker ever
+ * activates (e.g. dev, where the SW is disabled, or a failed registration in
+ * prod) — it doesn't reject either, so awaiting it bare hangs forever. Race it
+ * against a timeout so callers fail loudly instead of leaving a dead button.
+ */
+async function serviceWorkerReady(
+    timeoutMs = 5000,
+): Promise<ServiceWorkerRegistration> {
+    let timer: ReturnType<typeof setTimeout>;
+    const timeout = new Promise<never>((_, reject) => {
+        timer = setTimeout(
+            () => reject(new Error("Service worker is not available.")),
+            timeoutMs,
+        );
+    });
+    try {
+        return await Promise.race([navigator.serviceWorker.ready, timeout]);
+    } finally {
+        clearTimeout(timer!);
+    }
+}
+
 function pushSupported(): boolean {
     return (
         typeof window !== "undefined" &&
@@ -137,7 +160,7 @@ export function usePushNotifications(): UsePushNotificationsResult {
                     return;
                 }
 
-                const registration = await navigator.serviceWorker.ready;
+                const registration = await serviceWorkerReady();
                 const existing = await registration.pushManager.getSubscription();
                 const subscription =
                     existing ??
@@ -177,7 +200,7 @@ export function usePushNotifications(): UsePushNotificationsResult {
         setIsBusy(true);
         try {
             if (supported) {
-                const registration = await navigator.serviceWorker.ready;
+                const registration = await serviceWorkerReady();
                 const subscription = await registration.pushManager.getSubscription();
                 if (subscription) {
                     await deleteSubscription.mutateAsync(subscription.endpoint);
