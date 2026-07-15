@@ -18,7 +18,7 @@ import type {
     ReportGranularity,
 } from "@/types/learning-report/learning-report.type";
 import { ChartCard } from "./chart-card";
-import { withLabels } from "./report-format";
+import { chartTooltipProps, withLabels } from "./report-format";
 
 interface ConsistencyChartProps {
     buckets: IReportBucket[];
@@ -97,7 +97,7 @@ export function ConsistencyChart({
                         />
                         <XAxis
                             dataKey="label"
-                            tick={{ fontSize: 11 }}
+                            tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
                             tickLine={false}
                             axisLine={false}
                             className="text-muted-foreground"
@@ -106,24 +106,24 @@ export function ConsistencyChart({
                         />
                         <YAxis
                             allowDecimals={false}
-                            tick={{ fontSize: 11 }}
+                            tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
                             tickLine={false}
                             axisLine={false}
                             className="text-muted-foreground"
                             width={28}
                         />
                         <Tooltip
-                            cursor={{ fill: "hsl(var(--muted))", opacity: 0.35 }}
-                            contentStyle={{
-                                borderRadius: "8px",
-                                border: "1px solid hsl(var(--border))",
-                                background: "hsl(var(--card))",
-                                fontSize: "12px",
-                            }}
+                            cursor={{ fill: "var(--muted)", opacity: 0.35 }}
+                            {...chartTooltipProps}
                         />
                         <Legend
                             wrapperStyle={{ fontSize: "11px" }}
                             iconType="circle"
+                            formatter={(value) => (
+                                <span className="text-muted-foreground">
+                                    {value}
+                                </span>
+                            )}
                         />
                         <Bar
                             name="Active"

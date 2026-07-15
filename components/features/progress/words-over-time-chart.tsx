@@ -15,7 +15,7 @@ import type {
     ReportGranularity,
 } from "@/types/learning-report/learning-report.type";
 import { ChartCard } from "./chart-card";
-import { withLabels } from "./report-format";
+import { chartTooltipProps, withLabels } from "./report-format";
 
 interface WordsOverTimeChartProps {
     buckets: IReportBucket[];
@@ -51,7 +51,7 @@ export function WordsOverTimeChart({
                         />
                         <XAxis
                             dataKey="label"
-                            tick={{ fontSize: 11 }}
+                            tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
                             tickLine={false}
                             axisLine={false}
                             className="text-muted-foreground"
@@ -60,20 +60,15 @@ export function WordsOverTimeChart({
                         />
                         <YAxis
                             allowDecimals={false}
-                            tick={{ fontSize: 11 }}
+                            tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
                             tickLine={false}
                             axisLine={false}
                             className="text-muted-foreground"
                             width={32}
                         />
                         <Tooltip
-                            cursor={{ fill: "hsl(var(--muted))", opacity: 0.35 }}
-                            contentStyle={{
-                                borderRadius: "8px",
-                                border: "1px solid hsl(var(--border))",
-                                background: "hsl(var(--card))",
-                                fontSize: "12px",
-                            }}
+                            cursor={{ fill: "var(--muted)", opacity: 0.35 }}
+                            {...chartTooltipProps}
                             formatter={(value) => [value ?? 0, "Words"]}
                         />
                         <Bar

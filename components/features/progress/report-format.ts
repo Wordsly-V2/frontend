@@ -3,6 +3,21 @@ import type {
     ReportGranularity,
 } from "@/types/learning-report/learning-report.type";
 
+/**
+ * Shared recharts Tooltip props. Recharts colors tooltip text with the series
+ * color by default; force neutral foreground text so values stay readable.
+ */
+export const chartTooltipProps = {
+    contentStyle: {
+        borderRadius: "8px",
+        border: "1px solid var(--border)",
+        background: "var(--card)",
+        fontSize: "12px",
+    },
+    itemStyle: { color: "var(--foreground)" },
+    labelStyle: { color: "var(--muted-foreground)" },
+} as const;
+
 const WEEKDAY = new Intl.DateTimeFormat(undefined, { weekday: "short" });
 const DAY_MONTH = new Intl.DateTimeFormat(undefined, {
     day: "numeric",

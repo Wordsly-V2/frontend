@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 import type { IReportMastery } from "@/types/learning-report/learning-report.type";
 import { ChartCard } from "./chart-card";
+import { chartTooltipProps } from "./report-format";
 
 interface MasteryBreakdownChartProps {
     mastery: IReportMastery;
@@ -59,12 +60,7 @@ export function MasteryBreakdownChart({
                                     ))}
                                 </Pie>
                                 <Tooltip
-                                    contentStyle={{
-                                        borderRadius: "8px",
-                                        border: "1px solid hsl(var(--border))",
-                                        background: "hsl(var(--card))",
-                                        fontSize: "12px",
-                                    }}
+                                    {...chartTooltipProps}
                                     formatter={(value, name) => [value, name]}
                                 />
                             </PieChart>
