@@ -6,6 +6,7 @@ import {
     readDueWordsLimitFromStorage,
 } from "@/lib/due-words-limit";
 import { setLocalStorageItem } from "@/lib/local-storage";
+import { emitPreferenceChange } from "@/lib/preferences-sync";
 import { useSyncExternalStore } from "react";
 
 /**
@@ -38,6 +39,7 @@ function subscribe(listener: () => void): () => void {
 export function setDueWordsLimit(next: number): void {
     store = next;
     setLocalStorageItem(DUE_WORDS_LIMIT_STORAGE_KEY, JSON.stringify(next));
+    emitPreferenceChange({ dueWordsLimit: next });
     for (const listener of listeners) listener();
 }
 

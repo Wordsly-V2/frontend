@@ -3,6 +3,7 @@ import { AppCommandMenu } from '@/components/common/app-command-menu';
 import GlobalLoadingOverlay from '@/components/common/loading-overlay/global-loading-overlay';
 import ServiceHealthMonitor from '@/components/common/service-health-monitor';
 import { TooltipProvider } from '@/components/ui/tooltip';
+import { usePreferencesSync } from '@/hooks/usePreferencesSync.hook';
 import { queryClient } from '@/lib/queryClient';
 import { useAppDispatch } from '@/store/hooks';
 import { fetchProfile } from '@/store/slices/userSlice';
@@ -22,6 +23,12 @@ function UserProfileBootstrap() {
     return null;
 }
 
+/** Keeps synced preferences (practice/UI/theme) in step with the server. */
+function PreferencesSync() {
+    usePreferencesSync();
+    return null;
+}
+
 export function Providers({ children }: { children: React.ReactNode }) {
     return (
         <ThemeProvider
@@ -36,6 +43,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
                     <ServiceHealthMonitor />
                     <UserProfileBootstrap />
                     <QueryClientProvider client={queryClient}>
+                        <PreferencesSync />
                         <GlobalLoadingOverlay />
                         {children}
                         <AppCommandMenu />

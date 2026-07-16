@@ -91,6 +91,9 @@ export const queryKeys = {
     learningSettings: {
         all: ["learning-settings"] as const,
     },
+    preferences: {
+        all: ["preferences"] as const,
+    },
     dictionary: {
         all: ["dictionary"] as const,
         pronunciation: (word: string) => ["dictionary", "pronunciation", word] as const,

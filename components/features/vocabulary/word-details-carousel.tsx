@@ -12,74 +12,15 @@ import type { WordDetailsAutoNextFormValues } from '@/lib/schemas/word-details-a
 import { handleAudioPlayError } from "@/lib/audio-playback";
 import { IWord } from '@/types/courses/courses.type';
 import { ChevronLeft, ChevronRight, SlidersHorizontal } from 'lucide-react';
-import { getLocalStorageItem, setLocalStorageItem } from '@/lib/local-storage';
-import { WORD_DETAILS_AUTO_NEXT_STORAGE_KEY } from '@/lib/user-local-data';
+import { clampDelayBetweenWordsSec } from '@/lib/word-details-auto-next';
+import { useWordDetailsAutoNext } from '@/hooks/useWordDetailsAutoNext.hook';
 import { motion, useReducedMotion } from 'motion/react';
-import { startTransition, useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Swiper as SwiperType } from 'swiper';
 import { Keyboard } from 'swiper/modules';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import 'swiper/css';
 import WordDetailCard from './word-detail-card';
-
-const DELAY_BETWEEN_WORDS_MIN_SEC = 1;
-const DELAY_BETWEEN_WORDS_MAX_SEC = 600;
-const DELAY_BETWEEN_WORDS_DEFAULT_SEC = 5;
-
-function clampDelayBetweenWordsSec(value: number): number {
-    if (!Number.isFinite(value)) return DELAY_BETWEEN_WORDS_DEFAULT_SEC;
-    return Math.min(
-        DELAY_BETWEEN_WORDS_MAX_SEC,
-        Math.max(DELAY_BETWEEN_WORDS_MIN_SEC, Math.round(value)),
-    );
-}
-
-type WordDetailsAutoNextStored = {
-    enabled: boolean;
-    delaySec: number;
-};
-
-const DEFAULT_WORD_DETAILS_AUTO_NEXT: WordDetailsAutoNextStored = {
-    enabled: false,
-    delaySec: DELAY_BETWEEN_WORDS_DEFAULT_SEC,
-};
-
-function parseWordDetailsAutoNext(
-    raw: string | null,
-    initial: WordDetailsAutoNextStored,
-): WordDetailsAutoNextStored {
-    if (raw === null) return initial;
-    try {
-        const parsed: unknown = JSON.parse(raw);
-        if (parsed === true || parsed === false) {
-            return { enabled: parsed, delaySec: DELAY_BETWEEN_WORDS_DEFAULT_SEC };
-        }
-        if (parsed && typeof parsed === 'object' && 'enabled' in parsed) {
-            const enabled = (parsed as { enabled?: unknown }).enabled;
-            const rawDelay = (parsed as { delaySec?: unknown }).delaySec;
-            if (typeof enabled === 'boolean') {
-                const delaySec =
-                    typeof rawDelay === 'number'
-                        ? clampDelayBetweenWordsSec(rawDelay)
-                        : DELAY_BETWEEN_WORDS_DEFAULT_SEC;
-                return { enabled, delaySec };
-            }
-        }
-        return initial;
-    } catch {
-        return initial;
-    }
-}
-
-function writeWordDetailsAutoNext(settings: WordDetailsAutoNextStored) {
-    setLocalStorageItem(
-        WORD_DETAILS_AUTO_NEXT_STORAGE_KEY,
-        JSON.stringify({
-            enabled: settings.enabled,
-            delaySec: clampDelayBetweenWordsSec(settings.delaySec),
-        }),
-    );
-}
 
 export interface WordDetailsCarouselProps {
     words: IWord[];
@@ -101,8 +42,7 @@ export default function WordDetailsCarousel({
     className = '',
 }: Readonly<WordDetailsCarouselProps>) {
     const [index, setIndex] = useState(initialIndex);
-    const [autoNextSettings, setAutoNextSettings] = useState(DEFAULT_WORD_DETAILS_AUTO_NEXT);
-    const [autoNextStorageReady, setAutoNextStorageReady] = useState(false);
+    const { autoNext: autoNextSettings, setAutoNext } = useWordDetailsAutoNext();
     const autoAdvanceNext = autoNextSettings.enabled;
     const delayBetweenWordsSec = autoNextSettings.delaySec;
     const autoAdvanceRef = useRef(false);
@@ -122,28 +62,15 @@ export default function WordDetailsCarousel({
     }, []);
 
     const handlePlaybackSave = useCallback((next: WordDetailsAutoNextFormValues) => {
-        setAutoNextSettings({
+        setAutoNext({
             enabled: next.enabled,
             delaySec: clampDelayBetweenWordsSec(next.delaySec),
         });
-    }, []);
+    }, [setAutoNext]);
 
     const handleSlideChange = useCallback((swiper: SwiperType) => {
         setIndex(swiper.activeIndex);
     }, []);
-
-    useEffect(() => {
-        startTransition(() => {
-            const raw = getLocalStorageItem(WORD_DETAILS_AUTO_NEXT_STORAGE_KEY);
-            setAutoNextSettings(parseWordDetailsAutoNext(raw, DEFAULT_WORD_DETAILS_AUTO_NEXT));
-            setAutoNextStorageReady(true);
-        });
-    }, []);
-
-    useEffect(() => {
-        if (!autoNextStorageReady) return;
-        writeWordDetailsAutoNext(autoNextSettings);
-    }, [autoNextStorageReady, autoNextSettings]);
 
     useEffect(() => {
         autoAdvanceRef.current = autoAdvanceNext;

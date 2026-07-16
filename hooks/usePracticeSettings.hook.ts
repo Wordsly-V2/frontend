@@ -1,6 +1,7 @@
 "use client";
 
 import { setLocalStorageItem } from "@/lib/local-storage";
+import { emitPreferenceChange } from "@/lib/preferences-sync";
 import {
     DEFAULT_PRACTICE_SETTINGS,
     type PracticeSettings,
@@ -43,6 +44,7 @@ export function setPracticeSettings(next: PracticeSettings): void {
     } catch (error) {
         console.error("Failed to save practice settings:", error);
     }
+    emitPreferenceChange({ practice: next });
     for (const listener of listeners) listener();
 }
 

@@ -1,5 +1,6 @@
 "use client";
 
+import { emitPreferenceChange } from "@/lib/preferences-sync";
 import { useTheme as useNextThemes } from "next-themes";
 import { useSyncExternalStore } from "react";
 
@@ -19,11 +20,14 @@ export function useTheme() {
     const isDark = resolvedTheme === "dark";
 
     const toggleTheme = () => {
-        setTheme(isDark ? "light" : "dark");
+        const next = isDark ? "light" : "dark";
+        setTheme(next);
+        emitPreferenceChange({ theme: next });
     };
 
     const setThemeMode = (newTheme: Theme) => {
         setTheme(newTheme);
+        emitPreferenceChange({ theme: newTheme });
     };
 
     return {
