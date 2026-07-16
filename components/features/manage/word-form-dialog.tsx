@@ -134,8 +134,41 @@ function WordFormDialogForm({
                 patch.imageUrl;
             if (hasPatch) {
                 setFormData((prev) => {
+                    // Index the dictionary's examples by their text so we can both
+                    // backfill missing fields on existing rows and append new ones.
+                    const dictByText = new Map<
+                        string,
+                        { translation?: string; audioUrl?: string }
+                    >();
+                    for (const e of patch.examples) {
+                        const key = e.text.trim().toLowerCase();
+                        if (key && !dictByText.has(key)) {
+                            dictByText.set(key, {
+                                translation: e.translation,
+                                audioUrl: e.audioUrl,
+                            });
+                        }
+                    }
+
+                    // Refill translation / audio on examples the form already has
+                    // (typed or pre-filled) when the dictionary provides them and
+                    // the field is empty. Never overwrite what the user already set.
+                    const mergedExisting = prev.examples.map((ex) => {
+                        const match = dictByText.get(ex.text.trim().toLowerCase());
+                        if (!match) return ex;
+                        return {
+                            ...ex,
+                            ...(!ex.translation?.trim() && match.translation
+                                ? { translation: match.translation }
+                                : {}),
+                            ...(!ex.audioUrl?.trim() && match.audioUrl
+                                ? { audioUrl: match.audioUrl }
+                                : {}),
+                        };
+                    });
+
                     const existingTexts = new Set(
-                        prev.examples.map((e) => e.text.trim().toLowerCase()),
+                        mergedExisting.map((e) => e.text.trim().toLowerCase()),
                     );
                     const newExamples: IWordExample[] = patch.examples
                         .filter((e) => {
@@ -157,9 +190,7 @@ function WordFormDialogForm({
                         ...(patch.partOfSpeech && { partOfSpeech: patch.partOfSpeech }),
                         ...(patch.pronunciation && { pronunciation: patch.pronunciation }),
                         ...(patch.audioUrl && { audioUrl: patch.audioUrl }),
-                        ...(newExamples.length > 0 && {
-                            examples: [...prev.examples, ...newExamples],
-                        }),
+                        examples: [...mergedExisting, ...newExamples],
                     };
                 });
             }
