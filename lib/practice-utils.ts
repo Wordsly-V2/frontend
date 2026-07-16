@@ -1,7 +1,5 @@
 import { IWord, IWordExample } from "@/types/courses/courses.type";
 
-export const MASK_PLACEHOLDER = "***";
-
 export function shuffleArray<T>(array: T[]): T[] {
     const shuffled = [...array];
     for (let i = shuffled.length - 1; i > 0; i--) {
@@ -87,15 +85,6 @@ export function getWordExampleObjects(
     word: Pick<IWord, "example">,
 ): IWordExample[] {
     return parseExamples(word.example);
-}
-
-export function maskWordInExamples(word: string, examples: string[]): string[] {
-    if (!word.trim()) return [];
-    const escaped = word.replace(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`);
-    const re = new RegExp(escaped, "gi");
-    return examples
-        .filter((s) => re.test(s))
-        .map((s) => s.replaceAll(new RegExp(escaped, "gi"), MASK_PLACEHOLDER));
 }
 
 export interface ClozePrompt {
@@ -229,4 +218,86 @@ export function getAnswerMatch(userAnswer: string, expected: string): AnswerMatc
 /** Like normalize but only trims leading whitespace for hint prefix matching. */
 export function normalizeForHintPrefix(value: string): string {
     return value.trimStart().toLowerCase().replaceAll(/\s+/g, " ");
+}
+
+/**
+ * Classic Soundex phonetic code for an English word — collapses letters that
+ * sound alike (e.g. "there"/"their", "phone"/"fone") to the same 4-char key.
+ * Used to grade spoken answers, where recognition mishears vowels and accented
+ * speakers pronounce words that map to the same sound but a different spelling.
+ */
+export function soundex(value: string): string {
+    const s = stripDiacritics(value.toLowerCase())
+        .replaceAll(/[^a-z]/g, "")
+        .toUpperCase();
+    if (!s) return "";
+    const codeOf: Record<string, string> = {
+        B: "1", F: "1", P: "1", V: "1",
+        C: "2", G: "2", J: "2", K: "2", Q: "2", S: "2", X: "2", Z: "2",
+        D: "3", T: "3",
+        L: "4",
+        M: "5", N: "5",
+        R: "6",
+    };
+    let result = s[0];
+    let prev = codeOf[s[0]] ?? "";
+    for (let i = 1; i < s.length && result.length < 4; i++) {
+        const ch = s[i];
+        const code = codeOf[ch] ?? "";
+        if (code && code !== prev) result += code;
+        // Vowels (and Y) separate repeated consonants; H/W don't.
+        if ("AEIOUY".includes(ch)) prev = "";
+        else if (ch !== "H" && ch !== "W") prev = code;
+    }
+    return (result + "000").slice(0, 4);
+}
+
+/**
+ * Grade a SPOKEN answer against the target word. More forgiving than typed
+ * grading ({@link getAnswerMatch}): speech recognition mishears vowels and
+ * accented learners produce homophones, so an exact text match wins, otherwise
+ * a phonetic (Soundex) match counts as a "near" (correct) answer.
+ */
+export function gradeSpokenAnswer(candidates: string[], target: string): AnswerMatch {
+    const normTarget = normalizeAnswer(target);
+    if (!normTarget) return "wrong";
+    const targetSoundex = soundex(normTarget);
+    let best: AnswerMatch = "wrong";
+    for (const candidate of candidates) {
+        const typed = getAnswerMatch(candidate, target);
+        if (typed === "exact") return "exact";
+        if (typed === "near") {
+            best = "near";
+            continue;
+        }
+        const norm = normalizeAnswer(candidate);
+        if (norm && targetSoundex && soundex(norm) === targetSoundex) {
+            best = "near";
+        }
+    }
+    return best;
+}
+
+export interface TextSegment {
+    text: string;
+    match: boolean;
+}
+
+/**
+ * Split `text` into segments around every (case-insensitive) occurrence of
+ * `word`, flagging the matches so callers can highlight the target word inside
+ * an example sentence. Whole-word boundaries aren't enforced, so inflected
+ * forms sharing the stem still highlight the matched substring.
+ */
+export function splitAroundWord(text: string, word: string): TextSegment[] {
+    const target = word.trim();
+    if (!target) return [{ text, match: false }];
+    const escaped = target.replace(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`);
+    // Capturing group keeps the delimiters (the matched word) in the split output.
+    const re = new RegExp(`(${escaped})`, "gi");
+    const lower = target.toLowerCase();
+    return text
+        .split(re)
+        .filter((part) => part.length > 0)
+        .map((part) => ({ text: part, match: part.toLowerCase() === lower }));
 }

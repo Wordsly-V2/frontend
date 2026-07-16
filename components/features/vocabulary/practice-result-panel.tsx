@@ -4,6 +4,7 @@ import { AdaptiveText } from "@/components/common/adaptive-text";
 import { Button } from "@/components/ui/button";
 import { LONG_TEXT_WRAP, SCROLLABLE_BODY } from "@/lib/long-text";
 import { getPlayPhraseSearchUrl } from "@/lib/playphrase";
+import { splitAroundWord } from "@/lib/practice-utils";
 import { pickCorrectMessage, pickIncorrectMessage } from "@/lib/practice-feedback";
 import { playAudioUrl } from "@/lib/practice-audio";
 import { cn } from "@/lib/utils";
@@ -245,13 +246,29 @@ export function PracticeResultPanel({
                         <p className="text-xs font-medium mb-1 text-muted-foreground">Examples</p>
                         <ul className="space-y-1">
                             {examples.slice(0, 2).map((ex) => (
-                                <li key={ex}>
-                                    <AdaptiveText
-                                        text={`"${ex}"`}
-                                        role="example"
-                                        className="text-xs italic text-muted-foreground"
-                                        scrollWhenLong={false}
-                                    />
+                                <li
+                                    key={ex}
+                                    className={cn("text-xs italic text-muted-foreground", LONG_TEXT_WRAP)}
+                                >
+                                    &ldquo;
+                                    {splitAroundWord(ex, correctAnswer).map((seg, i) =>
+                                        seg.match ? (
+                                            <span
+                                                key={`${ex}-${i}`}
+                                                className={cn(
+                                                    "font-semibold not-italic",
+                                                    isCorrect
+                                                        ? "text-green-700 dark:text-green-300"
+                                                        : "text-red-700 dark:text-red-300",
+                                                )}
+                                            >
+                                                {seg.text}
+                                            </span>
+                                        ) : (
+                                            <span key={`${ex}-${i}`}>{seg.text}</span>
+                                        ),
+                                    )}
+                                    &rdquo;
                                 </li>
                             ))}
                         </ul>

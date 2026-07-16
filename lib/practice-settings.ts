@@ -32,21 +32,14 @@ export interface PracticeSettings {
     /** Which methods the mixed mode may rotate through. Empty = all. */
     mixedModes: MixedPracticeMethod[];
     autoCheck: boolean;
-    showExampleHints: boolean;
-    showImageHints: boolean;
     soundEnabled: boolean;
-    /** Use the speaking (pronunciation) exercise when the browser supports it. */
-    speakingEnabled: boolean;
 }
 
 export const DEFAULT_PRACTICE_SETTINGS: PracticeSettings = {
     mode: 'mixed',
     mixedModes: [...MIXED_PRACTICE_MODES],
     autoCheck: true,
-    showExampleHints: true,
-    showImageHints: true,
     soundEnabled: false,
-    speakingEnabled: true,
 };
 
 /** Every selectable practice mode (concrete methods + meta modes). */
@@ -91,10 +84,7 @@ export function parsePracticeSettings(
             mode: parsePracticeMode(parsed.mode, initial.mode),
             mixedModes: parseMixedModes(parsed.mixedModes, initial.mixedModes),
             autoCheck: parsed.autoCheck ?? initial.autoCheck,
-            showExampleHints: parsed.showExampleHints ?? initial.showExampleHints,
-            showImageHints: parsed.showImageHints ?? initial.showImageHints,
             soundEnabled: parsed.soundEnabled ?? initial.soundEnabled,
-            speakingEnabled: parsed.speakingEnabled ?? initial.speakingEnabled,
         };
     } catch {
         return initial;

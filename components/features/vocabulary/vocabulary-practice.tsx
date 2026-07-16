@@ -9,7 +9,7 @@ import { PracticeResultPanel } from "@/components/features/vocabulary/practice-r
 import { PracticeSessionHeader } from "@/components/features/vocabulary/practice-session-header";
 import { PracticeShortcutsHint } from "@/components/features/vocabulary/practice-shortcuts-hint";
 import { PracticeToolbar } from "@/components/features/vocabulary/practice-toolbar";
-import { WordPracticeHints } from "@/components/features/vocabulary/word-practice-hints";
+import { WordRevealHint } from "@/components/features/vocabulary/word-reveal-hint";
 import { PracticeSessionSummary } from "@/components/features/vocabulary/practice-session-summary";
 import { AdaptiveText } from "@/components/common/adaptive-text";
 import { WordPill } from "@/components/common/word-pill";
@@ -42,10 +42,7 @@ import {
     playPracticeErrorSound,
     playPracticeSuccessSound,
 } from "@/lib/practice-sounds";
-import {
-    stageHintPolicy,
-    type WordLearningStage,
-} from "@/lib/word-progress-stage";
+import { type WordLearningStage } from "@/lib/word-progress-stage";
 import { PEDAGOGY } from "@/lib/learning-pedagogy";
 import {
     buildMixedModePlan,
@@ -60,7 +57,6 @@ import {
     getAnswerMatch,
     getClozePrompt,
     getWordExamples,
-    maskWordInExamples,
     normalizeAnswer,
     normalizeForHintPrefix,
     shuffleArray,
@@ -147,9 +143,10 @@ export default function VocabularyPractice({
     const [showAnswer, setShowAnswer] = useState(false);
     const [userAnswer, setUserAnswer] = useState("");
     const { settings: practiceSettings } = usePracticeSettings();
-    const { mode, mixedModes, autoCheck, showExampleHints, showImageHints, soundEnabled, speakingEnabled } = practiceSettings;
-    const speakingSupported = useSpeechRecognitionSupported();
-    const speakingAvailable = speakingSupported && speakingEnabled;
+    const { mode, mixedModes, autoCheck, soundEnabled } = practiceSettings;
+    // Speaking is now a first-class method (picked in the mode/mix settings), so
+    // its only gate is browser support — no separate on/off toggle.
+    const speakingAvailable = useSpeechRecognitionSupported();
     const [typingResult, setTypingResult] = useState<"correct" | "incorrect" | null>(null);
     const [isNearMiss, setIsNearMiss] = useState(false);
     const [showSettings, setShowSettings] = useState(false);
@@ -195,33 +192,19 @@ export default function VocabularyPractice({
     const currentOccurrence = currentWord
         ? wordOccurrenceAtIndex(queue, currentIndex)
         : 0;
-    let hintStage: WordLearningStage = currentStage;
-    if (currentStage === "new" && currentOccurrence > 0) {
-        hintStage = currentOccurrence === 1 ? "learning" : "due";
-    }
-    const stageHints = stageHintPolicy(hintStage);
-    const effectiveExampleHints = showExampleHints && stageHints.showExampleHints;
-    const effectiveImageHints = showImageHints && stageHints.showImageHints;
 
     const clozePrompt = useMemo(
         () => (currentWord ? getClozePrompt(currentWord) : null),
         [currentWord],
     );
-    // Speaking's on/off lives in its own `speakingEnabled` setting (with a
-    // dedicated toggle), not in the mixed-method chips — so derive the effective
-    // method list from both rather than relying on `mixedModes` membership.
-    const enabledMixedModes = useMemo(() => {
-        const base = mixedModes.filter((m) => m !== "speaking");
-        return speakingEnabled ? [...base, "speaking"] : base;
-    }, [mixedModes, speakingEnabled]);
     const mixedModePlan = useMemo(() => {
         if (mode !== "mixed") return null;
         return buildMixedModePlan(queue, stagesByWordId, {
             leechWordIds,
-            enabledModes: enabledMixedModes,
+            enabledModes: mixedModes,
             speakingAvailable,
         });
-    }, [mode, enabledMixedModes, queue, stagesByWordId, leechWordIds, speakingAvailable]);
+    }, [mode, mixedModes, queue, stagesByWordId, leechWordIds, speakingAvailable]);
     const resolvedMode: ActivePracticeMode = currentWord
         ? resolveActiveMode(
               mode,
@@ -248,13 +231,6 @@ export default function VocabularyPractice({
     const rawExamples = useMemo(
         () => (currentWord ? getWordExamples(currentWord) : []),
         [currentWord],
-    );
-    const maskedExamples = useMemo(
-        () =>
-            currentWord && effectiveExampleHints && rawExamples.length > 0
-                ? maskWordInExamples(currentWord.word, rawExamples)
-                : [],
-        [currentWord, effectiveExampleHints, rawExamples],
     );
 
     const isLeech = currentWord != null && leechWordIds?.has(currentWord.id);
@@ -512,7 +488,7 @@ export default function VocabularyPractice({
                     ? (Date.now() - wordStartTimeRef.current) / 1000
                     : undefined;
             if (elapsed != null) setTimeSpentSeconds(elapsed);
-            const quality = calculateAnswerQuality(correct, 0, elapsed, near);
+            const quality = calculateAnswerQuality(correct, hintsUsed, elapsed, near);
             setUserAnswer(transcript);
             stageResult({ wordId: currentWord.id, quality });
             setTypingResult(correct ? "correct" : "incorrect");
@@ -520,8 +496,15 @@ export default function VocabularyPractice({
             playResultSound(correct);
             setShowResultDialog(true);
         },
-        [currentWord, typingResult, showResultDialog, stageResult, playResultSound],
+        [currentWord, typingResult, showResultDialog, hintsUsed, stageResult, playResultSound],
     );
+
+    // "I'm stuck" reveal (meaning + full example) gives a lot away, so treat it
+    // as ≥2 hints — that caps the recorded answer quality at "correct with
+    // difficulty" (calculateAnswerQuality: 0 hints→5, 1→4, ≥2→3).
+    const handleRevealHint = useCallback(() => {
+        setHintsUsed((h) => Math.max(h, 2));
+    }, []);
 
     const handleGetHint = () => {
         const hint = getNextHint();
@@ -606,7 +589,7 @@ export default function VocabularyPractice({
         if (elapsed != null) setTimeSpentSeconds(elapsed);
         setSelectedChoice(selectedWord);
         const isCorrect = normalizeAnswer(selectedWord) === normalizeAnswer(correctWord);
-        const quality = calculateAnswerQuality(isCorrect, 0, elapsed);
+        const quality = calculateAnswerQuality(isCorrect, hintsUsed, elapsed);
         stageResult({ wordId: currentWord.id, quality });
         setTypingResult(isCorrect ? "correct" : "incorrect");
         playResultSound(isCorrect);
@@ -940,31 +923,35 @@ export default function VocabularyPractice({
                                         word={currentWord}
                                         stage={currentStage}
                                         showAnswer={showAnswer}
-                                        maskedExamples={maskedExamples}
-                                        showImageHints={effectiveImageHints}
                                         onReveal={handleFlashcardReveal}
                                         onRate={handleFlashcardRate}
                                     />
                                 )}
 
                                 {activeMode === "context" && clozePrompt && (
-                                    <ContextMode
-                                        word={currentWord}
-                                        sentence={clozePrompt.sentence}
-                                        maskedExamples={maskedExamples}
-                                        showImageHints={effectiveImageHints}
-                                        inputRef={inputRef}
-                                        inputClassName={inputClassName}
-                                        userAnswer={userAnswer}
-                                        onAnswerChange={setUserAnswer}
-                                        onSubmitEnter={(e) =>
-                                            submitAnswerOnEnter(e, handleCheckTypingAnswer)
-                                        }
-                                        onHint={handleGetHint}
-                                        hintsUsed={hintsUsed}
-                                        autoCheck={autoCheck}
-                                        onCheck={handleCheckTypingAnswer}
-                                    />
+                                    <div className="space-y-4">
+                                        <ContextMode
+                                            word={currentWord}
+                                            sentence={clozePrompt.sentence}
+                                            inputRef={inputRef}
+                                            inputClassName={inputClassName}
+                                            userAnswer={userAnswer}
+                                            onAnswerChange={setUserAnswer}
+                                            onSubmitEnter={(e) =>
+                                                submitAnswerOnEnter(e, handleCheckTypingAnswer)
+                                            }
+                                            onHint={handleGetHint}
+                                            hintsUsed={hintsUsed}
+                                            autoCheck={autoCheck}
+                                            onCheck={handleCheckTypingAnswer}
+                                        />
+                                        <div className="text-center">
+                                            <WordRevealHint
+                                                word={currentWord}
+                                                onReveal={handleRevealHint}
+                                            />
+                                        </div>
+                                    </div>
                                 )}
 
                                 {activeMode === "cloze" && clozePrompt && (
@@ -977,11 +964,12 @@ export default function VocabularyPractice({
                                                     align="center"
                                                     className="px-2 text-foreground/90"
                                                 />
-                                                <WordPracticeHints
-                                                    maskedExamples={maskedExamples}
-                                                    imageUrl={currentWord.imageUrl}
-                                                    showImageHints={effectiveImageHints}
-                                                />
+                                                <div className="mt-3 text-center">
+                                                    <WordRevealHint
+                                                        word={currentWord}
+                                                        onReveal={handleRevealHint}
+                                                    />
+                                                </div>
                                             </>
                                         }
                                         options={clozeWordOptions}
@@ -1009,11 +997,13 @@ export default function VocabularyPractice({
                                                 {currentWord.partOfSpeech && (
                                                     <WordPill size="md">{currentWord.partOfSpeech}</WordPill>
                                                 )}
-                                                <WordPracticeHints
-                                                    maskedExamples={maskedExamples}
-                                                    imageUrl={currentWord.imageUrl}
-                                                    showImageHints={effectiveImageHints}
-                                                />
+                                                <div className="mt-3 text-center">
+                                                    <WordRevealHint
+                                                        word={currentWord}
+                                                        showMeaning={false}
+                                                        onReveal={handleRevealHint}
+                                                    />
+                                                </div>
                                             </>
                                         }
                                         options={wordBankOptions}
@@ -1033,31 +1023,38 @@ export default function VocabularyPractice({
                                         key={`${currentWord.id}:${currentOccurrence}`}
                                         word={currentWord}
                                         targetWord={currentWord.word}
-                                        maskedExamples={maskedExamples}
-                                        showImageHints={effectiveImageHints}
                                         onResult={handleSpeakingResult}
                                         onUseTextFallback={handleUseSpeakingFallback}
+                                        onRevealHint={handleRevealHint}
                                     />
                                 )}
 
                                 {activeMode === "listening" && (
-                                    <ListeningMode
-                                        audioUrl={currentWord.audioUrl}
-                                        hasPlayedAudio={hasPlayedAudio}
-                                        inputRef={inputRef}
-                                        inputClassName={inputClassName}
-                                        userAnswer={userAnswer}
-                                        onAnswerChange={setUserAnswer}
-                                        onSubmitEnter={(e) =>
-                                            submitAnswerOnEnter(e, handleCheckTypingAnswer, hasPlayedAudio)
-                                        }
-                                        onPlay={handleListeningPlay}
-                                        onReplay={() => playAudioUrl(currentWord.audioUrl)}
-                                        onHint={handleGetHint}
-                                        autoCheck={autoCheck}
-                                        onCheck={handleCheckTypingAnswer}
-                                        onUseTextFallback={handleUseTextFallback}
-                                    />
+                                    <div className="space-y-4">
+                                        <ListeningMode
+                                            audioUrl={currentWord.audioUrl}
+                                            hasPlayedAudio={hasPlayedAudio}
+                                            inputRef={inputRef}
+                                            inputClassName={inputClassName}
+                                            userAnswer={userAnswer}
+                                            onAnswerChange={setUserAnswer}
+                                            onSubmitEnter={(e) =>
+                                                submitAnswerOnEnter(e, handleCheckTypingAnswer, hasPlayedAudio)
+                                            }
+                                            onPlay={handleListeningPlay}
+                                            onReplay={() => playAudioUrl(currentWord.audioUrl)}
+                                            onHint={handleGetHint}
+                                            autoCheck={autoCheck}
+                                            onCheck={handleCheckTypingAnswer}
+                                            onUseTextFallback={handleUseTextFallback}
+                                        />
+                                        <div className="text-center">
+                                            <WordRevealHint
+                                                word={currentWord}
+                                                onReveal={handleRevealHint}
+                                            />
+                                        </div>
+                                    </div>
                                 )}
                             </PracticeExerciseBody>
                         </>

@@ -40,7 +40,6 @@ import {
     Sparkles,
     Volume2,
     MessageSquare,
-    ImageIcon,
     LayoutGrid,
     Shuffle,
     TextCursorInput,
@@ -91,10 +90,7 @@ function PracticeSettingsForm({
             : [...MIXED_PRACTICE_MODES],
     );
     const [tempAutoCheck, setTempAutoCheck] = useState(currentSettings.autoCheck);
-    const [tempShowExampleHints, setTempShowExampleHints] = useState(currentSettings.showExampleHints);
-    const [tempShowImageHints, setTempShowImageHints] = useState(currentSettings.showImageHints);
     const [tempSoundEnabled, setTempSoundEnabled] = useState(currentSettings.soundEnabled);
-    const [tempSpeakingEnabled, setTempSpeakingEnabled] = useState(currentSettings.speakingEnabled);
     const speechSupported = useSpeechRecognitionSupported();
 
     // Preserve the canonical mix order so the plan rotates predictably.
@@ -115,10 +111,7 @@ function PracticeSettingsForm({
             mode: tempMode,
             mixedModes: tempMixedModes,
             autoCheck: tempAutoCheck,
-            showExampleHints: tempShowExampleHints,
-            showImageHints: tempShowImageHints,
             soundEnabled: tempSoundEnabled,
-            speakingEnabled: tempSpeakingEnabled,
         });
         if (includeSessionPrefs) sessionPrefsRef.current?.commit();
         onClose();
@@ -138,6 +131,7 @@ function PracticeSettingsForm({
         { id: "context", icon: MessageSquare, label: "In context", desc: "Type the word in a sentence" },
         { id: "cloze", icon: TextCursorInput, label: "Fill-in", desc: "Pick the word in context" },
         { id: "word-bank", icon: LayoutGrid, label: "Word bank", desc: "Pick the word for a meaning" },
+        { id: "speaking", icon: Mic, label: "Speaking", desc: "Say the word out loud" },
         { id: "flashcard", icon: Sparkles, label: "Flashcard", desc: "Reveal and rate" },
     ];
 
@@ -151,20 +145,28 @@ function PracticeSettingsForm({
                 <div>
                     <Label className="text-sm font-medium mb-3 block">Practice Mode</Label>
                     <div className="grid grid-cols-2 gap-3">
-                        {modes.map(({ id, icon: Icon, label, desc }) => (
-                            <Button
-                                key={id}
-                                type="button"
-                                size="lg"
-                                variant={tempMode === id ? "default" : "outline"}
-                                onClick={() => setTempMode(id)}
-                                className="gap-2 h-auto py-4 flex-col"
-                            >
-                                <Icon className="h-5 w-5" />
-                                <span className="font-medium">{label}</span>
-                                <span className="text-xs opacity-80 font-normal">{desc}</span>
-                            </Button>
-                        ))}
+                        {modes.map(({ id, icon: Icon, label, desc }) => {
+                            // Speaking needs browser speech recognition; disable it
+                            // (with a reason) where the browser can't support it.
+                            const disabled = id === "speaking" && !speechSupported;
+                            return (
+                                <Button
+                                    key={id}
+                                    type="button"
+                                    size="lg"
+                                    variant={tempMode === id ? "default" : "outline"}
+                                    onClick={() => setTempMode(id)}
+                                    disabled={disabled}
+                                    className="gap-2 h-auto py-4 flex-col"
+                                >
+                                    <Icon className="h-5 w-5" />
+                                    <span className="font-medium">{label}</span>
+                                    <span className="text-xs opacity-80 font-normal">
+                                        {disabled ? "Not supported here" : desc}
+                                    </span>
+                                </Button>
+                            );
+                        })}
                     </div>
                     {isMixed && (
                         <div className="mt-4">
@@ -172,25 +174,33 @@ function PracticeSettingsForm({
                                 Choose which methods to mix. All are on for the strongest recall.
                             </p>
                             <div className="flex flex-wrap gap-2">
-                                {/* Speaking has its own capability toggle below. */}
-                                {MIXED_PRACTICE_MODES.filter(
-                                    (method) => method !== "speaking",
-                                ).map((method) => {
+                                {MIXED_PRACTICE_MODES.map((method) => {
                                     const meta = getPracticeModeMeta(method);
                                     const MethodIcon = meta.icon;
                                     const selected = tempMixedModes.includes(method);
+                                    // Speaking needs browser speech recognition.
+                                    const disabled =
+                                        method === "speaking" && !speechSupported;
                                     return (
                                         <button
                                             key={method}
                                             type="button"
                                             aria-pressed={selected}
+                                            disabled={disabled}
                                             onClick={() => toggleMixedMode(method)}
                                             className={cn(
                                                 "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
+                                                disabled &&
+                                                    "cursor-not-allowed opacity-40",
                                                 selected
                                                     ? "border-primary bg-primary text-primary-foreground"
                                                     : "border-border bg-transparent text-muted-foreground hover:bg-muted",
                                             )}
+                                            title={
+                                                disabled
+                                                    ? "Speaking isn't supported in this browser"
+                                                    : undefined
+                                            }
                                         >
                                             <MethodIcon className="h-3.5 w-3.5" />
                                             {meta.shortLabel}
@@ -225,41 +235,10 @@ function PracticeSettingsForm({
                 </div>
 
                 <div className="space-y-3 pt-4 border-t border-border">
-                    <div className="flex items-start justify-between gap-4">
-                        <div className="flex-1">
-                            <Label htmlFor="show-example-hints" className="text-sm font-medium flex items-center gap-2">
-                                <MessageSquare className="h-4 w-4 text-muted-foreground" />
-                                Example hints
-                            </Label>
-                            <p className="text-xs text-muted-foreground mt-1">
-                                Show sentences with the word hidden (***)
-                            </p>
-                        </div>
-                        <Switch
-                            id="show-example-hints"
-                            checked={tempShowExampleHints}
-                            onCheckedChange={setTempShowExampleHints}
-                        />
-                    </div>
-                    <div className="flex items-start justify-between gap-4">
-                        <div className="flex-1">
-                            <Label htmlFor="show-image-hints" className="text-sm font-medium flex items-center gap-2">
-                                <ImageIcon className="h-4 w-4 text-muted-foreground" />
-                                Image hints
-                            </Label>
-                            <p className="text-xs text-muted-foreground mt-1">
-                                Show a picture when available
-                            </p>
-                        </div>
-                        <Switch
-                            id="show-image-hints"
-                            checked={tempShowImageHints}
-                            onCheckedChange={setTempShowImageHints}
-                        />
-                    </div>
-                </div>
-
-                <div className="space-y-3 pt-4 border-t border-border">
+                    <p className="text-xs text-muted-foreground">
+                        Stuck on a word? Tap <span className="font-medium">Show meaning &amp; example</span> during
+                        any exercise to reveal its meaning, example sentence, and image.
+                    </p>
                     <div className="flex items-start justify-between gap-4">
                         <div className="flex-1">
                             <Label htmlFor="sound-enabled" className="text-sm font-medium flex items-center gap-2">
@@ -274,25 +253,6 @@ function PracticeSettingsForm({
                             id="sound-enabled"
                             checked={tempSoundEnabled}
                             onCheckedChange={setTempSoundEnabled}
-                        />
-                    </div>
-                    <div className="flex items-start justify-between gap-4">
-                        <div className="flex-1">
-                            <Label htmlFor="speaking-enabled" className="text-sm font-medium flex items-center gap-2">
-                                <Mic className="h-4 w-4 text-muted-foreground" />
-                                Speaking practice
-                            </Label>
-                            <p className="text-xs text-muted-foreground mt-1">
-                                {speechSupported
-                                    ? "Say the word out loud and we'll check your pronunciation"
-                                    : "Not supported in this browser"}
-                            </p>
-                        </div>
-                        <Switch
-                            id="speaking-enabled"
-                            checked={tempSpeakingEnabled && speechSupported}
-                            onCheckedChange={setTempSpeakingEnabled}
-                            disabled={!speechSupported}
                         />
                     </div>
                 </div>
@@ -490,7 +450,7 @@ export default function PracticeSettingsDialog({
 }: Readonly<PracticeSettingsDialogProps>) {
     // Stateful: the dialog owns its settings via the shared hook.
     const { settings, setSettings } = usePracticeSettings();
-    const settingsKey = `${settings.mode}-${settings.mixedModes.join(",")}-${settings.autoCheck}-${settings.showExampleHints}-${settings.showImageHints}-${settings.soundEnabled}-${settings.speakingEnabled}`;
+    const settingsKey = `${settings.mode}-${settings.mixedModes.join(",")}-${settings.autoCheck}-${settings.soundEnabled}`;
 
     return (
         <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>

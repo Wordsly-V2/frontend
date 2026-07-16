@@ -2,7 +2,6 @@
 
 import { AdaptiveText } from "@/components/common/adaptive-text";
 import { WordPill } from "@/components/common/word-pill";
-import { WordPracticeHints } from "@/components/features/vocabulary/word-practice-hints";
 import { Button } from "@/components/ui/button";
 import { IWord } from "@/types/courses/courses.type";
 import { Lightbulb } from "lucide-react";
@@ -12,8 +11,6 @@ import { memo, type KeyboardEvent, type RefObject } from "react";
 export interface ContextModeProps {
     word: IWord;
     sentence: string;
-    maskedExamples: string[];
-    showImageHints: boolean;
     inputRef: RefObject<HTMLInputElement | null>;
     inputClassName: string;
     userAnswer: string;
@@ -28,8 +25,6 @@ export interface ContextModeProps {
 export const ContextMode = memo(function ContextMode({
     word,
     sentence,
-    maskedExamples,
-    showImageHints,
     inputRef,
     inputClassName,
     userAnswer,
@@ -56,11 +51,6 @@ export const ContextMode = memo(function ContextMode({
                     className="mb-2"
                 />
                 {word.partOfSpeech && <WordPill size="md">{word.partOfSpeech}</WordPill>}
-                <WordPracticeHints
-                    maskedExamples={maskedExamples}
-                    imageUrl={word.imageUrl}
-                    showImageHints={showImageHints}
-                />
             </div>
             <input
                 ref={inputRef}

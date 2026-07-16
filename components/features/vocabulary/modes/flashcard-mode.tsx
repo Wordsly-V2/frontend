@@ -3,7 +3,7 @@
 import { AdaptiveText } from "@/components/common/adaptive-text";
 import { WordPill } from "@/components/common/word-pill";
 import { PracticeExerciseHeader } from "@/components/features/vocabulary/practice-exercise-header";
-import { WordPracticeHints } from "@/components/features/vocabulary/word-practice-hints";
+import { WordRevealHint } from "@/components/features/vocabulary/word-reveal-hint";
 import { Button } from "@/components/ui/button";
 import { type FlashcardRating } from "@/lib/answer-quality";
 import { LONG_TEXT_WRAP } from "@/lib/long-text";
@@ -58,8 +58,6 @@ export interface FlashcardModeProps {
     word: IWord;
     stage: WordLearningStage;
     showAnswer: boolean;
-    maskedExamples: string[];
-    showImageHints: boolean;
     onReveal: () => void;
     onRate: (rating: FlashcardRating) => void;
 }
@@ -68,8 +66,6 @@ export const FlashcardMode = memo(function FlashcardMode({
     word,
     stage,
     showAnswer,
-    maskedExamples,
-    showImageHints,
     onReveal,
     onRate,
 }: Readonly<FlashcardModeProps>) {
@@ -105,17 +101,11 @@ export const FlashcardMode = memo(function FlashcardMode({
                     {word.partOfSpeech && (
                         <WordPill size="md">{word.partOfSpeech}</WordPill>
                     )}
-                    {!showAnswer && (
-                        <WordPracticeHints
-                            maskedExamples={maskedExamples}
-                            imageUrl={word.imageUrl}
-                            showImageHints={showImageHints}
-                        />
-                    )}
                 </div>
                 {showAnswer && (
-                    <div className="pt-4 border-t border-dashed border-border animate-in fade-in">
+                    <div className="pt-4 border-t border-dashed border-border animate-in fade-in space-y-4">
                         <AdaptiveText text={word.meaning} role="meaning" align="center" />
+                        <WordRevealHint word={word} showMeaning={false} />
                     </div>
                 )}
             </div>

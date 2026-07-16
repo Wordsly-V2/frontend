@@ -78,8 +78,22 @@ export interface UseSpeechRecognitionOptions {
      * the captured final results — the natural place to grade a spoken answer
      * without reacting to status changes inside an effect. Not fired when mic
      * permission is denied (a terminal state the caller handles via `status`).
+     *
+     * `heard` is false when nothing was recognised (silence / `no-speech`), so
+     * the caller can prompt a retry instead of grading an empty answer wrong.
      */
-    onEnd?: (result: { transcript: string; alternatives: string[] }) => void;
+    onEnd?: (result: {
+        transcript: string;
+        alternatives: string[];
+        heard: boolean;
+    }) => void;
+    /** Recognition locale (BCP-47). Defaults to "en-US". */
+    lang?: string;
+    /**
+     * Keep listening until `stop()` is called instead of ending at the first
+     * pause. Used for press-and-hold recording. Defaults to false.
+     */
+    continuous?: boolean;
 }
 
 export interface UseSpeechRecognitionReturn {
@@ -127,10 +141,10 @@ export function useSpeechRecognition(
         if (!Ctor) return null;
 
         const recognition = new Ctor();
-        recognition.lang = "en-US";
+        recognition.lang = optionsRef.current.lang ?? "en-US";
         recognition.interimResults = true;
         recognition.maxAlternatives = 3;
-        recognition.continuous = false;
+        recognition.continuous = optionsRef.current.continuous ?? false;
 
         recognition.onstart = () => setStatus("listening");
         recognition.onresult = (event) => {
@@ -171,9 +185,11 @@ export function useSpeechRecognition(
             // Report the finished attempt (unless permission was denied), so the
             // caller can grade in an event callback rather than a status effect.
             if (!deniedRef.current) {
+                const alts = finalAlternativesRef.current;
                 optionsRef.current.onEnd?.({
                     transcript: finalTranscriptRef.current,
-                    alternatives: finalAlternativesRef.current,
+                    alternatives: alts,
+                    heard: alts.some((a) => a.trim().length > 0),
                 });
             }
         };
