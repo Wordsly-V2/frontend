@@ -27,7 +27,6 @@ export type WordDetailCardWord = Pick<
     | "usIpa"
     | "imageThumbnailUrl"
     | "wordForms"
-    | "examples"
 >;
 
 export interface WordDetailCardProps {

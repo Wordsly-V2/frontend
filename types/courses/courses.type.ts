@@ -48,13 +48,16 @@ export interface ILessonSummary {
   wordsCount: number;
 }
 
-/** Structured example sentence for a word (from the vocabulary-service). */
+/**
+ * A parsed example sentence for a word. Persisted (JSON-encoded) in the
+ * `example` field as `{ text, translation?, audioUrl? }[]`. `id` is synthetic,
+ * assigned at parse time for stable React keys (not sent to the backend).
+ */
 export interface IWordExample {
   id: string;
   text: string;
   translation?: string;
   audioUrl?: string;
-  orderIndex?: number;
 }
 
 export interface IWord {
@@ -79,8 +82,6 @@ export interface IWord {
   imageThumbnailUrl?: string;
   /** Related word forms (e.g. plural, past tense). */
   wordForms?: string[];
-  /** Structured examples; falls back to the legacy `example` JSON string. */
-  examples?: IWordExample[];
 }
 
 export interface ICourseTotalStats {

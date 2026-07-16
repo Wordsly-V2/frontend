@@ -34,6 +34,13 @@ export const searchWords = (query: string): Promise<IWordSearchResult[]> => {
     return request((i) => i.get(`/dictionary/search/${encodeURIComponent(query.trim())}`));
 };
 
+/** A single example sentence with optional per-example audio/translation. */
+export interface LangeekExample {
+    text: string;
+    audioUrl?: string;
+    translation?: string;
+}
+
 /** Structured word details from GET word-details (extracted in vocabulary-service). */
 export interface LangeekWordDetailsResponse {
     word: string;
@@ -41,7 +48,7 @@ export interface LangeekWordDetailsResponse {
     partOfSpeech: string;
     pronunciation: string;
     audioUrl: string;
-    examples: string[];
+    examples: LangeekExample[];
     imageUrl: string;
 }
 

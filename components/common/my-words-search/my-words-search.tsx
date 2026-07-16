@@ -5,6 +5,7 @@ import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import QuickAddWordDialog from "@/components/features/manage/quick-add-word-dialog";
 import WordDetailDialog from "@/components/features/manage/word-detail-dialog";
 import { useDebounce } from "@/hooks/useDebounce.hook";
+import type { LangeekWordDetailsResponse } from "@/apis/dictionary.api";
 import { useLangeekWordDetailsQuery, useSearchWordsQuery } from "@/queries/dictionary.query";
 import { useGetWordsByIdsQuery, useSearchMyWordsQuery } from "@/queries/words.query";
 import { IUserWordSearchResult, IWordSearchResult, WordDetailView } from "@/types/courses/courses.type";
@@ -19,15 +20,7 @@ type SearchResultRow =
     | { t: "d"; id: string; item: IWordSearchResult; idx: number }
     | { t: "e"; id: string; message: string };
 
-function langeekToWordDetailView(d: {
-    word: string;
-    meaning: string;
-    partOfSpeech: string;
-    pronunciation: string;
-    audioUrl: string;
-    examples: string[];
-    imageUrl: string;
-}): WordDetailView {
+function langeekToWordDetailView(d: LangeekWordDetailsResponse): WordDetailView {
     return {
         word: d.word,
         meaning: d.meaning,
@@ -35,6 +28,7 @@ function langeekToWordDetailView(d: {
         pronunciation: d.pronunciation || undefined,
         audioUrl: d.audioUrl || undefined,
         imageUrl: d.imageUrl || undefined,
+        // Examples are persisted as a JSON array of { text, translation?, audioUrl? }.
         example: d.examples?.length ? JSON.stringify(d.examples) : undefined,
     };
 }

@@ -7,8 +7,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { useAudio } from "@/hooks/useAudio.hook";
+import { getWordExampleObjects, serializeExamples } from "@/lib/practice-utils";
 import { useLangeekWordDetailsQuery } from "@/queries/dictionary.query";
-import { IWord, IWordSearchResult, WordDetailView } from "@/types/courses/courses.type";
+import { IWord, IWordExample, IWordSearchResult, WordDetailView } from "@/types/courses/courses.type";
 import { ImageIcon, Plus, Trash2, Volume2, VolumeX } from "lucide-react";
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
@@ -24,15 +25,6 @@ interface WordFormDialogProps {
     title: string;
 }
 
-function getExamplesArray(example: string | undefined): string[] {
-    try {
-        const ex = JSON.parse(example ?? "[]");
-        return Array.isArray(ex) ? ex.filter((e): e is string => typeof e === "string") : [];
-    } catch {
-        return [];
-    }
-}
-
 type WordFormData = {
     word: string;
     meaning: string;
@@ -40,7 +32,7 @@ type WordFormData = {
     partOfSpeech: string;
     audioUrl: string;
     imageUrl: string;
-    examples: string[];
+    examples: IWordExample[];
 };
 
 function buildInitialFormData(word?: IWord, initialData?: WordDetailView | null): WordFormData {
@@ -52,7 +44,7 @@ function buildInitialFormData(word?: IWord, initialData?: WordDetailView | null)
             partOfSpeech: word.partOfSpeech || "",
             audioUrl: word.audioUrl || "",
             imageUrl: word.imageUrl || "",
-            examples: getExamplesArray(word.example),
+            examples: getWordExampleObjects(word),
         };
     }
     if (initialData) {
@@ -63,7 +55,7 @@ function buildInitialFormData(word?: IWord, initialData?: WordDetailView | null)
             partOfSpeech: initialData.partOfSpeech || "",
             audioUrl: initialData.audioUrl || "",
             imageUrl: initialData.imageUrl || "",
-            examples: getExamplesArray(initialData.example),
+            examples: getWordExampleObjects(initialData),
         };
     }
     return {
@@ -85,13 +77,29 @@ function WordFormDialogForm({
     initialData,
     title,
 }: Readonly<Omit<WordFormDialogProps, "isOpen">>) {
-    const initial = buildInitialFormData(word, initialData);
-    const exampleIdRef = useRef(initial.examples.length);
+    const exampleIdRef = useRef(0);
+    const makeExampleId = () => `ex-${++exampleIdRef.current}`;
+    // Re-key parsed examples with a monotonic counter so ids never collide with
+    // rows added later in the session.
+    const initial = (() => {
+        const data = buildInitialFormData(word, initialData);
+        return {
+            ...data,
+            examples: data.examples.map((e) => ({ ...e, id: makeExampleId() })),
+        };
+    })();
     const [formData, setFormData] = useState<WordFormData>(() => initial);
-    const [exampleIds, setExampleIds] = useState(() =>
-        initial.examples.map((_, index) => `ex-${index + 1}`),
-    );
     const { isPlaying, error: audioError, play, stop, clearError } = useAudio();
+    // Separate audio instance for example previews so its play/error state does
+    // not bleed into the word-level audio field.
+    const exampleAudio = useAudio();
+
+    const updateExample = (id: string, patch: Partial<IWordExample>) => {
+        setFormData((prev) => ({
+            ...prev,
+            examples: prev.examples.map((ex) => (ex.id === id ? { ...ex, ...patch } : ex)),
+        }));
+    };
 
     const [pendingWordDetails, setPendingWordDetails] = useState<{
         word: string;
@@ -125,23 +133,35 @@ function WordFormDialogForm({
                 patch.examples.length > 0 ||
                 patch.imageUrl;
             if (hasPatch) {
-                setFormData((prev) => ({
-                    ...prev,
-                    ...(patch.word && { word: patch.word }),
-                    ...(patch.meaning && { meaning: patch.meaning }),
-                    ...(patch.partOfSpeech && { partOfSpeech: patch.partOfSpeech }),
-                    ...(patch.pronunciation && { pronunciation: patch.pronunciation }),
-                    ...(patch.audioUrl && { audioUrl: patch.audioUrl }),
-                    ...(patch.examples.length > 0 && {
-                        examples: [...new Set([...prev.examples, ...patch.examples])],
-                    }),
-                }));
-                if (patch.examples.length > 0) {
-                    setExampleIds((prev) => [
+                setFormData((prev) => {
+                    const existingTexts = new Set(
+                        prev.examples.map((e) => e.text.trim().toLowerCase()),
+                    );
+                    const newExamples: IWordExample[] = patch.examples
+                        .filter((e) => {
+                            const key = e.text.trim().toLowerCase();
+                            if (!key || existingTexts.has(key)) return false;
+                            existingTexts.add(key);
+                            return true;
+                        })
+                        .map((e) => ({
+                            id: makeExampleId(),
+                            text: e.text,
+                            ...(e.translation ? { translation: e.translation } : {}),
+                            ...(e.audioUrl ? { audioUrl: e.audioUrl } : {}),
+                        }));
+                    return {
                         ...prev,
-                        ...patch.examples.map(() => `ex-${++exampleIdRef.current}`),
-                    ]);
-                }
+                        ...(patch.word && { word: patch.word }),
+                        ...(patch.meaning && { meaning: patch.meaning }),
+                        ...(patch.partOfSpeech && { partOfSpeech: patch.partOfSpeech }),
+                        ...(patch.pronunciation && { pronunciation: patch.pronunciation }),
+                        ...(patch.audioUrl && { audioUrl: patch.audioUrl }),
+                        ...(newExamples.length > 0 && {
+                            examples: [...prev.examples, ...newExamples],
+                        }),
+                    };
+                });
             }
         }, 0);
         return () => clearTimeout(id);
@@ -159,7 +179,7 @@ function WordFormDialogForm({
                 partOfSpeech: formData.partOfSpeech.trim() || '',
                 audioUrl: formData.audioUrl.trim() || '',
                 imageUrl: formData.imageUrl.trim() || '',
-                example: JSON.stringify(formData.examples.map((ex) => ex.trim()).filter(Boolean))
+                example: serializeExamples(formData.examples),
             });
         }
     };
@@ -167,6 +187,8 @@ function WordFormDialogForm({
     const handleClose = () => {
         stop();
         clearError();
+        exampleAudio.stop();
+        exampleAudio.clearError();
         onClose();
     };
 
@@ -300,46 +322,99 @@ function WordFormDialogForm({
 
                         <div className="space-y-2 min-w-0">
                             <Label className="text-sm">Examples</Label>
-                            <p className="text-xs text-muted-foreground">Example sentences using this word</p>
-                            <div className="space-y-2 max-h-40 sm:max-h-48 overflow-y-auto overflow-x-hidden">
-                                {formData.examples.map((example, index) => (
-                                    <div key={exampleIds[index] ?? `ex-${index}`} className="flex gap-1.5 sm:gap-2 items-center min-w-0">
+                            <p className="text-xs text-muted-foreground">
+                                Example sentences using this word — each can have its own translation and audio.
+                            </p>
+                            <div className="space-y-3 max-h-64 sm:max-h-80 overflow-y-auto overflow-x-hidden">
+                                {formData.examples.map((example) => (
+                                    <div
+                                        key={example.id}
+                                        className="space-y-1.5 rounded-md border border-border/60 p-2 sm:p-2.5 min-w-0"
+                                    >
+                                        <div className="flex gap-1.5 sm:gap-2 items-start min-w-0">
+                                            <Input
+                                                placeholder="e.g., I said hello to my neighbor."
+                                                value={example.text}
+                                                onChange={(e) => updateExample(example.id, { text: e.target.value })}
+                                                className="flex-1 min-w-0 text-sm sm:text-base"
+                                            />
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                size="icon"
+                                                onClick={() =>
+                                                    setFormData((prev) => ({
+                                                        ...prev,
+                                                        examples: prev.examples.filter((ex) => ex.id !== example.id),
+                                                    }))
+                                                }
+                                                title="Remove example"
+                                                className="flex-shrink-0 h-9 w-9 sm:h-10 sm:w-10 text-muted-foreground hover:text-destructive"
+                                            >
+                                                <Trash2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                                            </Button>
+                                        </div>
                                         <Input
-                                            placeholder="e.g., I said hello to my neighbor."
-                                            value={example}
-                                            onChange={(e) => {
-                                                const next = [...formData.examples];
-                                                next[index] = e.target.value;
-                                                setFormData({ ...formData, examples: next });
-                                            }}
-                                            className="flex-1 min-w-0 text-sm sm:text-base"
+                                            placeholder="Translation (optional)"
+                                            value={example.translation ?? ""}
+                                            onChange={(e) => updateExample(example.id, { translation: e.target.value })}
+                                            className="text-sm min-w-0"
                                         />
-                                        <Button
-                                            type="button"
-                                            variant="outline"
-                                            size="icon"
-                                            onClick={() => {
-                                                const nextExamples = formData.examples.filter((_, i) => i !== index);
-                                                const nextIds = exampleIds.filter((_, i) => i !== index);
-                                                setFormData({ ...formData, examples: nextExamples });
-                                                setExampleIds(nextIds);
-                                            }}
-                                            title="Remove example"
-                                            className="flex-shrink-0 h-9 w-9 sm:h-10 sm:w-10 text-muted-foreground hover:text-destructive"
-                                        >
-                                            <Trash2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                                        </Button>
+                                        <div className="flex gap-1.5 sm:gap-2 items-center min-w-0">
+                                            <Input
+                                                type="url"
+                                                inputMode="url"
+                                                placeholder="Audio URL (optional)"
+                                                value={example.audioUrl ?? ""}
+                                                onChange={(e) => {
+                                                    updateExample(example.id, { audioUrl: e.target.value });
+                                                    exampleAudio.clearError();
+                                                }}
+                                                className="flex-1 min-w-0 text-sm"
+                                            />
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                size="icon"
+                                                onClick={() => exampleAudio.play(example.audioUrl ?? "")}
+                                                disabled={!example.audioUrl?.trim() || exampleAudio.isPlaying}
+                                                title="Play example audio"
+                                                className="flex-shrink-0 h-9 w-9 sm:h-10 sm:w-10"
+                                            >
+                                                <Volume2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                                            </Button>
+                                            {example.audioUrl?.trim() && (
+                                                <Button
+                                                    type="button"
+                                                    variant="outline"
+                                                    size="icon"
+                                                    onClick={() => {
+                                                        exampleAudio.stop();
+                                                        exampleAudio.clearError();
+                                                        updateExample(example.id, { audioUrl: "" });
+                                                    }}
+                                                    title="Remove audio"
+                                                    className="flex-shrink-0 h-9 w-9 sm:h-10 sm:w-10 text-muted-foreground hover:text-destructive"
+                                                >
+                                                    <VolumeX className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                                                </Button>
+                                            )}
+                                        </div>
                                     </div>
                                 ))}
+                                {exampleAudio.error && (
+                                    <p className="text-xs text-destructive">{exampleAudio.error}</p>
+                                )}
                                 <Button
                                     type="button"
                                     variant="outline"
                                     size="sm"
-                                    onClick={() => {
-                                        const id = `ex-${++exampleIdRef.current}`;
-                                        setFormData({ ...formData, examples: [...formData.examples, ""] });
-                                        setExampleIds([...exampleIds, id]);
-                                    }}
+                                    onClick={() =>
+                                        setFormData((prev) => ({
+                                            ...prev,
+                                            examples: [...prev.examples, { id: makeExampleId(), text: "" }],
+                                        }))
+                                    }
                                     className="w-full text-sm"
                                 >
                                     <Plus className="h-3.5 w-3.5 mr-1.5" />

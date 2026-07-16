@@ -11,47 +11,82 @@ export function shuffleArray<T>(array: T[]): T[] {
     return shuffled;
 }
 
-/** Parse the legacy `example` JSON string into a list of sentence strings. */
-function parseLegacyExamples(example: string | undefined): string[] {
+/**
+ * Parse the `example` JSON string into structured example objects. Accepts both
+ * the new object shape (`{ text, translation?, audioUrl? }[]`) and the older
+ * plain-string shape (`string[]`) so existing data keeps working. Each result
+ * gets a synthetic `id` for stable React keys.
+ */
+export function parseExamples(example: string | undefined): IWordExample[] {
+    let parsed: unknown;
     try {
-        const ex = JSON.parse(example ?? "[]");
-        return Array.isArray(ex) ? ex.filter((e): e is string => typeof e === "string") : [];
+        parsed = JSON.parse(example ?? "[]");
     } catch {
         return [];
     }
+    if (!Array.isArray(parsed)) return [];
+
+    return parsed
+        .map((entry, index): IWordExample | null => {
+            if (typeof entry === "string") {
+                const text = entry.trim();
+                return text ? { id: `ex-${index}`, text } : null;
+            }
+            if (entry && typeof entry === "object") {
+                const e = entry as Record<string, unknown>;
+                const text = typeof e.text === "string" ? e.text.trim() : "";
+                if (!text) return null;
+                return {
+                    id: `ex-${index}`,
+                    text,
+                    ...(typeof e.translation === "string" && e.translation.trim()
+                        ? { translation: e.translation.trim() }
+                        : {}),
+                    ...(typeof e.audioUrl === "string" && e.audioUrl.trim()
+                        ? { audioUrl: e.audioUrl.trim() }
+                        : {}),
+                };
+            }
+            return null;
+        })
+        .filter((e): e is IWordExample => e !== null);
 }
 
 /**
- * Example sentence texts for a word. Prefers the structured `examples` array
- * (new dictionary-enriched shape); falls back to the legacy `example` JSON
- * string so cloze/context/masking keep working for older data.
+ * Serialize structured examples back into the `example` JSON string for
+ * persistence. Drops the synthetic `id` and any empty fields.
  */
-export function getWordExamples(word: Pick<IWord, "example" | "examples">): string[] {
-    if (word.examples && word.examples.length > 0) {
-        return word.examples
-            .map((e) => e.text)
-            .filter((t): t is string => typeof t === "string" && t.trim().length > 0);
-    }
-    return parseLegacyExamples(word.example);
+export function serializeExamples(examples: IWordExample[]): string {
+    const cleaned = examples
+        .map((e) => {
+            const text = e.text.trim();
+            if (!text) return null;
+            return {
+                text,
+                ...(e.translation?.trim() ? { translation: e.translation.trim() } : {}),
+                ...(e.audioUrl?.trim() ? { audioUrl: e.audioUrl.trim() } : {}),
+            };
+        })
+        .filter((e): e is { text: string; translation?: string; audioUrl?: string } => e !== null);
+    return JSON.stringify(cleaned);
+}
+
+/**
+ * Example sentence texts for a word (for cloze/context/masking). Reads the
+ * structured `example` JSON, tolerating the legacy string[] shape.
+ */
+export function getWordExamples(word: Pick<IWord, "example">): string[] {
+    return parseExamples(word.example).map((e) => e.text);
 }
 
 /**
  * Full example objects for audio-aware display (text + optional translation and
- * per-example audio). Legacy string examples are lifted into objects with a
- * synthetic id and no audio so callers can render both shapes uniformly.
+ * per-example audio).
  */
 export function getWordExampleObjects(
-    word: Pick<IWord, "example" | "examples">,
+    word: Pick<IWord, "example">,
 ): IWordExample[] {
-    if (word.examples && word.examples.length > 0) {
-        return [...word.examples]
-            .filter((e) => typeof e.text === "string" && e.text.trim().length > 0)
-            .sort((a, b) => (a.orderIndex ?? 0) - (b.orderIndex ?? 0));
-    }
-    return parseLegacyExamples(word.example).map((text, index) => ({
-        id: `legacy-${index}`,
-        text,
-    }));
+    return parseExamples(word.example);
 }
 
 export function maskWordInExamples(word: string, examples: string[]): string[] {

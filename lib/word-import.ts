@@ -1,6 +1,6 @@
 import { getLangeekWordDetails, searchWords } from "@/apis/dictionary.api";
 import { CreateMyWord } from "@/types/courses/courses.type";
-import { normalizeAnswer } from "@/lib/practice-utils";
+import { normalizeAnswer, serializeExamples } from "@/lib/practice-utils";
 
 /** One dictionary sense of a word — a word can have several across parts of speech. */
 export interface WordSense {
@@ -45,10 +45,22 @@ function emptyRow(): ImportWordRow {
     };
 }
 
+/**
+ * Extract the sentence text from an example entry, which may be a plain string
+ * (legacy) or an object `{ text, … }` (current persisted/dictionary shape).
+ */
+function exampleText(entry: unknown): string | null {
+    if (typeof entry === "string") return entry.trim() || null;
+    if (entry && typeof entry === "object" && typeof (entry as { text?: unknown }).text === "string") {
+        return ((entry as { text: string }).text).trim() || null;
+    }
+    return null;
+}
+
 /** Parse the `example` field from any source into a clean string array. */
 export function parseExamplesValue(value: unknown): string[] {
     if (Array.isArray(value)) {
-        return value.filter((e): e is string => typeof e === "string" && e.trim().length > 0);
+        return value.map(exampleText).filter((e): e is string => e !== null);
     }
     if (typeof value === "string") {
         const trimmed = value.trim();
@@ -56,7 +68,7 @@ export function parseExamplesValue(value: unknown): string[] {
         try {
             const parsed = JSON.parse(trimmed);
             if (Array.isArray(parsed)) {
-                return parsed.filter((e): e is string => typeof e === "string" && e.trim().length > 0);
+                return parsed.map(exampleText).filter((e): e is string => e !== null);
             }
         } catch {
             // not JSON — treat as a single example sentence
@@ -217,7 +229,8 @@ export function rowToCreateMyWord(row: ImportWordRow): CreateMyWord {
         partOfSpeech: row.partOfSpeech.trim(),
         audioUrl: row.audioUrl.trim(),
         imageUrl: row.imageUrl.trim(),
-        example: JSON.stringify(row.examples.map((e) => e.trim()).filter(Boolean)),
+        // Bulk import is text-only; wrap each sentence in the structured shape.
+        example: serializeExamples(row.examples.map((text) => ({ id: "", text }))),
     };
 }
 
@@ -267,7 +280,9 @@ export async function applySenseToRow(
             next.pronunciation = details.pronunciation || "";
             next.audioUrl = details.audioUrl || "";
             if (details.imageUrl) next.imageUrl = details.imageUrl;
-            next.examples = details.examples?.length ? [...new Set(details.examples)] : [];
+            next.examples = details.examples?.length
+                ? [...new Set(details.examples.map((e) => e.text))]
+                : [];
         }
     } catch {
         // keep the sense's basic fields even if the details fetch fails
@@ -335,9 +350,10 @@ export async function enrichWordRow(
                 if (shouldSet(next.audioUrl) && details.audioUrl) next.audioUrl = details.audioUrl;
                 if (shouldSet(next.imageUrl) && details.imageUrl) next.imageUrl = details.imageUrl;
                 if (details.examples?.length) {
+                    const texts = details.examples.map((e) => e.text);
                     next.examples = overwrite
-                        ? [...new Set(details.examples)]
-                        : [...new Set([...next.examples, ...details.examples])];
+                        ? [...new Set(texts)]
+                        : [...new Set([...next.examples, ...texts])];
                 }
             }
         } catch {

@@ -10,7 +10,7 @@ import {
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { WordPill } from "@/components/common/word-pill";
 import { getPlayPhraseSearchUrl } from "@/lib/playphrase";
-import { getWordExamples } from "@/lib/practice-utils";
+import { getWordExampleObjects } from "@/lib/practice-utils";
 import { handleAudioPlayError } from "@/lib/audio-playback";
 import { WordDetailView } from "@/types/courses/courses.type";
 import { BookOpen, ExternalLink, Film, Plus, Volume2 } from "lucide-react";
@@ -43,12 +43,16 @@ export default function WordDetailDialog({ word, isOpen, onClose, courseId, less
     if (!isOpen) return null;
     if (!word && !isLoading && !isNotFound) return null;
 
-    const examples = getWordExamples(word);
+    const examples = getWordExampleObjects(word);
 
     const handlePlayAudio = () => {
         if (word!.audioUrl) {
             new Audio(word!.audioUrl).play().catch(handleAudioPlayError);
         }
+    };
+
+    const playExampleAudio = (url: string) => {
+        new Audio(url).play().catch(handleAudioPlayError);
     };
 
     const handleGoToManage = () => {
@@ -122,9 +126,29 @@ export default function WordDetailDialog({ word, isOpen, onClose, courseId, less
                     {examples.length > 0 && (
                         <div>
                             <p className="text-xs font-medium text-muted-foreground mb-1.5">Examples</p>
-                            <ul className="space-y-1 text-sm">
+                            <ul className="space-y-2 text-sm">
                                 {examples.map((ex, i) => (
-                                    <li key={`${word!.id ?? "w"}-ex-${i}`} className="break-words">• {ex}</li>
+                                    <li key={`${word!.id ?? "w"}-ex-${i}`} className="break-words">
+                                        <div className="flex items-start gap-1.5">
+                                            <span className="flex-1">• {ex.text}</span>
+                                            {ex.audioUrl && (
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    onClick={() => playExampleAudio(ex.audioUrl!)}
+                                                    title="Play example audio"
+                                                    className="flex-shrink-0 h-7 w-7 text-muted-foreground hover:text-foreground"
+                                                >
+                                                    <Volume2 className="h-3.5 w-3.5" />
+                                                </Button>
+                                            )}
+                                        </div>
+                                        {ex.translation && (
+                                            <span className="block pl-3 text-xs text-muted-foreground">
+                                                {ex.translation}
+                                            </span>
+                                        )}
+                                    </li>
                                 ))}
                             </ul>
                         </div>
