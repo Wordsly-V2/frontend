@@ -7,9 +7,12 @@ import { playAudioUrl } from "@/lib/practice-audio";
 import { getWordExampleObjects, splitAroundWord } from "@/lib/practice-utils";
 import { cn } from "@/lib/utils";
 import type { IWord } from "@/types/courses/courses.type";
-import { Eye, Volume2 } from "lucide-react";
+import { Eye, EyeOff, Volume2 } from "lucide-react";
 import Image from "next/image";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
+
+/** Placeholder shown in place of the target word so the example stays a hint. */
+const WORD_MASK = "****";
 
 interface WordRevealHintProps {
     word: IWord;
@@ -39,40 +42,46 @@ export function WordRevealHint({
     className,
 }: Readonly<WordRevealHintProps>) {
     const [revealed, setRevealed] = useState(false);
+    const revealedOnceRef = useRef(false);
     const examples = useMemo(() => getWordExampleObjects(word), [word]);
     const imageUrl = word.imageUrl?.trim();
     const hasContent = showMeaning || examples.length > 0 || Boolean(imageUrl);
 
-    const handleReveal = useCallback(() => {
-        setRevealed(true);
-        onReveal?.();
+    const toggleReveal = useCallback(() => {
+        setRevealed((prev) => {
+            const next = !prev;
+            // Count as a used hint only the first time it's opened, so toggling it
+            // shut and open again doesn't keep lowering the recorded quality.
+            if (next && !revealedOnceRef.current) {
+                revealedOnceRef.current = true;
+                onReveal?.();
+            }
+            return next;
+        });
     }, [onReveal]);
 
     if (!hasContent) return null;
 
-    if (!revealed) {
-        return (
-            <button
-                type="button"
-                onClick={handleReveal}
-                className={cn(
-                    "inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground underline underline-offset-2 transition-colors hover:text-foreground",
-                    className,
-                )}
-            >
-                <Eye className="h-3.5 w-3.5" aria-hidden />
-                {showMeaning ? "Show meaning & example" : "Show example"}
-            </button>
-        );
-    }
+    const showLabel = showMeaning ? "Show meaning & example" : "Show example";
 
     return (
-        <div
-            className={cn(
-                "mx-auto w-full max-w-md space-y-3 rounded-2xl border border-border bg-muted/30 p-4 text-left animate-in fade-in slide-in-from-top-1 duration-200",
-                className,
-            )}
-        >
+        <div className={cn("w-full", className)}>
+            <button
+                type="button"
+                onClick={toggleReveal}
+                aria-expanded={revealed}
+                className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground underline underline-offset-2 transition-colors hover:text-foreground"
+            >
+                {revealed ? (
+                    <EyeOff className="h-3.5 w-3.5" aria-hidden />
+                ) : (
+                    <Eye className="h-3.5 w-3.5" aria-hidden />
+                )}
+                {revealed ? "Hide hint" : showLabel}
+            </button>
+
+            {revealed && (
+                <div className="mx-auto mt-3 w-full max-w-md space-y-3 rounded-2xl border border-border bg-muted/30 p-4 text-left animate-in fade-in slide-in-from-top-1 duration-200">
             {showMeaning && (
                 <div>
                     <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-1">
@@ -102,11 +111,14 @@ export function WordRevealHint({
                                             {splitAroundWord(example.text, word.word).map(
                                                 (seg, i) =>
                                                     seg.match ? (
+                                                        // Keep the answer hidden — the
+                                                        // example is a hint, not a giveaway.
                                                         <span
                                                             key={`${example.id}-${i}`}
-                                                            className="font-semibold not-italic text-primary"
+                                                            className="font-semibold not-italic tracking-widest text-muted-foreground"
+                                                            aria-label="hidden word"
                                                         >
-                                                            {seg.text}
+                                                            {WORD_MASK}
                                                         </span>
                                                     ) : (
                                                         <span key={`${example.id}-${i}`}>
@@ -156,6 +168,8 @@ export function WordRevealHint({
                             unoptimized
                         />
                     </div>
+                </div>
+            )}
                 </div>
             )}
         </div>
