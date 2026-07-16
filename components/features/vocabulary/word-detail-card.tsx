@@ -2,7 +2,6 @@
 
 import { Button } from "@/components/ui/button";
 import { AdaptiveText } from "@/components/common/adaptive-text";
-import { WordPill } from "@/components/common/word-pill";
 import { LONG_TEXT_WRAP } from "@/lib/long-text";
 import { handleAudioPlayError } from "@/lib/audio-playback";
 import { cn } from "@/lib/utils";
@@ -26,7 +25,6 @@ export type WordDetailCardWord = Pick<
     | "ukIpa"
     | "usIpa"
     | "imageThumbnailUrl"
-    | "wordForms"
 >;
 
 export interface WordDetailCardProps {
@@ -219,15 +217,6 @@ export default function WordDetailCard({
                             )}
                         </div>
                     </div>
-                    {word.wordForms && word.wordForms.length > 0 && (
-                        <div className="mt-2 flex flex-wrap gap-1.5 shrink-0">
-                            {word.wordForms.map((form) => (
-                                <WordPill key={form} size="sm">
-                                    {form}
-                                </WordPill>
-                            ))}
-                        </div>
-                    )}
                     <div className="mt-2 sm:mt-3">
                         <AdaptiveText
                             text={word.meaning}

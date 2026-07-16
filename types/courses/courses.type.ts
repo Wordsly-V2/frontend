@@ -80,8 +80,6 @@ export interface IWord {
   usIpa?: string;
   /** Smaller image for compact layouts. */
   imageThumbnailUrl?: string;
-  /** Related word forms (e.g. plural, past tense). */
-  wordForms?: string[];
 }
 
 export interface ICourseTotalStats {
