@@ -24,7 +24,6 @@ const SHORTCUTS_BY_MODE: Record<ActivePracticeMode, ShortcutItem[]> = {
     ],
     listening: [{ keys: ["Enter"], label: "Submit" }],
     context: [{ keys: ["Enter"], label: "Submit" }],
-    speaking: [],
 };
 
 function KeyChip({ children }: Readonly<{ children: React.ReactNode }>) {

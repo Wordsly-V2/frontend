@@ -35,7 +35,7 @@ const TOUR_SLIDES = [
     {
         icon: Dumbbell,
         title: "Practice a little every day",
-        body: "Short, smart sessions mix quizzes, listening, and speaking so words really stick.",
+        body: "Short, smart sessions mix quizzes and listening so words really stick.",
     },
     {
         icon: Flame,

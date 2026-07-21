@@ -18,7 +18,7 @@ interface WordRevealHintProps {
     word: IWord;
     /**
      * Show the meaning when revealed. Turn off in exercises that already display
-     * it (e.g. word bank / speaking) so the reveal only adds the example + image.
+     * it (e.g. word bank) so the reveal only adds the example + image.
      */
     showMeaning?: boolean;
     /**

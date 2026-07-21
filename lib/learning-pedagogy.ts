@@ -5,7 +5,6 @@ import type { IWord } from "@/types/courses/courses.type";
 export type PedagogyPracticeMode =
     | "listening"
     | "context"
-    | "speaking"
     | "word-bank"
     | "cloze"
     | "flashcard";
@@ -16,8 +15,6 @@ export interface ModeAvailability {
     cloze: boolean;
     /** The word has audio (listening). */
     listening: boolean;
-    /** Speech recognition is supported and enabled this session (speaking). */
-    speaking: boolean;
 }
 
 /**
@@ -43,7 +40,7 @@ export const PEDAGOGY = {
 
 export type PracticeDirection = "production" | "recognition";
 
-export const PRODUCTION_MODES = ["listening", "context", "speaking"] as const;
+export const PRODUCTION_MODES = ["listening", "context"] as const;
 export const RECOGNITION_MODES = ["word-bank", "cloze"] as const;
 
 export function modeDirection(mode: string): PracticeDirection | null {
@@ -56,7 +53,6 @@ function modeAvailable(mode: string, availability: ModeAvailability): boolean {
     // Both cloze and context need an example sentence containing the word.
     if ((mode === "cloze" || mode === "context") && !availability.cloze) return false;
     if (mode === "listening" && !availability.listening) return false;
-    if (mode === "speaking" && !availability.speaking) return false;
     return true;
 }
 
@@ -110,8 +106,6 @@ export interface AssignMixedModeInput {
     allowed: Set<string>;
     isLeech: boolean;
     preferProduction: boolean;
-    /** Session capability: speech recognition supported and enabled by the user. */
-    speakingAvailable: boolean;
     /** 0-based occurrence of this word in the current session queue. */
     newWordRound?: number;
     /** Separate counters so prod/rec alternation still rotates listening ↔ context, quiz ↔ cloze. */
@@ -136,7 +130,6 @@ export function assignMixedPracticeMode(input: AssignMixedModeInput): {
         allowed,
         isLeech,
         preferProduction,
-        speakingAvailable,
         newWordRound,
         productionSlotIndex = 0,
         recognitionSlotIndex = 0,
@@ -145,7 +138,6 @@ export function assignMixedPracticeMode(input: AssignMixedModeInput): {
     const availability: ModeAvailability = {
         cloze: getClozePrompt(word) != null,
         listening: Boolean(word.audioUrl),
-        speaking: speakingAvailable,
     };
     const pick = (pool: readonly string[], poolKind: PracticeModePool) =>
         pickPracticeMode(

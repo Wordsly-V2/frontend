@@ -7,7 +7,6 @@ import {
     useState,
 } from "react";
 import { usePracticeSettings } from "@/hooks/usePracticeSettings.hook";
-import { useSpeechRecognitionSupported } from "@/hooks/useSpeechRecognition.hook";
 import { useDueWordsLimit, setDueWordsLimit } from "@/hooks/useDueWordsLimit.hook";
 import {
     MIXED_PRACTICE_MODES,
@@ -48,7 +47,6 @@ import {
     Target,
     Sunrise,
     RefreshCw,
-    Mic,
 } from "lucide-react";
 
 // Re-exported from lib/practice-settings (their canonical home) so existing
@@ -91,7 +89,6 @@ function PracticeSettingsForm({
     );
     const [tempAutoCheck, setTempAutoCheck] = useState(currentSettings.autoCheck);
     const [tempSoundEnabled, setTempSoundEnabled] = useState(currentSettings.soundEnabled);
-    const speechSupported = useSpeechRecognitionSupported();
 
     // Preserve the canonical mix order so the plan rotates predictably.
     const toggleMixedMode = (method: MixedPracticeMethod) => {
@@ -131,7 +128,6 @@ function PracticeSettingsForm({
         { id: "context", icon: MessageSquare, label: "In context", desc: "Type the word in a sentence" },
         { id: "cloze", icon: TextCursorInput, label: "Fill-in", desc: "Pick the word in context" },
         { id: "word-bank", icon: LayoutGrid, label: "Word bank", desc: "Pick the word for a meaning" },
-        { id: "speaking", icon: Mic, label: "Speaking", desc: "Say the word out loud" },
         { id: "flashcard", icon: Sparkles, label: "Flashcard", desc: "Reveal and rate" },
     ];
 
@@ -145,28 +141,22 @@ function PracticeSettingsForm({
                 <div>
                     <Label className="text-sm font-medium mb-3 block">Practice Mode</Label>
                     <div className="grid grid-cols-2 gap-3">
-                        {modes.map(({ id, icon: Icon, label, desc }) => {
-                            // Speaking needs browser speech recognition; disable it
-                            // (with a reason) where the browser can't support it.
-                            const disabled = id === "speaking" && !speechSupported;
-                            return (
-                                <Button
-                                    key={id}
-                                    type="button"
-                                    size="lg"
-                                    variant={tempMode === id ? "default" : "outline"}
-                                    onClick={() => setTempMode(id)}
-                                    disabled={disabled}
-                                    className="gap-2 h-auto py-4 flex-col"
-                                >
-                                    <Icon className="h-5 w-5" />
-                                    <span className="font-medium">{label}</span>
-                                    <span className="text-xs opacity-80 font-normal">
-                                        {disabled ? "Not supported here" : desc}
-                                    </span>
-                                </Button>
-                            );
-                        })}
+                        {modes.map(({ id, icon: Icon, label, desc }) => (
+                            <Button
+                                key={id}
+                                type="button"
+                                size="lg"
+                                variant={tempMode === id ? "default" : "outline"}
+                                onClick={() => setTempMode(id)}
+                                className="gap-2 h-auto py-4 flex-col"
+                            >
+                                <Icon className="h-5 w-5" />
+                                <span className="font-medium">{label}</span>
+                                <span className="text-xs opacity-80 font-normal">
+                                    {desc}
+                                </span>
+                            </Button>
+                        ))}
                     </div>
                     {isMixed && (
                         <div className="mt-4">
@@ -178,29 +168,18 @@ function PracticeSettingsForm({
                                     const meta = getPracticeModeMeta(method);
                                     const MethodIcon = meta.icon;
                                     const selected = tempMixedModes.includes(method);
-                                    // Speaking needs browser speech recognition.
-                                    const disabled =
-                                        method === "speaking" && !speechSupported;
                                     return (
                                         <button
                                             key={method}
                                             type="button"
                                             aria-pressed={selected}
-                                            disabled={disabled}
                                             onClick={() => toggleMixedMode(method)}
                                             className={cn(
                                                 "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
-                                                disabled &&
-                                                    "cursor-not-allowed opacity-40",
                                                 selected
                                                     ? "border-primary bg-primary text-primary-foreground"
                                                     : "border-border bg-transparent text-muted-foreground hover:bg-muted",
                                             )}
-                                            title={
-                                                disabled
-                                                    ? "Speaking isn't supported in this browser"
-                                                    : undefined
-                                            }
                                         >
                                             <MethodIcon className="h-3.5 w-3.5" />
                                             {meta.shortLabel}
