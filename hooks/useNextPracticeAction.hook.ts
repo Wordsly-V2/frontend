@@ -4,12 +4,10 @@ import {
     dailyGoalProgress,
     getLocalDailyHabit,
 } from "@/lib/daily-habit";
-import {
-    deriveNewWordIds,
-    readDueWordsLimitFromStorage,
-} from "@/lib/due-words-limit";
+import { deriveNewWordIds } from "@/lib/due-words-limit";
 import { getLastLearnCourse } from "@/lib/learning-session";
 import { buildPracticeUrl } from "@/lib/practice-session";
+import { useDueWordsLimit } from "@/hooks/useDueWordsLimit.hook";
 import { useDailyHabitDisplay } from "@/queries/daily-habit.query";
 import { useGetDueWordIdsQuery } from "@/queries/word-progress.query";
 import { usePathname } from "next/navigation";
@@ -50,9 +48,9 @@ export function useNextPracticeAction(): NextPracticeAction {
     const pathname = usePathname();
     const [last, setLast] =
         useState<ReturnType<typeof getLastLearnCourse>>(null);
-    const [dueWordsLimit, setDueWordsLimit] = useState(
-        readDueWordsLimitFromStorage,
-    );
+    // Batch size comes from the shared store so live edits from the practice
+    // settings dialog re-render this hook immediately (see useDueWordsLimit).
+    const { dueWordsLimit } = useDueWordsLimit();
     const { habit: serverHabit } = useDailyHabitDisplay();
     const habit = serverHabit ?? getLocalDailyHabit();
     const goal = dailyGoalProgress(habit.wordsToday, habit.goal);
@@ -60,7 +58,6 @@ export function useNextPracticeAction(): NextPracticeAction {
     useEffect(() => {
         startTransition(() => {
             setLast(getLastLearnCourse());
-            setDueWordsLimit(readDueWordsLimitFromStorage());
         });
     }, [pathname]);
 
