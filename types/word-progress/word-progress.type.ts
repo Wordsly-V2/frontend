@@ -123,6 +123,12 @@ export interface IWordProgressStats {
 export interface WordProgressScope {
     courseId?: string;
     lessonId?: string;
+    /** Cap on the due/review words returned (words per review session). */
     limit?: number;
+    /**
+     * Cap on NEW (never-studied) words returned, independent of `limit`
+     * (words per new-words session). Omit for the legacy combined behaviour.
+     */
+    newLimit?: number;
     includeNew?: boolean;
 }

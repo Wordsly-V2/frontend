@@ -29,6 +29,7 @@ import {
 } from "@/lib/due-words-limit";
 import { DifficultWordsCard } from "@/components/features/learn/difficult-words-card";
 import { useDueWordsLimit } from "@/hooks/useDueWordsLimit.hook";
+import { useNewWordsLimit } from "@/hooks/useNewWordsLimit.hook";
 import { setLastLearnCourse } from "@/lib/learning-session";
 import { buildPracticeUrl } from "@/lib/practice-session";
 import { startTransition, use, useEffect, useMemo, useRef, useState } from "react";
@@ -61,6 +62,7 @@ export default function LearnCourseDetailPage({ params }: { params: Promise<{ id
     const [expandedLessons, setExpandedLessons] = useState<Set<string>>(new Set());
     const [selectedWords, setSelectedWords] = useState<Set<string>>(new Set());
     const { dueWordsLimit, setDueWordsLimit } = useDueWordsLimit();
+    const { newWordsLimit } = useNewWordsLimit();
     const [viewingWord, setViewingWord] = useState<IWord | null>(null);
     const [actionsMenuOpen, setActionsMenuOpen] = useState(false);
 
@@ -124,6 +126,7 @@ export default function LearnCourseDetailPage({ params }: { params: Promise<{ id
         dueWordsLimit,
         true,
         !!course && dueWordsLimit > 0 && courseWordIds.length > 0,
+        newWordsLimit,
     );
 
     const dueWordCount = dueWordIds?.wordIds.length ?? 0;
@@ -755,7 +758,7 @@ export default function LearnCourseDetailPage({ params }: { params: Promise<{ id
                             htmlFor="due-words-limit"
                             className="text-sm text-muted-foreground whitespace-nowrap"
                         >
-                            Words per session:
+                            Review words per session:
                         </label>
                         <select
                             id="due-words-limit"

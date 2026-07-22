@@ -13,7 +13,10 @@ export interface IWordDetailsAutoNext {
  */
 export interface IAppPreferences {
     practice?: PracticeSettings;
+    /** Words per review/practice session (the due-words batch size). */
     dueWordsLimit?: number;
+    /** Words per new-words session — how many never-studied words to introduce. */
+    newWordsLimit?: number;
     wordDetailsAutoNext?: IWordDetailsAutoNext;
     /** next-themes value: "light" | "dark" | "system". */
     theme?: string;

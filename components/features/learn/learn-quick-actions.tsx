@@ -13,6 +13,7 @@ import {
     getReviewDueButtonLabel,
 } from "@/lib/due-words-limit";
 import { useDueWordsLimit } from "@/hooks/useDueWordsLimit.hook";
+import { useNewWordsLimit } from "@/hooks/useNewWordsLimit.hook";
 import { getLastLearnCourse } from "@/lib/learning-session";
 import { useDailyHabitDisplay } from "@/queries/daily-habit.query";
 import { useGetDueWordIdsQuery } from "@/queries/word-progress.query";
@@ -25,6 +26,7 @@ export function LearnQuickActions() {
     const pathname = usePathname();
     const [last, setLast] = useState<ReturnType<typeof getLastLearnCourse>>(null);
     const { dueWordsLimit } = useDueWordsLimit();
+    const { newWordsLimit } = useNewWordsLimit();
     const { habit: serverHabit } = useDailyHabitDisplay();
     const habit = serverHabit ?? getLocalDailyHabit();
     const goal = dailyGoalProgress(habit.wordsToday, habit.goal);
@@ -41,7 +43,7 @@ export function LearnQuickActions() {
     );
 
     const { data: practiceBatch, isLoading: practiceBatchLoading } = useGetDueWordIdsQuery(
-        { courseId: last?.id, limit: dueWordsLimit, includeNew: true },
+        { courseId: last?.id, limit: dueWordsLimit, newLimit: newWordsLimit, includeNew: true },
         !!last?.id && dueWordsLimit > 0,
     );
 

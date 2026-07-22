@@ -56,9 +56,10 @@ export const useGetDueWordIdsByWordIdsQuery = (
     limit?: number,
     includeNew?: boolean,
     enabled: boolean = true,
+    newLimit?: number,
 ) => useQuery<IDueWordIdsResponse>({
-    queryKey: queryKeys.dueWordIds.byWordIds(wordIds, limit, includeNew),
-    queryFn: () => getDueWordIdsByWordIds(wordIds, limit, includeNew),
+    queryKey: queryKeys.dueWordIds.byWordIds(wordIds, limit, includeNew, newLimit),
+    queryFn: () => getDueWordIdsByWordIds(wordIds, limit, includeNew, newLimit),
     enabled: enabled && wordIds.length > 0,
 });
 

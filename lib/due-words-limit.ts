@@ -28,6 +28,35 @@ export function readDueWordsLimitFromStorage(): number {
     );
 }
 
+/**
+ * Separate "words per session" for learning NEW words. Kept apart from the
+ * review batch size (above) so learners can, say, review 20 words a session but
+ * take on only 5 new ones. The two limits map to the `limit` (due/review) and
+ * `newLimit` (new) params on the due-word-ids endpoint.
+ */
+export const NEW_WORDS_LIMIT_OPTIONS = [5, 10, 15, 20] as const;
+
+export const NEW_WORDS_LIMIT_STORAGE_KEY = "wordsly-learn-new-words-limit";
+
+export const DEFAULT_NEW_WORDS_LIMIT = 5;
+
+export function parseNewWordsLimit(raw: string | null, initial: number): number {
+    if (raw === null) return initial;
+    const parsed = Number(raw);
+    return NEW_WORDS_LIMIT_OPTIONS.includes(parsed as (typeof NEW_WORDS_LIMIT_OPTIONS)[number])
+        ? parsed
+        : initial;
+}
+
+/** Read persisted new-words limit synchronously on the client (safe for SSR). */
+export function readNewWordsLimitFromStorage(): number {
+    if (globalThis.window === undefined) return DEFAULT_NEW_WORDS_LIMIT;
+    return parseNewWordsLimit(
+        getLocalStorageItem(NEW_WORDS_LIMIT_STORAGE_KEY),
+        DEFAULT_NEW_WORDS_LIMIT,
+    );
+}
+
 export function getReviewDueButtonLabel(
     isLoading: boolean,
     dueCount: number,

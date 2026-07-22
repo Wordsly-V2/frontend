@@ -8,13 +8,17 @@ import {
 } from "react";
 import { usePracticeSettings } from "@/hooks/usePracticeSettings.hook";
 import { useDueWordsLimit, setDueWordsLimit } from "@/hooks/useDueWordsLimit.hook";
+import { useNewWordsLimit, setNewWordsLimit } from "@/hooks/useNewWordsLimit.hook";
 import {
     MIXED_PRACTICE_MODES,
     type MixedPracticeMethod,
     type PracticeMode,
     type PracticeSettings,
 } from "@/lib/practice-settings";
-import { DUE_WORDS_LIMIT_OPTIONS } from "@/lib/due-words-limit";
+import {
+    DUE_WORDS_LIMIT_OPTIONS,
+    NEW_WORDS_LIMIT_OPTIONS,
+} from "@/lib/due-words-limit";
 import {
     useDailyHabitDisplay,
     useUpdateDailyGoalMutation,
@@ -258,12 +262,14 @@ function PracticeSettingsForm({
  */
 const SessionPrefsFields = forwardRef<SessionPrefsHandle>(function SessionPrefsFields(_props, ref) {
     const { dueWordsLimit } = useDueWordsLimit();
+    const { newWordsLimit } = useNewWordsLimit();
     const { goal } = useDailyHabitDisplay();
     const updateGoal = useUpdateDailyGoalMutation();
     const { data: learningSettings } = useGetLearningSettingsQuery();
     const updateLearningSettings = useUpdateLearningSettingsMutation();
 
     const [tempLimit, setTempLimit] = useState(dueWordsLimit);
+    const [tempNewLimit, setTempNewLimit] = useState(newWordsLimit);
     // Null until the user picks — falls back to the current (or default) goal.
     const [tempGoal, setTempGoal] = useState<number | null>(null);
     const selectedGoal = tempGoal ?? goal ?? DAILY_GOAL_OPTIONS[1];
@@ -282,6 +288,7 @@ const SessionPrefsFields = forwardRef<SessionPrefsHandle>(function SessionPrefsF
     useImperativeHandle(ref, () => ({
         commit: () => {
             setDueWordsLimit(tempLimit);
+            setNewWordsLimit(tempNewLimit);
             if (tempGoal != null && tempGoal !== goal) {
                 updateGoal.mutate(
                     { dailyGoal: tempGoal },
@@ -311,15 +318,22 @@ const SessionPrefsFields = forwardRef<SessionPrefsHandle>(function SessionPrefsF
 
     return (
         <>
-            <div className="space-y-3 pt-4 border-t border-border">
+            <div className="space-y-4 pt-4 border-t border-border">
+                <div>
+                    <Label className="text-sm font-medium">Words per session</Label>
+                    <p className="text-xs text-muted-foreground mt-1">
+                        Set review and new-word batches separately — e.g. review
+                        more words but take on fewer new ones each session.
+                    </p>
+                </div>
                 <div className="flex items-center justify-between gap-4">
                     <div className="flex-1">
                         <Label htmlFor="words-per-session" className="text-sm font-medium flex items-center gap-2">
                             <ListOrdered className="h-4 w-4 text-muted-foreground" />
-                            Words per session
+                            Review words / session
                         </Label>
                         <p className="text-xs text-muted-foreground mt-1">
-                            How many words each practice batch includes
+                            Words in each review &amp; practice batch
                         </p>
                     </div>
                     <select
@@ -329,6 +343,29 @@ const SessionPrefsFields = forwardRef<SessionPrefsHandle>(function SessionPrefsF
                         className={selectClassName}
                     >
                         {DUE_WORDS_LIMIT_OPTIONS.map((n) => (
+                            <option key={n} value={n}>
+                                {n}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+                <div className="flex items-center justify-between gap-4">
+                    <div className="flex-1">
+                        <Label htmlFor="new-words-per-session" className="text-sm font-medium flex items-center gap-2">
+                            <Sparkles className="h-4 w-4 text-muted-foreground" />
+                            New words / session
+                        </Label>
+                        <p className="text-xs text-muted-foreground mt-1">
+                            New words introduced in each learn-new batch
+                        </p>
+                    </div>
+                    <select
+                        id="new-words-per-session"
+                        value={tempNewLimit}
+                        onChange={(e) => setTempNewLimit(Number(e.target.value))}
+                        className={selectClassName}
+                    >
+                        {NEW_WORDS_LIMIT_OPTIONS.map((n) => (
                             <option key={n} value={n}>
                                 {n}
                             </option>

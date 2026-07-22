@@ -26,13 +26,14 @@ export const getDueWords = (
     }));
 
 export const getDueWordIds = (
-    { courseId, lessonId, limit, includeNew }: WordProgressScope = {},
+    { courseId, lessonId, limit, newLimit, includeNew }: WordProgressScope = {},
 ): Promise<IDueWordIdsResponse> =>
     request((i) => i.get('/word-progress/due-word-ids', {
         params: {
             courseId,
             lessonId,
             limit,
+            newLimit,
             includeNew: includeNew?.toString(),
             // The learner's local day drives daily-pacing limits, not the server's.
             clientDate: localDateString(),
@@ -55,10 +56,12 @@ export const getDueWordIdsByWordIds = (
     wordIds: string[],
     limit?: number,
     includeNew?: boolean,
+    newLimit?: number,
 ): Promise<IDueWordIdsResponse> =>
     request((i) => i.post('/word-progress/due-word-ids/by-word-ids', {
         wordIds,
         limit,
+        newLimit,
         includeNew,
         clientDate: localDateString(),
     }));

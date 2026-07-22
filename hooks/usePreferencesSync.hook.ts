@@ -1,10 +1,14 @@
 "use client";
 
 import { setDueWordsLimit } from "@/hooks/useDueWordsLimit.hook";
+import { setNewWordsLimit } from "@/hooks/useNewWordsLimit.hook";
 import { setPracticeSettings } from "@/hooks/usePracticeSettings.hook";
 import { useUser } from "@/hooks/useUser.hook";
 import { setWordDetailsAutoNext } from "@/hooks/useWordDetailsAutoNext.hook";
-import { readDueWordsLimitFromStorage } from "@/lib/due-words-limit";
+import {
+    readDueWordsLimitFromStorage,
+    readNewWordsLimitFromStorage,
+} from "@/lib/due-words-limit";
 import { readPracticeSettingsFromStorage } from "@/lib/practice-settings";
 import {
     hasPendingPreferenceWrites,
@@ -60,6 +64,9 @@ export function usePreferencesSync(): void {
                 if (typeof prefs.dueWordsLimit === "number") {
                     setDueWordsLimit(prefs.dueWordsLimit);
                 }
+                if (typeof prefs.newWordsLimit === "number") {
+                    setNewWordsLimit(prefs.newWordsLimit);
+                }
                 if (prefs.wordDetailsAutoNext) {
                     setWordDetailsAutoNext(prefs.wordDetailsAutoNext);
                 }
@@ -78,6 +85,9 @@ export function usePreferencesSync(): void {
         }
         if (prefs.dueWordsLimit === undefined) {
             seed.dueWordsLimit = readDueWordsLimitFromStorage();
+        }
+        if (prefs.newWordsLimit === undefined) {
+            seed.newWordsLimit = readNewWordsLimitFromStorage();
         }
         if (prefs.wordDetailsAutoNext === undefined) {
             seed.wordDetailsAutoNext = readWordDetailsAutoNextFromStorage();

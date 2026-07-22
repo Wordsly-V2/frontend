@@ -79,9 +79,28 @@ export const queryKeys = {
     dueWordIds: {
         all: ["due-word-ids"] as const,
         list: (o: WordProgressScope) =>
-            ["due-word-ids", o.courseId, o.lessonId, o.limit, o.includeNew] as const,
-        byWordIds: (wordIds: string[], limit?: number, includeNew?: boolean) =>
-            ["due-word-ids", "by-word-ids", sortedIds(wordIds), limit, includeNew] as const,
+            [
+                "due-word-ids",
+                o.courseId,
+                o.lessonId,
+                o.limit,
+                o.newLimit,
+                o.includeNew,
+            ] as const,
+        byWordIds: (
+            wordIds: string[],
+            limit?: number,
+            includeNew?: boolean,
+            newLimit?: number,
+        ) =>
+            [
+                "due-word-ids",
+                "by-word-ids",
+                sortedIds(wordIds),
+                limit,
+                includeNew,
+                newLimit,
+            ] as const,
     },
     leeches: {
         all: ["leeches"] as const,
