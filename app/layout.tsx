@@ -1,5 +1,6 @@
 import AppNav from '@/components/common/app-nav/app-nav';
 import { BottomTabBar } from '@/components/common/app-nav/bottom-tab-bar';
+import { MyWordsSearchFab } from '@/components/common/my-words-search';
 import { ServiceWorkerRegistration } from '@/components/common/pwa/service-worker-registration';
 import { Toaster } from '@/components/ui/sonner';
 import type { Metadata, Viewport } from 'next';
@@ -51,6 +52,7 @@ export default function RootLayout({
                     <Providers>
                         <AppNav />
                         {children}
+                        <MyWordsSearchFab />
                         <BottomTabBar />
                         <Toaster />
                         <ServiceWorkerRegistration />

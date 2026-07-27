@@ -61,8 +61,11 @@ export function FloatingActionMenu({
         <>
             <div
                 ref={menuRef}
-                /* Mobile: sit above the bottom tab bar. sm+: bar is hidden, so use the normal safe-area offset. */
-                className="fixed right-4 z-50 flex flex-col items-end gap-3 pointer-events-none bottom-[calc(4.75rem+env(safe-area-inset-bottom))] sm:bottom-[max(0.5rem,env(safe-area-inset-bottom))]"
+                /* Marks the bottom-right slot as taken so the global search FAB stacks above it. */
+                data-page-fab=""
+                /* Sit above the bottom tab bar. The bar hides at `lg`, so only
+                   from there can we drop to the plain safe-area offset. */
+                className="fixed right-4 z-50 flex flex-col items-end gap-3 pointer-events-none bottom-[calc(4.75rem+env(safe-area-inset-bottom))] lg:bottom-[max(0.5rem,env(safe-area-inset-bottom))]"
             >
                 {!isMobile && (
                     <div

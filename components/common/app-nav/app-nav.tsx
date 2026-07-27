@@ -255,9 +255,11 @@ export default function AppNav() {
                                     ⌘K
                                 </kbd>
                             </Button>
+                            {/* sm–lg keeps an inline box; below sm the floating
+                                search button (MyWordsSearchFab) takes over. */}
                             {!isAuthPage && profile && (
-                                <div className="flex items-center gap-1 lg:hidden">
-                                    <MyWordsSearch className="max-w-[min(42vw,11rem)] sm:max-w-[200px]" />
+                                <div className="hidden sm:flex items-center gap-1 lg:hidden">
+                                    <MyWordsSearch className="max-w-[200px]" />
                                 </div>
                             )}
 
