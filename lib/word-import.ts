@@ -1,5 +1,5 @@
-import { getLangeekWordDetails, searchWords } from "@/apis/dictionary.api";
-import { CreateMyWord } from "@/types/courses/courses.type";
+import { getLangeekWordDetails, LangeekExample, searchWords } from "@/apis/dictionary.api";
+import { CreateMyWord, IWordExample } from "@/types/courses/courses.type";
 import { normalizeAnswer, serializeExamples } from "@/lib/practice-utils";
 
 /** One dictionary sense of a word — a word can have several across parts of speech. */
@@ -10,7 +10,11 @@ export interface WordSense {
     langeekWordId: number;
 }
 
-/** A single word being staged for bulk import — examples kept as an array until submit. */
+/**
+ * A single word being staged for bulk import — examples kept as structured
+ * objects (`text` + optional `translation` / `audioUrl`) until submit, matching
+ * the add/edit word form.
+ */
 export interface ImportWordRow {
     id: string;
     word: string;
@@ -19,7 +23,7 @@ export interface ImportWordRow {
     partOfSpeech: string;
     audioUrl: string;
     imageUrl: string;
-    examples: string[];
+    examples: IWordExample[];
     /** Set after a dictionary auto-enrich pass. */
     enriched?: boolean;
     /** Alternative dictionary senses (different parts of speech), found during enrich. */
@@ -30,6 +34,12 @@ let rowIdCounter = 0;
 function nextRowId(): string {
     rowIdCounter += 1;
     return `import-${rowIdCounter}`;
+}
+
+let exampleIdCounter = 0;
+export function nextExampleId(): string {
+    exampleIdCounter += 1;
+    return `import-ex-${exampleIdCounter}`;
 }
 
 function emptyRow(): ImportWordRow {
@@ -45,22 +55,40 @@ function emptyRow(): ImportWordRow {
     };
 }
 
+function optionalField(value: unknown): string | undefined {
+    return typeof value === "string" && value.trim() ? value.trim() : undefined;
+}
+
 /**
- * Extract the sentence text from an example entry, which may be a plain string
- * (legacy) or an object `{ text, … }` (current persisted/dictionary shape).
+ * Normalize one example entry, which may be a plain string (legacy) or an
+ * object `{ text, translation?, audioUrl? }` (current persisted/dictionary
+ * shape). Returns null when there is no sentence text.
  */
-function exampleText(entry: unknown): string | null {
-    if (typeof entry === "string") return entry.trim() || null;
-    if (entry && typeof entry === "object" && typeof (entry as { text?: unknown }).text === "string") {
-        return ((entry as { text: string }).text).trim() || null;
+function toExample(entry: unknown): IWordExample | null {
+    if (typeof entry === "string") {
+        const text = entry.trim();
+        return text ? { id: nextExampleId(), text } : null;
+    }
+    if (entry && typeof entry === "object") {
+        const e = entry as Record<string, unknown>;
+        const text = typeof e.text === "string" ? e.text.trim() : "";
+        if (!text) return null;
+        const translation = optionalField(e.translation ?? e.meaning);
+        const audioUrl = optionalField(e.audioUrl ?? e.audio);
+        return {
+            id: nextExampleId(),
+            text,
+            ...(translation ? { translation } : {}),
+            ...(audioUrl ? { audioUrl } : {}),
+        };
     }
     return null;
 }
 
-/** Parse the `example` field from any source into a clean string array. */
-export function parseExamplesValue(value: unknown): string[] {
+/** Parse the `example` field from any source into structured examples. */
+export function parseExamplesValue(value: unknown): IWordExample[] {
     if (Array.isArray(value)) {
-        return value.map(exampleText).filter((e): e is string => e !== null);
+        return value.map(toExample).filter((e): e is IWordExample => e !== null);
     }
     if (typeof value === "string") {
         const trimmed = value.trim();
@@ -68,17 +96,79 @@ export function parseExamplesValue(value: unknown): string[] {
         try {
             const parsed = JSON.parse(trimmed);
             if (Array.isArray(parsed)) {
-                return parsed.map(exampleText).filter((e): e is string => e !== null);
+                return parsed.map(toExample).filter((e): e is IWordExample => e !== null);
+            }
+            if (parsed && typeof parsed === "object") {
+                const single = toExample(parsed);
+                return single ? [single] : [];
             }
         } catch {
             // not JSON — treat as a single example sentence
         }
-        return [trimmed];
+        return [{ id: nextExampleId(), text: trimmed }];
     }
     return [];
 }
 
-const HEADER_ALIASES: Record<string, keyof ImportWordRow> = {
+const exampleKey = (example: IWordExample) => example.text.trim().toLowerCase();
+
+/**
+ * Merge incoming examples into existing ones, deduping by sentence text. A
+ * duplicate never replaces what is already there — it only backfills a missing
+ * translation or audio URL.
+ */
+export function mergeExamples(
+    existing: IWordExample[],
+    incoming: IWordExample[],
+): IWordExample[] {
+    const byKey = new Map<string, IWordExample>();
+    const merged: IWordExample[] = [];
+    for (const example of existing) {
+        const key = exampleKey(example);
+        if (!key || byKey.has(key)) continue;
+        byKey.set(key, example);
+        merged.push(example);
+    }
+    for (const example of incoming) {
+        const key = exampleKey(example);
+        if (!key) continue;
+        const current = byKey.get(key);
+        if (!current) {
+            byKey.set(key, example);
+            merged.push(example);
+            continue;
+        }
+        const filled: IWordExample = {
+            ...current,
+            ...(!current.translation?.trim() && example.translation
+                ? { translation: example.translation }
+                : {}),
+            ...(!current.audioUrl?.trim() && example.audioUrl
+                ? { audioUrl: example.audioUrl }
+                : {}),
+        };
+        byKey.set(key, filled);
+        merged[merged.indexOf(current)] = filled;
+    }
+    return merged;
+}
+
+/** Convert dictionary examples into staged example rows. */
+function fromDictionaryExamples(examples: LangeekExample[] | undefined): IWordExample[] {
+    return (examples ?? [])
+        .map((e) =>
+            toExample({ text: e.text, translation: e.translation, audioUrl: e.audioUrl }),
+        )
+        .filter((e): e is IWordExample => e !== null);
+}
+
+/**
+ * Columns a source file can map to. Beyond the row's own fields there are two
+ * virtual columns that decorate the example sentence in the same line.
+ */
+type ImportField = keyof ImportWordRow | "exampleTranslation" | "exampleAudioUrl";
+
+const HEADER_ALIASES: Record<string, ImportField> = {
     word: "word",
     term: "word",
     meaning: "meaning",
@@ -96,21 +186,31 @@ const HEADER_ALIASES: Record<string, keyof ImportWordRow> = {
     image: "imageUrl",
     example: "examples",
     examples: "examples",
+    exampletranslation: "exampleTranslation",
+    examplemeaning: "exampleTranslation",
+    exampleaudio: "exampleAudioUrl",
+    exampleaudiourl: "exampleAudioUrl",
 };
 
 /** Positional columns used when there is no recognizable header row. */
-const POSITIONAL_FIELDS: (keyof ImportWordRow)[] = [
+const POSITIONAL_FIELDS: ImportField[] = [
     "word",
     "meaning",
     "pronunciation",
     "partOfSpeech",
 ];
 
-function assignCell(row: ImportWordRow, field: keyof ImportWordRow, raw: string) {
+function assignCell(row: ImportWordRow, field: ImportField, raw: string) {
     const value = raw.trim();
     if (!value) return;
     if (field === "examples") {
-        row.examples = [...new Set([...row.examples, ...parseExamplesValue(value)])];
+        row.examples = mergeExamples(row.examples, parseExamplesValue(value));
+    } else if (field === "exampleTranslation" || field === "exampleAudioUrl") {
+        // Decorates the example already parsed from this same line.
+        const last = row.examples.at(-1);
+        if (!last) return;
+        const key = field === "exampleTranslation" ? "translation" : "audioUrl";
+        if (!last[key]?.trim()) last[key] = value;
     } else if (
         field === "word" ||
         field === "meaning" ||
@@ -155,13 +255,13 @@ function splitCsvLine(line: string): string[] {
 }
 
 /** Detect a header row and return the field mapping, or null for positional parsing. */
-function detectHeader(cells: string[]): (keyof ImportWordRow)[] | null {
+function detectHeader(cells: string[]): ImportField[] | null {
     const mapped = cells.map((c) => HEADER_ALIASES[c.trim().toLowerCase().replaceAll(/[\s_-]/g, "")]);
     // A header row must name "word" and resolve most of its columns.
     if (!mapped.includes("word")) return null;
     const known = mapped.filter(Boolean).length;
     if (known < Math.ceil(cells.length / 2)) return null;
-    return mapped as (keyof ImportWordRow)[];
+    return mapped as ImportField[];
 }
 
 /**
@@ -176,7 +276,7 @@ export function parseWordsDelimited(text: string): ImportWordRow[] {
     const useTabs = lines[0].includes("\t") && !lines[0].includes(",");
     const split = (line: string) => (useTabs ? line.split("\t") : splitCsvLine(line));
 
-    let header: (keyof ImportWordRow)[] | null = null;
+    let header: ImportField[] | null = null;
     let startIndex = 0;
     const firstCells = split(lines[0]);
     if (firstCells.length > 1) {
@@ -189,10 +289,14 @@ export function parseWordsDelimited(text: string): ImportWordRow[] {
         const cells = split(lines[i]);
         const row = emptyRow();
         const fields = header ?? POSITIONAL_FIELDS;
-        cells.forEach((cell, idx) => {
-            const field = fields[idx];
-            if (field) assignCell(row, field, cell);
-        });
+        // Example text must land before the columns that decorate it, whatever
+        // order the file puts them in.
+        const decorators: ImportField[] = ["exampleTranslation", "exampleAudioUrl"];
+        cells
+            .map((cell, idx) => [fields[idx], cell] as const)
+            .filter(([field]) => field)
+            .sort(([a], [b]) => Number(decorators.includes(a!)) - Number(decorators.includes(b!)))
+            .forEach(([field, cell]) => assignCell(row, field!, cell));
         if (row.word) rows.push(row);
     }
     return rows;
@@ -229,8 +333,8 @@ export function rowToCreateMyWord(row: ImportWordRow): CreateMyWord {
         partOfSpeech: row.partOfSpeech.trim(),
         audioUrl: row.audioUrl.trim(),
         imageUrl: row.imageUrl.trim(),
-        // Bulk import is text-only; wrap each sentence in the structured shape.
-        example: serializeExamples(row.examples.map((text) => ({ id: "", text }))),
+        // Keeps each example's translation and audio URL alongside its text.
+        example: serializeExamples(row.examples),
     };
 }
 
@@ -280,9 +384,7 @@ export async function applySenseToRow(
             next.pronunciation = details.pronunciation || "";
             next.audioUrl = details.audioUrl || "";
             if (details.imageUrl) next.imageUrl = details.imageUrl;
-            next.examples = details.examples?.length
-                ? [...new Set(details.examples.map((e) => e.text))]
-                : [];
+            next.examples = mergeExamples([], fromDictionaryExamples(details.examples));
         }
     } catch {
         // keep the sense's basic fields even if the details fetch fails
@@ -350,10 +452,12 @@ export async function enrichWordRow(
                 if (shouldSet(next.audioUrl) && details.audioUrl) next.audioUrl = details.audioUrl;
                 if (shouldSet(next.imageUrl) && details.imageUrl) next.imageUrl = details.imageUrl;
                 if (details.examples?.length) {
-                    const texts = details.examples.map((e) => e.text);
+                    const fetched = fromDictionaryExamples(details.examples);
+                    // Either way the dictionary only backfills a translation or
+                    // audio URL the row is missing — typed values stay put.
                     next.examples = overwrite
-                        ? [...new Set(texts)]
-                        : [...new Set([...next.examples, ...texts])];
+                        ? mergeExamples(fetched, next.examples)
+                        : mergeExamples(next.examples, fetched);
                 }
             }
         } catch {

@@ -21,14 +21,15 @@ import {
     isRowValid,
     isSenseActive,
     mapWithConcurrency,
+    nextExampleId,
     parseWordsDelimited,
     parseWordsJson,
     WordSense,
 } from "@/lib/word-import";
 import { WordAutocomplete } from "@/components/common/word-autocomplete";
 import { playAudioUrl } from "@/lib/practice-audio";
-import { ILesson, IWordSearchResult } from "@/types/courses/courses.type";
-import { AlertTriangle, ChevronDown, FileUp, ImageIcon, Plus, Sparkles, Trash2, Volume2, Wand2 } from "lucide-react";
+import { ILesson, IWordExample, IWordSearchResult } from "@/types/courses/courses.type";
+import { AlertTriangle, ChevronDown, FileUp, ImageIcon, Languages, Plus, Sparkles, Trash2, Volume2, Wand2 } from "lucide-react";
 import Image from "next/image";
 import { useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -51,7 +52,11 @@ anxiety, lo âu, /æŋˈzaɪəti/, noun
 serendipity
 
 Tip: columns are word, meaning, pronunciation, part of speech
-(comma, tab, or a CSV/JSON file all work).`;
+(comma, tab, or a CSV/JSON file all work).
+
+With a header row you can also add: example, exampleTranslation,
+exampleAudio, audioUrl, imageUrl. JSON examples keep their own
+{ text, translation, audioUrl }.`;
 
 export default function ImportWordsDialog({
     isOpen,
@@ -153,26 +158,37 @@ export default function ImportWordsDialog({
         setRows((prev) => prev.filter((r) => r.id !== id));
     };
 
-    const updateExample = (id: string, index: number, value: string) => {
+    const updateExample = (rowId: string, exampleId: string, patch: Partial<IWordExample>) => {
         setRows((prev) =>
             prev.map((r) =>
-                r.id === id
-                    ? { ...r, examples: r.examples.map((ex, i) => (i === index ? value : ex)) }
+                r.id === rowId
+                    ? {
+                        ...r,
+                        examples: r.examples.map((ex) =>
+                            ex.id === exampleId ? { ...ex, ...patch } : ex,
+                        ),
+                    }
                     : r,
             ),
         );
     };
 
-    const addExample = (id: string) => {
+    const addExample = (rowId: string) => {
         setRows((prev) =>
-            prev.map((r) => (r.id === id ? { ...r, examples: [...r.examples, ""] } : r)),
+            prev.map((r) =>
+                r.id === rowId
+                    ? { ...r, examples: [...r.examples, { id: nextExampleId(), text: "" }] }
+                    : r,
+            ),
         );
     };
 
-    const removeExample = (id: string, index: number) => {
+    const removeExample = (rowId: string, exampleId: string) => {
         setRows((prev) =>
             prev.map((r) =>
-                r.id === id ? { ...r, examples: r.examples.filter((_, i) => i !== index) } : r,
+                r.id === rowId
+                    ? { ...r, examples: r.examples.filter((ex) => ex.id !== exampleId) }
+                    : r,
             ),
         );
     };
@@ -474,7 +490,15 @@ export default function ImportWordsDialog({
                                                 )}
                                                 {row.imageUrl && <ImageIcon className="h-3.5 w-3.5" aria-label="Has image" />}
                                                 {row.examples.length > 0 && (
-                                                    <span>{row.examples.length} example{row.examples.length === 1 ? "" : "s"}</span>
+                                                    <span className="inline-flex items-center gap-1">
+                                                        {row.examples.length} example{row.examples.length === 1 ? "" : "s"}
+                                                        {row.examples.some((ex) => ex.translation?.trim()) && (
+                                                            <Languages className="h-3.5 w-3.5" aria-label="Examples have translations" />
+                                                        )}
+                                                        {row.examples.some((ex) => ex.audioUrl?.trim()) && (
+                                                            <Volume2 className="h-3.5 w-3.5" aria-label="Examples have audio" />
+                                                        )}
+                                                    </span>
                                                 )}
                                                 {row.senses && row.senses.length > 1 && (
                                                     <Badge variant="outline" className="px-1.5 py-0 text-[10px] font-medium text-primary border-primary/40">
@@ -594,24 +618,56 @@ export default function ImportWordsDialog({
                                                     </div>
                                                     <div className="space-y-1">
                                                         <Label className="text-[11px] text-muted-foreground">Examples</Label>
-                                                        {row.examples.map((example, index) => (
-                                                            <div key={`${row.id}-ex-${index}`} className="flex gap-1.5">
+                                                        {row.examples.map((example) => (
+                                                            <div
+                                                                key={example.id}
+                                                                className="space-y-1.5 rounded-md border border-border/60 p-1.5"
+                                                            >
+                                                                <div className="flex gap-1.5">
+                                                                    <Input
+                                                                        value={example.text}
+                                                                        onChange={(e) => updateExample(row.id, example.id, { text: e.target.value })}
+                                                                        placeholder="Example sentence"
+                                                                        className="h-8 text-sm flex-1"
+                                                                    />
+                                                                    <Button
+                                                                        type="button"
+                                                                        variant="ghost"
+                                                                        size="icon"
+                                                                        onClick={() => removeExample(row.id, example.id)}
+                                                                        className="h-8 w-8 text-muted-foreground hover:text-destructive shrink-0"
+                                                                        aria-label="Remove example"
+                                                                    >
+                                                                        <Trash2 className="h-3.5 w-3.5" />
+                                                                    </Button>
+                                                                </div>
                                                                 <Input
-                                                                    value={example}
-                                                                    onChange={(e) => updateExample(row.id, index, e.target.value)}
-                                                                    placeholder="Example sentence"
-                                                                    className="h-8 text-sm flex-1"
+                                                                    value={example.translation ?? ""}
+                                                                    onChange={(e) => updateExample(row.id, example.id, { translation: e.target.value })}
+                                                                    placeholder="Translation (optional)"
+                                                                    className="h-8 text-sm"
                                                                 />
-                                                                <Button
-                                                                    type="button"
-                                                                    variant="ghost"
-                                                                    size="icon"
-                                                                    onClick={() => removeExample(row.id, index)}
-                                                                    className="h-8 w-8 text-muted-foreground hover:text-destructive shrink-0"
-                                                                    aria-label="Remove example"
-                                                                >
-                                                                    <Trash2 className="h-3.5 w-3.5" />
-                                                                </Button>
+                                                                <div className="flex gap-1.5">
+                                                                    <Input
+                                                                        type="url"
+                                                                        inputMode="url"
+                                                                        value={example.audioUrl ?? ""}
+                                                                        onChange={(e) => updateExample(row.id, example.id, { audioUrl: e.target.value })}
+                                                                        placeholder="Audio URL (optional)"
+                                                                        className="h-8 text-sm flex-1"
+                                                                    />
+                                                                    <Button
+                                                                        type="button"
+                                                                        variant="outline"
+                                                                        size="icon"
+                                                                        onClick={() => playAudioUrl(example.audioUrl ?? "")}
+                                                                        disabled={!example.audioUrl?.trim()}
+                                                                        className="h-8 w-8 shrink-0"
+                                                                        aria-label="Play example audio"
+                                                                    >
+                                                                        <Volume2 className="h-3.5 w-3.5" />
+                                                                    </Button>
+                                                                </div>
                                                             </div>
                                                         ))}
                                                         <Button
