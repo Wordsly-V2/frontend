@@ -1,6 +1,12 @@
 "use client";
 
-import { BookOpen, CalendarCheck, Sparkles, Target } from "lucide-react";
+import {
+    CalendarCheck,
+    type LucideIcon,
+    RotateCcw,
+    Sparkles,
+    Target,
+} from "lucide-react";
 import type { IReportSummary } from "@/types/learning-report/learning-report.type";
 
 interface ReportSummaryCardsProps {
@@ -12,7 +18,13 @@ function StatCard({
     icon: Icon,
     label,
     value,
-}: Readonly<{ icon: typeof BookOpen; label: string; value: string }>) {
+    hint,
+}: Readonly<{
+    icon: LucideIcon;
+    label: string;
+    value: string;
+    hint?: string;
+}>) {
     return (
         <div className="rounded-2xl border border-border bg-card p-4">
             <div className="mb-2 flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
@@ -22,6 +34,11 @@ function StatCard({
                 {value}
             </p>
             <p className="text-xs text-muted-foreground">{label}</p>
+            {hint && (
+                <p className="mt-0.5 text-[11px] text-muted-foreground/80">
+                    {hint}
+                </p>
+            )}
         </div>
     );
 }
@@ -33,14 +50,16 @@ export function ReportSummaryCards({
     return (
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
             <StatCard
-                icon={BookOpen}
-                label="Words practiced"
-                value={summary.wordsLearned.toLocaleString()}
-            />
-            <StatCard
                 icon={Sparkles}
                 label="New words"
                 value={summary.newWords.toLocaleString()}
+                hint="Learned for the first time"
+            />
+            <StatCard
+                icon={RotateCcw}
+                label="Words reviewed"
+                value={summary.reviewedWords.toLocaleString()}
+                hint="Practiced again to remember"
             />
             <StatCard
                 icon={Target}
@@ -51,6 +70,7 @@ export function ReportSummaryCards({
                 icon={CalendarCheck}
                 label="Active days"
                 value={summary.activeDays.toLocaleString()}
+                hint={`${summary.goalMetDays.toLocaleString()} on goal`}
             />
         </div>
     );

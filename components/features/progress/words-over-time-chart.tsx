@@ -5,6 +5,7 @@ import {
     Bar,
     BarChart,
     CartesianGrid,
+    Legend,
     ResponsiveContainer,
     Tooltip,
     XAxis,
@@ -20,13 +21,15 @@ import { chartTooltipProps, withLabels } from "./report-format";
 interface WordsOverTimeChartProps {
     buckets: IReportBucket[];
     granularity: ReportGranularity;
-    total: number;
+    newWords: number;
+    reviewedWords: number;
 }
 
 export function WordsOverTimeChart({
     buckets,
     granularity,
-    total,
+    newWords,
+    reviewedWords,
 }: Readonly<WordsOverTimeChartProps>) {
     const data = useMemo(
         () => withLabels(buckets, granularity),
@@ -35,8 +38,8 @@ export function WordsOverTimeChart({
 
     return (
         <ChartCard
-            title="Words learned over time"
-            subtitle={`${total.toLocaleString()} words this ${granularity === "month" ? "year" : "period"}`}
+            title="New & reviewed words"
+            subtitle={`${newWords.toLocaleString()} new · ${reviewedWords.toLocaleString()} reviewed this ${granularity === "month" ? "year" : "period"}`}
         >
             <div className="h-[240px] w-full min-w-0">
                 <ResponsiveContainer width="100%" height="100%">
@@ -69,10 +72,28 @@ export function WordsOverTimeChart({
                         <Tooltip
                             cursor={{ fill: "var(--muted)", opacity: 0.35 }}
                             {...chartTooltipProps}
-                            formatter={(value) => [value ?? 0, "Words"]}
+                        />
+                        <Legend
+                            wrapperStyle={{ fontSize: "11px" }}
+                            iconType="circle"
+                            formatter={(value) => (
+                                <span className="text-muted-foreground">
+                                    {value}
+                                </span>
+                            )}
+                        />
+                        {/* Stacked: the two series add up to the words practiced that bucket. */}
+                        <Bar
+                            name="New"
+                            dataKey="newWords"
+                            stackId="words"
+                            fill="var(--chart-2)"
+                            maxBarSize={48}
                         />
                         <Bar
-                            dataKey="wordsPracticed"
+                            name="Reviewed"
+                            dataKey="reviewedWords"
+                            stackId="words"
                             fill="var(--chart-1)"
                             radius={[6, 6, 0, 0]}
                             maxBarSize={48}

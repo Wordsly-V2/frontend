@@ -140,7 +140,8 @@ export default function ProgressPage() {
                             <WordsOverTimeChart
                                 buckets={report.buckets}
                                 granularity={report.granularity}
-                                total={report.summary.wordsLearned}
+                                newWords={report.summary.newWords}
+                                reviewedWords={report.summary.reviewedWords}
                             />
                             <AccuracyTrendChart
                                 buckets={report.buckets}

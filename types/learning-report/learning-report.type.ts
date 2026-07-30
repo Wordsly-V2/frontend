@@ -10,7 +10,10 @@ export interface IReportBucket {
     /** 'YYYY-MM-DD' (daily) or 'YYYY-MM' (monthly). */
     key: string;
     start: string;
+    /** Distinct words practiced: new + reviewed. */
     wordsPracticed: number;
+    /** Practiced words that were already seen before. */
+    reviewedWords: number;
     reviews: number;
     correctReviews: number;
     /** Correct-answer percentage, or null when no reviews that bucket. */
@@ -21,7 +24,10 @@ export interface IReportBucket {
 }
 
 export interface IReportSummary {
+    /** Words practiced across the window: new + reviewed. */
     wordsLearned: number;
+    /** Practiced words that were already known before. */
+    reviewedWords: number;
     totalReviews: number;
     avgAccuracy: number;
     activeDays: number;
