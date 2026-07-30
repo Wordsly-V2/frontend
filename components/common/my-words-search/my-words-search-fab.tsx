@@ -30,7 +30,8 @@ function usePageFabPresent() {
  * Floating search button, bottom-right.
  *
  * - Below `sm` it replaces the nav's inline search box (too narrow there for a
- *   useful dropdown) and opens the results in a dialog instead.
+ *   useful dropdown) and opens the results in a dialog instead. Like that nav
+ *   search box, it stays available on every screen (practice included).
  * - At any size, highlighting a word turns it into a "Search <word>" pill that
  *   opens the dialog already searching for that word.
  */
@@ -44,9 +45,10 @@ export function MyWordsSearchFab() {
     /** Selection captured at press time — it may be gone by the click. */
     const pendingQueryRef = useRef("");
 
-    const hidden =
-        !profile || pathname.startsWith("/auth") || pathname.startsWith("/learn/practice");
-    if (hidden) return null;
+    if (!profile || pathname.startsWith("/auth")) return null;
+
+    /** The bottom tab bar hides itself during the immersive practice flow. */
+    const tabBarPresent = !pathname.startsWith("/learn/practice");
 
     const openWith = (nextQuery: string) => {
         setQuery(nextQuery);
@@ -62,11 +64,16 @@ export function MyWordsSearchFab() {
                     // (only its card looks narrow) and renders later in the DOM,
                     // so at equal z-index it would swallow taps on this button.
                     "fixed right-4 z-50",
-                    /* The tab bar is visible until `lg` — clear its height until then. */
-                    pageFabPresent
-                        ? // Stack one button-height above the page's own FAB.
-                          "bottom-[calc(4.75rem+4.25rem+env(safe-area-inset-bottom))] lg:bottom-[calc(4.25rem+max(1rem,env(safe-area-inset-bottom)))]"
-                        : "bottom-[calc(4.75rem+env(safe-area-inset-bottom))] lg:bottom-[max(1rem,env(safe-area-inset-bottom))]",
+                    /* Two offsets to clear: the bottom tab bar (visible until `lg`,
+                       and absent entirely during practice) and the page's own FAB,
+                       above which this one stacks by a button height. */
+                    tabBarPresent
+                        ? pageFabPresent
+                            ? "bottom-[calc(4.75rem+4.25rem+env(safe-area-inset-bottom))] lg:bottom-[calc(4.25rem+max(1rem,env(safe-area-inset-bottom)))]"
+                            : "bottom-[calc(4.75rem+env(safe-area-inset-bottom))] lg:bottom-[max(1rem,env(safe-area-inset-bottom))]"
+                        : pageFabPresent
+                          ? "bottom-[calc(4.25rem+max(1rem,env(safe-area-inset-bottom)))]"
+                          : "bottom-[max(1rem,env(safe-area-inset-bottom))]",
                 )}
             >
                 {/* One button in both states, never two: on touch, tapping the pill
