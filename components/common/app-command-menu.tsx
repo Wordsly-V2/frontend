@@ -10,21 +10,68 @@ import {
     CommandSeparator,
     CommandShortcut,
 } from "@/components/ui/command";
+import { useNextPracticeAction } from "@/hooks/useNextPracticeAction.hook";
 import { useUser } from "@/hooks/useUser.hook";
 import {
+    BarChart3,
     BookOpen,
+    Dumbbell,
     GraduationCap,
     Home,
-    LayoutDashboard,
+    Library,
+    LogIn,
+    Sparkles,
     User,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
+type PaletteRoute = {
+    href: string;
+    label: string;
+    icon: typeof Home;
+    /** Extra words that should match this page (never shown). */
+    keywords?: string[];
+};
+
+/** Pages any visitor can reach. */
+const PUBLIC_ROUTES: PaletteRoute[] = [
+    { href: "/", label: "Home", icon: Home, keywords: ["landing", "start"] },
+];
+
+/** Pages that need a signed-in learner. Practice is added separately — its href is dynamic. */
+const LEARN_ROUTES: PaletteRoute[] = [
+    { href: "/learn", label: "Learn", icon: BookOpen, keywords: ["dashboard", "today", "home"] },
+    { href: "/learn/courses", label: "Courses", icon: Library, keywords: ["my courses", "lessons", "words"] },
+    {
+        href: "/progress",
+        label: "Progress",
+        icon: BarChart3,
+        keywords: ["report", "stats", "statistics", "charts", "accuracy", "streak"],
+    },
+    {
+        href: "/manage",
+        label: "Manage courses",
+        icon: GraduationCap,
+        keywords: ["edit", "add words", "import", "create course"],
+    },
+    {
+        href: "/learn/onboarding",
+        label: "Onboarding setup",
+        icon: Sparkles,
+        keywords: ["goal", "level", "wizard", "get started"],
+    },
+];
+
+const ACCOUNT_ROUTES: PaletteRoute[] = [
+    { href: "/profile", label: "Profile", icon: User, keywords: ["account", "settings", "log out"] },
+];
+
 export function AppCommandMenu() {
     const [open, setOpen] = useState(false);
     const router = useRouter();
     const { profile } = useUser();
+    const nextPractice = useNextPracticeAction();
 
     useEffect(() => {
         const onKeyDown = (e: KeyboardEvent) => {
@@ -53,62 +100,61 @@ export function AppCommandMenu() {
         router.push(href);
     };
 
+    const practice = nextPractice.primary;
+
+    const renderRoute = ({ href, label, icon: Icon, keywords }: PaletteRoute) => (
+        <CommandItem
+            key={href}
+            value={label}
+            keywords={keywords}
+            className="cursor-pointer"
+            onSelect={() => go(href)}
+        >
+            <Icon className="text-muted-foreground" />
+            <span>{label}</span>
+        </CommandItem>
+    );
+
     return (
         <CommandDialog open={open} onOpenChange={setOpen} title="Command palette" description="Go to a page">
             <CommandInput placeholder="Search pages…" />
             <CommandList>
                 <CommandEmpty>No pages found.</CommandEmpty>
-                <CommandGroup heading="Wordsly">
-                    <CommandItem
-                        className="cursor-pointer"
-                        onSelect={() => go("/")}
-                    >
-                        <Home className="text-muted-foreground" />
-                        <span>Home</span>
-                    </CommandItem>
-                </CommandGroup>
+                <CommandGroup heading="Wordsly">{PUBLIC_ROUTES.map(renderRoute)}</CommandGroup>
                 {profile && (
                     <>
                         <CommandSeparator />
                         <CommandGroup heading="Learn">
-                            <CommandItem
-                                className="cursor-pointer"
-                                onSelect={() => go("/learn")}
-                            >
-                                <BookOpen className="text-muted-foreground" />
-                                <span>Learn</span>
-                            </CommandItem>
-                            <CommandItem
-                                className="cursor-pointer"
-                                onSelect={() => go("/manage")}
-                            >
-                                <GraduationCap className="text-muted-foreground" />
-                                <span>Manage courses</span>
-                            </CommandItem>
+                            {/* Same "what's next" resolution as the nav and bottom bar,
+                                so this always starts a session with real words. */}
+                            {practice && (
+                                <CommandItem
+                                    value="Practice"
+                                    keywords={["review", "study", "session", "flashcards"]}
+                                    className="cursor-pointer"
+                                    onSelect={() => go(practice.href)}
+                                >
+                                    <Dumbbell className="text-muted-foreground" />
+                                    <span>Practice</span>
+                                    <CommandShortcut>{practice.label}</CommandShortcut>
+                                </CommandItem>
+                            )}
+                            {LEARN_ROUTES.map(renderRoute)}
                         </CommandGroup>
                         <CommandSeparator />
-                        <CommandGroup heading="Account">
-                            <CommandItem
-                                className="cursor-pointer"
-                                onSelect={() => go("/profile")}
-                            >
-                                <User className="text-muted-foreground" />
-                                <span>Profile</span>
-                            </CommandItem>
-                        </CommandGroup>
+                        <CommandGroup heading="Account">{ACCOUNT_ROUTES.map(renderRoute)}</CommandGroup>
                     </>
                 )}
                 {!profile && (
                     <>
                         <CommandSeparator />
                         <CommandGroup heading="Account">
-                            <CommandItem
-                                className="cursor-pointer"
-                                onSelect={() => go("/auth/login")}
-                            >
-                                <LayoutDashboard className="text-muted-foreground" />
-                                <span>Log in</span>
-                            </CommandItem>
+                            {renderRoute({
+                                href: "/auth/login",
+                                label: "Log in",
+                                icon: LogIn,
+                                keywords: ["sign in", "sign up", "register", "google"],
+                            })}
                         </CommandGroup>
                     </>
                 )}
