@@ -31,7 +31,7 @@ import { playAudioUrl } from "@/lib/practice-audio";
 import { ILesson, IWordExample, IWordSearchResult } from "@/types/courses/courses.type";
 import { AlertTriangle, ChevronDown, FileUp, ImageIcon, Languages, Plus, Sparkles, Trash2, Volume2, Wand2 } from "lucide-react";
 import Image from "next/image";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
 const ENRICH_CONCURRENCY = 4;
@@ -107,13 +107,20 @@ export default function ImportWordsDialog({
         setPhase("input");
         setEnrichDone(null);
         setIsEnriching(false);
+        setExpandedRows(new Set());
+        setImageErrors(new Set());
+        setApplyingSenseRows(new Set());
+        setEnrichingRows(new Set());
     };
 
-    const handleClose = () => {
-        reset();
-        setTargetLessonId("");
-        onClose();
-    };
+    // Always open on a blank slate — the parent closes this dialog directly after a
+    // successful import, so we can't rely on the close handler to clear things.
+    useEffect(() => {
+        if (isOpen) {
+            reset();
+            setTargetLessonId("");
+        }
+    }, [isOpen]);
 
     const goToReview = (parsed: ImportWordRow[]) => {
         if (parsed.length === 0) {
@@ -307,7 +314,7 @@ export default function ImportWordsDialog({
     const busy = isImporting || isEnriching;
 
     return (
-        <Dialog open={isOpen} onOpenChange={(open) => { if (!open) handleClose(); }}>
+        <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
             <DialogContent className="max-w-2xl w-[calc(100vw-1.5rem)] sm:w-full max-h-[88dvh] overflow-hidden flex flex-col mx-auto">
                 <DialogHeader>
                     <DialogTitle className="text-lg sm:text-xl flex items-center gap-2">
@@ -735,7 +742,7 @@ export default function ImportWordsDialog({
                 )}
 
                 <DialogFooter className="gap-2">
-                    <Button type="button" variant="outline" onClick={handleClose} disabled={busy} className="w-full sm:w-auto text-sm">
+                    <Button type="button" variant="outline" onClick={onClose} disabled={busy} className="w-full sm:w-auto text-sm">
                         Cancel
                     </Button>
                     {phase === "review" && (
