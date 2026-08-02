@@ -174,7 +174,7 @@ function WordResultButton({
             )}
             <span className="min-w-0 flex-1">
                 <div className="flex items-baseline gap-2 flex-wrap">
-                    <span className="font-medium">{word}</span>
+                    <span className="font-medium break-words">{word}</span>
                     {partOfSpeech && (
                         <span className="text-xs text-muted-foreground italic">{partOfSpeech}</span>
                     )}
