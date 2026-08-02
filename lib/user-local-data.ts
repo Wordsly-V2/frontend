@@ -4,7 +4,10 @@ import {
     removeLocalStorageItem,
 } from "@/lib/local-storage";
 import { PENDING_SAVES_KEY } from "@/lib/practice-pending-saves";
-import { SETTINGS_STORAGE_KEY } from "@/lib/practice-settings";
+import {
+    LEGACY_SETTINGS_STORAGE_KEYS,
+    SETTINGS_STORAGE_KEY,
+} from "@/lib/practice-settings";
 import { SESSION_HISTORY_KEY } from "@/lib/session-history";
 import { DUE_WORDS_LIMIT_STORAGE_KEY } from "@/lib/due-words-limit";
 import { DAILY_HABIT_STORAGE_KEY } from "@/lib/daily-habit";
@@ -24,6 +27,9 @@ const USER_DATA_KEYS: readonly string[] = [
     REFRESH_TOKEN_STORAGE_KEY,
     PENDING_SAVES_KEY,
     SETTINGS_STORAGE_KEY,
+    // Superseded keys still have to be wiped, or a previous user's settings
+    // survive logout on a shared browser.
+    ...LEGACY_SETTINGS_STORAGE_KEYS,
     SESSION_HISTORY_KEY,
     DUE_WORDS_LIMIT_STORAGE_KEY,
     DAILY_HABIT_STORAGE_KEY,

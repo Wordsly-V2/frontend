@@ -19,12 +19,23 @@ export function flashcardRatingToQuality(rating: FlashcardRating): AnswerQuality
     }
 }
 
+/**
+ * How long an answer may take before it stops counting as fluent recall.
+ * Exercises that are slow by construction (assembling a whole sentence) pass
+ * their own, or every correct answer would be scored as a struggle.
+ */
+export interface AnswerTimeThresholds {
+    fastSeconds?: number;
+    slowSeconds?: number;
+}
+
 /** Quality from correctness, hints used, and optional response time. */
 export function calculateAnswerQuality(
     isCorrect: boolean,
     hintsUsed = 0,
     timeSpentSeconds?: number,
     nearMiss = false,
+    thresholds?: AnswerTimeThresholds,
 ): AnswerQuality {
     if (!isCorrect) {
         return AnswerQuality.INCORRECT;
@@ -45,11 +56,14 @@ export function calculateAnswerQuality(
         quality = AnswerQuality.CORRECT_WITH_DIFFICULTY;
     }
 
+    const fastSeconds = thresholds?.fastSeconds ?? FAST_CORRECT_SECONDS;
+    const slowSeconds = thresholds?.slowSeconds ?? SLOW_CORRECT_SECONDS;
+
     if (timeSpentSeconds != null && timeSpentSeconds > 0) {
-        if (timeSpentSeconds > SLOW_CORRECT_SECONDS && quality > AnswerQuality.CORRECT_WITH_DIFFICULTY) {
+        if (timeSpentSeconds > slowSeconds && quality > AnswerQuality.CORRECT_WITH_DIFFICULTY) {
             quality = AnswerQuality.CORRECT_WITH_DIFFICULTY;
         } else if (
-            timeSpentSeconds > FAST_CORRECT_SECONDS &&
+            timeSpentSeconds > fastSeconds &&
             quality === AnswerQuality.PERFECT
         ) {
             quality = AnswerQuality.CORRECT_WITH_HESITATION;

@@ -1,10 +1,31 @@
 import { getLocalStorageItem } from '@/lib/local-storage';
-import { assignMixedPracticeMode } from '@/lib/learning-pedagogy';
+import {
+    assignMixedPracticeMode,
+    type ModeAvailability,
+} from '@/lib/learning-pedagogy';
 import { shuffleArray } from '@/lib/practice-utils';
 import type { WordLearningStage } from '@/lib/word-progress-stage';
 import type { IWord } from '@/types/courses/courses.type';
 
-export const SETTINGS_STORAGE_KEY = 'vocabulary-practice-settings';
+// Bumped when a new mix method ships. Stored settings enumerate the methods
+// that existed when they were saved, so reading an old blob under the current
+// key would silently opt every existing user out of the new method forever.
+export const SETTINGS_STORAGE_KEY = 'vocabulary-practice-settings.v2';
+
+// Older keys, newest first. Read (once, to migrate) and cleared on logout.
+export const LEGACY_SETTINGS_STORAGE_KEYS: readonly string[] = [
+    'vocabulary-practice-settings',
+];
+
+// The mix methods that existed under `vocabulary-practice-settings`. A stored
+// list equal to this set means "the user never deselected anything", so the
+// migration opts them into the new methods too instead of freezing their mix.
+const V1_MIXED_PRACTICE_MODES: readonly string[] = [
+    'listening',
+    'context',
+    'word-bank',
+    'cloze',
+];
 
 /** Concrete methods a user can opt in/out of within a mixed session. */
 export const MIXED_PRACTICE_MODES = [
@@ -12,6 +33,7 @@ export const MIXED_PRACTICE_MODES = [
     'context',
     'word-bank',
     'cloze',
+    'sentence-build',
 ] as const;
 
 export type MixedPracticeMethod = (typeof MIXED_PRACTICE_MODES)[number];
@@ -23,6 +45,7 @@ export type PracticeMode =
     | 'word-bank'
     | 'listening'
     | 'cloze'
+    | 'sentence-build'
     | 'mixed';
 
 export interface PracticeSettings {
@@ -73,13 +96,19 @@ function parseMixedModes(
 export function parsePracticeSettings(
     raw: string | null,
     initial: PracticeSettings,
+    opts?: {
+        /** Ignore the stored mix list and enable every method (migration only). */
+        forceAllMixedModes?: boolean;
+    },
 ): PracticeSettings {
     if (raw === null) return initial;
     try {
         const parsed = JSON.parse(raw) as Partial<PracticeSettings>;
         return {
             mode: parsePracticeMode(parsed.mode, initial.mode),
-            mixedModes: parseMixedModes(parsed.mixedModes, initial.mixedModes),
+            mixedModes: opts?.forceAllMixedModes
+                ? [...MIXED_PRACTICE_MODES]
+                : parseMixedModes(parsed.mixedModes, initial.mixedModes),
             autoCheck: parsed.autoCheck ?? initial.autoCheck,
             soundEnabled: parsed.soundEnabled ?? initial.soundEnabled,
         };
@@ -88,9 +117,35 @@ export function parsePracticeSettings(
     }
 }
 
+/**
+ * Carry a pre-v2 blob forward. Everything but the mix list transfers verbatim;
+ * a mix list that was simply "all of v1" becomes "all of v2" so the learner
+ * gets the new methods, while a deliberately narrowed list is respected.
+ */
+function migrateLegacySettings(raw: string): PracticeSettings {
+    let storedMix: unknown;
+    try {
+        storedMix = (JSON.parse(raw) as Partial<PracticeSettings>).mixedModes;
+    } catch {
+        return DEFAULT_PRACTICE_SETTINGS;
+    }
+    const wasAllOfV1 =
+        Array.isArray(storedMix) &&
+        V1_MIXED_PRACTICE_MODES.every((m) => storedMix.includes(m));
+    return parsePracticeSettings(raw, DEFAULT_PRACTICE_SETTINGS, {
+        forceAllMixedModes: wasAllOfV1,
+    });
+}
+
 export function readPracticeSettingsFromStorage(): PracticeSettings {
     const raw = getLocalStorageItem(SETTINGS_STORAGE_KEY);
-    return parsePracticeSettings(raw, DEFAULT_PRACTICE_SETTINGS);
+    if (raw !== null) return parsePracticeSettings(raw, DEFAULT_PRACTICE_SETTINGS);
+
+    for (const key of LEGACY_SETTINGS_STORAGE_KEYS) {
+        const legacy = getLocalStorageItem(key);
+        if (legacy !== null) return migrateLegacySettings(legacy);
+    }
+    return DEFAULT_PRACTICE_SETTINGS;
 }
 
 export const NEW_WORD_MIXED_MODES = [
@@ -103,12 +158,14 @@ export const LEARNING_MIXED_MODES = [
     'context',
     'word-bank',
     'cloze',
+    'sentence-build',
 ] as const;
 export const REVIEW_MIXED_MODES = [
     'listening',
     'context',
     'cloze',
     'word-bank',
+    'sentence-build',
 ] as const;
 
 export type ActivePracticeMode =
@@ -128,21 +185,25 @@ function mixedModesForStage(stage: WordLearningStage): readonly string[] {
     }
 }
 
-function resolveClozeFallback(listeningAvailable: boolean): ActivePracticeMode {
+function resolveClozeFallback(availability: ModeAvailability): ActivePracticeMode {
     // Sentence-based modes need an example; without one fall back to listening
     // when there's audio, otherwise the word-bank exercise (always renderable).
-    return listeningAvailable ? 'listening' : 'word-bank';
+    return availability.listening ? 'listening' : 'word-bank';
 }
 
 function applyModeFallbacks(
     mode: ActivePracticeMode,
-    clozeAvailable: boolean,
-    listeningAvailable: boolean,
+    availability: ModeAvailability,
 ): ActivePracticeMode {
     // Cloze (pick word in a sentence) and context (type word in a sentence)
     // both need an example; fall back when the word has none.
-    if ((mode === 'cloze' || mode === 'context') && !clozeAvailable) {
-        return resolveClozeFallback(listeningAvailable);
+    if ((mode === 'cloze' || mode === 'context') && !availability.cloze) {
+        return resolveClozeFallback(availability);
+    }
+    // Sentence-build needs a *translated* example — much rarer than a plain
+    // one, so step down to the typed cloze before giving up on the sentence.
+    if (mode === 'sentence-build' && !availability.sentenceBuild) {
+        return availability.cloze ? 'context' : resolveClozeFallback(availability);
     }
     return mode;
 }
@@ -221,8 +282,7 @@ export function buildMixedModePlan(
 
 export function resolveActiveMode(
     settingsMode: PracticeSettings['mode'],
-    clozeAvailable: boolean,
-    listeningAvailable = true,
+    availability: ModeAvailability,
     assignedMixedMode?: ActivePracticeMode,
     fallbackIndex = 0,
     fallbackStage: WordLearningStage = 'learning',
@@ -232,10 +292,8 @@ export function resolveActiveMode(
         const mode =
             assignedMixedMode ??
             (modes[fallbackIndex % modes.length] as ActivePracticeMode);
-        return applyModeFallbacks(mode, clozeAvailable, listeningAvailable);
+        return applyModeFallbacks(mode, availability);
     }
-    if ((settingsMode === 'cloze' || settingsMode === 'context') && !clozeAvailable) {
-        return resolveClozeFallback(listeningAvailable);
-    }
-    return settingsMode;
+    // A directly chosen mode still has to be renderable for this word.
+    return applyModeFallbacks(settingsMode, availability);
 }

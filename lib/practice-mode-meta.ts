@@ -1,6 +1,7 @@
 import type { ActivePracticeMode } from "@/lib/practice-settings";
 import type { LucideIcon } from "lucide-react";
 import {
+    Blocks,
     CheckSquare,
     Headphones,
     Layers,
@@ -39,6 +40,12 @@ export const PRACTICE_MODE_META: Record<ActivePracticeMode, PracticeModeMeta> = 
         shortLabel: "Fill-in",
         instruction: "Complete the sentence with the right word",
         icon: TextQuote,
+    },
+    "sentence-build": {
+        label: "Build the sentence",
+        shortLabel: "Build",
+        instruction: "Read the meaning, then tap the words in the right order",
+        icon: Blocks,
     },
     flashcard: {
         label: "Flashcard",

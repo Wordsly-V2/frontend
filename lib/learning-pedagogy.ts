@@ -1,4 +1,4 @@
-import { getClozePrompt } from "@/lib/practice-utils";
+import { getClozePrompt, getSentenceBuildPrompt } from "@/lib/practice-utils";
 import type { WordLearningStage } from "@/lib/word-progress-stage";
 import type { IWord } from "@/types/courses/courses.type";
 
@@ -7,6 +7,7 @@ export type PedagogyPracticeMode =
     | "context"
     | "word-bank"
     | "cloze"
+    | "sentence-build"
     | "flashcard";
 
 /** Per-word / per-session availability of the exercise types that can't always run. */
@@ -15,6 +16,17 @@ export interface ModeAvailability {
     cloze: boolean;
     /** The word has audio (listening). */
     listening: boolean;
+    /** A translated, tile-sized example exists (sentence-build). */
+    sentenceBuild: boolean;
+}
+
+/** Availability flags for a single word, shared by the planner and the engine. */
+export function getModeAvailability(word: IWord): ModeAvailability {
+    return {
+        cloze: getClozePrompt(word) != null,
+        listening: Boolean(word.audioUrl),
+        sentenceBuild: getSentenceBuildPrompt(word) != null,
+    };
 }
 
 /**
@@ -40,7 +52,7 @@ export const PEDAGOGY = {
 
 export type PracticeDirection = "production" | "recognition";
 
-export const PRODUCTION_MODES = ["listening", "context"] as const;
+export const PRODUCTION_MODES = ["listening", "context", "sentence-build"] as const;
 export const RECOGNITION_MODES = ["word-bank", "cloze"] as const;
 
 export function modeDirection(mode: string): PracticeDirection | null {
@@ -53,6 +65,8 @@ function modeAvailable(mode: string, availability: ModeAvailability): boolean {
     // Both cloze and context need an example sentence containing the word.
     if ((mode === "cloze" || mode === "context") && !availability.cloze) return false;
     if (mode === "listening" && !availability.listening) return false;
+    // Sentence-build additionally needs that example to be translated.
+    if (mode === "sentence-build" && !availability.sentenceBuild) return false;
     return true;
 }
 
@@ -135,10 +149,7 @@ export function assignMixedPracticeMode(input: AssignMixedModeInput): {
         recognitionSlotIndex = 0,
     } = input;
 
-    const availability: ModeAvailability = {
-        cloze: getClozePrompt(word) != null,
-        listening: Boolean(word.audioUrl),
-    };
+    const availability = getModeAvailability(word);
     const pick = (pool: readonly string[], poolKind: PracticeModePool) =>
         pickPracticeMode(
             pool,

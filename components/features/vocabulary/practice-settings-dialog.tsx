@@ -40,6 +40,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import {
+    Blocks,
     Sparkles,
     Volume2,
     MessageSquare,
@@ -124,7 +125,8 @@ function PracticeSettingsForm({
         tempMode === "listening" ||
         tempMode === "context" ||
         tempMode === "word-bank" ||
-        tempMode === "cloze";
+        tempMode === "cloze" ||
+        tempMode === "sentence-build";
 
     const modes: { id: PracticeMode; icon: typeof Sparkles; label: string; desc: string }[] = [
         { id: "mixed", icon: Shuffle, label: "Mixed", desc: "Best for memory" },
@@ -132,6 +134,7 @@ function PracticeSettingsForm({
         { id: "context", icon: MessageSquare, label: "In context", desc: "Type the word in a sentence" },
         { id: "cloze", icon: TextCursorInput, label: "Fill-in", desc: "Pick the word in context" },
         { id: "word-bank", icon: LayoutGrid, label: "Word bank", desc: "Pick the word for a meaning" },
+        { id: "sentence-build", icon: Blocks, label: "Build", desc: "Put the words in order" },
         { id: "flashcard", icon: Sparkles, label: "Flashcard", desc: "Reveal and rate" },
     ];
 

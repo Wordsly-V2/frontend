@@ -18,6 +18,10 @@ import { ContextMode } from "@/components/features/vocabulary/modes/context-mode
 import { FlashcardMode } from "@/components/features/vocabulary/modes/flashcard-mode";
 import { ListeningMode } from "@/components/features/vocabulary/modes/listening-mode";
 import {
+    SentenceBuildMode,
+    remainingTileIndices,
+} from "@/components/features/vocabulary/modes/sentence-build-mode";
+import {
     calculateAnswerQuality,
     flashcardRatingToQuality,
     isWeakAnswer,
@@ -41,7 +45,7 @@ import {
     playPracticeSuccessSound,
 } from "@/lib/practice-sounds";
 import { type WordLearningStage } from "@/lib/word-progress-stage";
-import { PEDAGOGY } from "@/lib/learning-pedagogy";
+import { PEDAGOGY, type ModeAvailability } from "@/lib/learning-pedagogy";
 import {
     buildMixedModePlan,
     mixedModePlanKey,
@@ -54,7 +58,9 @@ import {
     generateWordChoiceOptions,
     getAnswerMatch,
     getClozePrompt,
+    getSentenceBuildPrompt,
     getWordExamples,
+    gradeSentenceBuild,
     normalizeAnswer,
     normalizeForHintPrefix,
     shuffleArray,
@@ -81,6 +87,14 @@ export type { SessionCompletePayload, WordResult } from "@/types/practice/practi
  * reflect the weakest attempt or accuracy inflates to 100% and failed words
  * sync to the scheduler as remembered.
  */
+/**
+ * Sentence-build is slow by construction — laying out ten tiles takes far
+ * longer than typing one word. With the default 8s/20s thresholds every
+ * correct answer would be downgraded to "correct with difficulty" and FSRS
+ * would keep the word on a short interval forever.
+ */
+const SENTENCE_BUILD_TIME_THRESHOLDS = { fastSeconds: 25, slowSeconds: 60 };
+
 function mergeWorstResult(results: WordResult[], result: WordResult): WordResult[] {
     const existingIndex = results.findIndex((r) => r.wordId === result.wordId);
     if (existingIndex < 0) {
@@ -149,6 +163,10 @@ export default function VocabularyPractice({
     const [showWordsList, setShowWordsList] = useState(false);
     const [hintsUsed, setHintsUsed] = useState(0);
     const [selectedChoice, setSelectedChoice] = useState<string | null>(null);
+    // Sentence-build answer tray: indices into the current prompt's tiles, in
+    // the order the learner placed them (indices, not text, so repeated words
+    // stay independently placeable).
+    const [placedTiles, setPlacedTiles] = useState<number[]>([]);
     const [hasPlayedAudio, setHasPlayedAudio] = useState(false);
     const [wordResults, setWordResults] = useState<WordResult[]>([]);
     const [pendingResult, setPendingResult] = useState<WordResult | null>(null);
@@ -189,6 +207,20 @@ export default function VocabularyPractice({
         () => (currentWord ? getClozePrompt(currentWord) : null),
         [currentWord],
     );
+    const sentenceBuildPrompt = useMemo(
+        () => (currentWord ? getSentenceBuildPrompt(currentWord) : null),
+        [currentWord],
+    );
+    // Derived from the memoized prompts rather than recomputed, so the mode we
+    // pick and the prompt we render always agree (both pick a random example).
+    const availability: ModeAvailability = useMemo(
+        () => ({
+            cloze: clozePrompt != null,
+            listening: Boolean(currentWord?.audioUrl),
+            sentenceBuild: sentenceBuildPrompt != null,
+        }),
+        [clozePrompt, currentWord?.audioUrl, sentenceBuildPrompt],
+    );
     const mixedModePlan = useMemo(() => {
         if (mode !== "mixed") return null;
         return buildMixedModePlan(queue, stagesByWordId, {
@@ -199,8 +231,7 @@ export default function VocabularyPractice({
     const resolvedMode: ActivePracticeMode = currentWord
         ? resolveActiveMode(
               mode,
-              clozePrompt != null,
-              Boolean(currentWord.audioUrl),
+              availability,
               mixedModePlan?.get(
                   mixedModePlanKey(currentWord.id, currentOccurrence),
               ),
@@ -287,6 +318,7 @@ export default function VocabularyPractice({
         setIsNearMiss(false);
         setHintsUsed(0);
         setSelectedChoice(null);
+        setPlacedTiles([]);
         setHasPlayedAudio(false);
         setTimeSpentSeconds(undefined);
         setPendingResult(null);
@@ -563,6 +595,83 @@ export default function VocabularyPractice({
         handleWordChoiceSelect(selectedWord, currentWord?.word ?? "");
     };
 
+    const handlePlaceTile = useCallback(
+        (tileIndex: number) => {
+            if (typingResult || showResultDialog) return;
+            setPlacedTiles((prev) =>
+                prev.includes(tileIndex) ? prev : [...prev, tileIndex],
+            );
+        },
+        [typingResult, showResultDialog],
+    );
+
+    const handleRemoveTileAt = useCallback(
+        (position: number) => {
+            if (typingResult || showResultDialog) return;
+            setPlacedTiles((prev) => prev.filter((_, i) => i !== position));
+        },
+        [typingResult, showResultDialog],
+    );
+
+    // Hint for sentence-build: rewind to the longest correct prefix, then place
+    // the next right word. That both undoes a wrong guess and moves them on.
+    const handleSentenceBuildHint = useCallback(() => {
+        if (!sentenceBuildPrompt || typingResult || showResultDialog) return;
+        const { tiles, tokens } = sentenceBuildPrompt;
+        setPlacedTiles((prev) => {
+            let correct = 0;
+            while (correct < prev.length && tiles[prev[correct]] === tokens[correct]) {
+                correct++;
+            }
+            const kept = prev.slice(0, correct);
+            if (kept.length >= tokens.length) return kept;
+            const used = new Set(kept);
+            const next = tiles.findIndex(
+                (text, i) => !used.has(i) && text === tokens[kept.length],
+            );
+            return next < 0 ? kept : [...kept, next];
+        });
+        setHintsUsed((h) => h + 1);
+    }, [sentenceBuildPrompt, typingResult, showResultDialog]);
+
+    const checkSentenceBuild = useCallback(() => {
+        if (!currentWord || !sentenceBuildPrompt || typingResult || showResultDialog) {
+            return;
+        }
+        const elapsed =
+            wordStartTimeRef.current != null
+                ? (Date.now() - wordStartTimeRef.current) / 1000
+                : undefined;
+        if (elapsed != null) setTimeSpentSeconds(elapsed);
+        const match = gradeSentenceBuild(
+            placedTiles.map((i) => sentenceBuildPrompt.tiles[i]),
+            sentenceBuildPrompt.tokens,
+        );
+        const isCorrect = match !== "wrong";
+        const nearMiss = match === "near";
+        const quality = calculateAnswerQuality(
+            isCorrect,
+            hintsUsed,
+            elapsed,
+            nearMiss,
+            SENTENCE_BUILD_TIME_THRESHOLDS,
+        );
+        stageResult({ wordId: currentWord.id, quality });
+        setTypingResult(isCorrect ? "correct" : "incorrect");
+        setIsNearMiss(nearMiss);
+        playResultSound(isCorrect);
+        setShowResultDialog(true);
+    }, [
+        currentWord,
+        sentenceBuildPrompt,
+        typingResult,
+        showResultDialog,
+        placedTiles,
+        hintsUsed,
+        stageResult,
+        playResultSound,
+    ]);
+
     const handleFlashcardRate = (rating: FlashcardRating) => {
         if (!currentWord) return;
         const result = { wordId: currentWord.id, quality: flashcardRatingToQuality(rating) };
@@ -608,7 +717,7 @@ export default function VocabularyPractice({
 
     useEffect(() => {
         if (showIntro) return;
-        if (["listening", "context"].includes(activeMode)) {
+        if (["listening", "context", "sentence-build"].includes(activeMode)) {
             wordStartTimeRef.current = Date.now();
         }
         if (isWordChoiceMode) {
@@ -672,6 +781,84 @@ export default function VocabularyPractice({
         if (!["listening", "context"].includes(activeMode)) return;
         focusPracticeInput();
     }, [activeMode, typingResult, showResultDialog, currentIndex, hasPlayedAudio, focusPracticeInput, showIntro]);
+
+    // Sentence-build auto-checks when the tray is full — there's no "typing
+    // finished" signal to watch, the last tile is the submit gesture.
+    useEffect(() => {
+        if (
+            !autoCheck ||
+            activeMode !== "sentence-build" ||
+            typingResult ||
+            showResultDialog ||
+            !sentenceBuildPrompt
+        ) {
+            return;
+        }
+        if (placedTiles.length !== sentenceBuildPrompt.tokens.length) return;
+        checkSentenceBuild();
+    }, [
+        autoCheck,
+        activeMode,
+        typingResult,
+        showResultDialog,
+        sentenceBuildPrompt,
+        placedTiles,
+        checkSentenceBuild,
+    ]);
+
+    useEffect(() => {
+        if (
+            activeMode !== "sentence-build" ||
+            showIntro ||
+            typingResult ||
+            showResultDialog ||
+            !sentenceBuildPrompt
+        ) {
+            return;
+        }
+        const onKeyDown = (e: KeyboardEvent) => {
+            const target = e.target;
+            if (
+                target instanceof HTMLElement &&
+                (target.tagName === "INPUT" || target.tagName === "TEXTAREA")
+            ) {
+                return;
+            }
+            if (e.key === "Backspace") {
+                e.preventDefault();
+                setPlacedTiles((prev) => prev.slice(0, -1));
+                return;
+            }
+            if (e.key === "Enter") {
+                if (placedTiles.length === 0) return;
+                e.preventDefault();
+                checkSentenceBuild();
+                return;
+            }
+            // 1–9 index into the tiles still in the bank, matching the numbers
+            // rendered on them.
+            const slot = Number.parseInt(e.key, 10) - 1;
+            if (Number.isNaN(slot) || slot < 0) return;
+            const tileIndex = remainingTileIndices(
+                sentenceBuildPrompt.tiles,
+                placedTiles,
+            )[slot];
+            if (tileIndex === undefined) return;
+            e.preventDefault();
+            handlePlaceTile(tileIndex);
+        };
+        globalThis.addEventListener("keydown", onKeyDown);
+        return () => globalThis.removeEventListener("keydown", onKeyDown);
+    }, [
+        activeMode,
+        showIntro,
+        typingResult,
+        showResultDialog,
+        sentenceBuildPrompt,
+        placedTiles,
+        handlePlaceTile,
+        checkSentenceBuild,
+    ]);
 
     useEffect(() => {
         if (
@@ -790,6 +977,12 @@ export default function VocabularyPractice({
     const inputClassName =
         "w-full px-4 py-4 text-xl text-center rounded-xl border-2 border-border bg-muted/30 focus:border-primary focus:bg-background focus:ring-4 focus:ring-primary/10 outline-none transition-[color,background-color,border-color,box-shadow]";
 
+    // What the learner assembled, as a sentence, for the result panel.
+    const sentenceBuildUserAnswer =
+        activeMode === "sentence-build" && sentenceBuildPrompt
+            ? placedTiles.map((i) => sentenceBuildPrompt.tiles[i]).join(" ")
+            : null;
+
     // XP is presentation-only: 10 per non-weak (correct) answer recorded so far.
     const sessionXp =
         wordResults.filter((r) => !isWeakAnswer(r.quality)).length * 10;
@@ -848,11 +1041,13 @@ export default function VocabularyPractice({
                         <PracticeResultPanel
                             isCorrect={typingResult === "correct"}
                             isNear={isNearMiss}
-                            userAnswer={isWordChoiceMode ? (selectedChoice ?? "") : userAnswer}
+                            userAnswer={sentenceBuildUserAnswer ?? (isWordChoiceMode ? (selectedChoice ?? "") : userAnswer)}
                             correctAnswer={
-                                activeMode === "cloze"
-                                    ? (clozePrompt?.answer ?? currentWord.word)
-                                    : currentWord.word
+                                activeMode === "sentence-build" && sentenceBuildPrompt
+                                    ? sentenceBuildPrompt.reference
+                                    : activeMode === "cloze"
+                                      ? (clozePrompt?.answer ?? currentWord.word)
+                                      : currentWord.word
                             }
                             meaning={currentWord.meaning}
                             pronunciation={currentWord.pronunciation}
@@ -975,6 +1170,27 @@ export default function VocabularyPractice({
                                         onCheck={() => handleConfirmChoice(handleWordBankSelect)}
                                         checkDisabled={!selectedChoice || !!typingResult}
                                     />
+                                )}
+
+                                {activeMode === "sentence-build" && sentenceBuildPrompt && (
+                                    <div className="space-y-4">
+                                        <SentenceBuildMode
+                                            prompt={sentenceBuildPrompt}
+                                            placed={placedTiles}
+                                            onPlace={handlePlaceTile}
+                                            onRemoveAt={handleRemoveTileAt}
+                                            onHint={handleSentenceBuildHint}
+                                            hintsUsed={hintsUsed}
+                                            autoCheck={autoCheck}
+                                            onCheck={checkSentenceBuild}
+                                        />
+                                        <div className="text-center">
+                                            <WordRevealHint
+                                                word={currentWord}
+                                                onReveal={handleRevealHint}
+                                            />
+                                        </div>
+                                    </div>
                                 )}
 
                                 {activeMode === "listening" && (

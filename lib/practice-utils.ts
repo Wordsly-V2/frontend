@@ -284,6 +284,150 @@ export interface TextSegment {
 }
 
 /**
+ * Split a Vietnamese translation around its `**…**` emphasis markers. Langeek
+ * wraps the phrase corresponding to the English target word, which is free
+ * alignment data: callers highlight the marked span so the learner knows which
+ * idea they have to produce. Segments come back in the same shape as
+ * {@link splitAroundWord} so both can feed the same renderer.
+ */
+export function splitHighlightMarkers(text: string): TextSegment[] {
+    // Capturing group keeps the delimited spans in the split output.
+    return text
+        .split(/\*\*(.+?)\*\*/g)
+        .filter((part) => part.length > 0)
+        .map((part, index) => ({ text: part, match: index % 2 === 1 }));
+}
+
+/** Drop `**…**` emphasis markers, keeping the text inside them. */
+export function stripHighlightMarkers(text: string): string {
+    return text.replaceAll(/\*\*(.+?)\*\*/g, "$1");
+}
+
+/**
+ * Split a sentence into draggable tiles. Punctuation stays attached to the
+ * token before it ("slowly." is one tile) so the learner never has to place a
+ * lone comma or full stop.
+ */
+export function tokenizeSentence(text: string): string[] {
+    return text.trim().split(/\s+/).filter(Boolean);
+}
+
+export interface SentenceBuildPrompt {
+    /** Vietnamese prompt, markers preserved for the renderer to highlight. */
+    translation: string;
+    /** The original English sentence, shown as the correct answer. */
+    reference: string;
+    /** Reference tokens in the correct order. */
+    tokens: string[];
+    /** The same tokens shuffled — never already in the correct order. */
+    tiles: string[];
+}
+
+/** Tile grids stop being usable — and word order stops being unique — outside this range. */
+const SENTENCE_BUILD_MIN_TOKENS = 5;
+const SENTENCE_BUILD_MAX_TOKENS = 12;
+
+/**
+ * Build a "reassemble the English sentence" prompt from a translated example.
+ *
+ * Needs an example that has a Vietnamese translation, contains the target word,
+ * and is short enough to lay out as tiles. Returns `null` when the word has no
+ * such example — that null doubles as the mode's availability signal.
+ */
+export function getSentenceBuildPrompt(
+    word: IWord,
+    opts?: { minTokens?: number; maxTokens?: number },
+): SentenceBuildPrompt | null {
+    const minTokens = opts?.minTokens ?? SENTENCE_BUILD_MIN_TOKENS;
+    const maxTokens = opts?.maxTokens ?? SENTENCE_BUILD_MAX_TOKENS;
+    const target = word.word.trim();
+    if (!target) return null;
+
+    const escaped = target.replace(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`);
+    const re = new RegExp(escaped, "i");
+
+    const candidates = getWordExampleObjects(word)
+        .filter((e) => e.translation?.trim() && re.test(e.text))
+        .map((e) => ({ example: e, tokens: tokenizeSentence(e.text) }))
+        .filter(
+            ({ tokens }) => tokens.length >= minTokens && tokens.length <= maxTokens,
+        );
+    if (candidates.length === 0) return null;
+
+    const { example, tokens } = candidates[Math.floor(Math.random() * candidates.length)];
+
+    // Don't hand the learner a solved puzzle. Repeated tokens can make every
+    // shuffle compare equal, so give up after a few tries rather than loop.
+    let tiles = shuffleArray(tokens);
+    for (let i = 0; i < 5 && tiles.join(" ") === tokens.join(" "); i++) {
+        tiles = shuffleArray(tokens);
+    }
+
+    return {
+        translation: example.translation!,
+        reference: example.text,
+        tokens,
+        tiles,
+    };
+}
+
+/** Length of the longest common subsequence of two token lists. */
+function longestCommonSubsequence(a: string[], b: string[]): number {
+    let prev = new Array<number>(b.length + 1).fill(0);
+    let curr = new Array<number>(b.length + 1).fill(0);
+    for (let i = 1; i <= a.length; i++) {
+        curr[0] = 0;
+        for (let j = 1; j <= b.length; j++) {
+            curr[j] =
+                a[i - 1] === b[j - 1]
+                    ? prev[j - 1] + 1
+                    : Math.max(prev[j], curr[j - 1]);
+        }
+        [prev, curr] = [curr, prev];
+    }
+    return prev[b.length];
+}
+
+/**
+ * Grade an assembled sentence against the reference token order.
+ *
+ * The answer space is finite here, so unlike free typing this can be graded
+ * exactly. "near" covers the slips that aren't a knowledge gap — one swapped
+ * pair, or a sentence that's almost entirely in the right order.
+ */
+export function gradeSentenceBuild(
+    placed: string[],
+    reference: string[],
+): AnswerMatch {
+    if (placed.length === 0 || reference.length === 0) return "wrong";
+
+    const user = placed.map(normalizeAnswer);
+    const target = reference.map(normalizeAnswer);
+    if (user.length === target.length && user.every((t, i) => t === target[i])) {
+        return "exact";
+    }
+
+    if (user.length === target.length) {
+        // A single adjacent transposition — the learner knew the sentence.
+        const diffs: number[] = [];
+        for (let i = 0; i < target.length; i++) {
+            if (user[i] !== target[i]) diffs.push(i);
+        }
+        if (
+            diffs.length === 2 &&
+            diffs[1] === diffs[0] + 1 &&
+            user[diffs[0]] === target[diffs[1]] &&
+            user[diffs[1]] === target[diffs[0]]
+        ) {
+            return "near";
+        }
+    }
+
+    const lcs = longestCommonSubsequence(user, target);
+    return lcs / Math.max(user.length, target.length) >= 0.9 ? "near" : "wrong";
+}
+
+/**
  * Split `text` into segments around every (case-insensitive) occurrence of
  * `word`, flagging the matches so callers can highlight the target word inside
  * an example sentence. Whole-word boundaries aren't enforced, so inflected
