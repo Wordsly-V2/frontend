@@ -1,5 +1,6 @@
 "use client";
 
+import { CopyField } from "@/components/common/copy-field";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -18,6 +19,7 @@ import {
     BellRing,
     CheckCircle2,
     Download,
+    HelpCircle,
     MonitorDown,
     Rocket,
     Share,
@@ -70,8 +72,15 @@ function manualSteps(platform: InstallPlatform, browser: InstallBrowser): string
  * back to per-platform "Add to Home Screen" steps when it doesn't.
  */
 export function InstallAppCard() {
-    const { isInstalled, hasNativePrompt, platform, browser, isReady, promptInstall } =
-        useInstallPrompt();
+    const {
+        isInstalled,
+        hasNativePrompt,
+        platform,
+        browser,
+        manageAppsUrl,
+        isReady,
+        promptInstall,
+    } = useInstallPrompt();
     const [isPrompting, setIsPrompting] = useState(false);
     const [declined, setDeclined] = useState(false);
 
@@ -165,6 +174,32 @@ export function InstallAppCard() {
                                 This browser can’t install apps yet. Open Wordsly in Chrome, Edge, or
                                 Safari to add it to your device.
                             </p>
+                        )}
+
+                        {manageAppsUrl && !hasNativePrompt && (
+                            <details className="group rounded-2xl border border-border/70 bg-muted/30 p-4">
+                                <summary className="flex cursor-pointer items-center gap-2 text-sm font-medium text-foreground">
+                                    <HelpCircle className="h-4 w-4 text-muted-foreground" aria-hidden />
+                                    No install button? It may still be installed here
+                                </summary>
+                                <div className="mt-3 space-y-3">
+                                    <p className="text-sm text-muted-foreground leading-relaxed">
+                                        If you deleted Wordsly from your device, your browser can still
+                                        think it&rsquo;s installed and hides the install button. Paste this
+                                        in the address bar, remove Wordsly from the list, then reload this
+                                        page.
+                                    </p>
+                                    <CopyField
+                                        value={manageAppsUrl}
+                                        copyLabel="Copy link"
+                                        successMessage={`Copied ${manageAppsUrl} — paste it in the address bar`}
+                                    />
+                                    <p className="text-xs text-muted-foreground leading-relaxed">
+                                        Browsers block links to internal pages, so it has to be pasted by
+                                        hand.
+                                    </p>
+                                </div>
+                            </details>
                         )}
                     </div>
                 )}

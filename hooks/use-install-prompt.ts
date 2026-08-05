@@ -1,19 +1,21 @@
 "use client";
 
 import {
-    getLocalStorageItem,
-    setLocalStorageItem,
-} from "@/lib/local-storage";
-import { startTransition, useCallback, useEffect, useState } from "react";
+    clearInstallPrompt,
+    getAppInstalled,
+    getInstallPrompt,
+    subscribeInstallPrompt,
+} from "@/lib/install-prompt-store";
+import { getLocalStorageItem, setLocalStorageItem } from "@/lib/local-storage";
+import {
+    startTransition,
+    useCallback,
+    useEffect,
+    useState,
+    useSyncExternalStore,
+} from "react";
 
 const INSTALL_PROMPT_DISMISSED_KEY = "pwa_install_dismissed";
-
-/** The (not-yet-standardized) beforeinstallprompt event. */
-interface BeforeInstallPromptEvent extends Event {
-    readonly platforms: string[];
-    prompt: () => Promise<void>;
-    readonly userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
-}
 
 /** Coarse device family — decides which manual steps to show. */
 export type InstallPlatform = "ios" | "android" | "desktop";
@@ -55,6 +57,19 @@ function detectBrowser(platform: InstallPlatform): InstallBrowser {
     return "other";
 }
 
+/**
+ * Internal page that lists installed web apps, so a user can remove a stale
+ * entry. Chromium refuses to fire `beforeinstallprompt` while it still thinks
+ * the app is installed — which happens after the app is deleted from the OS
+ * without being uninstalled in the browser. Desktop Chromium only; these URLs
+ * can't be linked to, they have to be pasted into the address bar.
+ */
+function detectManageAppsUrl(platform: InstallPlatform, browser: InstallBrowser): string | null {
+    if (platform !== "desktop" || browser !== "chromium") return null;
+    if (typeof navigator === "undefined") return null;
+    return /edg\//i.test(navigator.userAgent) ? "edge://apps" : "chrome://apps";
+}
+
 export interface UseInstallPromptResult {
     /** Whether the dismissible install affordance should be shown. */
     canPrompt: boolean;
@@ -68,6 +83,12 @@ export interface UseInstallPromptResult {
     platform: InstallPlatform;
     /** Browser family, for platform-specific instructions. */
     browser: InstallBrowser;
+    /**
+     * `chrome://apps` / `edge://apps` when the browser has one — the escape
+     * hatch when the browser still believes Wordsly is installed but it's gone
+     * from the device. Null where no such page exists.
+     */
+    manageAppsUrl: string | null;
     /** False until browser state has been read after mount (avoids SSR flashes). */
     isReady: boolean;
     /** Trigger the native install prompt (Chromium). Resolves to the outcome. */
@@ -77,17 +98,28 @@ export interface UseInstallPromptResult {
 }
 
 /**
- * Captures `beforeinstallprompt`, tracks install/standalone state, and persists
+ * Reads the globally-captured `beforeinstallprompt` (see
+ * `lib/install-prompt-store.ts`), tracks install/standalone state, and persists
  * a dismissal so the prompt doesn't nag. iOS gets manual instructions instead.
  * Also reports platform/browser so callers can render the right manual steps.
  */
 export function useInstallPrompt(): UseInstallPromptResult {
-    const [deferredPrompt, setDeferredPrompt] =
-        useState<BeforeInstallPromptEvent | null>(null);
+    const deferredPrompt = useSyncExternalStore(
+        subscribeInstallPrompt,
+        getInstallPrompt,
+        () => null,
+    );
+    const appInstalledEventFired = useSyncExternalStore(
+        subscribeInstallPrompt,
+        getAppInstalled,
+        () => false,
+    );
+
     const [dismissed, setDismissed] = useState(true);
-    const [installed, setInstalled] = useState(false);
+    const [standalone, setStandalone] = useState(false);
     const [platform, setPlatform] = useState<InstallPlatform>("desktop");
     const [browser, setBrowser] = useState<InstallBrowser>("other");
+    const [manageAppsUrl, setManageAppsUrl] = useState<string | null>(null);
     const [isReady, setIsReady] = useState(false);
 
     useEffect(() => {
@@ -95,39 +127,26 @@ export function useInstallPrompt(): UseInstallPromptResult {
         // a transition to avoid the cascading-render warning.
         startTransition(() => {
             const detectedPlatform = detectPlatform();
+            const detectedBrowser = detectBrowser(detectedPlatform);
             setDismissed(getLocalStorageItem(INSTALL_PROMPT_DISMISSED_KEY) === "1");
-            setInstalled(isStandalone());
+            setStandalone(isStandalone());
             setPlatform(detectedPlatform);
-            setBrowser(detectBrowser(detectedPlatform));
+            setBrowser(detectedBrowser);
+            setManageAppsUrl(detectManageAppsUrl(detectedPlatform, detectedBrowser));
             setIsReady(true);
         });
-
-        const onBeforeInstall = (e: Event) => {
-            e.preventDefault();
-            setDeferredPrompt(e as BeforeInstallPromptEvent);
-        };
-        const onInstalled = () => {
-            setInstalled(true);
-            setDeferredPrompt(null);
-        };
-
-        globalThis.addEventListener("beforeinstallprompt", onBeforeInstall);
-        globalThis.addEventListener("appinstalled", onInstalled);
 
         // Keep the installed state live: opening the app from the home screen
         // flips display-mode without a reload.
         const media = globalThis.matchMedia?.(STANDALONE_QUERY);
         const onDisplayModeChange = (e: MediaQueryListEvent) => {
-            if (e.matches) setInstalled(true);
+            if (e.matches) setStandalone(true);
         };
         media?.addEventListener("change", onDisplayModeChange);
-
-        return () => {
-            globalThis.removeEventListener("beforeinstallprompt", onBeforeInstall);
-            globalThis.removeEventListener("appinstalled", onInstalled);
-            media?.removeEventListener("change", onDisplayModeChange);
-        };
+        return () => media?.removeEventListener("change", onDisplayModeChange);
     }, []);
+
+    const installed = standalone || appInstalledEventFired;
 
     const dismiss = useCallback(() => {
         setDismissed(true);
@@ -138,9 +157,7 @@ export function useInstallPrompt(): UseInstallPromptResult {
         if (!deferredPrompt) return "unavailable" as const;
         await deferredPrompt.prompt();
         const choice = await deferredPrompt.userChoice;
-        // The event is single-use; Chromium fires a fresh one if the page stays
-        // eligible after a decline.
-        setDeferredPrompt(null);
+        clearInstallPrompt();
         if (choice.outcome === "accepted") dismiss();
         return choice.outcome;
     }, [deferredPrompt, dismiss]);
@@ -156,6 +173,7 @@ export function useInstallPrompt(): UseInstallPromptResult {
         hasNativePrompt: deferredPrompt !== null,
         platform,
         browser,
+        manageAppsUrl,
         isReady,
         promptInstall,
         dismiss,
