@@ -8,15 +8,38 @@ import type { MetadataRoute } from "next";
  */
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Wordsly",
+    // A stable id keeps the install identity fixed even if start_url changes.
+    id: "/",
+    name: "Wordsly — Learn English vocabulary",
     short_name: "Wordsly",
-    description: "Learn English vocabulary effectively with Wordsly",
+    description:
+      "Practice English vocabulary with spaced repetition. Short daily sessions, streaks, and offline practice.",
+    lang: "en",
+    dir: "ltr",
     display: "standalone",
-    start_url: "/",
+    // Fall back gracefully where standalone isn't honoured.
+    display_override: ["standalone", "minimal-ui", "browser"],
+    categories: ["education", "productivity"],
+    start_url: "/?source=pwa",
     scope: "/",
     background_color: "#faf8fc",
     theme_color: "#7c3aed",
     orientation: "portrait",
+    // Long-press / right-click the installed icon to jump straight in.
+    shortcuts: [
+      {
+        name: "Practice now",
+        short_name: "Practice",
+        url: "/learn",
+        icons: [{ src: "/icons/icon-192.png", sizes: "192x192", type: "image/png" }],
+      },
+      {
+        name: "My progress",
+        short_name: "Progress",
+        url: "/progress",
+        icons: [{ src: "/icons/icon-192.png", sizes: "192x192", type: "image/png" }],
+      },
+    ],
     icons: [
       {
         src: "/icons/icon-192.png",

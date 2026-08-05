@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { InstallAppCard } from "@/components/features/profile/install-app-card";
 import { NotificationReminderCard } from "@/components/features/profile/notification-reminder-card";
 import { RecentSessions } from "@/components/features/profile/recent-sessions";
 import { useUser } from "@/hooks/useUser.hook";
@@ -105,6 +106,8 @@ export default function ProfilePage() {
                         </div>
                     </CardContent>
                 </Card>
+
+                <InstallAppCard />
 
                 <NotificationReminderCard />
 
