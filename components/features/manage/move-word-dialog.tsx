@@ -83,17 +83,19 @@ export default function MoveWordDialog({
 
     return (
         <Dialog open={isOpen} onOpenChange={handleClose}>
-            <DialogContent className="max-w-md max-h-[85dvh] overflow-y-auto sm:mx-auto">
-                <DialogHeader>
+            <DialogContent className="sm:max-w-lg max-h-[85dvh] flex flex-col overflow-y-hidden sm:mx-auto">
+                <DialogHeader className="flex-shrink-0">
                     <DialogTitle className="text-lg sm:text-xl">
                         {isBulk ? `Move ${words.length} Words to Another Lesson` : 'Move Word to Another Lesson'}
                     </DialogTitle>
                 </DialogHeader>
 
-                <div className="space-y-3 sm:space-y-4 py-3 sm:py-4">
+                {/* The body flexes to whatever height is left inside the dialog; only the
+                    lesson list scrolls, so the dialog never outgrows its own panel. */}
+                <div className="flex-1 min-h-0 flex flex-col gap-3 sm:gap-4 py-3 sm:py-4">
                     {/* Word Info */}
                     {isBulk ? (
-                        <div className="p-2.5 sm:p-3 bg-muted/50 rounded-lg border border-border">
+                        <div className="flex-shrink-0 p-2.5 sm:p-3 bg-muted/50 rounded-lg border border-border">
                             <p className="text-xs sm:text-sm font-medium mb-2">Selected words ({words.length}):</p>
                             <div className="space-y-1 max-h-[100px] sm:max-h-[120px] overflow-y-auto">
                                 {words.map((word) => (
@@ -109,7 +111,7 @@ export default function MoveWordDialog({
                             </div>
                         </div>
                     ) : (
-                        <div className="p-2.5 sm:p-3 bg-muted/50 rounded-lg border border-border">
+                        <div className="flex-shrink-0 p-2.5 sm:p-3 bg-muted/50 rounded-lg border border-border">
                             <div className="flex items-center gap-2 mb-1 flex-wrap">
                                 <span className="font-semibold text-sm sm:text-base">{words[0].word}</span>
                                 {words[0].partOfSpeech && (
@@ -121,7 +123,7 @@ export default function MoveWordDialog({
                     )}
 
                     {/* Current Lesson (or "multiple lessons") */}
-                    <div className="flex items-center gap-2 text-xs sm:text-sm text-muted-foreground">
+                    <div className="flex-shrink-0 flex items-center gap-2 text-xs sm:text-sm text-muted-foreground">
                         <span>From:</span>
                         <span className="font-medium text-foreground truncate">
                             {currentLesson ? currentLesson.name : (words.length > 1 ? "multiple lessons" : "—")}
@@ -129,9 +131,9 @@ export default function MoveWordDialog({
                     </div>
 
                     {/* Target Lesson Selection */}
-                    <div className="space-y-2">
-                        <Label htmlFor="target-lesson" className="text-sm">Move to:</Label>
-                        <div className="space-y-3 max-h-[280px] sm:max-h-[360px] overflow-y-auto pr-1">
+                    <div className="flex-1 min-h-0 flex flex-col gap-2">
+                        <Label htmlFor="target-lesson" className="flex-shrink-0 text-sm">Move to:</Label>
+                        <div className="flex-1 min-h-0 space-y-3 overflow-y-auto pr-1">
                             {/* Current course — other lessons */}
                             {availableLessons.length > 0 && (
                                 <div className="space-y-1.5">
@@ -232,13 +234,13 @@ export default function MoveWordDialog({
                     </div>
 
                     {availableLessons.length === 0 && otherCoursesWithLessons.length === 0 && !isLoadingOtherCourses && (
-                        <div className="text-center py-3 sm:py-4 text-xs sm:text-sm text-muted-foreground">
+                        <div className="flex-shrink-0 text-center py-3 sm:py-4 text-xs sm:text-sm text-muted-foreground">
                             No other lessons available. Create another lesson or course first.
                         </div>
                     )}
                 </div>
 
-                <DialogFooter className="gap-2">
+                <DialogFooter className="gap-2 flex-shrink-0">
                     <Button variant="outline" onClick={handleClose} disabled={isLoading} className="w-full sm:w-auto text-sm">
                         Cancel
                     </Button>
