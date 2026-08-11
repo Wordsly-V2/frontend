@@ -15,8 +15,16 @@ import type {
 } from "@/types/word-progress/word-progress.type";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
+
+/**
+ * How long the exit overlay waits for an in-flight save before navigating
+ * anyway. A save that is merely slow must never trap the learner on the
+ * session screen — `saveSessionResults` queues to localStorage on failure and
+ * the queue is flushed on the next mount, so leaving early is safe.
+ */
+const EXIT_SAVE_WAIT_MS = 4000;
 
 /** Result of a live session sync, surfaced to the summary for celebration. */
 export interface SessionSyncResult {
@@ -41,6 +49,11 @@ export function usePracticeSessionPersistence({
     const [hasUnsavedPractice, setHasUnsavedPractice] = useState(false);
     const [sessionSyncResult, setSessionSyncResult] =
         useState<SessionSyncResult | null>(null);
+    // Only true while LEAVING with a save still in flight — NOT while the
+    // background save runs. The background save starts the moment the summary
+    // renders, so a blocking overlay bound to it would cover the celebration.
+    const [isExiting, setIsExiting] = useState(false);
+    const savePromiseRef = useRef<Promise<void> | null>(null);
 
     const invalidateProgressQueries = useCallback(async () => {
         await queryClient.invalidateQueries({ queryKey: queryKeys.wordProgress.all });
@@ -127,7 +140,13 @@ export function usePracticeSessionPersistence({
 
             fireCelebrationConfetti();
 
-            void persistSessionInBackground(payload);
+            // Keep a handle on the in-flight save so an exit can wait for it.
+            // `persistSessionInBackground` swallows its own errors, so this
+            // promise always resolves.
+            const pending = persistSessionInBackground(payload).finally(() => {
+                savePromiseRef.current = null;
+            });
+            savePromiseRef.current = pending;
         },
         [
             savedOnce,
@@ -139,11 +158,27 @@ export function usePracticeSessionPersistence({
     );
 
     const persistSession = useCallback(
-        (payload: SessionCompletePayload, destination?: string) => {
+        async (payload: SessionCompletePayload, destination?: string) => {
             const target =
                 destination ??
                 (courseId ? `/learn/courses/${courseId}` : "/learn");
             saveSession(payload);
+
+            const pending = savePromiseRef.current;
+            if (pending) {
+                setIsExiting(true);
+                try {
+                    await Promise.race([
+                        pending,
+                        new Promise((resolve) =>
+                            setTimeout(resolve, EXIT_SAVE_WAIT_MS),
+                        ),
+                    ]);
+                } finally {
+                    setIsExiting(false);
+                }
+            }
+
             router.replace(target);
         },
         [saveSession, courseId, router],
@@ -152,7 +187,8 @@ export function usePracticeSessionPersistence({
     return {
         saveSession,
         persistSession,
-        isPersisting: false,
+        /** True only while leaving with a save still in flight — drives the overlay. */
+        isPersisting: isExiting,
         /** Populated once a LIVE sync returns; null while offline/queued. */
         sessionSyncResult,
     };
