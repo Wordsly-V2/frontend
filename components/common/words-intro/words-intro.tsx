@@ -1,7 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { handleAudioPlayError } from "@/lib/audio-playback";
+import { playAudioUrl } from "@/lib/practice-audio";
 import { IWord } from "@/types/courses/courses.type";
 import { Play, Volume2 } from "lucide-react";
 import Image from "next/image";
@@ -74,10 +74,7 @@ export default function WordsIntro({
                                 variant="ghost"
                                 size="icon"
                                 className="flex-shrink-0 h-9 w-9"
-                                onClick={() => {
-                                    const audio = new Audio(word.audioUrl);
-                                    audio.play().catch(handleAudioPlayError);
-                                }}
+                                onClick={() => playAudioUrl(word.audioUrl)}
                             >
                                 <Volume2 className="h-4 w-4" />
                             </Button>

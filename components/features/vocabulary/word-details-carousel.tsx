@@ -9,7 +9,7 @@ import {
     TooltipTrigger,
 } from '@/components/ui/tooltip';
 import type { WordDetailsAutoNextFormValues } from '@/lib/schemas/word-details-auto-next';
-import { handleAudioPlayError } from "@/lib/audio-playback";
+import { playAudioUrl } from "@/lib/practice-audio";
 import { IWord } from '@/types/courses/courses.type';
 import { ChevronLeft, ChevronRight, SlidersHorizontal } from 'lucide-react';
 import { clampDelayBetweenWordsSec } from '@/lib/word-details-auto-next';
@@ -94,7 +94,7 @@ export default function WordDetailsCarousel({
         if (count === 0) return;
 
         let cancelled = false;
-        let audioEl: HTMLAudioElement | null = null;
+        let cancelAudio: (() => void) | null = null;
 
         let initialTimer: ReturnType<typeof setTimeout> | undefined;
         let noAudioTimer: ReturnType<typeof setTimeout> | undefined;
@@ -106,10 +106,14 @@ export default function WordDetailsCarousel({
         };
 
         if (word?.audioUrl) {
-            if (cancelled) return;
-            audioEl = new Audio(word.audioUrl);
-            audioEl.addEventListener('ended', onAudioEnded);
-            audioEl.play().catch(handleAudioPlayError);
+            cancelAudio = playAudioUrl(word.audioUrl, {
+                // Only a real finish advances: if the learner plays something else
+                // (or we move on ourselves), the slide shouldn't jump under them.
+                onFinish: (reason) => {
+                    cancelAudio = null;
+                    if (reason === 'ended') onAudioEnded();
+                },
+            });
         } else if (autoAdvanceNext) {
             onAudioEnded();
         }
@@ -118,10 +122,7 @@ export default function WordDetailsCarousel({
             cancelled = true;
             if (initialTimer !== undefined) clearTimeout(initialTimer);
             if (noAudioTimer !== undefined) clearTimeout(noAudioTimer);
-            if (audioEl) {
-                audioEl.removeEventListener('ended', onAudioEnded);
-                audioEl.pause();
-            }
+            cancelAudio?.();
         };
     }, [
         effectiveIndex,

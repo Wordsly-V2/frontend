@@ -11,7 +11,7 @@ import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { WordPill } from "@/components/common/word-pill";
 import { getPlayPhraseSearchUrl } from "@/lib/playphrase";
 import { getWordExampleObjects } from "@/lib/practice-utils";
-import { handleAudioPlayError } from "@/lib/audio-playback";
+import { playAudioUrl } from "@/lib/practice-audio";
 import { WordDetailView } from "@/types/courses/courses.type";
 import { BookOpen, ExternalLink, Film, Plus, Volume2 } from "lucide-react";
 import Image from "next/image";
@@ -46,13 +46,7 @@ export default function WordDetailDialog({ word, isOpen, onClose, courseId, less
     const examples = getWordExampleObjects(word);
 
     const handlePlayAudio = () => {
-        if (word!.audioUrl) {
-            new Audio(word!.audioUrl).play().catch(handleAudioPlayError);
-        }
-    };
-
-    const playExampleAudio = (url: string) => {
-        new Audio(url).play().catch(handleAudioPlayError);
+        playAudioUrl(word!.audioUrl);
     };
 
     const handleGoToManage = () => {
@@ -135,7 +129,7 @@ export default function WordDetailDialog({ word, isOpen, onClose, courseId, less
                                                 <Button
                                                     variant="ghost"
                                                     size="icon"
-                                                    onClick={() => playExampleAudio(ex.audioUrl!)}
+                                                    onClick={() => playAudioUrl(ex.audioUrl)}
                                                     title="Play example audio"
                                                     className="flex-shrink-0 h-7 w-7 text-muted-foreground hover:text-foreground"
                                                 >

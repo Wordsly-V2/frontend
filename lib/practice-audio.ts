@@ -7,8 +7,32 @@ interface CacheEntry {
     lastUsed: number;
 }
 
+/** Why a playback stopped. Reported to its owner exactly once. */
+export type PlaybackEndReason =
+    /** Played through to the end. */
+    | "ended"
+    /** The file could not be loaded or played. */
+    | "error"
+    /** Superseded by other playback, or cancelled by its owner. */
+    | "stopped";
+
+export interface PlayAudioOptions {
+    /** Called exactly once when this playback stops, whatever the reason. */
+    onFinish?: (reason: PlaybackEndReason) => void;
+}
+
+interface ActivePlayback {
+    howl: Howl;
+    settle: (reason: PlaybackEndReason) => void;
+}
+
 const cache = new Map<string, CacheEntry>();
-let currentHowl: Howl | null = null;
+/**
+ * The one sound allowed to play at a time. Every audio in the app goes through
+ * here, so starting something new always stops what was playing rather than
+ * layering two voices over each other.
+ */
+let active: ActivePlayback | null = null;
 
 function evictIfNeeded(): void {
     if (cache.size <= MAX_CACHE) return;
@@ -16,7 +40,7 @@ function evictIfNeeded(): void {
     let oldestUrl: string | null = null;
     let oldestTime = Infinity;
     for (const [url, entry] of cache) {
-        if (entry.howl !== currentHowl && entry.lastUsed < oldestTime) {
+        if (entry.howl !== active?.howl && entry.lastUsed < oldestTime) {
             oldestTime = entry.lastUsed;
             oldestUrl = url;
         }
@@ -55,94 +79,115 @@ export function preloadAudioUrl(url: string | undefined): void {
 }
 
 /**
- * Bumped by every playback entry point. A running sequence compares the id it
- * captured against this counter, so any newer playback silently supersedes it.
+ * Play `url`, stopping whatever was playing first.
+ *
+ * Returns a cancel function that stops playback only while this call still owns
+ * the player — cancelling a playback that something else already replaced is a
+ * no-op, so a stale cleanup can never cut off the current sound.
  */
-let sequenceId = 0;
+export function playAudioUrl(
+    url: string | undefined,
+    options?: PlayAudioOptions,
+): () => void {
+    if (!url || globalThis.window === undefined) return () => {};
 
-function stopCurrent(): void {
-    if (!currentHowl) return;
-    currentHowl.stop();
-    currentHowl = null;
-}
+    // Whatever is playing loses the player — never two voices at once.
+    stopAudio();
 
-function playNow(url: string): Howl | null {
+    let howl: Howl;
     try {
-        stopCurrent();
-        const howl = getOrCreateHowl(url);
-        currentHowl = howl;
-        howl.play();
-        return howl;
+        howl = getOrCreateHowl(url);
     } catch {
-        // autoplay or missing file — ignore
-        return null;
+        options?.onFinish?.("error");
+        return () => {};
     }
-}
 
-export function playAudioUrl(url: string | undefined): void {
-    if (!url || globalThis.window === undefined) return;
-    // A direct play wins over any sequence still in flight.
-    sequenceId += 1;
-    playNow(url);
+    let settled = false;
+    const settle = (reason: PlaybackEndReason): void => {
+        if (settled) return;
+        settled = true;
+        // Howls are cached and shared between plays, so listeners must come off
+        // again or they pile up on every replay of the same url.
+        howl.off("end", onEnd);
+        howl.off("loaderror", onFail);
+        howl.off("playerror", onFail);
+        if (active?.settle === settle) active = null;
+        options?.onFinish?.(reason);
+    };
+    const onEnd = () => settle("ended");
+    const onFail = () => settle("error");
+
+    howl.on("end", onEnd);
+    howl.on("loaderror", onFail);
+    howl.on("playerror", onFail);
+    active = { howl, settle };
+
+    try {
+        howl.play();
+    } catch {
+        // autoplay blocked or missing file — report and release the player.
+        settle("error");
+        return () => {};
+    }
+
+    return () => {
+        if (active?.settle !== settle) return;
+        howl.stop();
+        settle("stopped");
+    };
 }
 
 /**
  * Play `urls` back to back, skipping empty entries. Returns a cancel function.
  *
- * Chaining is driven by Howler's `end` event and also by `loaderror`/
- * `playerror`, so a missing or broken file skips to the next url instead of
- * stalling the chain. Any other playback (`playAudioUrl`, `stopAudio`, another
- * sequence) supersedes this one — the learner tapping an audio button wins.
+ * A step that errors advances to the next url instead of stalling the chain. If
+ * something else takes the player mid-sequence (the learner tapping an audio
+ * button), the sequence gives up rather than fighting for it.
  */
 export function playAudioSequence(urls: (string | undefined)[]): () => void {
     const queue = urls.filter((url): url is string => Boolean(url?.trim()));
     if (queue.length === 0 || globalThis.window === undefined) return () => {};
 
-    sequenceId += 1;
-    const id = sequenceId;
     let index = 0;
-    let detachStep: (() => void) | null = null;
+    let stepId = 0;
+    let cancelStep: (() => void) | null = null;
+    let cancelled = false;
 
     const playStep = (): void => {
-        detachStep?.();
-        detachStep = null;
-        if (id !== sequenceId || index >= queue.length) return;
+        if (cancelled || index >= queue.length) return;
 
-        const howl = playNow(queue[index++]);
-        if (!howl) {
-            playStep();
-            return;
-        }
-
-        // `playStep` detaches these itself on its next run, so re-entering from
-        // any of the three events leaves nothing behind.
-        howl.once("end", playStep);
-        howl.once("loaderror", playStep);
-        howl.once("playerror", playStep);
-        // Howls are cached and shared between plays, so listeners must come off
-        // again or they pile up on every replay of the same url.
-        detachStep = () => {
-            howl.off("end", playStep);
-            howl.off("loaderror", playStep);
-            howl.off("playerror", playStep);
-        };
+        const myStep = ++stepId;
+        const cancel = playAudioUrl(queue[index++], {
+            onFinish: (reason) => {
+                if (myStep !== stepId) return;
+                cancelStep = null;
+                if (reason === "stopped") {
+                    cancelled = true;
+                    return;
+                }
+                playStep();
+            },
+        });
+        // `onFinish` can fire synchronously (a url that fails immediately), which
+        // already started the next step — don't overwrite its canceller.
+        if (myStep === stepId) cancelStep = cancel;
     };
 
     playStep();
 
     return () => {
-        // Already superseded — don't stop audio that now belongs to someone else.
-        if (id !== sequenceId) return;
-        sequenceId += 1;
-        detachStep?.();
-        detachStep = null;
-        stopCurrent();
+        cancelled = true;
+        cancelStep?.();
+        cancelStep = null;
     };
 }
 
+/** Stop whatever is playing, if anything. */
 export function stopAudio(): void {
-    sequenceId += 1;
-    stopCurrent();
+    const current = active;
+    if (!current) return;
+    current.howl.stop();
+    current.settle("stopped");
 }
 
 export function clearAudioCache(): void {

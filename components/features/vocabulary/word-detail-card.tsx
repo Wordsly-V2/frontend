@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { AdaptiveText } from "@/components/common/adaptive-text";
 import { WordExampleList } from "@/components/common/word-example-list";
 import { LONG_TEXT_WRAP } from "@/lib/long-text";
-import { handleAudioPlayError } from "@/lib/audio-playback";
+import { playAudioUrl } from "@/lib/practice-audio";
 import { cn } from "@/lib/utils";
 import { getPlayPhraseSearchUrl } from "@/lib/playphrase";
 import { getWordExampleObjects } from "@/lib/practice-utils";
@@ -39,11 +39,6 @@ export interface WordDetailCardProps {
     className?: string;
 }
 
-function playAudio(url?: string) {
-    if (!url) return;
-    new Audio(url).play().catch(handleAudioPlayError);
-}
-
 /** UK | US segmented pronunciation control (accent label + IPA + audio). */
 function PronunciationControl({
     ukAudioUrl,
@@ -71,7 +66,7 @@ function PronunciationControl({
                 <button
                     key={accent.label}
                     type="button"
-                    onClick={() => playAudio(accent.audioUrl)}
+                    onClick={() => playAudioUrl(accent.audioUrl)}
                     aria-label={`Play ${accent.label} pronunciation`}
                     className={cn(
                         "inline-flex items-center gap-1.5 px-3 py-1.5 text-sm transition-colors hover:bg-muted focus:bg-muted focus:outline-none",
@@ -207,7 +202,7 @@ export default function WordDetailCard({
                                         type="button"
                                         variant="outline"
                                         size={isCompact ? "icon" : "default"}
-                                        onClick={() => playAudio(word.audioUrl)}
+                                        onClick={() => playAudioUrl(word.audioUrl)}
                                         className="shrink-0 rounded-full"
                                         aria-label="Play pronunciation"
                                     >
