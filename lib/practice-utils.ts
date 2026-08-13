@@ -70,16 +70,10 @@ export function serializeExamples(examples: IWordExample[]): string {
 }
 
 /**
- * Example sentence texts for a word (for cloze/context/masking). Reads the
- * structured `example` JSON, tolerating the legacy string[] shape.
- */
-export function getWordExamples(word: Pick<IWord, "example">): string[] {
-    return parseExamples(word.example).map((e) => e.text);
-}
-
-/**
- * Full example objects for audio-aware display (text + optional translation and
- * per-example audio).
+ * Example objects for a word: text plus optional translation and per-example
+ * audio. Reads the structured `example` JSON, tolerating the legacy string[]
+ * shape. This is the only reader — callers that need just the text take `.text`,
+ * so translations and audio can never be dropped on the way to the UI.
  */
 export function getWordExampleObjects(
     word: Pick<IWord, "example">,
@@ -88,24 +82,31 @@ export function getWordExampleObjects(
 }
 
 export interface ClozePrompt {
+    /** The example with the target word replaced by a blank. */
     sentence: string;
     answer: string;
+    /**
+     * The example this prompt was built from, kept whole so the result screen can
+     * replay the sentence the learner just worked on — with its translation and
+     * its own audio — instead of only the blanked version.
+     */
+    example: IWordExample;
 }
 
 /** Build a fill-in-the-blank sentence from a random matching example. */
 export function getClozePrompt(word: IWord): ClozePrompt | null {
-    const examples = getWordExamples(word);
+    const examples = getWordExampleObjects(word);
     const target = word.word.trim();
     if (!target) return null;
 
     const escaped = target.replace(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`);
     const re = new RegExp(escaped, "i");
-    const matching = examples.filter((s) => re.test(s));
+    const matching = examples.filter((e) => re.test(e.text));
     if (matching.length === 0) return null;
 
     const match = matching[Math.floor(Math.random() * matching.length)];
-    const sentence = match.replace(new RegExp(escaped, "gi"), "_____");
-    return { sentence, answer: target };
+    const sentence = match.text.replace(new RegExp(escaped, "gi"), "_____");
+    return { sentence, answer: target, example: match };
 }
 
 /**
@@ -321,6 +322,11 @@ export interface SentenceBuildPrompt {
     tokens: string[];
     /** The same tokens shuffled — never already in the correct order. */
     tiles: string[];
+    /**
+     * The example this prompt was built from. Carries the per-example audio the
+     * result screen replays, so the learner hears the sentence they just built.
+     */
+    example: IWordExample;
 }
 
 /** Tile grids stop being usable — and word order stops being unique — outside this range. */
@@ -368,6 +374,7 @@ export function getSentenceBuildPrompt(
         reference: example.text,
         tokens,
         tiles,
+        example,
     };
 }
 

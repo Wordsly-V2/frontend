@@ -2,6 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { AdaptiveText } from "@/components/common/adaptive-text";
+import { WordExampleList } from "@/components/common/word-example-list";
 import { LONG_TEXT_WRAP } from "@/lib/long-text";
 import { handleAudioPlayError } from "@/lib/audio-playback";
 import { cn } from "@/lib/utils";
@@ -229,39 +230,18 @@ export default function WordDetailCard({
                                 <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1 shrink-0">
                                     Examples
                                 </p>
-                                <ul className="space-y-2">
-                                    {examples.map((ex) => (
-                                        <li key={ex.id}>
-                                            <div className="flex items-start gap-2">
-                                                {ex.audioUrl && (
-                                                    <Button
-                                                        type="button"
-                                                        variant="ghost"
-                                                        size="icon"
-                                                        onClick={() => playAudio(ex.audioUrl)}
-                                                        className="h-7 w-7 shrink-0 rounded-full text-primary"
-                                                        aria-label="Play example audio"
-                                                    >
-                                                        <Volume2 className="h-4 w-4" />
-                                                    </Button>
-                                                )}
-                                                <div className="min-w-0 flex-1">
-                                                    <AdaptiveText
-                                                        text={`"${ex.text}"`}
-                                                        role="example"
-                                                        scrollWhenLong={!constrainHeight}
-                                                        className={`text-foreground/90 italic ${isCompact ? "!text-xs sm:!text-sm" : ""}`}
-                                                    />
-                                                    {ex.translation && (
-                                                        <p className={`mt-0.5 text-muted-foreground ${isCompact ? "text-xs" : "text-xs sm:text-sm"}`}>
-                                                            {ex.translation}
-                                                        </p>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        </li>
-                                    ))}
-                                </ul>
+                                <WordExampleList
+                                    examples={examples}
+                                    word={word.word}
+                                    reveal="none"
+                                    audioPosition="left"
+                                    scrollWhenLong={!constrainHeight}
+                                    textClassName={cn(
+                                        "text-foreground/90",
+                                        isCompact && "!text-xs sm:!text-sm",
+                                    )}
+                                    translationClassName={isCompact ? "text-xs" : undefined}
+                                />
                             </div>
                         )}
                     </div>

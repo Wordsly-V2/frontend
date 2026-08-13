@@ -59,7 +59,7 @@ import {
     getAnswerMatch,
     getClozePrompt,
     getSentenceBuildPrompt,
-    getWordExamples,
+    getWordExampleObjects,
     gradeSentenceBuild,
     normalizeAnswer,
     normalizeForHintPrefix,
@@ -68,7 +68,7 @@ import {
 import { useNewWordIntro } from "@/hooks/useNewWordIntro.hook";
 import { cn } from "@/lib/utils";
 import type { SessionCompletePayload, WordResult } from "@/types/practice/practice.type";
-import { IWord } from "@/types/courses/courses.type";
+import { IWord, IWordExample } from "@/types/courses/courses.type";
 import {
     useCallback,
     useEffect,
@@ -246,8 +246,10 @@ export default function VocabularyPractice({
         activeMode = clozePrompt != null ? "cloze" : "word-bank";
     }
 
+    // Full example objects — the result panel shows translations and per-example
+    // audio, so the text-only reader would throw away exactly what it needs.
     const rawExamples = useMemo(
-        () => (currentWord ? getWordExamples(currentWord) : []),
+        () => (currentWord ? getWordExampleObjects(currentWord) : []),
         [currentWord],
     );
 
@@ -983,6 +985,15 @@ export default function VocabularyPractice({
             ? placedTiles.map((i) => sentenceBuildPrompt.tiles[i]).join(" ")
             : null;
 
+    // The example the current exercise was built from — sentence modes only, so
+    // the result panel can replay the sentence the learner just worked on.
+    let practicedExample: IWordExample | undefined;
+    if (activeMode === "sentence-build") {
+        practicedExample = sentenceBuildPrompt?.example;
+    } else if (activeMode === "cloze" || activeMode === "context") {
+        practicedExample = clozePrompt?.example;
+    }
+
     // XP is presentation-only: 10 per non-weak (correct) answer recorded so far.
     const sessionXp =
         wordResults.filter((r) => !isWeakAnswer(r.quality)).length * 10;
@@ -1017,7 +1028,7 @@ export default function VocabularyPractice({
 
             {isLeech && !showIntro && !showResultDialog && (
                 <LeechWordBanner
-                    example={rawExamples[0]}
+                    example={rawExamples[0]?.text}
                     audioUrl={currentWord.audioUrl}
                 />
             )}
@@ -1055,6 +1066,8 @@ export default function VocabularyPractice({
                             audioUrl={currentWord.audioUrl}
                             imageUrl={currentWord.imageUrl}
                             examples={rawExamples}
+                            practicedExample={practicedExample}
+                            practicedWord={currentWord.word}
                             timeSpentSeconds={timeSpentSeconds}
                             feedbackSeed={feedbackSeed + currentIndex}
                             onNext={handleNextFromDialog}

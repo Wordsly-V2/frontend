@@ -1,18 +1,13 @@
 "use client";
 
 import { AdaptiveText } from "@/components/common/adaptive-text";
-import { Button } from "@/components/ui/button";
-import { LONG_TEXT_WRAP } from "@/lib/long-text";
-import { playAudioUrl } from "@/lib/practice-audio";
-import { getWordExampleObjects, splitAroundWord } from "@/lib/practice-utils";
+import { WordExampleList } from "@/components/common/word-example-list";
+import { getWordExampleObjects } from "@/lib/practice-utils";
 import { cn } from "@/lib/utils";
 import type { IWord } from "@/types/courses/courses.type";
-import { Eye, EyeOff, Volume2 } from "lucide-react";
+import { Eye, EyeOff } from "lucide-react";
 import Image from "next/image";
 import { useCallback, useMemo, useRef, useState } from "react";
-
-/** Placeholder shown in place of the target word so the example stays a hint. */
-const WORD_MASK = "****";
 
 interface WordRevealHintProps {
     word: IWord;
@@ -101,55 +96,17 @@ export function WordRevealHint({
                     <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-1">
                         Example
                     </p>
-                    <ul className="space-y-2 text-sm sm:text-base text-muted-foreground">
-                        {examples.slice(0, 2).map((example) => (
-                            <li key={example.id} className={LONG_TEXT_WRAP}>
-                                <div className="flex items-start gap-1.5">
-                                    <div className="min-w-0 flex-1">
-                                        <p className="italic">
-                                            &ldquo;
-                                            {splitAroundWord(example.text, word.word).map(
-                                                (seg, i) =>
-                                                    seg.match ? (
-                                                        // Keep the answer hidden — the
-                                                        // example is a hint, not a giveaway.
-                                                        <span
-                                                            key={`${example.id}-${i}`}
-                                                            className="font-semibold not-italic tracking-widest text-muted-foreground"
-                                                            aria-label="hidden word"
-                                                        >
-                                                            {WORD_MASK}
-                                                        </span>
-                                                    ) : (
-                                                        <span key={`${example.id}-${i}`}>
-                                                            {seg.text}
-                                                        </span>
-                                                    ),
-                                            )}
-                                            &rdquo;
-                                        </p>
-                                        {example.translation && (
-                                            <p className="mt-0.5 text-xs sm:text-sm text-muted-foreground/70">
-                                                {example.translation}
-                                            </p>
-                                        )}
-                                    </div>
-                                    {example.audioUrl && (
-                                        <Button
-                                            type="button"
-                                            variant="ghost"
-                                            size="icon"
-                                            onClick={() => playAudioUrl(example.audioUrl)}
-                                            className="h-7 w-7 shrink-0 rounded-full text-muted-foreground"
-                                            aria-label="Play example sentence"
-                                        >
-                                            <Volume2 className="h-4 w-4" />
-                                        </Button>
-                                    )}
-                                </div>
-                            </li>
-                        ))}
-                    </ul>
+                    {/* Only the first two, and with the answer masked — this is a
+                        hint, not a giveaway. The full list belongs on the result
+                        screen, once the learner has already answered. */}
+                    <WordExampleList
+                        examples={examples.slice(0, 2)}
+                        word={word.word}
+                        reveal="mask"
+                        scrollWhenLong={false}
+                        textClassName="text-muted-foreground"
+                        translationClassName="text-muted-foreground/70"
+                    />
                 </div>
             )}
 
