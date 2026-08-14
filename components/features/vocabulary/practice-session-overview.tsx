@@ -57,6 +57,11 @@ interface PracticeSessionOverviewProps {
     newWordCount: number;
     isReviewSession: boolean;
     onStart: () => void;
+    /**
+     * True when the session's scheduling data came from the device rather than a
+     * live fetch. Surfaced so the learner knows why counts might shift later.
+     */
+    isOfflineCopy?: boolean;
 }
 
 export function PracticeSessionOverview({
@@ -66,6 +71,7 @@ export function PracticeSessionOverview({
     newWordCount,
     isReviewSession,
     onStart,
+    isOfflineCopy = false,
 }: Readonly<PracticeSessionOverviewProps>) {
     const stages = STAGE_ORDER.filter((stage) => counts[stage] > 0);
     const hasNewWords = newWordCount > 0;
@@ -101,6 +107,11 @@ export function PracticeSessionOverview({
                         <p className="text-sm text-muted-foreground mt-1.5 max-w-md">
                             {sessionDescription}
                         </p>
+                        {isOfflineCopy && (
+                            <p className="text-xs text-muted-foreground mt-1.5">
+                                Offline copy — your results will sync when you&apos;re back online.
+                            </p>
+                        )}
                     </div>
                     <div className="flex flex-col items-end gap-1 shrink-0">
                         <span className="inline-flex items-center gap-1.5 rounded-full bg-muted px-3 py-1.5 text-xs font-medium text-muted-foreground">

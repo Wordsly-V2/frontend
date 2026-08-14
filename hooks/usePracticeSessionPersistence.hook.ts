@@ -1,9 +1,9 @@
 import { applyOptimisticWordProgress } from "@/lib/optimistic-word-progress";
-import { enqueuePendingPracticeSave } from "@/lib/practice-pending-saves";
 import {
-    flushPendingPracticeSaves,
-    saveSessionResults,
-} from "@/lib/practice-session-persistence";
+    enqueueSyncRecord,
+    newClientRequestId,
+} from "@/lib/offline/sync-queue";
+import { saveSessionResults } from "@/lib/practice-session-persistence";
 import { fireCelebrationConfetti } from "@/lib/confetti";
 import { queryKeys } from "@/lib/query-keys";
 import { userLevelQueryKey } from "@/queries/user-level.query";
@@ -13,6 +13,7 @@ import type {
     ILevelEvent,
     IWordProgressResponse,
 } from "@/types/word-progress/word-progress.type";
+import { useAppSelector } from "@/store/hooks";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -45,10 +46,13 @@ export function usePracticeSessionPersistence({
 }: UsePracticeSessionPersistenceOptions) {
     const router = useRouter();
     const queryClient = useQueryClient();
+    // Queued work is scoped per account so it can never be sent under another.
+    const userLoginId = useAppSelector((state) => state.user.profile?.id ?? null);
     const [savedOnce, setSavedOnce] = useState(false);
     const [hasUnsavedPractice, setHasUnsavedPractice] = useState(false);
     const [sessionSyncResult, setSessionSyncResult] =
         useState<SessionSyncResult | null>(null);
+    const [isSavedOffline, setIsSavedOffline] = useState(false);
     // Only true while LEAVING with a save still in flight — NOT while the
     // background save runs. The background save starts the moment the summary
     // renders, so a blocking overlay bound to it would cover the celebration.
@@ -61,9 +65,9 @@ export function usePracticeSessionPersistence({
         await queryClient.invalidateQueries({ queryKey: queryKeys.dueWordIds.all });
     }, [queryClient]);
 
-    useEffect(() => {
-        void flushPendingPracticeSaves();
-    }, []);
+    // Flushing the offline queue is owned by OfflineBootstrap, which listens for
+    // reconnection, tab focus and service-worker wake-ups. It used to happen only
+    // here, on mount, so a queued session could sit unsent for an entire session.
 
     useEffect(() => {
         if (!hasUnsavedPractice) return;
@@ -97,11 +101,15 @@ export function usePracticeSessionPersistence({
     const persistSessionInBackground = useCallback(
         async (payload: SessionCompletePayload) => {
             try {
-                const result = await saveSessionResults(payload);
+                const result = await saveSessionResults(payload, userLoginId);
                 await invalidateProgressQueries();
 
                 if (result.outcome === "queued") {
-                    toast.warning("Saved locally — we will sync when you are back online.");
+                    // Also flagged persistently on the summary: a toast vanishes,
+                    // and "did my practice save?" is the one question a learner
+                    // should never be left holding.
+                    setIsSavedOffline(true);
+                    toast.warning("Saved on your device — we'll sync when you're back online.");
                 } else {
                     // Live sync: surface the server-authoritative XP/level info to
                     // the summary so it can celebrate with real numbers.
@@ -112,12 +120,24 @@ export function usePracticeSessionPersistence({
                     });
                 }
             } catch {
+                // saveSessionResults already queues on a failed request, so
+                // reaching here means something else went wrong (e.g. the cache
+                // invalidation). Queue anyway rather than lose the answers.
                 setHasUnsavedPractice(true);
-                enqueuePendingPracticeSave({ answers: payload.wordResults });
+                if (userLoginId) {
+                    await enqueueSyncRecord({
+                        userLoginId,
+                        clientRequestId: newClientRequestId(),
+                        op: {
+                            kind: "practice-answers",
+                            body: { answers: payload.wordResults },
+                        },
+                    });
+                }
                 toast.error("Could not save progress. It is queued for retry.");
             }
         },
-        [invalidateProgressQueries, applyLevelEvent],
+        [invalidateProgressQueries, applyLevelEvent, userLoginId],
     );
 
     // Commit the graded results (optimistic cache update + background sync)
@@ -191,5 +211,7 @@ export function usePracticeSessionPersistence({
         isPersisting: isExiting,
         /** Populated once a LIVE sync returns; null while offline/queued. */
         sessionSyncResult,
+        /** True when the results are queued on the device awaiting a connection. */
+        isSavedOffline,
     };
 }

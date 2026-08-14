@@ -8,7 +8,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { useCourseWordProgress } from "@/hooks/useCourseWordProgress.hook";
 import { useGetCourseDetailByIdQuery } from "@/queries/courses.query";
-import { useGetDueWordIdsByWordIdsQuery } from "@/queries/word-progress.query";
+import { useGetDueWordIdsByWordIdsWithOfflineFallbackQuery } from "@/queries/word-progress.query";
+import { useOnlineStatus } from "@/hooks/useOnlineStatus.hook";
 import { ILesson, IWord } from "@/types/courses/courses.type";
 import WordDetailDialog from "@/components/features/manage/word-detail-dialog";
 import { ArrowLeft, BookOpen, Brain, ChevronDown, ChevronRight, Eye, GraduationCap, List, Play, Search, Shuffle, Sparkles, Volume2 } from "lucide-react";
@@ -65,6 +66,7 @@ export default function LearnCourseDetailPage({ params }: { params: Promise<{ id
     const { newWordsLimit } = useNewWordsLimit();
     const [viewingWord, setViewingWord] = useState<IWord | null>(null);
     const [actionsMenuOpen, setActionsMenuOpen] = useState(false);
+    const isOffline = useOnlineStatus() === "offline";
 
     const { data: course, isLoading, isError, refetch: loadCourseDetail } = useGetCourseDetailByIdQuery(id, !!id);
     const {
@@ -114,20 +116,32 @@ export default function LearnCourseDetailPage({ params }: { params: Promise<{ id
             ) ?? [],
         [course?.lessons],
     );
-    const { data: dueWordIds, isLoading: isDueWordIdsLoading } = useGetDueWordIdsByWordIdsQuery(
-        courseWordIds,
-        dueWordsLimit,
-        false,
-        !!course && dueWordsLimit > 0 && courseWordIds.length > 0,
-    );
+    // Offline-tolerant: the due-words endpoint is a POST with no cacheable GET
+    // equivalent, so without a fallback the Review/Learn buttons would be dead
+    // on a downloaded course. The fallback picks from cached progress instead.
+    const { data: dueWordIds, isLoading: isDueWordIdsLoading } =
+        useGetDueWordIdsByWordIdsWithOfflineFallbackQuery(
+            courseWordIds,
+            dueWordsLimit,
+            false,
+            !!course && dueWordsLimit > 0 && courseWordIds.length > 0,
+            undefined,
+            wordProgressByWordId,
+        );
 
-    const { data: practiceBatch, isLoading: isPracticeBatchLoading } = useGetDueWordIdsByWordIdsQuery(
-        courseWordIds,
-        dueWordsLimit,
-        true,
-        !!course && dueWordsLimit > 0 && courseWordIds.length > 0,
-        newWordsLimit,
-    );
+    const { data: practiceBatch, isLoading: isPracticeBatchLoading } =
+        useGetDueWordIdsByWordIdsWithOfflineFallbackQuery(
+            courseWordIds,
+            dueWordsLimit,
+            true,
+            !!course && dueWordsLimit > 0 && courseWordIds.length > 0,
+            newWordsLimit,
+            wordProgressByWordId,
+        );
+
+    /** True when these counts came from local data rather than the server. */
+    const isOfflineSelection =
+        dueWordIds?.source === "offline" || practiceBatch?.source === "offline";
 
     const dueWordCount = dueWordIds?.wordIds.length ?? 0;
     const newWordIds = useMemo(
@@ -137,8 +151,23 @@ export default function LearnCourseDetailPage({ params }: { params: Promise<{ id
     const newWordCount = newWordIds.length;
     const practiceWordsLoading = isDueWordIdsLoading || isPracticeBatchLoading;
 
-    if (isLoading || isError) {
-        return <LoadingSection isLoading={isLoading} error={isError ? 'Error loading course' : null} refetch={loadCourseDetail} />;
+    // Gate on whether the course is available, not on whether the last fetch
+    // succeeded: offline, a restored cache reports isError alongside data that
+    // is perfectly good to practise from.
+    if (!course && isLoading) {
+        return <LoadingSection isLoading error={null} refetch={loadCourseDetail} />;
+    }
+
+    if (!course && isError) {
+        return (
+            <LoadingSection
+                isLoading={false}
+                error={isOffline ? null : 'Error loading course'}
+                isDataNotFound={isOffline}
+                dataNotFoundLabel="This course isn't downloaded yet. Reconnect once to load it."
+                refetch={loadCourseDetail}
+            />
+        );
     }
 
     if (!course) {
@@ -414,6 +443,13 @@ export default function LearnCourseDetailPage({ params }: { params: Promise<{ id
                             <p className="text-xs text-muted-foreground mt-0.5">
                                 {practiceBanner.subtitle}
                             </p>
+                            {isOfflineSelection && (
+                                // These counts were worked out on the device, so
+                                // say so rather than presenting a guess as fact.
+                                <p className="text-xs text-muted-foreground mt-1">
+                                    Offline copy — counts update when you&apos;re back online.
+                                </p>
+                            )}
                         </div>
                         <div className="flex shrink-0 flex-col gap-2 sm:flex-row">
                             {dueWordCount > 0 && (

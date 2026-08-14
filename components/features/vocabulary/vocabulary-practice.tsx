@@ -67,6 +67,8 @@ import {
 } from "@/lib/practice-utils";
 import { useNewWordIntro } from "@/hooks/useNewWordIntro.hook";
 import { cn } from "@/lib/utils";
+import { mergeDailyHabitRecord } from "@/lib/offline/sync-queue";
+import { useAppSelector } from "@/store/hooks";
 import type { SessionCompletePayload, WordResult } from "@/types/practice/practice.type";
 import { IWord, IWordExample } from "@/types/courses/courses.type";
 import {
@@ -94,6 +96,19 @@ export type { SessionCompletePayload, WordResult } from "@/types/practice/practi
  * would keep the word on a short interval forever.
  */
 const SENTENCE_BUILD_TIME_THRESHOLDS = { fastSeconds: 25, slowSeconds: 60 };
+
+/**
+ * Stamp the moment the grade was given.
+ *
+ * Applied at grading time rather than at save time so the backend can schedule
+ * from when the learner actually answered — the difference matters for a long
+ * session, and matters a lot for one practiced offline and synced days later.
+ */
+function stampReviewedAt(result: WordResult): WordResult {
+    return result.reviewedAt
+        ? result
+        : { ...result, reviewedAt: new Date().toISOString() };
+}
 
 function mergeWorstResult(results: WordResult[], result: WordResult): WordResult[] {
     const existingIndex = results.findIndex((r) => r.wordId === result.wordId);
@@ -133,6 +148,8 @@ interface VocabularyPracticeProps {
     levelEvent?: ILevelEvent;
     /** Streak-bonus XP multiplier from the live sync (1 = no bonus). */
     xpMultiplier?: number;
+    /** True when this session's results are queued on the device, not synced. */
+    isSavedOffline?: boolean;
 }
 
 export default function VocabularyPractice({
@@ -148,6 +165,7 @@ export default function VocabularyPractice({
     onSubmitResults,
     levelEvent,
     xpMultiplier,
+    isSavedOffline,
 }: Readonly<VocabularyPracticeProps>) {
     const [queue, setQueue] = useState(() => practiceQueue ?? shuffleArray(words));
     const [currentIndex, setCurrentIndex] = useState(0);
@@ -173,6 +191,10 @@ export default function VocabularyPractice({
     const [sessionStreak, setSessionStreak] = useState(0);
     const [habitState, setHabitState] = useState<IDailyHabit | null>(null);
     const recordDailyPractice = useRecordDailyPracticeMutation();
+    // Queued habit days are scoped per account, like every other offline write.
+    const habitUserLoginId = useAppSelector(
+        (state) => state.user.profile?.id ?? null,
+    );
     const [timeSpentSeconds, setTimeSpentSeconds] = useState<number | undefined>(undefined);
     const [feedbackSeed] = useState(() => Date.now());
     const [introCompletedIds, setIntroCompletedIds] = useState<Set<string>>(
@@ -277,7 +299,8 @@ export default function VocabularyPractice({
     }
 
     const commitResult = useCallback(
-        (result: WordResult) => {
+        (rawResult: WordResult) => {
+            const result = stampReviewedAt(rawResult);
             // Worst attempt wins: a word seen multiple times (retry-until-correct,
             // new-word rounds) keeps its lowest quality, so session accuracy and
             // the FSRS sync reflect what the user actually knew. Retries that go
@@ -310,7 +333,7 @@ export default function VocabularyPractice({
     );
 
     const stageResult = useCallback((result: WordResult) => {
-        setPendingResult(result);
+        setPendingResult(stampReviewedAt(result));
     }, []);
 
     const resetWordUi = useCallback(() => {
@@ -355,8 +378,9 @@ export default function VocabularyPractice({
                 new Date().toISOString(),
             );
 
+            const clientDate = localDateString();
             recordDailyPractice.mutate(
-                { wordCount, clientDate: localDateString() },
+                { wordCount, clientDate },
                 {
                     onSuccess: (habit) => {
                         setHabitState(habit);
@@ -367,6 +391,17 @@ export default function VocabularyPractice({
                                     "It'll auto-protect your streak if you miss a day.",
                             });
                         }
+                    },
+                    onError: () => {
+                        // Offline: queue instead, merged into any day bucket
+                        // already waiting so several offline sessions become one
+                        // request rather than one per session.
+                        if (!habitUserLoginId) return;
+                        void mergeDailyHabitRecord({
+                            userLoginId: habitUserLoginId,
+                            clientDate,
+                            wordCount,
+                        });
                     },
                 },
             );
@@ -379,7 +414,7 @@ export default function VocabularyPractice({
             finalizedPayloadRef.current = payload;
             return payload;
         },
-        [recordDailyPractice],
+        [recordDailyPractice, habitUserLoginId],
     );
 
     const finishSession = useCallback(
@@ -948,6 +983,7 @@ export default function VocabularyPractice({
                 habitState={habitState}
                 levelEvent={levelEvent}
                 xpMultiplier={xpMultiplier}
+                isSavedOffline={isSavedOffline}
                 onKeepGoing={() =>
                     onComplete?.({
                         score: scoreFromResults(wordResults),

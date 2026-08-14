@@ -5,6 +5,11 @@ import {
 	getLocalStorageItem,
 	setLocalStorageItem,
 } from '@/lib/local-storage';
+import { toApiError } from '@/lib/api-error';
+import {
+	reportNetworkFailure,
+	reportNetworkSuccess,
+} from '@/lib/offline/online-status';
 
 const axiosInstance = axios.create({
 	baseURL: process.env.NEXT_PUBLIC_API_URL,
@@ -47,7 +52,10 @@ const processQueue = (error: Error | null, token: string | null = null) => {
 };
 
 axiosInstance.interceptors.response.use(
-	(response) => response,
+	(response) => {
+		reportNetworkSuccess();
+		return response;
+	},
 	async (error) => {
 		const originalRequest = error.config;
 
@@ -116,6 +124,12 @@ axiosInstance.interceptors.response.use(
 			}
 		}
 
+		// A failure with no response never reached the gateway — the earliest and
+		// truest offline signal we get, since it comes from the real API path.
+		if (!(error as AxiosError).response) {
+			reportNetworkFailure();
+		}
+
 		return Promise.reject(
 			error instanceof Error ? error : new Error(String(error)),
 		);
@@ -130,6 +144,10 @@ axiosInstance.interceptors.response.use(
  * Pass `{ notFoundAsNull: true }` for endpoints where a 404 is an expected
  * "no result" (e.g. optional dictionary lookups) rather than an error — the
  * call resolves to `null` instead of throwing.
+ *
+ * Throws an {@link ApiError}, which carries the server payload's own fields (so
+ * existing callers are unaffected) plus the status code and an `isNetworkError`
+ * flag. Offline handling needs to tell "no connection" apart from "rejected".
  */
 export async function request<T>(
 	fn: (instance: typeof axiosInstance) => Promise<AxiosResponse<T>>,
@@ -141,7 +159,7 @@ export async function request<T>(
 		if (options?.notFoundAsNull && (error as AxiosError).response?.status === 404) {
 			return null as T;
 		}
-		throw (error as AxiosError).response?.data || error;
+		throw toApiError(error);
 	}
 }
 

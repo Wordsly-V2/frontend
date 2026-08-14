@@ -34,6 +34,26 @@ async function pingServiceHealth(url: string): Promise<string> {
     return response.data;
 }
 
+/** Short timeout for the reachability probe — this one must fail fast. */
+const REACHABILITY_TIMEOUT_MS = 8_000;
+
+/**
+ * Is the gateway reachable? Unauthenticated and deliberately outside the shared
+ * axios instance, so a probe can never trigger the 401/refresh machinery.
+ * Rejects when it isn't reachable — that rejection is the signal.
+ */
+export const pingApiGateway = async (): Promise<void> => {
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL?.trim();
+    if (!apiUrl) {
+        throw new Error('NEXT_PUBLIC_API_URL is not configured');
+    }
+
+    await axios.get(`${apiUrl}/ping`, {
+        timeout: REACHABILITY_TIMEOUT_MS,
+        withCredentials: false,
+    });
+};
+
 export const getServiceHealth = async (): Promise<string[]> => {
     const serviceApiUrls = getBootstrapServiceUrls();
 

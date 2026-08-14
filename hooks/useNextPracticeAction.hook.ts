@@ -9,6 +9,8 @@ import { getLastLearnCourse } from "@/lib/learning-session";
 import { buildPracticeUrl } from "@/lib/practice-session";
 import { useDueWordsLimit } from "@/hooks/useDueWordsLimit.hook";
 import { useNewWordsLimit } from "@/hooks/useNewWordsLimit.hook";
+import { useOfflinePracticePool } from "@/hooks/useOfflinePracticePool.hook";
+import { useOnlineStatus } from "@/hooks/useOnlineStatus.hook";
 import { useDailyHabitDisplay } from "@/queries/daily-habit.query";
 import { useGetDueWordIdsQuery } from "@/queries/word-progress.query";
 import { usePathname } from "next/navigation";
@@ -37,6 +39,12 @@ export type NextPracticeAction = {
     /** Href that finishes today's goal with the minimum words needed. */
     finishGoalHref: string | null;
     finishGoalWords: number;
+    /**
+     * True when the counts came from the locally warmed pool rather than the
+     * server. The UI labels these as an offline copy — they cover the last
+     * course only, not every course the learner owns.
+     */
+    isOfflineEstimate: boolean;
 };
 
 /**
@@ -53,6 +61,7 @@ export function useNextPracticeAction(): NextPracticeAction {
     // settings dialog re-render this hook immediately (see useDueWordsLimit).
     const { dueWordsLimit } = useDueWordsLimit();
     const { newWordsLimit } = useNewWordsLimit();
+    const isOffline = useOnlineStatus() === "offline";
     const { habit: serverHabit } = useDailyHabitDisplay();
     const habit = serverHabit ?? getLocalDailyHabit();
     const goal = dailyGoalProgress(habit.wordsToday, habit.goal);
@@ -79,20 +88,44 @@ export function useNextPracticeAction(): NextPracticeAction {
             enabled,
         );
 
-    const dueCount = dueIds?.wordIds.length ?? 0;
+    // The all-courses endpoint has no offline equivalent — there is no cached
+    // list of every word the learner owns. Fall back to whatever the warmer made
+    // available for the last course, so the dashboard still offers a real
+    // session instead of claiming there is nothing to do.
+    const offlineFallback = useOfflinePracticePool({
+        enabled: isOffline && !dueIds && !practiceBatch,
+        dueWordsLimit,
+        newWordsLimit,
+        courseId: last?.id,
+    });
+
+    const dueCount = dueIds?.wordIds.length ?? offlineFallback.dueIds.length;
     const newWordIds = useMemo(
-        () => deriveNewWordIds(dueIds?.wordIds, practiceBatch?.wordIds),
-        [dueIds?.wordIds, practiceBatch?.wordIds],
+        () =>
+            dueIds || practiceBatch
+                ? deriveNewWordIds(dueIds?.wordIds, practiceBatch?.wordIds)
+                : offlineFallback.newIds,
+        [dueIds, practiceBatch, offlineFallback.newIds],
     );
     const newCount = newWordIds.length;
-    const practicePoolCount = practiceBatch?.wordIds.length ?? 0;
-    const wordsLoading = dueLoading || practiceBatchLoading;
+    const practicePoolCount =
+        practiceBatch?.wordIds.length ?? offlineFallback.allIds.length;
+    const wordsLoading =
+        (dueLoading || practiceBatchLoading) && !offlineFallback.isReady;
+
+    /** True when the counts above came from local data, not the server. */
+    const isOfflineEstimate =
+        !dueIds && !practiceBatch && offlineFallback.isReady;
+
+    const dueWordIdList = dueIds?.wordIds ?? offlineFallback.dueIds;
+    const poolWordIdList = practiceBatch?.wordIds ?? offlineFallback.allIds;
 
     const reviewDueHref =
         dueCount > 0
             ? buildPracticeUrl({
+                  courseId: isOfflineEstimate ? last?.id : undefined,
                   courseName: "Review",
-                  wordIds: dueIds!.wordIds,
+                  wordIds: dueWordIdList,
                   kind: "review",
               })
             : null;
@@ -100,6 +133,7 @@ export function useNextPracticeAction(): NextPracticeAction {
     const learnNewHref =
         newCount > 0
             ? buildPracticeUrl({
+                  courseId: isOfflineEstimate ? last?.id : undefined,
                   courseName: "New words",
                   wordIds: newWordIds,
                   kind: "new",
@@ -113,9 +147,10 @@ export function useNextPracticeAction(): NextPracticeAction {
     const finishGoalHref =
         finishGoalWords > 0
             ? buildPracticeUrl({
+                  courseId: isOfflineEstimate ? last?.id : undefined,
                   courseName:
                       dueCount > 0 && newCount === 0 ? "Review" : "New words",
-                  wordIds: practiceBatch!.wordIds.slice(0, finishGoalWords),
+                  wordIds: poolWordIdList.slice(0, finishGoalWords),
                   kind: dueCount > 0 && newCount === 0 ? "review" : "new",
               })
             : null;
@@ -148,5 +183,6 @@ export function useNextPracticeAction(): NextPracticeAction {
         learnNewHref,
         finishGoalHref,
         finishGoalWords,
+        isOfflineEstimate,
     };
 }

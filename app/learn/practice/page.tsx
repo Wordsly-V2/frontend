@@ -6,25 +6,32 @@ import { PracticeSessionLayout } from "@/components/features/vocabulary/practice
 import { PracticeSessionOverview } from "@/components/features/vocabulary/practice-session-overview";
 import VocabularyPractice from "@/components/features/vocabulary/vocabulary-practice";
 import { Button } from "@/components/ui/button";
+import { useOnlineStatus } from "@/hooks/useOnlineStatus.hook";
 import { usePracticeSessionPersistence } from "@/hooks/usePracticeSessionPersistence.hook";
 import { usePracticeSessionPlan } from "@/hooks/usePracticeSessionPlan.hook";
+import { resolveProgress } from "@/lib/offline/progress-cache";
 import { practiceSessionSearchParams } from "@/lib/practice-session";
 import { useGetProgressByWordIdsQuery } from "@/queries/word-progress.query";
 import { useGetWordsByIdsQuery } from "@/queries/words.query";
 import type { PracticePhase } from "@/types/practice/practice.type";
+import { useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft } from "lucide-react";
 import { useQueryStates } from "nuqs";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 export default function PracticePage() {
     const router = useRouter();
+    const queryClient = useQueryClient();
+    const isOffline = useOnlineStatus() === "offline";
     const [{ courseId, courseName, wordIds, kind }] = useQueryStates(
         practiceSessionSearchParams,
     );
     const [phase, setPhase] = useState<PracticePhase>("overview");
 
-    const wordIdList = wordIds ?? [];
+    // Memoized because it feeds a useMemo dependency list below; a fresh array
+    // each render would re-run the cache scan on every keystroke.
+    const wordIdList = useMemo(() => wordIds ?? [], [wordIds]);
     // courseId is optional: an all-courses review/learn session carries only
     // word IDs (no single course). Words are then hydrated across all courses.
     const paramsValid = wordIdList.length > 0;
@@ -43,11 +50,18 @@ export default function PracticePage() {
     } = useGetWordsByIdsQuery(courseId ?? undefined, wordIdList, paramsValid);
 
     const {
-        data: progressByWordId,
-        isLoading: isProgressLoading,
-        isError: isProgressError,
+        data: serverProgress,
         refetch: refetchProgress,
     } = useGetProgressByWordIdsQuery(wordIdList, paramsValid);
+
+    // Progress must never gate the session — but a word whose progress is
+    // missing is classified as new, which would give a due review word three
+    // intro rounds and the wrong hint policy. So fall back to whatever the
+    // cache holds (the course page caches it under a different key).
+    const { progressByWordId, source: progressSource } = useMemo(
+        () => resolveProgress(queryClient, wordIdList, serverProgress),
+        [queryClient, serverProgress, wordIdList],
+    );
 
     const { sessionKind, sessionPlan, leechWordIds, isReview } = usePracticeSessionPlan(
         words,
@@ -55,7 +69,13 @@ export default function PracticePage() {
         kind,
     );
 
-    const { saveSession, persistSession, isPersisting, sessionSyncResult } =
+    const {
+        saveSession,
+        persistSession,
+        isPersisting,
+        sessionSyncResult,
+        isSavedOffline,
+    } =
         usePracticeSessionPersistence({
             courseId: courseId ?? "",
             wordIdList,
@@ -84,14 +104,32 @@ export default function PracticePage() {
         );
     }
 
-    const isLoading = isWordsLoading || isProgressLoading;
-    const isError = isWordsError || isProgressError;
-
-    if (isLoading || isError) {
+    // Gate on whether we HAVE the words, not on whether the last fetch
+    // succeeded. Offline, a query with restored cache data reports isError
+    // alongside perfectly usable data — gating on the error meant a downloaded
+    // session showed a permanent error screen.
+    if (!words && isWordsLoading) {
         return (
             <LoadingSection
-                isLoading={isLoading}
-                error={isError ? "Error loading session" : null}
+                isLoading
+                error={null}
+                refetch={() => {
+                    refetchWords();
+                    refetchProgress();
+                }}
+            />
+        );
+    }
+
+    if (!words) {
+        return (
+            <LoadingSection
+                isLoading={false}
+                error={
+                    isOffline || !isWordsError ? null : "Error loading session"
+                }
+                isDataNotFound={isOffline}
+                dataNotFoundLabel="This session isn't downloaded yet. Reconnect once to load these words."
                 refetch={() => {
                     refetchWords();
                     refetchProgress();
@@ -146,6 +184,7 @@ export default function PracticePage() {
                         onComplete={handlePracticeComplete}
                         levelEvent={sessionSyncResult?.levelEvent}
                         xpMultiplier={sessionSyncResult?.xpMultiplier}
+                        isSavedOffline={isSavedOffline}
                     />
                 </div>
             </main>
@@ -168,6 +207,7 @@ export default function PracticePage() {
                 exerciseCount={sessionPlan.practiceQueue.length}
                 newWordCount={sessionPlan.introWords.length}
                 isReviewSession={isReview}
+                isOfflineCopy={progressSource === "cache"}
                 onStart={() => setPhase("practice")}
             />
         </PracticeSessionLayout>

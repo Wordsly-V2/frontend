@@ -13,6 +13,7 @@ import { DUE_WORDS_LIMIT_STORAGE_KEY } from "@/lib/due-words-limit";
 import { DAILY_HABIT_STORAGE_KEY } from "@/lib/daily-habit";
 import { LAST_LEARN_COURSE_KEY } from "@/lib/learning-session";
 import { LAST_MANAGE_COURSE_KEY } from "@/lib/manage-session";
+import { AUTH_SESSION_STORAGE_KEY } from "@/lib/offline/auth-session";
 
 // Preference key owned by the word-details carousel. Defined here (and imported by
 // the component) so it lives in a lib module and can be cleared on logout without a
@@ -25,6 +26,7 @@ export const WORD_DETAILS_AUTO_NEXT_STORAGE_KEY = "wordsly.wordDetails.autoNext"
 const USER_DATA_KEYS: readonly string[] = [
     ACCESS_TOKEN_STORAGE_KEY,
     REFRESH_TOKEN_STORAGE_KEY,
+    AUTH_SESSION_STORAGE_KEY,
     PENDING_SAVES_KEY,
     SETTINGS_STORAGE_KEY,
     // Superseded keys still have to be wiped, or a previous user's settings

@@ -35,6 +35,8 @@ export interface PracticeSessionSummaryProps {
     levelEvent?: ILevelEvent;
     /** Streak-bonus XP multiplier from a live sync (1 = no bonus). */
     xpMultiplier?: number;
+    /** True when the results are queued on this device awaiting a connection. */
+    isSavedOffline?: boolean;
     onKeepGoing: () => void;
     onBackToDashboard: () => void;
 }
@@ -45,6 +47,7 @@ export function PracticeSessionSummary({
     habitState,
     levelEvent,
     xpMultiplier,
+    isSavedOffline = false,
     onKeepGoing,
     onBackToDashboard,
 }: Readonly<PracticeSessionSummaryProps>) {
@@ -122,6 +125,19 @@ export function PracticeSessionSummary({
             >
                 {wordResults.length} word{wordResults.length === 1 ? "" : "s"} practiced
             </motion.p>
+
+            {isSavedOffline && (
+                // Persistent, unlike the toast: "did my practice save?" is not a
+                // question to leave a learner holding. XP and streak numbers
+                // above are local estimates until this syncs.
+                <motion.p
+                    {...reveal(0.16)}
+                    className="mx-auto mb-4 max-w-sm rounded-xl bg-muted/60 px-3 py-2 text-xs text-muted-foreground"
+                >
+                    Saved on your device — your XP and streak will be confirmed
+                    when you&apos;re back online.
+                </motion.p>
+            )}
 
             {hasStreakBonus && (
                 <motion.p

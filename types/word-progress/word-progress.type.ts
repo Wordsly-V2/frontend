@@ -15,12 +15,31 @@ export enum AnswerQuality {
 export interface IRecordAnswerDto {
     wordId: string;
     quality: AnswerQuality;
+    /**
+     * ISO instant the user actually answered. Sent so the backend schedules from
+     * the moment of the review rather than the moment it reached the server —
+     * without it, a session answered offline on Monday and synced on Wednesday
+     * gets Wednesday's intervals.
+     */
+    reviewedAt?: string;
 }
 
 export interface IBulkRecordAnswersDto {
     answers: IRecordAnswerDto[];
-    /** Client local calendar date (YYYY-MM-DD); powers the accuracy trend in the report. */
+    /** Client local calendar date (YYYY-MM-DD) for the client's today. */
     clientDate?: string;
+    /**
+     * Minutes to ADD to a UTC instant to get local wall-clock time
+     * (`-getTimezoneOffset()`), so the server can put each answer on the right
+     * calendar day when a batch spans more than one.
+     */
+    tzOffsetMinutes?: number;
+    /**
+     * Stable id for this flush, generated once and reused on every retry. Makes
+     * a resend after a lost response a no-op server-side instead of a second XP
+     * award and a second scheduling step.
+     */
+    clientRequestId?: string;
 }
 
 export interface IWordProgressResponse {

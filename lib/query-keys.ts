@@ -141,4 +141,13 @@ export const queryKeys = {
         preferences: () => ["notifications", "preferences"] as const,
         vapidPublicKey: () => ["notifications", "vapid-public-key"] as const,
     },
+    /**
+     * Client-owned, not a server endpoint: the set of words the offline warmer
+     * has made available for a course. `/learn` reads it to build a session when
+     * the all-courses due-words endpoint is unreachable.
+     */
+    offlinePool: {
+        all: ["offline-pool"] as const,
+        forCourse: (courseId: string) => ["offline-pool", courseId] as const,
+    },
 } as const;

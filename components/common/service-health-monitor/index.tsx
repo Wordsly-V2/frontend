@@ -1,6 +1,16 @@
 "use client";
 
-import { getServiceHealth, healthCheck, ServiceHealth } from '@/apis/app.api';
+import {
+    getServiceHealth,
+    healthCheck,
+    pingApiGateway,
+    ServiceHealth,
+} from '@/apis/app.api';
+import {
+    reportNetworkFailure,
+    reportNetworkSuccess,
+    startOnlineStatusTracking,
+} from '@/lib/offline/online-status';
 import { useEffect } from 'react';
 import { toast } from 'sonner';
 
@@ -19,6 +29,15 @@ function notifyUnhealthyServices(services: ServiceHealth[]) {
 async function runHealthChecks() {
     await getServiceHealth().catch(() => undefined);
 
+    // Doubles as the "still online" heartbeat: publishing the result into the
+    // shared connectivity store means offline detection needs no second poller.
+    try {
+        await pingApiGateway();
+        reportNetworkSuccess();
+    } catch {
+        reportNetworkFailure();
+    }
+
     healthCheck()
         .then(notifyUnhealthyServices)
         .catch(() => undefined);
@@ -26,6 +45,8 @@ async function runHealthChecks() {
 
 export default function ServiceHealthMonitor() {
     useEffect(() => {
+        startOnlineStatusTracking();
+
         const initialTimeout = setTimeout(runHealthChecks, 100);
         const interval = setInterval(runHealthChecks, HEALTH_CHECK_INTERVAL_MS);
 

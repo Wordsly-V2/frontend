@@ -26,10 +26,9 @@ export default function LearnPage() {
         isError: isErrorCourseTotalStats,
         refetch: refetchCourseTotalStats,
     } = useGetMyCoursesTotalStatsQuery();
-    const isLoadingStats =
-        isLoadingCourseTotalStats ||
-        isErrorCourseTotalStats ||
-        !courseTotalStats;
+    // Presence, not fetch outcome: offline a restored cache reports isError next
+    // to usable data, and folding the error in here left a permanent skeleton.
+    const isLoadingStats = !courseTotalStats;
 
     // First-run onboarding: once the stats resolve (never while loading/erroring),
     // a brand-new learner with no courses and no local "done" flag is sent to the

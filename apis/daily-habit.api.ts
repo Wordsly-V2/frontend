@@ -1,6 +1,7 @@
 import { request } from "@/lib/axios";
 import { localDateString } from "@/lib/daily-habit";
 import type {
+    IBatchRecordDailyPracticeDto,
     IDailyHabit,
     IRecordDailyPracticeDto,
     IUpdateDailyGoalDto,
@@ -15,6 +16,12 @@ export const recordDailyPractice = (
     data: IRecordDailyPracticeDto,
 ): Promise<IDailyHabit> =>
     request((i) => i.post("/daily-habit/record-practice", data));
+
+/** Flush several offline days at once; see IBatchRecordDailyPracticeDto. */
+export const recordDailyPracticeBatch = (
+    data: IBatchRecordDailyPracticeDto,
+): Promise<IDailyHabit> =>
+    request((i) => i.post("/daily-habit/record-practice/batch", data));
 
 export const updateDailyGoal = (
     data: IUpdateDailyGoalDto,

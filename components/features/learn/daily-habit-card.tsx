@@ -30,6 +30,8 @@ export function DailyHabitCard() {
     const habit = serverHabit ?? getLocalDailyHabit();
     const goal = dailyGoalProgress(habit.wordsToday, habit.goal);
     const updateGoal = useUpdateDailyGoalMutation();
+    /** No server habit means these numbers are a local guess. */
+    const isProvisional = !serverHabit;
 
     const showAtRisk = habit.streakAtRisk && !habit.goalMetToday;
     const milestone = habit.nextMilestone;
@@ -40,6 +42,14 @@ export function DailyHabitCard() {
 
     return (
         <section aria-label="Daily practice goal" className="mb-6 space-y-3">
+            {isProvisional && (
+                // Offline these come from a local estimate, not the server. XP
+                // and streaks are the numbers learners care most about, so they
+                // must never be presented as settled when they aren't.
+                <p className="text-xs text-muted-foreground">
+                    Provisional — confirmed when you&apos;re back online.
+                </p>
+            )}
             {/* Compact stat strip — small glass tiles */}
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:gap-3">
                 <GlassStat

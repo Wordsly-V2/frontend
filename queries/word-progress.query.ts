@@ -13,6 +13,8 @@ import {
     resetProgress,
     unsuspendWord
 } from "@/apis/word-progress.api";
+import { isNetworkError } from "@/lib/api-error";
+import { selectDueWordIdsOffline } from "@/lib/offline/due-word-selection";
 import { queryKeys } from "@/lib/query-keys";
 import {
     IBulkRecordAnswersDto,
@@ -61,6 +63,43 @@ export const useGetDueWordIdsByWordIdsQuery = (
     queryKey: queryKeys.dueWordIds.byWordIds(wordIds, limit, includeNew, newLimit),
     queryFn: () => getDueWordIdsByWordIds(wordIds, limit, includeNew, newLimit),
     enabled: enabled && wordIds.length > 0,
+});
+
+/**
+ * Due-word selection that survives losing the network.
+ *
+ * A sibling of `useGetDueWordIdsByWordIdsQuery` rather than a change to it, so
+ * the manage screens keep their strict online semantics. On a network failure it
+ * falls back to picking words from cached progress; any other error still
+ * throws, because a rejected request is not the same as an absent one.
+ */
+export const useGetDueWordIdsByWordIdsWithOfflineFallbackQuery = (
+    wordIds: string[],
+    limit: number | undefined,
+    includeNew: boolean | undefined,
+    enabled: boolean = true,
+    newLimit: number | undefined,
+    progressByWordId: Record<string, IWordProgressResponse | null> | undefined,
+) => useQuery<IDueWordIdsResponse & { source?: "offline" }>({
+    queryKey: queryKeys.dueWordIds.byWordIds(wordIds, limit, includeNew, newLimit),
+    queryFn: async () => {
+        try {
+            return await getDueWordIdsByWordIds(wordIds, limit, includeNew, newLimit);
+        } catch (error) {
+            if (!isNetworkError(error)) throw error;
+            return selectDueWordIdsOffline({
+                wordIds,
+                progressByWordId,
+                limit,
+                newLimit,
+                includeNew,
+            });
+        }
+    },
+    enabled: enabled && wordIds.length > 0,
+    // A locally derived list must never look fresh: reconnecting has to replace
+    // it with server truth immediately.
+    staleTime: 0,
 });
 
 export const useGetProgressStatsQuery = (

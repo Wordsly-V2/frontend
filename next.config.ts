@@ -1,7 +1,43 @@
 import type { NextConfig } from "next";
 import withSerwistInit from "@serwist/next";
+import { createHash } from "node:crypto";
+import { readdirSync, readFileSync } from "node:fs";
+import path from "node:path";
 
 const isDev = process.env.NODE_ENV === "development";
+
+// Changes every build so precached app-shell routes are refetched rather than
+// served stale forever.
+const BUILD_REVISION = process.env.VERCEL_GIT_COMMIT_SHA ?? String(Date.now());
+
+/**
+ * Everything under `public/`, hashed.
+ *
+ * Passing `additionalPrecacheEntries` REPLACES Serwist's own glob of `public/`
+ * rather than adding to it, so these have to be rebuilt by hand or the icons
+ * quietly stop being precached.
+ */
+function publicPrecacheEntries(
+  dir = path.join(process.cwd(), "public"),
+  prefix = "",
+): { url: string; revision: string }[] {
+  return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+    const url = `${prefix}/${entry.name}`;
+    if (entry.isDirectory()) {
+      return publicPrecacheEntries(path.join(dir, entry.name), url);
+    }
+    // The service worker cannot precache itself.
+    if (entry.name === "sw.js" || entry.name === "sw.js.map") return [];
+    return [
+      {
+        url,
+        revision: createHash("md5")
+          .update(readFileSync(path.join(dir, entry.name)))
+          .digest("hex"),
+      },
+    ];
+  });
+}
 
 const nextConfig: NextConfig = {
   images: {
@@ -23,6 +59,17 @@ const withSerwist = withSerwistInit({
   swSrc: "app/sw.ts",
   swDest: "public/sw.js",
   disable: isDev,
+  // Precache the routes an offline session needs, so a cold start with no
+  // network still reaches practice. The runtime "pages" cache only holds routes
+  // the learner has already visited, which is not enough on a fresh install.
+  // `/learn/courses/[id]` is dynamic and cannot be precached — it comes from the
+  // runtime cache after a visit, which the offline warmer already implies.
+  additionalPrecacheEntries: [
+    ...publicPrecacheEntries(),
+    { url: "/learn", revision: BUILD_REVISION },
+    { url: "/learn/practice", revision: BUILD_REVISION },
+    { url: "/~offline", revision: BUILD_REVISION },
+  ],
 });
 
 export default isDev ? nextConfig : withSerwist(nextConfig);

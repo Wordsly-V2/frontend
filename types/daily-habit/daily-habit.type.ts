@@ -57,6 +57,19 @@ export interface IRecordDailyPracticeDto {
     clientDate: string;
 }
 
+/**
+ * Several days of practice in one request, for a client flushing sessions it
+ * collected offline. Sending them separately would apply them out of order and
+ * mis-count the streak.
+ */
+export interface IBatchRecordDailyPracticeDto {
+    days: { clientDate: string; wordCount: number }[];
+    /** The client's today — anchors "words today" and streak decay. */
+    clientDate: string;
+    /** Idempotency key; a replay returns the original result. */
+    clientRequestId?: string;
+}
+
 export interface IUpdateDailyGoalDto {
     dailyGoal: number;
 }

@@ -1,12 +1,14 @@
 import { recordAnswerBulkSync } from "@/apis/word-progress.api";
 import { localDateString } from "@/lib/daily-habit";
 import {
-    enqueuePendingPracticeSave,
-    getPendingPracticeSaves,
-    removePendingPracticeSave,
-} from "@/lib/practice-pending-saves";
+    enqueueSyncRecord,
+    newClientRequestId,
+} from "@/lib/offline/sync-queue";
 import type { SessionCompletePayload } from "@/types/practice/practice.type";
-import type { ILevelEvent } from "@/types/word-progress/word-progress.type";
+import type {
+    IBulkRecordAnswersDto,
+    ILevelEvent,
+} from "@/types/word-progress/word-progress.type";
 
 export type SaveSessionOutcome = "sync" | "queued";
 
@@ -21,15 +23,31 @@ export interface SaveSessionResult {
     xpMultiplier?: number;
 }
 
+/** Minutes to add to a UTC instant to get local wall-clock time. */
+function localTzOffsetMinutes(): number {
+    return -new Date().getTimezoneOffset();
+}
+
 export async function saveSessionResults(
     payload: SessionCompletePayload,
+    userLoginId: string | null,
 ): Promise<SaveSessionResult> {
-    // Stamp the session with the client-local date so the report's accuracy
-    // trend buckets it correctly even if the save is queued and retried later.
-    const body = {
+    // Generated BEFORE the first attempt and reused if this ends up queued. That
+    // is what makes a request which reached the server but whose response was
+    // lost safe to retry: previously the retry landed as a second FSRS update
+    // and a second XP award.
+    const clientRequestId = newClientRequestId();
+
+    const body: IBulkRecordAnswersDto = {
         answers: payload.wordResults,
+        // The client's today, for the report's accuracy trend and streak decay.
         clientDate: localDateString(),
+        // Lets the server place each answer on the right calendar day when a
+        // queued batch spans more than one.
+        tzOffsetMinutes: localTzOffsetMinutes(),
+        clientRequestId,
     };
+
     try {
         const response = await recordAnswerBulkSync(body);
         return {
@@ -38,24 +56,13 @@ export async function saveSessionResults(
             xpMultiplier: response.xpMultiplier,
         };
     } catch {
-        enqueuePendingPracticeSave(body);
-        return { outcome: "queued" };
-    }
-}
-
-/**
- * Replay queued saves that failed to sync live. Deliberately DISCARDS the
- * response (level events / multipliers) — a celebration must only ever surface
- * from the original live save, never from a background replay of an old batch.
- */
-export async function flushPendingPracticeSaves(): Promise<void> {
-    const pending = getPendingPracticeSaves();
-    for (const item of pending) {
-        try {
-            await recordAnswerBulkSync(item.payload);
-            removePendingPracticeSave(item.id);
-        } catch {
-            break;
+        if (userLoginId) {
+            await enqueueSyncRecord({
+                userLoginId,
+                clientRequestId,
+                op: { kind: "practice-answers", body },
+            });
         }
+        return { outcome: "queued" };
     }
 }
