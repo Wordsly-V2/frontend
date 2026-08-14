@@ -38,6 +38,20 @@ Rules that are easy to break — understand before touching:
 - **Persistence is optimistic + offline-safe** (`hooks/usePracticeSessionPersistence.hook.ts`): React Query cache is updated optimistically, the summary shows immediately, and the bulk save runs in the background; failures queue to localStorage (`lib/practice-pending-saves.ts`) and flush on next mount/online.
 - Keyboard shortcuts (1–4 flashcard grades, a–d choices, Enter) are wired in the engine with a visible legend (`practice-shortcuts-hint.tsx`) — keep them working.
 
+## Offline mode
+
+Practice is the core loop and has to work with no connection — `lib/offline/*` owns that. The rules below are easy to break by accident:
+
+- **Gate on data, never on fetch outcome.** Offline, a query with restored cache data reports `isError: true` *and* usable `data`. Every page gate must therefore be `!data && isFetching` for the spinner and `!data` for the empty state. `isLoading || isError` gates are what made the app unusable offline.
+- **Persistence is an allowlist** (`lib/offline/persist-allowlist.ts`). Everything on disk is plaintext IndexedDB, so a query is *not* persisted unless it is opted in. Never persist tokens, dictionary lookups, reports, or XP. The cache is keyed `rq:<userLoginId>` and expires with the auth grace window.
+- **Offline auth is a bounded grace period, not a bypass** (`lib/offline/auth-session.ts`, `hooks/useAuthSession.hook.ts`). A *network* failure may fall back to the cached profile for 7 days; a 401 never can. Only `online-verified` — a live 200 this session — may send data off the device. `canSync` is that gate; do not weaken it.
+- **Writes go through the durable queue** (`lib/offline/sync-queue.ts` + `sync-flush.ts`), scoped per user, with a `clientRequestId` minted before the first attempt so a retry after a lost response cannot double-apply XP. Records are never silently dropped: permanent failures surface for retry/discard, and a signed-out account's work is *quarantined*, not deleted. `OfflineBootstrap` owns every flush trigger (reconnect, focus, service-worker wake-up, interval).
+- **Only practice answers and daily habit are queued.** Every other write (course/word CRUD, preferences, goal changes) fails fast with "can't save while offline".
+- **Answers carry `reviewedAt`,** stamped when the grade is given, so the backend schedules from when the learner answered rather than when the batch synced.
+- **Never present local estimates as settled.** XP, streaks and offline-derived due counts are labelled provisional/"offline copy"; `selectDueWordIdsOffline` deliberately returns no `pacing` because there is no honest local approximation.
+- **The service worker never caches the gateway.** The Cache API keys on URL and ignores `Authorization`, so caching authenticated JSON there leaks across accounts on a shared device (this was a real bug — see the `cross-origin` cleanup in `app/sw.ts`). It caches word media and the app shell only, and it never posts answers itself (no token access).
+- Offline behaviour lives in the production build only (`next.config.ts` disables Serwist in dev), so test it with `npm run build && npm start`, not `npm run dev`.
+
 ## Design system ("Aurora")
 
 All color comes from OKLCH CSS variables in `app/globals.css` (`:root` and `.dark`) — never hardcode colors in components. Gradients, mesh backgrounds, and glows derive from `--brand-*` via relative color syntax, so swapping the palette re-themes the app (how-to in `COLORS.md`, written in Vietnamese). Utility classes to reuse: `.glass-surface`, `.glow-primary`, `.text-gradient-brand`, `.gradient-hero`, `.gradient-brand/-accent/-warm/-fun`, `.mesh-page-bg`, `.shadow-pressable` (3D buttons). Respect `prefers-reduced-motion` (existing utilities already do; use motion's `useReducedMotion` for JS-driven animation).
@@ -53,5 +67,6 @@ All color comes from OKLCH CSS variables in `app/globals.css` (`:root` and `.dar
 ## Gotchas
 
 - `next.config.ts` sets `images.unoptimized: true` — `next/image` gives layout benefits only.
+- `additionalPrecacheEntries` in `next.config.ts` **replaces** Serwist's own glob of `public/`, so that list rebuilds the public-file entries by hand. Dropping them silently un-precaches the icons.
 - Auth is client-side (`AuthGuard` component); there is no server-side route protection.
 - Heavy chart components on the progress page are loaded with `next/dynamic` (`ssr: false`) — keep new recharts usage code-split.
