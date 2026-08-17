@@ -15,6 +15,7 @@ import { useGetProgressByWordIdsQuery } from "@/queries/word-progress.query";
 import { useGetWordsByIdsQuery } from "@/queries/words.query";
 import type { PracticePhase } from "@/types/practice/practice.type";
 import { useQueryClient } from "@tanstack/react-query";
+import { useBackNavigation } from "@/hooks/useBackNavigation.hook";
 import { ArrowLeft } from "lucide-react";
 import { useQueryStates } from "nuqs";
 import { useRouter } from "next/navigation";
@@ -82,9 +83,11 @@ export default function PracticePage() {
             progressByWordId,
         });
 
-    const handleBackToCourse = useCallback(() => {
-        router.push(courseId ? `/learn/courses/${courseId}` : "/learn");
-    }, [router, courseId]);
+    // Prefers history.back(), so leaving a session returns to the course page in
+    // the state it was left in rather than stacking another copy of it.
+    const { navigate: handleBackToCourse } = useBackNavigation(
+        courseId ? `/learn/courses/${courseId}` : "/learn",
+    );
 
     const handlePracticeComplete = useCallback(
         (

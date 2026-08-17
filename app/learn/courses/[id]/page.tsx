@@ -3,6 +3,7 @@
 import { FloatingActionMenu } from "@/components/common/floating-action-menu";
 import LoadingSection from "@/components/common/loading-section/loading-section";
 import { LearningProgressSection, WordProgressBadge, WordProgressStatsInline } from "@/components/common/word-progress-stats";
+import { BackLink } from "@/components/common/back-link/back-link";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -12,7 +13,7 @@ import { useGetDueWordIdsByWordIdsWithOfflineFallbackQuery } from "@/queries/wor
 import { useOnlineStatus } from "@/hooks/useOnlineStatus.hook";
 import { ILesson, IWord } from "@/types/courses/courses.type";
 import WordDetailDialog from "@/components/features/manage/word-detail-dialog";
-import { ArrowLeft, BookOpen, Brain, ChevronDown, ChevronRight, Eye, GraduationCap, List, Play, Search, Shuffle, Sparkles, Volume2 } from "lucide-react";
+import { BookOpen, Brain, ChevronDown, ChevronRight, Eye, GraduationCap, List, Play, Search, Shuffle, Sparkles, Volume2 } from "lucide-react";
 import { shuffleArray } from "@/lib/practice-utils";
 import { playAudioUrl } from "@/lib/practice-audio";
 import Image from "next/image";
@@ -175,10 +176,9 @@ export default function LearnCourseDetailPage({ params }: { params: Promise<{ id
             <main className="min-h-dvh bg-background flex items-center justify-center">
                 <div className="text-center">
                     <h2 className="text-2xl font-bold mb-4">Course not found</h2>
-                    <Button onClick={() => router.push('/learn')}>
-                        <ArrowLeft className="h-4 w-4 mr-2" />
+                    <BackLink href="/learn/courses" variant="play" size="default">
                         Back to Courses
-                    </Button>
+                    </BackLink>
                 </div>
             </main>
         );
@@ -364,15 +364,12 @@ export default function LearnCourseDetailPage({ params }: { params: Promise<{ id
         <main className="min-h-dvh">
             <div className={`container mx-auto max-w-5xl px-3 py-4 pb-24 sm:px-4 sm:py-6 sm:pb-12 md:py-8 ${totalWords > 0 ? "pb-fab-safe" : ""}`}>
                 {/* Back Button */}
-                <Button
-                    variant="ghost"
-                    onClick={() => router.push('/learn')}
-                    className="mb-4 sm:mb-6 text-sm sm:text-base"
-                    size="sm"
+                <BackLink
+                    href="/learn/courses"
+                    className="mb-4 text-sm sm:mb-6 sm:text-base"
                 >
-                    <ArrowLeft className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-2" />
                     All Courses
-                </Button>
+                </BackLink>
 
                 {/* Course Header */}
                 <div className="bg-card rounded-xl sm:rounded-2xl shadow-sm overflow-hidden border border-border mb-6 sm:mb-8">

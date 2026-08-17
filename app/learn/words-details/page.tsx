@@ -4,6 +4,7 @@ import LoadingSection from "@/components/common/loading-section/loading-section"
 import WordDetailsCarousel from "@/components/features/vocabulary/word-details-carousel";
 import { DictionaryLookupDialog } from "@/components/features/dictionary/dictionary-lookup-dialog";
 import { Button } from "@/components/ui/button";
+import { useBackNavigation } from "@/hooks/useBackNavigation.hook";
 import { wordSelectionSearchParams } from "@/lib/search-params/word-selection";
 import { useGetWordsByIdsQuery } from "@/queries/words.query";
 import { ArrowLeft, BookOpen, Search } from "lucide-react";
@@ -34,10 +35,9 @@ export default function WordsDetailsPage() {
         }
     }, [paramsValid, router]);
 
-    const handleBackToCourse = () => {
-        if (courseId) router.push(`/learn/courses/${courseId}`);
-        else router.push("/learn");
-    };
+    const { navigate: handleBackToCourse } = useBackNavigation(
+        courseId ? `/learn/courses/${courseId}` : "/learn",
+    );
 
     if (!paramsValid) {
         return (

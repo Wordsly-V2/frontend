@@ -1,6 +1,7 @@
 import AppNav from '@/components/common/app-nav/app-nav';
 import { BottomTabBar } from '@/components/common/app-nav/bottom-tab-bar';
 import { MyWordsSearchFab } from '@/components/common/my-words-search';
+import { NavigationHistoryTracker } from '@/components/common/navigation-history-tracker';
 import OfflineBanner from '@/components/common/offline/offline-banner';
 import { ServiceWorkerRegistration } from '@/components/common/pwa/service-worker-registration';
 import { Toaster } from '@/components/ui/sonner';
@@ -52,6 +53,7 @@ export default function RootLayout({
             >
                 <NuqsAdapter>
                     <Providers>
+                        <NavigationHistoryTracker />
                         <AppNav />
                         <OfflineBanner />
                         {children}

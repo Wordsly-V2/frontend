@@ -1,6 +1,8 @@
 "use client";
 
+import { BackLink } from "@/components/common/back-link/back-link";
 import { Button } from "@/components/ui/button";
+import { useBackNavigation } from "@/hooks/useBackNavigation.hook";
 import Image from "next/image";
 import { courseWordFocusSearchParams } from "@/lib/search-params/course-word-focus";
 import { playAudioUrl } from "@/lib/practice-audio";
@@ -357,6 +359,7 @@ function SortableLesson({
 export default function ManageCourseDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = use(params);
     const router = useRouter();
+    const backToManage = useBackNavigation("/manage");
     const [{ word: searchQuery, lessonId: urlLessonId }, setSearchParams] = useQueryStates(
         courseWordFocusSearchParams,
         { history: "replace" },
@@ -539,7 +542,9 @@ export default function ManageCourseDetailPage({ params }: { params: Promise<{ i
             onSuccess: () => {
                 loadCourseDetail();
                 setDeleteCourseConfirm(false);
-                router.push('/manage');
+                // `replace`: this course no longer exists, so Back must not
+                // return to its (now dead) page.
+                router.replace('/manage');
                 toast.success('Course deleted successfully');
             },
             onError: (err) => {
@@ -782,10 +787,9 @@ export default function ManageCourseDetailPage({ params }: { params: Promise<{ i
             <main className="min-h-dvh bg-background flex items-center justify-center">
                 <div className="text-center">
                     <h2 className="text-2xl font-bold mb-4">Course not found</h2>
-                    <Button onClick={() => router.push('/manage')}>
-                        <ArrowLeft className="h-4 w-4 mr-2" />
+                    <BackLink href="/manage" variant="play" size="default">
                         Back to Courses
-                    </Button>
+                    </BackLink>
                 </div>
             </main>
         );
@@ -821,7 +825,8 @@ export default function ManageCourseDetailPage({ params }: { params: Promise<{ i
             <div className={`container mx-auto max-w-5xl px-3 py-4 sm:px-4 sm:py-6 md:py-8 ${selectedWords.size > 0 ? "pb-fab-safe" : ""}`}>
                 <nav aria-label="Breadcrumb" className="mb-4 flex flex-wrap items-center gap-1.5 text-sm text-muted-foreground sm:mb-6">
                     <Link
-                        href="/manage"
+                        href={backToManage.href}
+                        onClick={backToManage.onClick}
                         className="inline-flex items-center gap-1.5 transition-colors hover:text-foreground"
                     >
                         <ArrowLeft className="h-3.5 w-3.5" />
