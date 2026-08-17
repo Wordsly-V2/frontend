@@ -7,7 +7,10 @@ import CourseFormDialog from "@/components/features/manage/course-form-dialog";
 import ManageCourseCard from "@/components/features/manage/manage-course-card";
 import { Button } from "@/components/ui/button";
 import { Pagination } from "@/components/ui/pagination";
-import { coursesListSearchParams } from "@/lib/search-params/courses-list";
+import {
+    useClampPage,
+    useCoursesListParams,
+} from "@/hooks/useCoursesListParams.hook";
 import {
     useCreateMyCourseMutation,
     useDeleteMyCourseMutation,
@@ -17,7 +20,6 @@ import {
 import { useGetProgressStatsByCourseIdsQuery } from "@/queries/word-progress.query";
 import { ICourse } from "@/types/courses/courses.type";
 import { Plus } from "lucide-react";
-import { useQueryStates } from "nuqs";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 
@@ -25,23 +27,38 @@ interface ManageCoursesProps {
     onRegisterCreateCourse?: (openCreate: () => void) => void;
 }
 
+const ITEMS_PER_PAGE = 10;
+
 export default function ManageCourses({ onRegisterCreateCourse }: Readonly<ManageCoursesProps>) {
-    const [{ q: searchQuery, page: currentPage }, setSearchParams] = useQueryStates(
-        coursesListSearchParams,
-        { history: "replace" },
-    );
+    const scrollListIntoView = useCallback(() => {
+        document
+            .getElementById("course-library")
+            ?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, []);
+
+    const {
+        searchQuery,
+        searchInput,
+        setSearchInput,
+        page: currentPage,
+        setPage,
+        resetPage,
+        clampPage,
+    } = useCoursesListParams({ onPageChange: scrollListIntoView });
+
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [editingCourse, setEditingCourse] = useState<ICourse | undefined>();
     const [deleteConfirm, setDeleteConfirm] = useState<ICourse | null>(null);
-    const itemsPerPage = 10;
 
-    const { data: paginatedData, isLoading, isError, refetch: loadCourses } = useGetMyCoursesQuery({
-        itemsPerPage,
+    const { data: paginatedData, isLoading, isError, isFetching, refetch: loadCourses } = useGetMyCoursesQuery({
+        itemsPerPage: ITEMS_PER_PAGE,
         currentPage,
         orderByField: "name",
         orderByDirection: "asc",
         searchQuery,
     });
+
+    useClampPage(clampPage, paginatedData?.totalPages);
     const courseIds = paginatedData?.items.map((course) => course.id) ?? [];
     const { data: statsByCourseId } = useGetProgressStatsByCourseIdsQuery(
         courseIds,
@@ -64,7 +81,7 @@ export default function ManageCourses({ onRegisterCreateCourse }: Readonly<Manag
         mutationCreateMyCourse.mutate(courseData, {
             onSuccess: () => {
                 loadCourses();
-                setSearchParams({ page: 1 });
+                resetPage();
                 setIsFormOpen(false);
                 toast.success("Course created successfully");
             },
@@ -106,7 +123,7 @@ export default function ManageCourses({ onRegisterCreateCourse }: Readonly<Manag
         return mutationDeleteMyCourse.mutate(courseId, {
             onSuccess: () => {
                 loadCourses();
-                setSearchParams({ page: 1 });
+                resetPage();
                 setDeleteConfirm(null);
                 toast.success("Course deleted successfully");
             },
@@ -116,28 +133,22 @@ export default function ManageCourses({ onRegisterCreateCourse }: Readonly<Manag
         });
     };
 
-    const handleSearch = (query: string) => {
-        setSearchParams({ q: query || null, page: 1 });
-    };
-
-    const handlePageChange = (page: number) => {
-        setSearchParams({ page });
-    };
-
     return (
         <>
             <section id="course-library" aria-labelledby="manage-course-library-heading" className="scroll-mt-24">
                 <CoursesHeader
-                    searchQuery={searchQuery}
+                    searchQuery={searchInput}
                     totalCourses={paginatedData?.totalItems ?? 0}
-                    onSearch={handleSearch}
+                    onSearch={setSearchInput}
                     onCreateCourse={openCreateDialog}
                     sectionLabel="Content"
                     title="Course library"
                     searchPlaceholder="Search courses to edit…"
                 />
 
-                {isLoading || isError || !paginatedData ? (
+                {/* Gate on the data, not the fetch outcome: offline, a restored
+                    cache reports `isError` while still holding a usable list. */}
+                {!paginatedData ? (
                     <LoadingSection
                         isLoading={isLoading}
                         error={isError ? "Error loading courses" : null}
@@ -165,11 +176,23 @@ export default function ManageCourses({ onRegisterCreateCourse }: Readonly<Manag
                                 <Plus className="h-4 w-4" />
                                 Create your first course
                             </Button>
-                        ) : null}
+                        ) : (
+                            <Button
+                                variant="outline"
+                                onClick={() => setSearchInput("")}
+                                className="rounded-xl"
+                            >
+                                Clear search
+                            </Button>
+                        )}
                     </div>
                 ) : (
                     <>
-                        <div className="mt-6 grid grid-cols-1 gap-4 sm:mt-8 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3 lg:gap-6">
+                        <div
+                            className={`mt-6 grid grid-cols-1 gap-4 transition-opacity sm:mt-8 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3 lg:gap-6 ${
+                                isFetching ? "opacity-60" : ""
+                            }`}
+                        >
                             {paginatedData.items.map((course) => (
                                 <ManageCourseCard
                                     key={course.id}
@@ -185,9 +208,10 @@ export default function ManageCourses({ onRegisterCreateCourse }: Readonly<Manag
                         </div>
 
                         <Pagination
-                            currentPage={paginatedData.currentPage}
+                            currentPage={currentPage}
                             totalPages={paginatedData.totalPages}
-                            onPageChange={handlePageChange}
+                            onPageChange={setPage}
+                            label="Course library pagination"
                         />
                     </>
                 )}

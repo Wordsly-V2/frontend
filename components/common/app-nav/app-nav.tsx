@@ -58,9 +58,8 @@ export default function AppNav() {
     const handleLogoutChoice = async (fromAllDevices: boolean) => {
         setIsLoggingOut(true);
         try {
-            await logout(fromAllDevices);
+            await logout({ allDevices: fromAllDevices, redirectTo: '/auth/login' });
             setLogoutDialogOpen(false);
-            router.push('/auth/login');
         } finally {
             setIsLoggingOut(false);
         }

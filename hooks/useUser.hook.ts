@@ -1,3 +1,4 @@
+import { clearAuthRedirect } from '@/lib/auth-redirect';
 import { clearUserLocalData } from '@/lib/user-local-data';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { fetchProfile as fetchProfileAction, logout as logoutAction } from '@/store/slices/userSlice';
@@ -14,10 +15,20 @@ export const useUser = () => {
         return dispatch(fetchProfileAction());
     }
 
-    function logout(isLoggedOutFromAllDevices?: boolean) {
-        return dispatch(logoutAction({ isLoggedOutFromAllDevices })).then(() => {
+    /**
+     * One navigation, not two: callers used to `router.push` their own
+     * destination after this resolved, so signing out left `/` sitting in
+     * history between the app and the login page.
+     */
+    function logout(options?: { allDevices?: boolean; redirectTo?: string }) {
+        return dispatch(
+            logoutAction({ isLoggedOutFromAllDevices: options?.allDevices }),
+        ).then(() => {
             clearUserLocalData();
-            router.replace('/');
+            clearAuthRedirect();
+            // `replace`: the signed-in page behind us is gone, so Back must not
+            // return to it.
+            router.replace(options?.redirectTo ?? '/');
             router.refresh();
         });
     }

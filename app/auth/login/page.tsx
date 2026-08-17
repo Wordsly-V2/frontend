@@ -2,19 +2,34 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useUser } from "@/hooks/useUser.hook";
-import { useRouter } from "next/navigation";
+import {
+  rememberAuthRedirect,
+  sanitizeRedirectPath,
+} from "@/lib/auth-redirect";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect } from "react";
 
 function LoginContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { profile, isLoading } = useUser();
   const googleAuthUrl = `${process.env.NEXT_PUBLIC_API_URL}/auth/google`;
 
+  // Where AuthGuard (or a shared link) wanted them to end up. The OAuth round
+  // trip leaves the app, so park it before handing off to the provider.
+  const redirectTo = sanitizeRedirectPath(searchParams.get("redirect"));
+
+  useEffect(() => {
+    rememberAuthRedirect(redirectTo);
+  }, [redirectTo]);
+
   useEffect(() => {
     if (!isLoading && profile) {
-      router.replace("/profile");
+      // `replace`: an already-signed-in learner should never be able to press
+      // Back into the login screen they were bounced off.
+      router.replace(redirectTo);
     }
-  }, [profile, isLoading, router]);
+  }, [profile, isLoading, router, redirectTo]);
 
   if (isLoading || profile) {
     return (

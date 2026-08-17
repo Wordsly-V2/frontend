@@ -1,7 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Plus, Search } from "lucide-react";
+import { Plus, Search, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 
 interface CoursesHeaderProps {
@@ -52,12 +52,23 @@ export default function CoursesHeader({
                 <div className="relative max-w-md flex-1">
                     <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                     <Input
+                        type="search"
                         value={searchQuery}
                         placeholder={searchPlaceholder}
-                        className="h-10 pl-9"
+                        className="h-10 pl-9 pr-9"
                         onChange={(e) => onSearch?.(e.target.value)}
                         aria-label="Search courses"
                     />
+                    {searchQuery.length > 0 && (
+                        <button
+                            type="button"
+                            onClick={() => onSearch?.("")}
+                            aria-label="Clear search"
+                            className="absolute right-2 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                        >
+                            <X className="h-4 w-4" aria-hidden />
+                        </button>
+                    )}
                 </div>
                 {/* Future: Add filter buttons here */}
             </div>

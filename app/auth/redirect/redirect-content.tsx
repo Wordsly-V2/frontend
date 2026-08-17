@@ -1,20 +1,29 @@
 "use client";
 import { ACCESS_TOKEN_STORAGE_KEY, REFRESH_TOKEN_STORAGE_KEY, setLocalStorageItem } from "@/lib/local-storage";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import {
+    clearAuthRedirect,
+    consumeAuthRedirect,
+    sanitizeRedirectPath,
+} from "@/lib/auth-redirect";
 import Link from "next/link";
-import { redirect, useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect } from "react";
 
 export default function RedirectContent() {
+    const router = useRouter();
     const searchParams = useSearchParams();
     const accessToken = searchParams.get("access_token");
     // Present only when the backend runs in 'body' refresh-token delivery mode.
     const refreshToken = searchParams.get("refresh_token");
     const errorParam = searchParams.get("error");
-    const redirectPath = searchParams.get("redirect") || "/learn";
+    const redirectParam = searchParams.get("redirect");
 
     useEffect(() => {
         if (errorParam) {
+            // Nothing to come back to — don't strand a stale destination for the
+            // next sign-in attempt.
+            clearAuthRedirect();
             return;
         }
 
@@ -26,8 +35,18 @@ export default function RedirectContent() {
         if (refreshToken) {
             setLocalStorageItem(REFRESH_TOKEN_STORAGE_KEY, refreshToken);
         }
-        redirect(redirectPath);
-    }, [accessToken, refreshToken, errorParam, redirectPath]);
+
+        // The gateway does not forward `?redirect=` through the OAuth hop, so the
+        // parked value is the usual source; the param wins when it survives.
+        const target = sanitizeRedirectPath(
+            redirectParam ?? consumeAuthRedirect(),
+        );
+        clearAuthRedirect();
+        // `replace`: this callback URL carries the access token in its query
+        // string. Leaving it in history means Back re-runs the handoff and the
+        // token stays one keypress away in the address bar.
+        router.replace(target);
+    }, [accessToken, refreshToken, errorParam, redirectParam, router]);
 
     if (errorParam) {
         return (

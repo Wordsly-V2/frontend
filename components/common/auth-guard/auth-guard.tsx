@@ -1,6 +1,7 @@
 "use client";
 
 import { useAuthSession } from "@/hooks/useAuthSession.hook";
+import { buildLoginUrl } from "@/lib/auth-redirect";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
 import LoadingSection from "../loading-section/loading-section";
@@ -27,9 +28,14 @@ export default function AuthGuard({ children }: Readonly<AuthGuardProps>) {
 
     useEffect(() => {
         if (isAuthRoute) return;
-        if (state === "rejected") {
-            router.push("/auth/login");
-        }
+        if (state !== "rejected") return;
+
+        // `replace`, not `push`: the protected page the learner just bounced off
+        // is not a place Back should return them to — it would only bounce again.
+        // The attempted URL (search params included) rides along as `?redirect=`
+        // so signing in lands them where they were headed, not on a generic home.
+        const attempted = `${globalThis.location.pathname}${globalThis.location.search}`;
+        router.replace(buildLoginUrl(attempted));
     }, [isAuthRoute, router, state]);
 
     if (isAuthRoute) {

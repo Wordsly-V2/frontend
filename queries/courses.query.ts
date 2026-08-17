@@ -16,6 +16,7 @@ import {
     MyCoursesQueryOptions,
 } from "@/types/courses/courses.type";
 import {
+    keepPreviousData,
     useInfiniteQuery,
     useMutation,
     useQuery,
@@ -30,6 +31,10 @@ export const useGetMyCoursesQuery = (
         queryKey: queryKeys.courses.list(options),
         queryFn: () => getMyCourses(options),
         enabled,
+        // Paging and typing change the key. Without this the list unmounts to a
+        // skeleton on every keystroke and every page step, which collapses the
+        // page height and throws away the scroll position mid-navigation.
+        placeholderData: keepPreviousData,
     });
 
 export const useGetMyCoursesTotalStatsQuery = () =>

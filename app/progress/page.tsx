@@ -1,14 +1,13 @@
 "use client";
 
-import { useState } from "react";
 import dynamic from "next/dynamic";
-import { useRouter } from "next/navigation";
+import { useQueryStates } from "nuqs";
 import { Button } from "@/components/ui/button";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { Skeleton } from "@/components/common/states/skeleton";
 import { useUser } from "@/hooks/useUser.hook";
+import { progressSearchParams } from "@/lib/search-params/progress";
 import { useGetLearningReportQuery } from "@/queries/learning-report.query";
-import type { ReportPeriod } from "@/types/learning-report/learning-report.type";
 import { AchievementsGrid } from "@/components/features/progress/achievements-grid";
 import { ActivityHeatmap } from "@/components/features/progress/activity-heatmap";
 import { ReportPeriodToggle } from "@/components/features/progress/report-period-toggle";
@@ -64,34 +63,19 @@ const UpcomingReviewsChart = dynamic(
 );
 
 export default function ProgressPage() {
-    const router = useRouter();
-    const { profile, isLoading: isUserLoading } = useUser();
-    const [period, setPeriod] = useState<ReportPeriod>("week");
+    const { profile } = useUser();
+    // The period is a view of the report, so it belongs in the URL: it survives
+    // a reload, it can be shared, and Back steps between periods instead of
+    // leaving the page.
+    const [{ period }, setSearchParams] = useQueryStates(progressSearchParams, {
+        history: "push",
+    });
     const {
         data: report,
         isLoading,
         isError,
         refetch,
     } = useGetLearningReportQuery(period, !!profile);
-
-    if (isUserLoading) {
-        return (
-            <main className="flex min-h-dvh items-center justify-center px-4">
-                <LoadingSpinner size="lg" label="Loading…" />
-            </main>
-        );
-    }
-
-    if (!profile) {
-        return (
-            <main className="flex min-h-dvh flex-col items-center justify-center gap-4 px-4 text-center">
-                <p className="text-muted-foreground">
-                    Log in to see your learning progress report.
-                </p>
-                <Button onClick={() => router.push("/auth/login")}>Log in</Button>
-            </main>
-        );
-    }
 
     const hasAccuracy = !!report?.buckets.some((b) => b.reviews > 0);
 
@@ -110,16 +94,19 @@ export default function ProgressPage() {
                             See how much you&apos;ve learned and improved over time.
                         </p>
                     </div>
-                    <ReportPeriodToggle value={period} onChange={setPeriod} />
+                    <ReportPeriodToggle
+                        value={period}
+                        onChange={(next) => setSearchParams({ period: next })}
+                    />
                 </header>
 
-                {isLoading && (
+                {isLoading && !report && (
                     <div className="flex min-h-[50vh] items-center justify-center">
                         <LoadingSpinner size="lg" label="Building your report…" />
                     </div>
                 )}
 
-                {isError && (
+                {isError && !report && (
                     <div className="flex min-h-[40vh] flex-col items-center justify-center gap-4 rounded-2xl border border-dashed border-border bg-muted/20 px-4 text-center">
                         <p className="text-muted-foreground">
                             Couldn&apos;t load your report.
@@ -130,7 +117,7 @@ export default function ProgressPage() {
                     </div>
                 )}
 
-                {report && !isLoading && !isError && (
+                {report && (
                     <div className="space-y-4">
                         <ReportSummaryCards
                             summary={report.summary}
