@@ -18,6 +18,16 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import WordFormDialog from "./word-form-dialog";
 
+/** `maxWords == null` means unlimited — same rule the backend uses. */
+const isLessonFull = (lesson: ILessonSummary) =>
+    lesson.maxWords != null && lesson.wordsCount >= lesson.maxWords;
+
+const lessonOptionLabel = (lesson: ILessonSummary) => {
+    if (lesson.maxWords == null) return `${lesson.name} (${lesson.wordsCount} words)`;
+    const counts = `${lesson.name} (${lesson.wordsCount}/${lesson.maxWords} words)`;
+    return isLessonFull(lesson) ? `${counts} — Full` : counts;
+};
+
 export interface QuickAddWordDialogProps {
     isOpen: boolean;
     onClose: () => void;
@@ -51,8 +61,13 @@ export default function QuickAddWordDialog({
     );
     const lessons: ILessonSummary[] = lessonsData ?? [];
 
-    const selectedLessonValue =
-        lessons.some((l) => l.id === selectedLessonId) ? selectedLessonId : "";
+    // Drops the selection if the lesson disappeared or filled up since it was
+    // picked (another tab/device, or an offline flush landing on a refetch).
+    const selectedLessonValue = lessons.some(
+        (l) => l.id === selectedLessonId && !isLessonFull(l)
+    )
+        ? selectedLessonId
+        : "";
 
     const handleOpenChange = useCallback(
         (open: boolean) => {
@@ -194,13 +209,16 @@ export default function QuickAddWordDialog({
                             >
                                 <option value="">Select lesson</option>
                                 {lessons.map((l) => (
-                                    <option key={l.id} value={l.id}>
-                                        {l.name} ({l.wordsCount} words)
+                                    <option key={l.id} value={l.id} disabled={isLessonFull(l)}>
+                                        {lessonOptionLabel(l)}
                                     </option>
                                 ))}
                             </select>
                             {selectedCourseId && lessons.length === 0 && (
                                 <p className="text-xs text-muted-foreground">No lessons in this course yet.</p>
+                            )}
+                            {selectedCourseId && lessons.length > 0 && lessons.every(isLessonFull) && (
+                                <p className="text-xs text-muted-foreground">All lessons in this course are full.</p>
                             )}
                         </div>
                         <div className="flex items-center gap-2 pt-1">
