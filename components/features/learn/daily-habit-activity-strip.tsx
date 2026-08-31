@@ -39,24 +39,42 @@ export function DailyHabitActivityStrip({
                 {days.map((day) => {
                     const isToday = day.date === today;
                     const active = day.words > 0;
+                    // A day no practice happened on, but a freeze paid for — the
+                    // streak ran through it, so it isn't a miss.
+                    const frozen = day.frozen === true && !active;
                     return (
                         <div
                             key={day.date}
                             role="listitem"
                             className="flex flex-col items-center gap-1.5 min-w-0"
-                            title={`${dayLabel(day.date, today)}: ${day.words} word${day.words === 1 ? "" : "s"}${day.goalMet ? " · goal met" : ""}`}
+                            title={
+                                frozen
+                                    ? `${dayLabel(day.date, today)}: streak freeze used`
+                                    : `${dayLabel(day.date, today)}: ${day.words} word${day.words === 1 ? "" : "s"}${day.goalMet ? " · goal met" : ""}`
+                            }
                         >
                             <div
                                 className={cn(
-                                    "h-8 w-full max-w-[2.5rem] rounded-lg border transition-colors",
+                                    "h-8 w-full max-w-[2.5rem] rounded-lg border transition-colors flex items-center justify-center",
                                     day.goalMet
                                         ? "border-primary/40 bg-primary/20"
                                         : active
                                           ? "border-orange-400/40 bg-orange-400/15"
-                                          : "border-border/60 bg-muted/40",
+                                          : frozen
+                                            ? "border-sky-400/40 bg-sky-400/15"
+                                            : "border-border/60 bg-muted/40",
                                     isToday && "ring-2 ring-primary/30 ring-offset-1 ring-offset-background",
                                 )}
-                            />
+                            >
+                                {frozen && (
+                                    <span
+                                        aria-hidden
+                                        className="text-[10px] leading-none text-sky-500"
+                                    >
+                                        ❄
+                                    </span>
+                                )}
+                            </div>
                             <span
                                 className={cn(
                                     "text-[10px] leading-none tabular-nums",

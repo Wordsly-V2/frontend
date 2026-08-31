@@ -65,6 +65,7 @@ export function emptyLocalDailyHabit(date = localDateString()): IDailyHabit {
         goalMetToday: false,
         totalWordsPracticed: 0,
         totalPracticeDays: 0,
+        totalGoalDays: 0,
         wordsThisWeek: 0,
         daysActiveThisWeek: 0,
         recentDays: emptyRecentDays(date),
@@ -147,6 +148,10 @@ export function getLocalDailyHabit(): IDailyHabit {
                     typeof parsed.totalPracticeDays === "number"
                         ? parsed.totalPracticeDays
                         : 0,
+                totalGoalDays:
+                    typeof parsed.totalGoalDays === "number"
+                        ? parsed.totalGoalDays
+                        : 0,
                 streakFreezes: freezes,
                 streakShielded: shielded,
                 streakAtRisk: streak > 0 && practicedYesterday,
@@ -220,6 +225,11 @@ export function recordPracticeWordsLocally(wordCount: number): IDailyHabit {
         lastPracticeDate: today,
         goalMetToday,
         totalWordsPracticed: current.totalWordsPracticed + wordCount,
+        // The goal was crossed by this session, so today is a newly completed day.
+        totalGoalDays:
+            goalMetToday && !current.goalMetToday
+                ? current.totalGoalDays + 1
+                : current.totalGoalDays,
         wordsThisWeek: recentDays.reduce((sum, d) => sum + d.words, 0),
         daysActiveThisWeek: recentDays.filter((d) => d.words > 0).length,
         recentDays,

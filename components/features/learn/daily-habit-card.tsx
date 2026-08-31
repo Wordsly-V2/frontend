@@ -212,9 +212,11 @@ export function DailyHabitCard() {
 
                     {habit.totalPracticeDays > 0 && (
                         <p className="text-xs text-muted-foreground">
-                            Lifetime: {habit.totalWordsPracticed.toLocaleString()} words across{" "}
+                            Lifetime: {habit.totalGoalDays} day
+                            {habit.totalGoalDays === 1 ? "" : "s"} completed ·{" "}
                             {habit.totalPracticeDays} practice day
-                            {habit.totalPracticeDays === 1 ? "" : "s"}
+                            {habit.totalPracticeDays === 1 ? "" : "s"} ·{" "}
+                            {habit.totalWordsPracticed.toLocaleString()} words
                             {habit.longestGoalStreak > 0 &&
                                 ` · best goal streak ${habit.longestGoalStreak}`}
                         </p>

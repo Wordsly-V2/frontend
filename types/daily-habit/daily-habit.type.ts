@@ -2,6 +2,8 @@ export interface IDailyHabitDay {
     date: string;
     words: number;
     goalMet: boolean;
+    /** No practice, but a banked freeze covered the day and the streak survived. */
+    frozen?: boolean;
 }
 
 /** An achievement newly unlocked by a practice session (record-practice response). */
@@ -25,7 +27,10 @@ export interface IDailyHabit {
     goal: number;
     goalMetToday: boolean;
     totalWordsPracticed: number;
+    /** Days with any practice, all time. */
     totalPracticeDays: number;
+    /** Days the daily goal was completed, all time. */
+    totalGoalDays: number;
     wordsThisWeek: number;
     daysActiveThisWeek: number;
     recentDays: IDailyHabitDay[];
