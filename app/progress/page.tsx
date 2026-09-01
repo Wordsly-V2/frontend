@@ -6,11 +6,15 @@ import { Button } from "@/components/ui/button";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { Skeleton } from "@/components/common/states/skeleton";
 import { useUser } from "@/hooks/useUser.hook";
-import { progressSearchParams } from "@/lib/search-params/progress";
+import {
+    clampReportOffset,
+    progressSearchParams,
+} from "@/lib/search-params/progress";
 import { useGetLearningReportQuery } from "@/queries/learning-report.query";
 import { AchievementsGrid } from "@/components/features/progress/achievements-grid";
 import { ActivityHeatmap } from "@/components/features/progress/activity-heatmap";
 import { ReportPeriodToggle } from "@/components/features/progress/report-period-toggle";
+import { ReportRangeNav } from "@/components/features/progress/report-range-nav";
 import { ReportSummaryCards } from "@/components/features/progress/report-summary-cards";
 
 /** Placeholder matching ChartCard's shell while a chart chunk loads. */
@@ -67,15 +71,18 @@ export default function ProgressPage() {
     // The period is a view of the report, so it belongs in the URL: it survives
     // a reload, it can be shared, and Back steps between periods instead of
     // leaving the page.
-    const [{ period }, setSearchParams] = useQueryStates(progressSearchParams, {
-        history: "push",
-    });
+    const [{ period, offset: rawOffset }, setSearchParams] = useQueryStates(
+        progressSearchParams,
+        { history: "push" },
+    );
+    // The URL is user-editable, so keep the window inside what the API accepts.
+    const offset = clampReportOffset(rawOffset);
     const {
         data: report,
         isLoading,
         isError,
         refetch,
-    } = useGetLearningReportQuery(period, !!profile);
+    } = useGetLearningReportQuery(period, !!profile, offset);
 
     const hasAccuracy = !!report?.buckets.some((b) => b.reviews > 0);
 
@@ -94,10 +101,27 @@ export default function ProgressPage() {
                             See how much you&apos;ve learned and improved over time.
                         </p>
                     </div>
-                    <ReportPeriodToggle
-                        value={period}
-                        onChange={(next) => setSearchParams({ period: next })}
-                    />
+                    <div className="flex flex-col items-start gap-2 sm:items-end">
+                        <ReportPeriodToggle
+                            value={period}
+                            // Windows are period-sized, so an offset from the
+                            // old period means nothing in the new one: switching
+                            // always lands on the current window.
+                            onChange={(next) =>
+                                setSearchParams({ period: next, offset: 0 })
+                            }
+                        />
+                        {report && (
+                            <ReportRangeNav
+                                period={period}
+                                range={report.range}
+                                offset={offset}
+                                onChange={(next) =>
+                                    setSearchParams({ offset: next })
+                                }
+                            />
+                        )}
+                    </div>
                 </header>
 
                 {isLoading && !report && (

@@ -72,6 +72,8 @@ export interface IReportAchievement {
 
 export interface ILearningReport {
     period: ReportPeriod;
+    /** Whole periods back from today (0 = current window). */
+    offset: number;
     granularity: ReportGranularity;
     range: IReportRange;
     buckets: IReportBucket[];
@@ -86,6 +88,16 @@ export const REPORT_PERIOD_LABELS: Record<ReportPeriod, string> = {
     week: "Week",
     month: "Month",
     year: "Year",
+};
+
+/** Furthest window the report can be paged back to (matches the API cap). */
+export const MAX_REPORT_OFFSET = 520;
+
+/** Label for the current window of each period, used when offset is 0. */
+export const CURRENT_PERIOD_LABELS: Record<ReportPeriod, string> = {
+    week: "Last 7 days",
+    month: "Last 30 days",
+    year: "Last 12 months",
 };
 
 /** Selectable forecast windows. */

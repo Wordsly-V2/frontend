@@ -126,8 +126,8 @@ export const queryKeys = {
     },
     learningReport: {
         all: ["learning-report"] as const,
-        byPeriod: (period: string, clientDate: string) =>
-            ["learning-report", period, clientDate] as const,
+        byPeriod: (period: string, clientDate: string, offset: number) =>
+            ["learning-report", period, clientDate, offset] as const,
         forecast: (days: number, clientDate: string) =>
             ["learning-report", "forecast", days, clientDate] as const,
         activityCalendar: (clientDate: string) =>

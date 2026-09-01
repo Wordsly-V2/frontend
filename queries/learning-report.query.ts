@@ -16,19 +16,24 @@ import { useQuery } from "@tanstack/react-query";
 export const learningReportQueryKey = (
     period: ReportPeriod,
     clientDate: string,
-) => queryKeys.learningReport.byPeriod(period, clientDate);
+    offset = 0,
+) => queryKeys.learningReport.byPeriod(period, clientDate, offset);
 
 export const useGetLearningReportQuery = (
     period: ReportPeriod,
     enabled = true,
+    offset = 0,
 ) => {
     const clientDate = localDateString();
 
     return useQuery<ILearningReport>({
-        queryKey: learningReportQueryKey(period, clientDate),
-        queryFn: () => getLearningReport(period, clientDate),
+        queryKey: learningReportQueryKey(period, clientDate, offset),
+        queryFn: () => getLearningReport(period, clientDate, offset),
         enabled,
         staleTime: 60_000,
+        // Past windows never change, so keep the old chart on screen while the
+        // next one loads instead of flashing the page skeleton on every step.
+        placeholderData: (previous) => previous,
     });
 };
 
