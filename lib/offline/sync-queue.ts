@@ -251,6 +251,28 @@ export async function mergeDailyHabitRecord(params: {
 	});
 }
 
+/**
+ * Move every record from one scope id to another.
+ *
+ * Queued work is partitioned by the id the app believed identified the account.
+ * When that id is corrected, records left under the old one become invisible to
+ * the flusher and the learner silently loses practice they already did — so the
+ * correction has to carry them across rather than orphan them.
+ */
+export async function rescopeSyncRecords(
+	fromUserLoginId: string,
+	toUserLoginId: string,
+): Promise<number> {
+	if (!isIdbAvailable()) return 0;
+	if (fromUserLoginId === toUserLoginId) return 0;
+
+	const stale = await getSyncRecordsForUser(fromUserLoginId);
+	for (const record of stale) {
+		await updateSyncRecord({ ...record, userLoginId: toUserLoginId });
+	}
+	return stale.length;
+}
+
 /** Newest queued write, used as a clock-tampering signal by the auth grace check. */
 export async function newestQueuedAtMs(): Promise<number | undefined> {
 	const records = await getAllSyncRecords();

@@ -1,3 +1,4 @@
+import { apiPaths } from "@/lib/api-paths";
 import { request } from "@/lib/axios";
 import { IWordPronunciation } from "@/types/courses/courses.type";
 import { IWordSearchResult } from "@/types/courses/courses.type";
@@ -15,7 +16,7 @@ export type WordPronunciationResponse = {
 
 export const fetchWordDetailsDictionary = async (word: string): Promise<WordPronunciationResponse> => {
     const data = await request<WordPronunciationResponse>((i) =>
-        i.get(`/dictionary/pronunciation/${encodeURIComponent(word.trim())}`)
+        i.get(apiPaths.dictionary.pronunciation(word.trim()))
     );
     const seen = new Set<string>();
     const pronunciation = (data.pronunciation ?? []).filter((p) => {
@@ -31,7 +32,7 @@ export const fetchWordDetailsDictionary = async (word: string): Promise<WordPron
 
 export const searchWords = (query: string): Promise<IWordSearchResult[]> => {
     if (query.trim().length === 0) return Promise.resolve([]);
-    return request((i) => i.get(`/dictionary/search/${encodeURIComponent(query.trim())}`));
+    return request((i) => i.get(apiPaths.dictionary.search(query.trim())));
 };
 
 /** A single example sentence with optional per-example audio/translation. */

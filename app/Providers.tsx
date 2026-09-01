@@ -70,7 +70,7 @@ function AccountSwitchGuard() {
             if (!profile || cancelled) return;
 
             const cachedId = getBootUserLoginId();
-            if (cachedId && cachedId !== profile.id) {
+            if (cachedId && cachedId !== profile.userLoginId) {
                 cancelled = true;
                 void clearOfflineData().finally(() => {
                     window.location.reload();

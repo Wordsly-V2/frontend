@@ -47,7 +47,9 @@ export function usePracticeSessionPersistence({
     const router = useRouter();
     const queryClient = useQueryClient();
     // Queued work is scoped per account so it can never be sent under another.
-    const userLoginId = useAppSelector((state) => state.user.profile?.id ?? null);
+    const userLoginId = useAppSelector(
+        (state) => state.user.profile?.userLoginId ?? null,
+    );
     const [savedOnce, setSavedOnce] = useState(false);
     const [hasUnsavedPractice, setHasUnsavedPractice] = useState(false);
     const [sessionSyncResult, setSessionSyncResult] =

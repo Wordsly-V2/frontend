@@ -1,7 +1,15 @@
 import { getLocalStorageItem, removeLocalStorageItem } from "@/lib/local-storage";
 import { PENDING_SAVES_KEY } from "@/lib/practice-pending-saves";
 import type { IBulkRecordAnswersDto } from "@/types/word-progress/word-progress.type";
-import { enqueueSyncRecord, newClientRequestId } from "./sync-queue";
+import {
+	clearLegacyV1AuthSession,
+	readLegacyV1ScopeId,
+} from "./auth-session";
+import {
+	enqueueSyncRecord,
+	newClientRequestId,
+	rescopeSyncRecords,
+} from "./sync-queue";
 
 interface LegacyPendingSave {
 	id: string;
@@ -53,4 +61,24 @@ export async function migrateLegacyPendingSaves(
 
 	removeLocalStorageItem(PENDING_SAVES_KEY);
 	return legacy.length;
+}
+
+/**
+ * Re-home queued writes after the account scope id was corrected.
+ *
+ * Before the fix, device-local data was scoped by the profile row's `id`; it is
+ * now scoped by `userLoginId`, the id the token and every service actually use.
+ * The old value survives in the v1 auth-session blob, so it can be read once and
+ * the records carried across. Runs at most once per device: the v1 blob is
+ * removed afterwards.
+ */
+export async function migrateSyncQueueScope(
+	userLoginId: string,
+): Promise<number> {
+	const legacyId = readLegacyV1ScopeId();
+	if (!legacyId) return 0;
+
+	const moved = await rescopeSyncRecords(legacyId, userLoginId);
+	clearLegacyV1AuthSession();
+	return moved;
 }

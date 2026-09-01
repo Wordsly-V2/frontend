@@ -1,6 +1,6 @@
 import { logout as logoutApi } from '@/apis/auth.api';
 import { getUserProfile } from '@/apis/users.api';
-import { isNetworkError } from '@/lib/api-error';
+import { isUnauthorizedError } from '@/lib/api-error';
 import {
     clearOfflineAuthSession,
     readOfflineAuthSession,
@@ -55,10 +55,16 @@ export const fetchProfile = createAsyncThunk<
             saveOfflineAuthSession(profile);
             return profile;
         } catch (error) {
-            if (isNetworkError(error)) {
-                return rejectWithValue({ reason: 'network' });
+            // Only an explicit rejection of this identity may wipe local data.
+            // Everything else -- a 5xx, a timeout, a gateway that cannot reach
+            // the key set to check the token -- is "we could not ask", which
+            // must fall back to offline grace. Classifying those as
+            // `unauthorized` would let a brief backend blip destroy every
+            // learner's cached work and queued answers.
+            if (isUnauthorizedError(error)) {
+                return rejectWithValue({ reason: 'unauthorized' });
             }
-            return rejectWithValue({ reason: 'unauthorized' });
+            return rejectWithValue({ reason: 'network' });
         }
     },
     {

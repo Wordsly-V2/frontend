@@ -193,7 +193,7 @@ export default function VocabularyPractice({
     const recordDailyPractice = useRecordDailyPracticeMutation();
     // Queued habit days are scoped per account, like every other offline write.
     const habitUserLoginId = useAppSelector(
-        (state) => state.user.profile?.id ?? null,
+        (state) => state.user.profile?.userLoginId ?? null,
     );
     const [timeSpentSeconds, setTimeSpentSeconds] = useState<number | undefined>(undefined);
     const [feedbackSeed] = useState(() => Date.now());

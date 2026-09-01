@@ -5,7 +5,10 @@ import { useOfflineWarmup } from "@/hooks/useOfflineWarmup.hook";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus.hook";
 import { MSG_FLUSH_SYNC } from "@/lib/offline/media-cache";
 import { flushSyncQueue, type FlushReason } from "@/lib/offline/sync-flush";
-import { migrateLegacyPendingSaves } from "@/lib/offline/sync-queue-migration";
+import {
+    migrateLegacyPendingSaves,
+    migrateSyncQueueScope,
+} from "@/lib/offline/sync-queue-migration";
 import { releaseQuarantinedRecords } from "@/lib/offline/sync-queue";
 import { queryKeys } from "@/lib/query-keys";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
@@ -29,7 +32,7 @@ export default function OfflineBootstrap() {
     const onlineStatus = useOnlineStatus();
     const { canSync } = useAuthSession();
     const profile = useAppSelector((state) => state.user.profile);
-    const userLoginId = profile?.id ?? null;
+    const userLoginId = profile?.userLoginId ?? null;
 
     const hasMigrated = useRef(false);
 
@@ -49,6 +52,9 @@ export default function OfflineBootstrap() {
         hasMigrated.current = true;
 
         void (async () => {
+            // Carry across anything queued under the pre-fix scope id
+            // before the flusher looks for this account's work.
+            await migrateSyncQueueScope(userLoginId);
             await migrateLegacyPendingSaves(userLoginId);
             await releaseQuarantinedRecords(userLoginId);
             flush("mount");

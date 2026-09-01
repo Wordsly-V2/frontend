@@ -1,3 +1,4 @@
+import { apiPaths } from "@/lib/api-paths";
 import { request } from "@/lib/axios";
 import type {
     ILearningSettings,
@@ -6,10 +7,10 @@ import type {
 
 /** Fetch the learner's daily-pacing + leech settings. */
 export const getLearningSettings = (): Promise<ILearningSettings> =>
-    request((i) => i.get("/learning-settings"));
+    request((i) => i.get(apiPaths.learningSettings()));
 
 /** Update daily-pacing + leech settings (partial patch). */
 export const updateLearningSettings = (
     dto: IUpdateLearningSettingsDto,
 ): Promise<ILearningSettings> =>
-    request((i) => i.patch("/learning-settings", dto));
+    request((i) => i.patch(apiPaths.learningSettings(), dto));

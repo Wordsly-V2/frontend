@@ -1,3 +1,4 @@
+import { apiPaths } from "@/lib/api-paths";
 import { request } from "@/lib/axios";
 import { localDateString } from "@/lib/daily-habit";
 import type {
@@ -17,7 +18,7 @@ export const getLearningReport = (
     clientDate?: string,
     offset = 0,
 ): Promise<ILearningReport> =>
-    request((i) => i.get("/learning-report", {
+    request((i) => i.get(apiPaths.learningReport.root(), {
         params: { period, clientDate: clientDate ?? localDateString(), offset },
     }));
 
@@ -26,7 +27,7 @@ export const getReviewForecast = (
     days: number,
     clientDate?: string,
 ): Promise<IReviewForecast> =>
-    request((i) => i.get("/learning-report/forecast", {
+    request((i) => i.get(apiPaths.learningReport.forecast(), {
         params: { days, clientDate: clientDate ?? localDateString() },
     }));
 
@@ -34,6 +35,6 @@ export const getReviewForecast = (
 export const getActivityCalendar = (
     clientDate?: string,
 ): Promise<IActivityCalendar> =>
-    request((i) => i.get("/learning-report/activity-calendar", {
+    request((i) => i.get(apiPaths.learningReport.activityCalendar(), {
         params: { clientDate: clientDate ?? localDateString() },
     }));

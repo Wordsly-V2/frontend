@@ -1,3 +1,4 @@
+import { apiPaths } from "@/lib/api-paths";
 import { request } from "@/lib/axios";
 import type {
     INotificationPreferences,
@@ -8,24 +9,24 @@ import type {
 
 /** Register a browser push subscription for the current user. */
 export const createPushSubscription = (dto: IPushSubscriptionDto): Promise<void> =>
-    request((i) => i.post("/notifications/subscriptions", dto));
+    request((i) => i.post(apiPaths.notifications.subscriptions(), dto));
 
 /** Remove a push subscription by its endpoint. */
 export const deletePushSubscription = (endpoint: string): Promise<void> =>
     request((i) =>
-        i.delete("/notifications/subscriptions", { data: { endpoint } }),
+        i.delete(apiPaths.notifications.subscriptions(), { data: { endpoint } }),
     );
 
 /** Fetch the learner's streak-reminder preferences. */
 export const getNotificationPreferences = (): Promise<INotificationPreferences> =>
-    request((i) => i.get("/notifications/preferences"));
+    request((i) => i.get(apiPaths.notifications.preferences()));
 
 /** Update streak-reminder preferences (partial patch). */
 export const updateNotificationPreferences = (
     dto: IUpdateNotificationPreferencesDto,
 ): Promise<INotificationPreferences> =>
-    request((i) => i.patch("/notifications/preferences", dto));
+    request((i) => i.patch(apiPaths.notifications.preferences(), dto));
 
 /** Fetch the server VAPID public key (null when push isn't configured). */
 export const getVapidPublicKey = (): Promise<IVapidPublicKeyResponse> =>
-    request((i) => i.get("/notifications/vapid-public-key"));
+    request((i) => i.get(apiPaths.notifications.vapidPublicKey()));

@@ -1,7 +1,6 @@
 import {
     getDueWordIds,
     getDueWordIdsByWordIds,
-    getDueWords,
     getLeeches,
     getProgressByWordIds,
     getProgressStats,
@@ -19,7 +18,6 @@ import { queryKeys } from "@/lib/query-keys";
 import {
     IBulkRecordAnswersDto,
     IBulkRecordAnswersResponse,
-    IDueWord,
     IDueWordIdsResponse,
     ILeechesResponse,
     IWordProgressResponse,
@@ -34,15 +32,6 @@ export const useRecordAnswerBulkSyncMutation = () => {
         mutationFn: recordAnswerBulkSync,
     });
 };
-
-export const useGetDueWordsQuery = (
-    scope: WordProgressScope = {},
-    enabled: boolean = true
-) => useQuery<IDueWord[]>({
-    queryKey: queryKeys.dueWords.list(scope),
-    queryFn: () => getDueWords(scope),
-    enabled,
-});
 
 export const useGetDueWordIdsQuery = (
     scope: WordProgressScope = {},

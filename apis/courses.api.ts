@@ -1,3 +1,4 @@
+import { apiPaths } from "@/lib/api-paths";
 import { request } from "@/lib/axios";
 import { IPaginatedResponse } from "@/types/common/pagination.type";
 import { CreateUpdateMyCourse, ICourse, ICourseTotalStats, MyCoursesQueryOptions } from "@/types/courses/courses.type";
@@ -10,22 +11,22 @@ export const getMyCourses = (options: MyCoursesQueryOptions = {}): Promise<IPagi
         orderByDirection = "asc",
         searchQuery = "",
     } = options;
-    return request((i) => i.get('/courses/me/my-courses', {
+    return request((i) => i.get(apiPaths.courses.root(), {
         params: { limit: itemsPerPage, page: currentPage, orderByField, orderByDirection, searchQuery },
     }));
 };
 
 export const createMyCourse = (course: CreateUpdateMyCourse): Promise<{ success: boolean }> =>
-    request((i) => i.post('/courses/me/my-courses', course));
+    request((i) => i.post(apiPaths.courses.root(), course));
 
 export const getMyCoursesTotalStats = (): Promise<ICourseTotalStats> =>
-    request((i) => i.get('/courses/me/my-courses/total-stats'));
+    request((i) => i.get(apiPaths.courses.totalStats()));
 
 export const deleteMyCourse = (courseId: string): Promise<{ success: boolean }> =>
-    request((i) => i.delete(`/courses/me/my-courses/${courseId}`));
+    request((i) => i.delete(apiPaths.courses.byId(courseId)));
 
 export const updateMyCourse = (courseId: string, course: CreateUpdateMyCourse): Promise<{ success: boolean }> =>
-    request((i) => i.put(`/courses/me/my-courses/${courseId}`, course));
+    request((i) => i.put(apiPaths.courses.byId(courseId), course));
 
 export const getCourseDetailById = (courseId: string): Promise<ICourse> =>
-    request((i) => i.get(`/courses/me/my-courses/${courseId}`));
+    request((i) => i.get(apiPaths.courses.byId(courseId)));

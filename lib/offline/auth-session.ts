@@ -14,7 +14,34 @@ import type { IUserProfile } from '@/types/users/users.type';
  * of bouncing the learner to a login page they cannot reach.
  */
 
-export const AUTH_SESSION_STORAGE_KEY = 'wordsly.authSession.v1';
+export const AUTH_SESSION_STORAGE_KEY = 'wordsly.authSession.v2';
+
+/**
+ * The superseded v1 key.
+ *
+ * v1 stored the profile row's `id` under the name `userLoginId`, which is a
+ * different UUID from the token's subject — so the identity check below always
+ * failed and offline grace was never granted. The key is still read once, to
+ * recover the id device-local records were scoped by before the fix, and is
+ * wiped on logout so a previous account's blob cannot linger.
+ */
+export const LEGACY_AUTH_SESSION_STORAGE_KEY_V1 = 'wordsly.authSession.v1';
+
+/** The (mis-named) id v1 scoped device-local data by, or null. */
+export function readLegacyV1ScopeId(): string | null {
+	const raw = getLocalStorageItem(LEGACY_AUTH_SESSION_STORAGE_KEY_V1);
+	if (!raw) return null;
+	try {
+		const parsed = JSON.parse(raw) as { userLoginId?: string };
+		return parsed?.userLoginId ?? null;
+	} catch {
+		return null;
+	}
+}
+
+export function clearLegacyV1AuthSession(): void {
+	removeLocalStorageItem(LEGACY_AUTH_SESSION_STORAGE_KEY_V1);
+}
 
 /**
  * How long the app may be opened offline after the last successful check.
@@ -23,7 +50,7 @@ export const AUTH_SESSION_STORAGE_KEY = 'wordsly.authSession.v1';
  */
 export const OFFLINE_GRACE_MS = 7 * 24 * 60 * 60 * 1000;
 
-const SCHEMA_VERSION = 1;
+const SCHEMA_VERSION = 2;
 
 export interface OfflineAuthSession {
 	schemaVersion: number;
@@ -52,7 +79,7 @@ export function saveOfflineAuthSession(profile: IUserProfile): void {
 	const now = new Date();
 	const session: OfflineAuthSession = {
 		schemaVersion: SCHEMA_VERSION,
-		userLoginId: profile.id,
+		userLoginId: profile.userLoginId,
 		profile,
 		lastVerifiedAt: now.toISOString(),
 		lastVerifiedEpochMs: now.getTime(),
@@ -86,7 +113,9 @@ export function readTokenSubject(): string | null {
 			userLoginId?: string;
 			sub?: string;
 		};
-		return claims.userLoginId ?? claims.sub ?? null;
+		// `sub` is the standard claim; `userLoginId` is the legacy one kept
+		// during the auth migration and dropped once no tokens carry it.
+		return claims.sub ?? claims.userLoginId ?? null;
 	} catch {
 		return null;
 	}

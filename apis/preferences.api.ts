@@ -1,3 +1,4 @@
+import { apiPaths } from "@/lib/api-paths";
 import { request } from "@/lib/axios";
 import type {
     IAppPreferences,
@@ -6,10 +7,10 @@ import type {
 
 /** Fetch the learner's device-independent preferences blob. */
 export const getPreferences = (): Promise<IPreferencesResponse> =>
-    request((i) => i.get("/preferences"));
+    request((i) => i.get(apiPaths.preferences()));
 
 /** Merge a partial preferences patch (last-write-wins per top-level key). */
 export const updatePreferences = (
     patch: IAppPreferences,
 ): Promise<IPreferencesResponse> =>
-    request((i) => i.patch("/preferences", { preferences: patch }));
+    request((i) => i.patch(apiPaths.preferences(), { preferences: patch }));
