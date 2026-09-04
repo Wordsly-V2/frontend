@@ -7,14 +7,14 @@
  * asks for is exactly what a service receives, so the shapes live here rather
  * than being spelled out across fourteen api modules.
  *
- * `me` is a real path segment, not a placeholder to substitute: each service
- * rewrites it to the subject of the caller's own access token. That keeps the
- * client from ever having to know — or be trusted about — its own user id.
+ * No path names a user. These routes used to carry a `users/me` prefix that each
+ * service rewrote to the caller's own id; the services now read the id from the
+ * access token directly, so there is nothing left for the client to say. The
+ * `user()` helper is kept because it marks which endpoints are scoped to the
+ * signed-in learner, which is worth being able to see at a glance.
  */
 
-export const ME = 'me';
-
-const user = (segment: string) => `/users/${ME}/${segment}`;
+const user = (segment: string) => `/${segment}`;
 
 export const apiPaths = {
     profile: () => user('profile'),
@@ -64,7 +64,7 @@ export const apiPaths = {
         search: (query: string) =>
             `/dictionary/search/${encodeURIComponent(query)}`,
         searchMyWords: (word: string) =>
-            `/dictionary/users/${ME}/words/search/${encodeURIComponent(word)}`,
+            `/dictionary/words/search/${encodeURIComponent(word)}`,
     },
 
     wordProgress: {
