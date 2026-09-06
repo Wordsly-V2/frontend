@@ -23,7 +23,6 @@ import {
 import {
     DAILY_GOAL_OPTIONS,
     MAX_STREAK_FREEZES,
-    goalDaysUntilNextFreeze,
 } from "@/types/daily-habit/daily-habit.type";
 import { Snowflake } from "lucide-react";
 
@@ -120,15 +119,9 @@ export function StreakChip({ className }: { className?: string }) {
                             {habit.streakFreezes}/{MAX_STREAK_FREEZES} freezes
                         </span>{" "}
                         auto-protect your streak on a missed day.{" "}
-                        {(() => {
-                            const untilNext = goalDaysUntilNextFreeze(
-                                habit.goalStreak,
-                                habit.streakFreezes,
-                            );
-                            return untilNext == null
-                                ? "Balance full."
-                                : `${untilNext} more goal-day${untilNext === 1 ? "" : "s"} earns another.`;
-                        })()}
+                        {habit.goalDaysUntilNextFreeze == null
+                            ? "Balance full."
+                            : `${habit.goalDaysUntilNextFreeze} more goal-day${habit.goalDaysUntilNextFreeze === 1 ? "" : "s"} earns another.`}
                     </span>
                 </div>
 

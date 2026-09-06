@@ -73,6 +73,9 @@ export function emptyLocalDailyHabit(date = localDateString()): IDailyHabit {
         nextMilestone: nextStreakMilestone(0),
         streakFreezes: 0,
         streakShielded: false,
+        // Only the server can place the learner in the earn cadence; offline we
+        // just don't claim to know.
+        goalDaysUntilNextFreeze: null,
         message: `Practice ${DAILY_GOAL_WORDS} words a day to build your streak.`,
     };
 }

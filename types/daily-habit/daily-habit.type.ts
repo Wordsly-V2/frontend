@@ -12,7 +12,6 @@ export interface IUnlockedAchievement {
     label: string;
     category: string;
     xpAwarded: number;
-    streakFreezeAwarded: number;
     unlockedAt: string;
 }
 
@@ -42,6 +41,12 @@ export interface IDailyHabit {
     streakFreezes: number;
     /** A banked freeze is currently bridging one or more missed days. */
     streakShielded: boolean;
+    /**
+     * Consecutive goal-met days still owed for the next freeze, or null while
+     * the bank is full. Derived server-side from the day ledger — the client
+     * cannot know where in the earn cadence the learner sits.
+     */
+    goalDaysUntilNextFreeze: number | null;
     /** Achievements newly unlocked by the session that produced this snapshot. */
     unlockedAchievements?: IUnlockedAchievement[];
     message: string;
@@ -82,20 +87,6 @@ export interface IUpdateDailyGoalDto {
 export const DAILY_GOAL_OPTIONS = [5, 10, 15, 20, 30] as const;
 
 /** Freeze economy — mirrors the learning-service constants. */
-export const FREEZE_EARN_GOAL_STREAKS = [3, 5] as const;
+export const FREEZE_FIRST_EARN_GOAL_DAYS = 3;
+export const FREEZE_REPEAT_EARN_GOAL_DAYS = 2;
 export const MAX_STREAK_FREEZES = 2;
-
-/**
- * Goal-met days remaining until the next freeze is earned, or null when the
- * balance is already full or all freeze thresholds have been passed.
- */
-export function goalDaysUntilNextFreeze(
-    goalStreak: number,
-    freezes: number,
-): number | null {
-    if (freezes >= MAX_STREAK_FREEZES) return null;
-    const next = FREEZE_EARN_GOAL_STREAKS.find(
-        (threshold) => threshold > goalStreak,
-    );
-    return next === undefined ? null : next - goalStreak;
-}

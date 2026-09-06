@@ -18,8 +18,9 @@ import {
 } from "@/queries/daily-habit.query";
 import {
     DAILY_GOAL_OPTIONS,
+    FREEZE_FIRST_EARN_GOAL_DAYS,
+    FREEZE_REPEAT_EARN_GOAL_DAYS,
     MAX_STREAK_FREEZES,
-    goalDaysUntilNextFreeze,
 } from "@/types/daily-habit/daily-habit.type";
 import { AlertTriangle, Award, CalendarDays, ChevronDown, Snowflake, Sparkles, Target, Trophy } from "lucide-react";
 import type { ReactNode } from "react";
@@ -201,7 +202,7 @@ export function DailyHabitCard() {
 
                     <FreezeMeter
                         freezes={habit.streakFreezes}
-                        goalStreak={habit.goalStreak}
+                        untilNext={habit.goalDaysUntilNextFreeze}
                         shielded={habit.streakShielded}
                     />
 
@@ -229,10 +230,14 @@ export function DailyHabitCard() {
 
 function FreezeMeter({
     freezes,
-    goalStreak,
+    untilNext,
     shielded,
-}: Readonly<{ freezes: number; goalStreak: number; shielded: boolean }>) {
-    const untilNext = goalDaysUntilNextFreeze(goalStreak, freezes);
+}: Readonly<{
+    freezes: number;
+    /** Goal days owed for the next freeze; null while the bank is full. */
+    untilNext: number | null;
+    shielded: boolean;
+}>) {
     return (
         <div className="rounded-xl border border-[var(--brand-secondary)]/30 bg-[var(--brand-secondary)]/10 p-3">
             <div className="flex items-center justify-between gap-2">
@@ -268,7 +273,8 @@ function FreezeMeter({
             </div>
             <p className="mt-1.5 text-[11px] leading-snug text-muted-foreground">
                 A freeze auto-protects your streak on a missed day. Earn one
-                after a 3-day goal streak and another at 5.
+                after {FREEZE_FIRST_EARN_GOAL_DAYS} goal days, then another
+                every {FREEZE_REPEAT_EARN_GOAL_DAYS} goal days after that.
             </p>
         </div>
     );
