@@ -66,6 +66,10 @@ import {
     shuffleArray,
 } from "@/lib/practice-utils";
 import { useNewWordIntro } from "@/hooks/useNewWordIntro.hook";
+import {
+    hasShortcutModifier,
+    isEditableKeyboardTarget,
+} from "@/lib/keyboard-utils";
 import { cn } from "@/lib/utils";
 import { mergeDailyHabitRecord } from "@/lib/offline/sync-queue";
 import { useAppSelector } from "@/store/hooks";
@@ -854,13 +858,8 @@ export default function VocabularyPractice({
             return;
         }
         const onKeyDown = (e: KeyboardEvent) => {
-            const target = e.target;
-            if (
-                target instanceof HTMLElement &&
-                (target.tagName === "INPUT" || target.tagName === "TEXTAREA")
-            ) {
-                return;
-            }
+            if (hasShortcutModifier(e)) return;
+            if (isEditableKeyboardTarget(e.target)) return;
             if (e.key === "Backspace") {
                 e.preventDefault();
                 setPlacedTiles((prev) => prev.slice(0, -1));
@@ -910,15 +909,10 @@ export default function VocabularyPractice({
         if (options.length === 0) return;
 
         const onKeyDown = (e: KeyboardEvent) => {
+            if (hasShortcutModifier(e)) return;
             const key = e.key.toLowerCase();
             if (!["a", "b", "c", "d"].includes(key)) return;
-            const target = e.target;
-            if (
-                target instanceof HTMLElement &&
-                (target.tagName === "INPUT" || target.tagName === "TEXTAREA")
-            ) {
-                return;
-            }
+            if (isEditableKeyboardTarget(e.target)) return;
             const index = key.charCodeAt(0) - 97;
             const option = options[index];
             if (!option) return;
@@ -950,13 +944,8 @@ export default function VocabularyPractice({
     useEffect(() => {
         if (activeMode !== "flashcard" || !showAnswer) return;
         const onKeyDown = (e: KeyboardEvent) => {
-            const target = e.target;
-            if (
-                target instanceof HTMLElement &&
-                (target.tagName === "INPUT" || target.tagName === "TEXTAREA")
-            ) {
-                return;
-            }
+            if (hasShortcutModifier(e)) return;
+            if (isEditableKeyboardTarget(e.target)) return;
             const ratings: FlashcardRating[] = ["easy", "good", "hard", "forgot"];
             const index = Number.parseInt(e.key, 10) - 1;
             if (index >= 0 && index < ratings.length) {

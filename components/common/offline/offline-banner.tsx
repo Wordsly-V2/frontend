@@ -3,9 +3,11 @@
 import { useAuthSession } from "@/hooks/useAuthSession.hook";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus.hook";
 import { useSyncQueueStatus } from "@/hooks/useSyncQueueStatus.hook";
+import UnsyncedWorkDialog from "@/components/common/offline/unsynced-work-dialog";
+import { useAppSelector } from "@/store/hooks";
 import { cn } from "@/lib/utils";
-import { CloudOff, RefreshCw } from "lucide-react";
-import { useEffect, useRef } from "react";
+import { AlertCircle, CloudOff, RefreshCw } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 function waitingLabel(count: number): string {
@@ -23,8 +25,15 @@ function waitingLabel(count: number): string {
 export default function OfflineBanner() {
     const status = useOnlineStatus();
     const { canSync } = useAuthSession();
-    const { pendingCount } = useSyncQueueStatus();
+    const { pendingCount, failedCount, records } = useSyncQueueStatus();
     const previousPendingCount = useRef(pendingCount);
+    const [showFailed, setShowFailed] = useState(false);
+    const userLoginId = useAppSelector(
+        (state) => state.user.profile?.userLoginId ?? null,
+    );
+    const failedRecords = records.filter(
+        (record) => record.status === "failed-permanent",
+    );
 
     // One-shot confirmation when the last queued session lands, so a learner who
     // practised offline gets told their work is safe rather than having to guess.
@@ -39,8 +48,45 @@ export default function OfflineBanner() {
 
     const isOffline = status === "offline";
     const isSyncing = !isOffline && canSync && pendingCount > 0;
+    const hasFailed = failedCount > 0;
 
-    if (!isOffline && !isSyncing) return null;
+    if (!isOffline && !isSyncing && !hasFailed) return null;
+
+    // Failed work outranks the other two states: it is the only one the learner
+    // can actually do something about, and it does not resolve on its own.
+    if (hasFailed && !isOffline) {
+        return (
+            <>
+                <div
+                    role="status"
+                    className={cn(
+                        "glass-surface sticky top-0 z-40 flex items-center justify-center gap-2",
+                        "px-4 py-2 text-xs font-medium text-muted-foreground",
+                    )}
+                >
+                    <AlertCircle className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                    <span>
+                        Some practice hasn&apos;t saved yet — it&apos;s safe on
+                        this device.
+                    </span>
+                    <button
+                        type="button"
+                        onClick={() => setShowFailed(true)}
+                        className="underline underline-offset-2 hover:text-foreground"
+                    >
+                        Review
+                    </button>
+                </div>
+                <UnsyncedWorkDialog
+                    open={showFailed}
+                    onOpenChange={setShowFailed}
+                    records={failedRecords}
+                    userLoginId={userLoginId}
+                    canSync={canSync}
+                />
+            </>
+        );
+    }
 
     return (
         <div

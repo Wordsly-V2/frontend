@@ -31,6 +31,22 @@ export type FlushReason =
 
 let isFlushing = false;
 
+/**
+ * How long a record may sit in `in-flight` before it is considered abandoned.
+ *
+ * A record is marked in-flight before the request goes out, so a tab closed or
+ * crashed mid-request leaves one behind that no later flush would ever pick up
+ * again — `flushOnce` only selects `pending`. That silently lost the learner's
+ * practice. Re-sending is safe: the `clientRequestId` is minted before the first
+ * attempt, so the server's ledger turns a duplicate into a no-op.
+ *
+ * Deliberately generous. There is no client-side request timeout, so a genuinely
+ * slow upload on a bad connection must not be reclaimed out from under itself;
+ * the cost of waiting too long is a delayed sync, the cost of reclaiming too
+ * early is a redundant request.
+ */
+const STALE_IN_FLIGHT_MS = 120_000;
+
 /** Statuses that mean "the server might still succeed if we try again". */
 function isRetryableStatus(status: number | undefined): boolean {
 	if (status === undefined) return true; // network failure
@@ -123,8 +139,10 @@ export async function flushSyncQueue(params: {
 }
 
 async function flushOnce(userLoginId: string): Promise<FlushResult> {
-	const records = await getSyncRecordsForUser(userLoginId);
 	const now = Date.now();
+	await reclaimStaleInFlight(userLoginId, now);
+
+	const records = await getSyncRecordsForUser(userLoginId);
 
 	const due = records.filter(
 		(record) =>
@@ -150,6 +168,38 @@ async function flushOnce(userLoginId: string): Promise<FlushResult> {
 		remaining: after.filter((record) => record.status === "pending").length,
 		skipped: false,
 	};
+}
+
+/**
+ * Return abandoned in-flight records to the queue.
+ *
+ * Runs inside the cross-tab lock, so a record another tab is actively sending
+ * cannot be reclaimed mid-request.
+ */
+async function reclaimStaleInFlight(
+	userLoginId: string,
+	now: number,
+): Promise<void> {
+	const records = await getSyncRecordsForUser(userLoginId);
+
+	for (const record of records) {
+		if (record.status !== "in-flight") continue;
+
+		const startedAt = new Date(
+			record.lastAttemptAt ?? record.createdAt,
+		).getTime();
+		// A missing or unparseable timestamp would otherwise strand the record
+		// forever, which is the exact bug this guards against.
+		if (Number.isFinite(startedAt) && now - startedAt < STALE_IN_FLIGHT_MS) {
+			continue;
+		}
+
+		await updateSyncRecord({
+			...record,
+			status: "pending",
+			nextAttemptAt: new Date(now).toISOString(),
+		});
+	}
 }
 
 /** Serialize flushes across tabs, where the browser supports it. */

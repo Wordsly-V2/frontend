@@ -48,7 +48,10 @@ export const pingApiGateway = async (): Promise<void> => {
         throw new Error('NEXT_PUBLIC_API_URL is not configured');
     }
 
-    await axios.get(`${apiUrl}/ping`, {
+    // `/health` on the gateway is a constant string; `/ping` fans out a
+    // readiness probe to all three services. This runs on a timer while the
+    // learner is offline, so it must stay the cheap one.
+    await axios.get(`${apiUrl}/health`, {
         timeout: REACHABILITY_TIMEOUT_MS,
         withCredentials: false,
     });

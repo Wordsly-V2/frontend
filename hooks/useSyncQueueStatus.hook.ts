@@ -1,10 +1,11 @@
 "use client";
 
 import {
-    getAllSyncRecords,
+    getSyncRecordsForUser,
     subscribeToSyncQueue,
     type SyncRecord,
 } from "@/lib/offline/sync-queue";
+import { useAppSelector } from "@/store/hooks";
 import { useCallback, useEffect, useState } from "react";
 
 export interface SyncQueueStatus {
@@ -18,18 +19,30 @@ export interface SyncQueueStatus {
 /**
  * Live view of the offline outbox, so the banner and badge can show how much is
  * waiting without polling IndexedDB — the queue notifies on every change.
+ *
+ * Scoped to the signed-in account, like every other reader of the queue. Reading
+ * every record on the device meant that on a shared device the banner counted
+ * another account's parked work as this learner's.
  */
 export function useSyncQueueStatus(): SyncQueueStatus {
-    const [records, setRecords] = useState<SyncRecord[]>([]);
+    const [loaded, setLoaded] = useState<SyncRecord[]>([]);
+    const userLoginId = useAppSelector(
+        (state) => state.user.profile?.userLoginId ?? null,
+    );
 
     const refresh = useCallback(() => {
-        void getAllSyncRecords().then(setRecords);
-    }, []);
+        if (!userLoginId) return;
+        void getSyncRecordsForUser(userLoginId).then(setLoaded);
+    }, [userLoginId]);
 
     useEffect(() => {
         refresh();
         return subscribeToSyncQueue(refresh);
     }, [refresh]);
+
+    // Derived rather than cleared through setState, so signing out cannot leave
+    // the previous account's records on screen for a render.
+    const records = userLoginId ? loaded : [];
 
     return {
         records,

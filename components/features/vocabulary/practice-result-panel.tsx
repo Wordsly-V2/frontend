@@ -8,6 +8,7 @@ import { getPlayPhraseSearchUrl } from "@/lib/playphrase";
 import { splitAroundWord, splitHighlightMarkers } from "@/lib/practice-utils";
 import { pickCorrectMessage, pickIncorrectMessage } from "@/lib/practice-feedback";
 import { playAudioSequence, playAudioUrl } from "@/lib/practice-audio";
+import { hasShortcutModifier } from "@/lib/keyboard-utils";
 import { cn } from "@/lib/utils";
 import type { IWordExample } from "@/types/courses/courses.type";
 import { CheckCircle2, Film, Timer, Volume2, XCircle } from "lucide-react";
@@ -98,6 +99,7 @@ export function PracticeResultPanel({
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
             if (e.key !== "Enter") return;
+            if (hasShortcutModifier(e)) return;
             if (Date.now() - mountedAtRef.current < 150) return;
             e.preventDefault();
             onNext();

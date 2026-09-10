@@ -140,6 +140,27 @@ export async function deleteSyncRecord(id: string): Promise<void> {
 }
 
 /**
+ * Put a permanently-failed record back in the queue.
+ *
+ * The learner's explicit "try again". Attempts reset to zero so the record goes
+ * out immediately rather than waiting out the backoff earned by a failure the
+ * learner has now decided to retry.
+ */
+export async function retrySyncRecord(id: string): Promise<void> {
+	const records = await getAllSyncRecords();
+	const record = records.find((candidate) => candidate.id === id);
+	if (!record) return;
+
+	await updateSyncRecord({
+		...record,
+		status: "pending",
+		attempts: 0,
+		lastError: undefined,
+		nextAttemptAt: new Date().toISOString(),
+	});
+}
+
+/**
  * Park every record for a user instead of deleting it.
  *
  * Used when the server rejects the session or a different account signs in. The
