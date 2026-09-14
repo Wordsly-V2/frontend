@@ -73,9 +73,14 @@ export function useWordDetailDialogs() {
 
     const dialogs = (
         <>
-            {dialogWord && (
+            {/* Mounted as soon as a word is picked, not once its details land:
+                the dialog renders its own spinner and "not available" states,
+                and gating on `dialogWord` made both unreachable — a click on a
+                dictionary result showed nothing at all until the (external,
+                multi-hop) lookup returned. */}
+            {dialogOpen && (
                 <WordDetailDialog
-                    word={dialogWord}
+                    word={dialogWord as WordDetailView}
                     isOpen={dialogOpen}
                     onClose={closeDialog}
                     courseId={detailUserWord?.courseId}

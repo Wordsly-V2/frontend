@@ -13,7 +13,8 @@ export type SearchResultRow =
     | { t: "h"; id: string; label: string }
     | { t: "u"; id: string; item: IUserWordSearchResult }
     | { t: "d"; id: string; item: IWordSearchResult; idx: number }
-    | { t: "e"; id: string; message: string };
+    | { t: "e"; id: string; message: string }
+    | { t: "l"; id: string };
 
 /**
  * Runs both searches (the learner's own words + the dictionary) for one query
@@ -25,18 +26,23 @@ export function useMyWordsSearchRows(query: string) {
     const { data: myWords, isLoading: isMyWordsLoading } = useSearchMyWordsQuery(trimmed, enabled);
     const { data: dictWords, isLoading: isDictLoading } = useSearchWordsQuery(trimmed, enabled);
 
-    const isLoading = enabled && (isMyWordsLoading || isDictLoading);
+    /* Only while *neither* half has answered. The learner's own words come from
+       one indexed query; the dictionary is an external multi-hop lookup that can
+       take seconds. Gating the whole panel on both made the fast half wait for
+       the slow one, so a search looked frozen until Langeek replied. Each
+       section now carries its own spinner row and fills in when it lands. */
+    const isLoading = enabled && isMyWordsLoading && isDictLoading;
     const hasMyWords = (myWords?.length ?? 0) > 0;
     const hasDictWords = (dictWords?.length ?? 0) > 0;
-    const hasAnswer = myWords !== undefined && dictWords !== undefined;
+    const hasAnswer = myWords !== undefined || dictWords !== undefined;
 
     const rows = useMemo((): SearchResultRow[] => {
-        if (isLoading || myWords === undefined || dictWords === undefined) {
-            return [];
-        }
+        if (!enabled) return [];
         const out: SearchResultRow[] = [];
         out.push({ t: "h", id: "sec-your", label: "Your words" });
-        if (hasMyWords && myWords) {
+        if (isMyWordsLoading) {
+            out.push({ t: "l", id: "load-your" });
+        } else if (hasMyWords && myWords) {
             for (const item of myWords) {
                 out.push({ t: "u", id: item.id, item });
             }
@@ -44,7 +50,9 @@ export function useMyWordsSearchRows(query: string) {
             out.push({ t: "e", id: "empty-your", message: "No words found" });
         }
         out.push({ t: "h", id: "sec-dict", label: "Dictionary" });
-        if (hasDictWords && dictWords) {
+        if (isDictLoading) {
+            out.push({ t: "l", id: "load-dict" });
+        } else if (hasDictWords && dictWords) {
             dictWords.forEach((item, idx) => {
                 out.push({ t: "d", id: `${item.langeekWordId}-${idx}`, item, idx });
             });
@@ -52,7 +60,7 @@ export function useMyWordsSearchRows(query: string) {
             out.push({ t: "e", id: "empty-dict", message: "No results" });
         }
         return out;
-    }, [hasMyWords, hasDictWords, myWords, dictWords, isLoading]);
+    }, [enabled, hasMyWords, hasDictWords, myWords, dictWords, isMyWordsLoading, isDictLoading]);
 
     return { rows, isLoading, hasAnswer, hasResults: hasMyWords || hasDictWords };
 }
@@ -83,7 +91,7 @@ export function MyWordsSearchResults({
             const row = rows[index];
             if (!row) return 48;
             if (row.t === "h") return 30;
-            if (row.t === "e") return 40;
+            if (row.t === "e" || row.t === "l") return 40;
             return 84;
         },
         overscan: 8,
@@ -115,6 +123,11 @@ export function MyWordsSearchResults({
                                 <p className="px-3 py-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                                     {row.label}
                                 </p>
+                            )}
+                            {row.t === "l" && (
+                                <div className="px-3 py-2">
+                                    <LoadingSpinner size="sm" label="Searching..." />
+                                </div>
                             )}
                             {row.t === "e" && (
                                 <div className="px-3 py-2 text-sm text-muted-foreground">{row.message}</div>
