@@ -30,19 +30,28 @@ export function useWordDetailDialogs() {
     const [detailDictWord, setDetailDictWord] = useState<IWordSearchResult | null>(null);
     const [quickAddWord, setQuickAddWord] = useState<WordDetailView | null>(null);
 
-    const { data: fullUserWord } = useGetWordsByIdsQuery(
+    const { data: fullUserWord, isError: isUserWordError } = useGetWordsByIdsQuery(
         detailUserWord?.courseId ?? "",
         detailUserWord ? [detailUserWord.id] : [],
         !!detailUserWord
     );
-    const { data: langeekDetails, isSuccess: isLangeekSuccess } = useLangeekWordDetailsQuery(
+    const {
+        data: langeekDetails,
+        isSuccess: isLangeekSuccess,
+        isError: isLangeekError,
+    } = useLangeekWordDetailsQuery(
         detailDictWord?.word ?? "",
         detailDictWord?.partOfSpeech ?? "",
         !!detailDictWord
     );
 
     const dialogOpen = !!detailUserWord || !!detailDictWord;
-    const dialogNotFound = !!detailDictWord && isLangeekSuccess && langeekDetails == null;
+    /* A failed lookup has to end the spinner too. Now that the dialog mounts
+       while the fetch is in flight, treating only "fetched, but empty" as an
+       answer would leave an error spinning until the learner closed it. */
+    const dialogNotFound =
+        (!!detailDictWord && ((isLangeekSuccess && langeekDetails == null) || isLangeekError)) ||
+        (!!detailUserWord && isUserWordError);
     const dialogWord: WordDetailView | null = (() => {
         if (detailUserWord && fullUserWord?.[0]) {
             return { ...fullUserWord[0], courseId: detailUserWord.courseId, lessonId: detailUserWord.lessonId };
@@ -53,8 +62,9 @@ export function useWordDetailDialogs() {
         return null;
     })();
     const dialogLoadingSpinner =
-        (!!detailUserWord && !fullUserWord?.length) ||
-        (!!detailDictWord && !isLangeekSuccess && !dialogNotFound);
+        !dialogNotFound &&
+        ((!!detailUserWord && !fullUserWord?.length) ||
+            (!!detailDictWord && !isLangeekSuccess));
 
     const closeDialog = () => {
         setDetailUserWord(null);
@@ -80,7 +90,7 @@ export function useWordDetailDialogs() {
                 multi-hop) lookup returned. */}
             {dialogOpen && (
                 <WordDetailDialog
-                    word={dialogWord as WordDetailView}
+                    word={dialogWord}
                     isOpen={dialogOpen}
                     onClose={closeDialog}
                     courseId={detailUserWord?.courseId}

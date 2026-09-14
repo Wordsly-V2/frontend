@@ -22,7 +22,8 @@ import {
 } from "@/lib/search-params/course-word-focus";
 
 interface WordDetailDialogProps {
-    readonly word: WordDetailView;
+    /** Null while the details are still being fetched, or when there are none. */
+    readonly word: WordDetailView | null;
     readonly isOpen: boolean;
     readonly onClose: () => void;
     /** When set, show "Open in Manage" / "Open in Learn" (e.g. when opened from search). */
@@ -43,26 +44,9 @@ export default function WordDetailDialog({ word, isOpen, onClose, courseId, less
     if (!isOpen) return null;
     if (!word && !isLoading && !isNotFound) return null;
 
-    const examples = getWordExampleObjects(word);
-
-    const handlePlayAudio = () => {
-        playAudioUrl(word!.audioUrl);
-    };
-
-    const handleGoToManage = () => {
-        onClose();
-        router.push(
-            buildManageCourseWordUrl(courseId!, { word: word.word, lessonId: lessonId! }),
-        );
-    };
-
-    const handleGoToLearn = () => {
-        onClose();
-        router.push(
-            buildLearnCourseWordUrl(courseId!, { word: word.word, lessonId: lessonId! }),
-        );
-    };
-
+    // Every wordless state has to be answered before this point: the body below
+    // dereferences `word` from its first line (`getWordExampleObjects`), so a
+    // dialog mounted while the lookup is still in flight throws on render.
     if (isLoading && !word) {
         return (
             <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -89,6 +73,26 @@ export default function WordDetailDialog({ word, isOpen, onClose, courseId, less
             </Dialog>
         );
     }
+
+    const examples = getWordExampleObjects(word!);
+
+    const handlePlayAudio = () => {
+        playAudioUrl(word!.audioUrl);
+    };
+
+    const handleGoToManage = () => {
+        onClose();
+        router.push(
+            buildManageCourseWordUrl(courseId!, { word: word!.word, lessonId: lessonId! }),
+        );
+    };
+
+    const handleGoToLearn = () => {
+        onClose();
+        router.push(
+            buildLearnCourseWordUrl(courseId!, { word: word!.word, lessonId: lessonId! }),
+        );
+    };
 
     return (
         <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
