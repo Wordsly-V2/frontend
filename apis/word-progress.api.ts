@@ -27,6 +27,12 @@ export const recordAnswerBulkSync = (
 ): Promise<IBulkRecordAnswersResponse> =>
     request((i) => i.post(apiPaths.wordProgress.recordAnswerBulkSync(), data));
 
+/**
+ * The next session in one request.
+ *
+ * It returns the due and new halves separately, so nothing here needs a second
+ * call with `includeNew: false` to work out which is which.
+ */
 export const getDueWordIds = (
     { courseId, lessonId, limit, newLimit, includeNew }: WordProgressScope = {},
 ): Promise<IDueWordIdsResponse> =>

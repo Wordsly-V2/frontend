@@ -42,25 +42,12 @@ export const useGetDueWordIdsQuery = (
     enabled,
 });
 
-export const useGetDueWordIdsByWordIdsQuery = (
-    wordIds: string[],
-    limit?: number,
-    includeNew?: boolean,
-    enabled: boolean = true,
-    newLimit?: number,
-) => useQuery<IDueWordIdsResponse>({
-    queryKey: queryKeys.dueWordIds.byWordIds(wordIds, limit, includeNew, newLimit),
-    queryFn: () => getDueWordIdsByWordIds(wordIds, limit, includeNew, newLimit),
-    enabled: enabled && wordIds.length > 0,
-});
-
 /**
  * Due-word selection that survives losing the network.
  *
- * A sibling of `useGetDueWordIdsByWordIdsQuery` rather than a change to it, so
- * the manage screens keep their strict online semantics. On a network failure it
- * falls back to picking words from cached progress; any other error still
- * throws, because a rejected request is not the same as an absent one.
+ * On a network failure it falls back to picking words from cached progress; any
+ * other error still throws, because a rejected request is not the same as an
+ * absent one.
  */
 export const useGetDueWordIdsByWordIdsWithOfflineFallbackQuery = (
     wordIds: string[],

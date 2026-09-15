@@ -23,7 +23,7 @@ import { useQueryStates } from "nuqs";
 import { useRouter } from "next/navigation";
 import {
     DUE_WORDS_LIMIT_OPTIONS,
-    deriveNewWordIds,
+    describeSessionCap,
     getLearnNewButtonLabel,
     getPacingBannerCopy,
     getPracticeBannerCopy,
@@ -120,16 +120,12 @@ export default function LearnCourseDetailPage({ params }: { params: Promise<{ id
     // Offline-tolerant: the due-words endpoint is a POST with no cacheable GET
     // equivalent, so without a fallback the Review/Learn buttons would be dead
     // on a downloaded course. The fallback picks from cached progress instead.
-    const { data: dueWordIds, isLoading: isDueWordIdsLoading } =
-        useGetDueWordIdsByWordIdsWithOfflineFallbackQuery(
-            courseWordIds,
-            dueWordsLimit,
-            false,
-            !!course && dueWordsLimit > 0 && courseWordIds.length > 0,
-            undefined,
-            wordProgressByWordId,
-        );
-
+    //
+    // One query covers both buttons. It used to be two — one asking for due
+    // words only, one asking for due plus new — with the new words recovered by
+    // subtracting the first id list from the second. The server splits them
+    // itself now, so the subtraction (and the chance the two reads disagreed
+    // about which words were due) is gone.
     const { data: practiceBatch, isLoading: isPracticeBatchLoading } =
         useGetDueWordIdsByWordIdsWithOfflineFallbackQuery(
             courseWordIds,
@@ -141,16 +137,21 @@ export default function LearnCourseDetailPage({ params }: { params: Promise<{ id
         );
 
     /** True when these counts came from local data rather than the server. */
-    const isOfflineSelection =
-        dueWordIds?.source === "offline" || practiceBatch?.source === "offline";
+    const isOfflineSelection = practiceBatch?.source === "offline";
 
-    const dueWordCount = dueWordIds?.wordIds.length ?? 0;
-    const newWordIds = useMemo(
-        () => deriveNewWordIds(dueWordIds?.wordIds, practiceBatch?.wordIds),
-        [dueWordIds?.wordIds, practiceBatch?.wordIds],
+    const dueWordIdList = useMemo(
+        () => practiceBatch?.dueWordIds ?? [],
+        [practiceBatch?.dueWordIds],
     );
+    const newWordIds = useMemo(
+        () => practiceBatch?.newWordIds ?? [],
+        [practiceBatch?.newWordIds],
+    );
+    const dueWordCount = dueWordIdList.length;
     const newWordCount = newWordIds.length;
-    const practiceWordsLoading = isDueWordIdsLoading || isPracticeBatchLoading;
+    const dueWordTotal = practiceBatch?.dueTotal ?? dueWordCount;
+    const newWordTotal = practiceBatch?.newTotal ?? newWordCount;
+    const practiceWordsLoading = isPracticeBatchLoading;
 
     // Gate on whether the course is available, not on whether the last fetch
     // succeeded: offline, a restored cache reports isError alongside data that
@@ -229,9 +230,16 @@ export default function LearnCourseDetailPage({ params }: { params: Promise<{ id
         courseStats?.newWords,
     );
 
-    const pacingBanner = getPacingBannerCopy(
-        practiceBatch?.pacing ?? dueWordIds?.pacing,
-    );
+    const pacingBanner = getPacingBannerCopy(practiceBatch?.pacing);
+
+    // Why this course's session is smaller than the counts on the cards above.
+    const sessionCapNotice = describeSessionCap({
+        dueCount: dueWordCount,
+        dueTotal: dueWordTotal,
+        newCount: newWordCount,
+        newTotal: newWordTotal,
+        pacing: practiceBatch?.pacing,
+    });
 
     // Word lookup for the difficult-words card (resolves leech ids → text).
     const wordsById: Record<string, IWord> = {};
@@ -312,7 +320,7 @@ export default function LearnCourseDetailPage({ params }: { params: Promise<{ id
     };
 
     const handlePracticeDueWords = () => {
-        if (!dueWordIds || dueWordIds.wordIds.length === 0 || !course) {
+        if (dueWordCount === 0 || !course) {
             toast.info("No words are due for review right now!");
             return;
         }
@@ -321,7 +329,7 @@ export default function LearnCourseDetailPage({ params }: { params: Promise<{ id
             buildPracticeUrl({
                 courseId: id,
                 courseName: course.name,
-                wordIds: dueWordIds.wordIds,
+                wordIds: dueWordIdList,
                 kind: "review",
             }),
         );
@@ -440,6 +448,14 @@ export default function LearnCourseDetailPage({ params }: { params: Promise<{ id
                             <p className="text-xs text-muted-foreground mt-0.5">
                                 {practiceBanner.subtitle}
                             </p>
+                            {sessionCapNotice && (
+                                // The buttons start a session smaller than the
+                                // counts above it. Saying why turns what reads
+                                // as a wrong number into a deliberate limit.
+                                <p className="text-xs text-muted-foreground mt-1">
+                                    {sessionCapNotice}
+                                </p>
+                            )}
                             {isOfflineSelection && (
                                 // These counts were worked out on the device, so
                                 // say so rather than presenting a guess as fact.
@@ -457,7 +473,7 @@ export default function LearnCourseDetailPage({ params }: { params: Promise<{ id
                                     className="rounded-xl gap-2"
                                 >
                                     <Brain className="h-4 w-4" aria-hidden />
-                                    {getReviewDueButtonLabel(practiceWordsLoading, dueWordCount)}
+                                    {getReviewDueButtonLabel(practiceWordsLoading, dueWordCount, "No due words", dueWordTotal)}
                                 </Button>
                             )}
                             {newWordCount > 0 && (
@@ -469,7 +485,7 @@ export default function LearnCourseDetailPage({ params }: { params: Promise<{ id
                                     className="rounded-xl gap-2"
                                 >
                                     <Sparkles className="h-4 w-4" aria-hidden />
-                                    {getLearnNewButtonLabel(practiceWordsLoading, newWordCount)}
+                                    {getLearnNewButtonLabel(practiceWordsLoading, newWordCount, newWordTotal)}
                                 </Button>
                             )}
                         </div>
@@ -824,7 +840,7 @@ export default function LearnCourseDetailPage({ params }: { params: Promise<{ id
                                 className="h-11 w-full rounded-xl border-primary/25 bg-primary/5 px-4 text-sm hover:bg-primary/10"
                             >
                                 <Brain className="mr-2 h-4 w-4" />
-                                {getReviewDueButtonLabel(practiceWordsLoading, dueWordCount)}
+                                {getReviewDueButtonLabel(practiceWordsLoading, dueWordCount, "No due words", dueWordTotal)}
                             </Button>
                         )}
                         {newWordCount > 0 && (
@@ -838,7 +854,7 @@ export default function LearnCourseDetailPage({ params }: { params: Promise<{ id
                                 className="h-11 w-full rounded-xl border-primary/25 bg-primary/5 px-4 text-sm hover:bg-primary/10"
                             >
                                 <Sparkles className="mr-2 h-4 w-4" />
-                                {getLearnNewButtonLabel(practiceWordsLoading, newWordCount)}
+                                {getLearnNewButtonLabel(practiceWordsLoading, newWordCount, newWordTotal)}
                             </Button>
                         )}
                         <Button

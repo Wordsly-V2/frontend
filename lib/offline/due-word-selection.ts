@@ -61,14 +61,27 @@ export function selectDueWordIdsOffline({
     due.sort((a, b) => a.dueAt - b.dueAt);
 
     const selectedDue = due.slice(0, limit).map((entry) => entry.wordId);
+
+    // `limit` is the size of the whole session here too, so new words only fill
+    // the room the due ones left — the same rule the server applies, kept in
+    // step so a session built offline is the size the learner asked for.
+    const roomLeftInSession = Math.max(0, limit - selectedDue.length);
+    const newCap = Math.min(
+        newLimit ?? DEFAULT_NEW_WORDS_LIMIT,
+        roomLeftInSession,
+    );
     // `fresh` keeps the caller's word order, which is how the server picks new
     // words too — so repeated offline builds are deterministic.
-    const selectedNew = includeNew
-        ? fresh.slice(0, newLimit ?? DEFAULT_NEW_WORDS_LIMIT)
-        : [];
+    const selectedNew = includeNew ? fresh.slice(0, newCap) : [];
 
     return {
         wordIds: [...selectedDue, ...selectedNew],
+        dueWordIds: selectedDue,
+        newWordIds: selectedNew,
+        // Uncapped counts from the cached pool. Honest for what is downloaded,
+        // which is all an offline estimate ever claims to be.
+        dueTotal: due.length,
+        newTotal: fresh.length,
         // Deliberately absent. Daily pacing is server state and there is no
         // honest local approximation — `getPacingBannerCopy` returns null for
         // undefined pacing, so no limit banner is invented offline.

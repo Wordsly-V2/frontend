@@ -11,6 +11,9 @@ export interface OfflinePracticePool {
     dueIds: string[];
     newIds: string[];
     allIds: string[];
+    /** Uncapped counts in the cached pool, mirroring the server's totals. */
+    dueTotal: number;
+    newTotal: number;
     isReady: boolean;
 }
 
@@ -18,6 +21,8 @@ const EMPTY: OfflinePracticePool = {
     dueIds: [],
     newIds: [],
     allIds: [],
+    dueTotal: 0,
+    newTotal: 0,
     isReady: false,
 };
 
@@ -49,13 +54,7 @@ export function useOfflinePracticePool(params: {
 
         const progressByWordId = pickCachedProgress(queryClient, pool.wordIds);
 
-        const due = selectDueWordIdsOffline({
-            wordIds: pool.wordIds,
-            progressByWordId,
-            limit: dueWordsLimit,
-            includeNew: false,
-        });
-        const withNew = selectDueWordIdsOffline({
+        const session = selectDueWordIdsOffline({
             wordIds: pool.wordIds,
             progressByWordId,
             limit: dueWordsLimit,
@@ -63,11 +62,12 @@ export function useOfflinePracticePool(params: {
             includeNew: true,
         });
 
-        const dueSet = new Set(due.wordIds);
         return {
-            dueIds: due.wordIds,
-            newIds: withNew.wordIds.filter((id) => !dueSet.has(id)),
-            allIds: withNew.wordIds,
+            dueIds: session.dueWordIds,
+            newIds: session.newWordIds,
+            allIds: session.wordIds,
+            dueTotal: session.dueTotal,
+            newTotal: session.newTotal,
             isReady: true,
         };
     }, [courseId, dueWordsLimit, enabled, newWordsLimit, queryClient]);

@@ -2,8 +2,9 @@ import { getLocalStorageItem } from "@/lib/local-storage";
 import type { IDailyPacing } from "@/types/word-progress/word-progress.type";
 
 /**
- * Shared "due words batch" limit for Learn (course page + quick actions).
- * Persisted in localStorage by the course page; read everywhere else.
+ * Size of a whole practice session — due words plus any new words that fit after
+ * them. Shared by Learn (course page + quick actions), persisted in
+ * localStorage by the course page and read everywhere else.
  */
 export const DUE_WORDS_LIMIT_OPTIONS = [5, 10, 15, 20] as const;
 
@@ -29,10 +30,14 @@ export function readDueWordsLimitFromStorage(): number {
 }
 
 /**
- * Separate "words per session" for learning NEW words. Kept apart from the
- * review batch size (above) so learners can, say, review 20 words a session but
- * take on only 5 new ones. The two limits map to the `limit` (due/review) and
- * `newLimit` (new) params on the due-word-ids endpoint.
+ * Ceiling on how many NEW words a session may contain.
+ *
+ * It is a share of the session, not an addition to it: a session holds at most
+ * `DUE_WORDS_LIMIT` words in total, and this says how many of them may be words
+ * the learner has never seen. Set the session to 20 and this to 5 and a day with
+ * 20 reviews waiting gives 20 reviews and no new words; a day with 8 reviews
+ * gives 8 reviews and 5 new ones. The two map to `limit` and `newLimit` on the
+ * due-word-ids endpoint.
  */
 export const NEW_WORDS_LIMIT_OPTIONS = [5, 10, 15, 20] as const;
 
@@ -57,29 +62,95 @@ export function readNewWordsLimitFromStorage(): number {
     );
 }
 
+/**
+ * "8 of 15" when the session holds less than everything waiting, plain "8"
+ * otherwise.
+ *
+ * A button that says 15 and then starts a session of 8 reads as a bug, and for a
+ * long time it was reported as one. The gap is real and deliberate — session
+ * size and daily pacing both cap it — so the honest fix is to name both numbers
+ * rather than hide either.
+ */
+export function formatSessionCount(count: number, total: number): string {
+    return total > count ? `${count} of ${total}` : `${count}`;
+}
+
 export function getReviewDueButtonLabel(
     isLoading: boolean,
     dueCount: number,
     emptyLabel = "No due words",
+    dueTotal: number = dueCount,
 ): string {
     if (isLoading) return "Loading…";
-    if (dueCount > 0) return `Review due (${dueCount})`;
+    if (dueCount > 0)
+        return `Review due (${formatSessionCount(dueCount, dueTotal)})`;
     return emptyLabel;
 }
 
-export function getLearnNewButtonLabel(isLoading: boolean, newCount: number): string {
+export function getLearnNewButtonLabel(
+    isLoading: boolean,
+    newCount: number,
+    newTotal: number = newCount,
+): string {
     if (isLoading) return "Loading…";
-    if (newCount > 0) return `Learn new (${newCount})`;
+    if (newCount > 0)
+        return `Learn new (${formatSessionCount(newCount, newTotal)})`;
     return "No new words";
 }
 
-/** Words in a practice batch (includeNew) that are not in the due-only set. */
-export function deriveNewWordIds(
-    dueWordIds: string[] | undefined,
-    practiceBatchWordIds: string[] | undefined,
-): string[] {
-    const dueSet = new Set(dueWordIds ?? []);
-    return (practiceBatchWordIds ?? []).filter((id) => !dueSet.has(id));
+/** Label for the one dominant practice CTA (dashboard hero, bottom bar). */
+export function practiceCtaLabel(
+    kind: "review" | "new",
+    count: number,
+    total: number,
+): string {
+    const noun = `word${count === 1 ? "" : "s"}`;
+    return kind === "review"
+        ? `Review ${formatSessionCount(count, total)} due ${noun}`
+        : `Learn ${formatSessionCount(count, total)} new ${noun}`;
+}
+
+export interface SessionCapInput {
+    dueCount: number;
+    dueTotal: number;
+    newCount: number;
+    newTotal: number;
+    pacing: IDailyPacing | undefined;
+}
+
+/**
+ * Why this session is smaller than what is waiting, in one line — or null when
+ * it isn't smaller.
+ *
+ * Two different caps produce the same symptom, and a learner cannot tell them
+ * apart from the numbers alone: a session size they chose, and a daily limit
+ * they have already spent part of. The daily limit is named first because it is
+ * the one that is not obvious and the one that resets tomorrow.
+ */
+export function describeSessionCap({
+    dueCount,
+    dueTotal,
+    newCount,
+    newTotal,
+    pacing,
+}: SessionCapInput): string | null {
+    const dueHeld = Math.max(0, dueTotal - dueCount);
+    const newHeld = Math.max(0, newTotal - newCount);
+    if (dueHeld === 0 && newHeld === 0) return null;
+
+    if (pacing && dueHeld > 0 && pacing.reviewsRemainingToday <= dueCount) {
+        return pacing.reviewsRemainingToday === 0
+            ? `Today's review limit of ${pacing.dailyReviewLimit} is used up — ${dueHeld} due ${dueHeld === 1 ? "word waits" : "words wait"} for tomorrow.`
+            : `Today's review limit leaves room for ${pacing.reviewsRemainingToday} more — ${dueHeld} due ${dueHeld === 1 ? "word waits" : "words wait"} for tomorrow.`;
+    }
+
+    if (pacing && newHeld > 0 && dueHeld === 0 &&
+        pacing.newWordsRemainingToday <= newCount) {
+        return `Today's new-word limit of ${pacing.dailyNewWordLimit} is reached — new words resume tomorrow.`;
+    }
+
+    const held = dueHeld + newHeld;
+    return `${held} more ${held === 1 ? "word is" : "words are"} waiting — raise words per session to take them all in one go.`;
 }
 
 export function getPracticeBannerCopy(

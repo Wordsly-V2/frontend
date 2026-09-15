@@ -96,9 +96,25 @@ export interface IDailyPacing {
     dailyReviewLimit: number;
 }
 
-/** Response shape for the due-word-ids endpoints (ids + optional pacing). */
+/**
+ * One session's worth of words, plus the totals it was drawn from.
+ *
+ * `wordIds` is the session in order (due first, then new) and is what a practice
+ * URL carries. The two halves are named separately because the server knows
+ * which is which; the client used to work it out by asking twice and
+ * subtracting one list from the other, which mislabelled any due word that moved
+ * between the two requests.
+ *
+ * `dueTotal` / `newTotal` are uncapped counts in scope, so the UI can say
+ * "Review 8 of 15 due" instead of showing one number and starting a session of
+ * another.
+ */
 export interface IDueWordIdsResponse {
     wordIds: string[];
+    dueWordIds: string[];
+    newWordIds: string[];
+    dueTotal: number;
+    newTotal: number;
     pacing?: IDailyPacing;
 }
 
@@ -142,11 +158,11 @@ export interface IWordProgressStats {
 export interface WordProgressScope {
     courseId?: string;
     lessonId?: string;
-    /** Cap on the due/review words returned (words per review session). */
+    /** Size of the whole session — due words plus the new ones that fit after them. */
     limit?: number;
     /**
-     * Cap on NEW (never-studied) words returned, independent of `limit`
-     * (words per new-words session). Omit for the legacy combined behaviour.
+     * Ceiling on NEW (never-studied) words inside that session. It narrows the
+     * room due words leave; it is not an extra allowance on top of `limit`.
      */
     newLimit?: number;
     includeNew?: boolean;

@@ -4,7 +4,7 @@ import {
     dailyGoalProgress,
     getLocalDailyHabit,
 } from "@/lib/daily-habit";
-import { deriveNewWordIds } from "@/lib/due-words-limit";
+import { describeSessionCap, practiceCtaLabel } from "@/lib/due-words-limit";
 import { getLastLearnCourse } from "@/lib/learning-session";
 import { buildPracticeUrl } from "@/lib/practice-session";
 import { useDueWordsLimit } from "@/hooks/useDueWordsLimit.hook";
@@ -14,13 +14,21 @@ import { useOnlineStatus } from "@/hooks/useOnlineStatus.hook";
 import { useDailyHabitDisplay } from "@/queries/daily-habit.query";
 import { useGetDueWordIdsQuery } from "@/queries/word-progress.query";
 import { usePathname } from "next/navigation";
-import { startTransition, useEffect, useMemo, useState } from "react";
+import { startTransition, useEffect, useState } from "react";
 
 export type NextPracticeAction = {
     /** Last opened course, or null if the learner hasn't started one. */
     last: ReturnType<typeof getLastLearnCourse>;
+    /** Due words in THIS session — already capped by the limits and daily pacing. */
     dueCount: number;
     newCount: number;
+    /**
+     * Due/new words in scope before any cap. These are the numbers the progress
+     * cards show, so the CTA quotes them too rather than letting a learner read
+     * "15 due" and then be handed a session of eight with no explanation.
+     */
+    dueTotal: number;
+    newTotal: number;
     /** Total words available in the next practice batch (due + new, capped). */
     practicePoolCount: number;
     wordsLoading: boolean;
@@ -34,6 +42,11 @@ export type NextPracticeAction = {
         href: string;
         kind: "new" | "review";
     } | null;
+    /**
+     * One line saying why this session is smaller than the totals above, or null
+     * when it holds everything that is waiting.
+     */
+    capNotice: string | null;
     reviewDueHref: string | null;
     learnNewHref: string | null;
     /** Href that finishes today's goal with the minimum words needed. */
@@ -48,10 +61,9 @@ export type NextPracticeAction = {
 };
 
 /**
- * Single source of truth for "what should the learner practice next".
+ * Single source of truth for "what should the learner practise next".
  * Shared by the dashboard hero, the mobile bottom-bar Practice CTA, and the
- * session-summary loop-back. Mirrors the resolution that lived inline in
- * LearnQuickActions.
+ * session-summary loop-back.
  */
 export function useNextPracticeAction(): NextPracticeAction {
     const pathname = usePathname();
@@ -74,51 +86,49 @@ export function useNextPracticeAction(): NextPracticeAction {
 
     // Practice suggestions span ALL of the user's courses, not just the last
     // one opened — a review is a review no matter which course a word lives in.
-    // Passing no courseId makes the gateway scope to every word the user owns.
-    const enabled = dueWordsLimit > 0;
-
-    const { data: dueIds, isLoading: dueLoading } = useGetDueWordIdsQuery(
-        { limit: dueWordsLimit, includeNew: false },
-        enabled,
+    // Passing no courseId scopes the request to every word the user owns.
+    //
+    // One request, not two. This used to fire the same endpoint twice, with and
+    // without new words, and subtract one id list from the other to recover the
+    // new ones. The server now labels both halves itself, which removes both the
+    // duplicate scope resolution and the chance of the two answers disagreeing.
+    const { data: session, isLoading } = useGetDueWordIdsQuery(
+        { limit: dueWordsLimit, newLimit: newWordsLimit, includeNew: true },
+        dueWordsLimit > 0,
     );
-
-    const { data: practiceBatch, isLoading: practiceBatchLoading } =
-        useGetDueWordIdsQuery(
-            { limit: dueWordsLimit, newLimit: newWordsLimit, includeNew: true },
-            enabled,
-        );
 
     // The all-courses endpoint has no offline equivalent — there is no cached
     // list of every word the learner owns. Fall back to whatever the warmer made
     // available for the last course, so the dashboard still offers a real
     // session instead of claiming there is nothing to do.
     const offlineFallback = useOfflinePracticePool({
-        enabled: isOffline && !dueIds && !practiceBatch,
+        enabled: isOffline && !session,
         dueWordsLimit,
         newWordsLimit,
         courseId: last?.id,
     });
 
-    const dueCount = dueIds?.wordIds.length ?? offlineFallback.dueIds.length;
-    const newWordIds = useMemo(
-        () =>
-            dueIds || practiceBatch
-                ? deriveNewWordIds(dueIds?.wordIds, practiceBatch?.wordIds)
-                : offlineFallback.newIds,
-        [dueIds, practiceBatch, offlineFallback.newIds],
-    );
-    const newCount = newWordIds.length;
-    const practicePoolCount =
-        practiceBatch?.wordIds.length ?? offlineFallback.allIds.length;
-    const wordsLoading =
-        (dueLoading || practiceBatchLoading) && !offlineFallback.isReady;
+    /** True when the counts below came from local data, not the server. */
+    const isOfflineEstimate = !session && offlineFallback.isReady;
 
-    /** True when the counts above came from local data, not the server. */
-    const isOfflineEstimate =
-        !dueIds && !practiceBatch && offlineFallback.isReady;
+    const dueWordIdList = session?.dueWordIds ?? offlineFallback.dueIds;
+    const newWordIdList = session?.newWordIds ?? offlineFallback.newIds;
+    const poolWordIdList = session?.wordIds ?? offlineFallback.allIds;
 
-    const dueWordIdList = dueIds?.wordIds ?? offlineFallback.dueIds;
-    const poolWordIdList = practiceBatch?.wordIds ?? offlineFallback.allIds;
+    const dueCount = dueWordIdList.length;
+    const newCount = newWordIdList.length;
+    const dueTotal = session?.dueTotal ?? offlineFallback.dueTotal;
+    const newTotal = session?.newTotal ?? offlineFallback.newTotal;
+    const practicePoolCount = poolWordIdList.length;
+    const wordsLoading = isLoading && !offlineFallback.isReady;
+
+    const capNotice = describeSessionCap({
+        dueCount,
+        dueTotal,
+        newCount,
+        newTotal,
+        pacing: session?.pacing,
+    });
 
     const reviewDueHref =
         dueCount > 0
@@ -135,7 +145,7 @@ export function useNextPracticeAction(): NextPracticeAction {
             ? buildPracticeUrl({
                   courseId: isOfflineEstimate ? last?.id : undefined,
                   courseName: "New words",
-                  wordIds: newWordIds,
+                  wordIds: newWordIdList,
                   kind: "new",
               })
             : null;
@@ -158,13 +168,13 @@ export function useNextPracticeAction(): NextPracticeAction {
     // Prefer due review (spaced repetition on schedule), then new words.
     const primary: NextPracticeAction["primary"] = reviewDueHref
         ? {
-              label: `Review ${dueCount} due word${dueCount === 1 ? "" : "s"}`,
+              label: practiceCtaLabel("review", dueCount, dueTotal),
               href: reviewDueHref,
               kind: "review",
           }
         : learnNewHref
           ? {
-                label: `Learn ${newCount} new word${newCount === 1 ? "" : "s"}`,
+                label: practiceCtaLabel("new", newCount, newTotal),
                 href: learnNewHref,
                 kind: "new",
             }
@@ -174,11 +184,14 @@ export function useNextPracticeAction(): NextPracticeAction {
         last,
         dueCount,
         newCount,
+        dueTotal,
+        newTotal,
         practicePoolCount,
         wordsLoading,
         goal,
         allCaughtUp: !wordsLoading && dueCount === 0 && newCount === 0,
         primary,
+        capNotice,
         reviewDueHref,
         learnNewHref,
         finishGoalHref,

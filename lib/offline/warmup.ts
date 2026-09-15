@@ -139,33 +139,23 @@ export async function warmOfflineCache(
 		const dueLimit = readDueWordsLimitFromStorage();
 		const newLimit = readNewWordsLimitFromStorage();
 
-		// Both variants the course page's two CTAs issue.
-		const sessions = await Promise.all(
-			[
-				{ includeNew: false, newLimit: undefined },
-				{ includeNew: true, newLimit },
-			].map(async (variant) => {
-				const result = await queryClient.fetchQuery({
-					queryKey: queryKeys.dueWordIds.byWordIds(
-						allWordIds,
-						dueLimit,
-						variant.includeNew,
-						variant.newLimit,
-					),
-					queryFn: () =>
-						getDueWordIdsByWordIds(
-							allWordIds,
-							dueLimit,
-							variant.includeNew,
-							variant.newLimit,
-						),
-					gcTime: SESSION_CRITICAL_GC_TIME,
-				});
-				return result.wordIds;
-			}),
-		);
+		// The one request the course page issues. It used to warm two — one
+		// with new words and one without — because the page asked twice to work
+		// out which words were new. The response labels both halves now, so the
+		// second variant warmed a cache key nothing reads.
+		const session = await queryClient.fetchQuery({
+			queryKey: queryKeys.dueWordIds.byWordIds(
+				allWordIds,
+				dueLimit,
+				true,
+				newLimit,
+			),
+			queryFn: () =>
+				getDueWordIdsByWordIds(allWordIds, dueLimit, true, newLimit),
+			gcTime: SESSION_CRITICAL_GC_TIME,
+		});
 
-		const sessionWordIds = [...new Set(sessions.flat())].slice(
+		const sessionWordIds = [...new Set(session.wordIds)].slice(
 			0,
 			WARM_MAX_WORDS,
 		);

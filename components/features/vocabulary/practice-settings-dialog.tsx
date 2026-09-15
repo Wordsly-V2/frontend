@@ -325,18 +325,19 @@ const SessionPrefsFields = forwardRef<SessionPrefsHandle>(function SessionPrefsF
                 <div>
                     <Label className="text-sm font-medium">Words per session</Label>
                     <p className="text-xs text-muted-foreground mt-1">
-                        Set review and new-word batches separately — e.g. review
-                        more words but take on fewer new ones each session.
+                        The first number is the whole session. The second is how
+                        many of those words may be new ones — due reviews come
+                        first, and new words fill whatever room is left.
                     </p>
                 </div>
                 <div className="flex items-center justify-between gap-4">
                     <div className="flex-1">
                         <Label htmlFor="words-per-session" className="text-sm font-medium flex items-center gap-2">
                             <ListOrdered className="h-4 w-4 text-muted-foreground" />
-                            Review words / session
+                            Words / session
                         </Label>
                         <p className="text-xs text-muted-foreground mt-1">
-                            Words in each review &amp; practice batch
+                            Total words in one practice session
                         </p>
                     </div>
                     <select
@@ -359,7 +360,7 @@ const SessionPrefsFields = forwardRef<SessionPrefsHandle>(function SessionPrefsF
                             New words / session
                         </Label>
                         <p className="text-xs text-muted-foreground mt-1">
-                            New words introduced in each learn-new batch
+                            At most this many of them are new words
                         </p>
                     </div>
                     <select

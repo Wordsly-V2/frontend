@@ -53,13 +53,15 @@ export function DailyHero() {
             ? "Ready for today's mission?"
             : "Pick a course to get started";
 
+    // Quote the uncapped totals here, because these are the same numbers the
+    // progress cards further down the page show. The CTA below says how many of
+    // them this session takes, and `capNotice` says why it is not all of them.
     const status = next.wordsLoading
         ? "Checking what's due…"
-        : next.dueCount > 0 || next.newCount > 0
+        : next.dueTotal > 0 || next.newTotal > 0
           ? [
-                next.dueCount > 0 &&
-                    `${next.dueCount} due for review`,
-                next.newCount > 0 && `${next.newCount} new to learn`,
+                next.dueTotal > 0 && `${next.dueTotal} due for review`,
+                next.newTotal > 0 && `${next.newTotal} new to learn`,
             ]
                 .filter(Boolean)
                 .join(" · ")
@@ -90,6 +92,11 @@ export function DailyHero() {
                             <p className="mt-1.5 text-sm font-medium text-white/75 tabular-nums">
                                 {status}
                             </p>
+                            {next.capNotice && (
+                                <p className="mt-1 text-xs font-medium text-white/65">
+                                    {next.capNotice}
+                                </p>
+                            )}
                         </div>
 
                         {atRisk && (
