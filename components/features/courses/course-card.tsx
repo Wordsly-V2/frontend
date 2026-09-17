@@ -26,7 +26,18 @@ export default function CourseCard({ course, wordProgressStats, showPin = true }
         wordCount > 0 && stats ? (startedCount / stats.totalWords) * 100 : 0;
 
     return (
-        <Link href={`/learn/courses/${course.id}`} className="block group">
+        // The pin toggle sits beside the link, not inside it: a <button> nested
+        // in an <a> is invalid markup and breaks keyboard focus order.
+        <div className="relative group">
+            {showPin && (
+                <CoursePinButton
+                    courseId={course.id}
+                    courseName={course.name}
+                    isPinned={!!course.isPinned}
+                    className="absolute right-2 top-2 z-10"
+                />
+            )}
+            <Link href={`/learn/courses/${course.id}`} className="block">
             <div className="bg-card rounded-2xl overflow-hidden border border-border/80 card-hover shadow-sm">
                 {/* Image */}
                 <div className="relative h-40 sm:h-48 w-full overflow-hidden bg-muted">
@@ -44,15 +55,6 @@ export default function CourseCard({ course, wordProgressStats, showPin = true }
                     )}
                     {/* Overlay gradient for better text readability */}
                     <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
-
-                    {showPin && (
-                        <CoursePinButton
-                            courseId={course.id}
-                            courseName={course.name}
-                            isPinned={!!course.isPinned}
-                            className="absolute right-2 top-2"
-                        />
-                    )}
                 </div>
 
                 {/* Content */}
@@ -108,6 +110,7 @@ export default function CourseCard({ course, wordProgressStats, showPin = true }
                     </div>
                 </div>
             </div>
-        </Link>
+            </Link>
+        </div>
     );
 }
