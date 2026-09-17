@@ -1,5 +1,6 @@
 'use client';
 
+import { SaveWordToggle } from "@/components/common/save-word-toggle";
 import WordProgressBadge from '@/components/common/word-progress-stats/word-progress-badge';
 import { WordPlaybackSettings } from '@/components/features/vocabulary/word-playback-settings';
 import { Button } from '@/components/ui/button';
@@ -229,10 +230,15 @@ export default function WordDetailsCarousel({
                 onSave={handlePlaybackSave}
             />
 
-            {/* Word progress stats (when available) */}
-            {word?.wordProgress && (
-                <div className='shrink-0 flex justify-center'>
-                    <WordProgressBadge progress={word.wordProgress} />
+            {/* Word progress stats + the flag-as-difficult toggle. The toggle is
+                here and not only in practice so a word can be saved while
+                browsing, before it has ever been answered. */}
+            {word && (
+                <div className='shrink-0 flex items-center justify-center gap-2'>
+                    {word.wordProgress && (
+                        <WordProgressBadge progress={word.wordProgress} />
+                    )}
+                    <SaveWordToggle wordId={word.id} />
                 </div>
             )}
 

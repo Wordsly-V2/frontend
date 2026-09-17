@@ -20,6 +20,10 @@ const PERSISTED_KEY_PREFIXES: readonly (readonly unknown[])[] = [
     ["word-progress"],
     ["due-word-ids"],
     ["leeches"],
+    // The learner's own difficult-word list: small, and the flag toggle has to
+    // render in the right state offline — and the queued write that changes it
+    // needs something to change.
+    ["saved-words"],
     // Small, and drives what the learner sees on /learn.
     ["daily-habit"],
     ["learning-settings"],

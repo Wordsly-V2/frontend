@@ -40,7 +40,19 @@ export interface DailyHabitOp {
 	};
 }
 
-export type SyncOp = PracticeAnswersOp | DailyHabitOp;
+/**
+ * Flagging or unflagging a difficult word while offline.
+ *
+ * Both directions are idempotent server-side (an upsert and a deleteMany), so
+ * unlike the other ops this one needs no ledger entry to be safe to retry — the
+ * `clientRequestId` is carried only because every record has one.
+ */
+export interface SavedWordOp {
+	kind: "saved-word";
+	body: { wordId: string; note?: string; saved: boolean };
+}
+
+export type SyncOp = PracticeAnswersOp | DailyHabitOp | SavedWordOp;
 
 export interface SyncRecord {
 	id: string;

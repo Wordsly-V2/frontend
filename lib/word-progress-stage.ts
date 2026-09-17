@@ -188,8 +188,12 @@ export function inferPracticeSessionKind(
     counts: SessionStageCounts,
     urlKind: PracticeSessionKind,
 ): PracticeSessionKind {
-    // A leech remediation session is explicit — never re-inferred from counts.
+    // A remediation session is explicit — never re-inferred from counts.
+    // "leech" is the list the scheduler flagged; "saved" is the list the learner
+    // flagged. They carry the same pedagogy but are worth telling apart in the
+    // UI, so neither collapses into the other.
     if (urlKind === "leech") return "leech";
+    if (urlKind === "saved") return "saved";
     if (urlKind === "review") return "review";
     if (counts.new === 0 && (counts.due > 0 || counts.learning > 0)) return "review";
     return "new";

@@ -1,12 +1,16 @@
+import { recordDailyPracticeBatch } from "@/apis/daily-habit.api";
+import { cacheDailyHabitLocally, localDateString } from "@/lib/daily-habit";
 import { applyOptimisticWordProgress } from "@/lib/optimistic-word-progress";
 import {
     enqueueSyncRecord,
+    mergeDailyHabitRecord,
     newClientRequestId,
 } from "@/lib/offline/sync-queue";
 import { saveSessionResults } from "@/lib/practice-session-persistence";
 import { fireCelebrationConfetti } from "@/lib/confetti";
 import { queryKeys } from "@/lib/query-keys";
 import { userLevelQueryKey } from "@/queries/user-level.query";
+import type { IDailyHabit } from "@/types/daily-habit/daily-habit.type";
 import type { SessionCompletePayload } from "@/types/practice/practice.type";
 import type { IUserLevel } from "@/types/user-level/user-level.type";
 import type {
@@ -37,12 +41,15 @@ interface UsePracticeSessionPersistenceOptions {
     courseId: string;
     wordIdList: string[];
     progressByWordId: Record<string, IWordProgressResponse | null> | undefined;
+    /** Called with the server's habit row once the daily goal has been recorded. */
+    onHabitSynced?: (habit: IDailyHabit) => void;
 }
 
 export function usePracticeSessionPersistence({
     courseId,
     wordIdList,
     progressByWordId,
+    onHabitSynced,
 }: UsePracticeSessionPersistenceOptions) {
     const router = useRouter();
     const queryClient = useQueryClient();
@@ -100,6 +107,40 @@ export function usePracticeSessionPersistence({
         [queryClient],
     );
 
+    /**
+     * Record the day's practice for the streak/goal.
+     *
+     * Deliberately runs AFTER the answers are saved, using the per-day counts
+     * the server returned: a word counts toward the goal at most once a day, and
+     * only the server knows which of this session's words were already counted
+     * earlier today. The session's own count is the offline fallback — right for
+     * a first pass, and the most a disconnected client can honestly claim.
+     */
+    const recordHabitFromSync = useCallback(
+        async (countedWordsByDate: Record<string, number> | undefined) => {
+            const days = Object.entries(countedWordsByDate ?? {})
+                .map(([clientDate, wordCount]) => ({ clientDate, wordCount }))
+                .filter((day) => day.wordCount > 0);
+            // Every word in the session had already been counted today, so there
+            // is nothing to add — a second lap through the difficult-words list
+            // is practice, but it is not a second day's worth of it.
+            if (days.length === 0) return;
+
+            const habit = await recordDailyPracticeBatch({
+                days,
+                clientDate: localDateString(),
+                clientRequestId: newClientRequestId(),
+            });
+            cacheDailyHabitLocally(habit);
+            queryClient.setQueryData(
+                queryKeys.dailyHabit.byDate(habit.date),
+                habit,
+            );
+            onHabitSynced?.(habit);
+        },
+        [queryClient, onHabitSynced],
+    );
+
     const persistSessionInBackground = useCallback(
         async (payload: SessionCompletePayload) => {
             try {
@@ -112,6 +153,13 @@ export function usePracticeSessionPersistence({
                     // should never be left holding.
                     setIsSavedOffline(true);
                     toast.warning("Saved on your device — we'll sync when you're back online.");
+                    if (userLoginId) {
+                        await mergeDailyHabitRecord({
+                            userLoginId,
+                            clientDate: localDateString(),
+                            wordCount: payload.wordResults.length,
+                        });
+                    }
                 } else {
                     // Live sync: surface the server-authoritative XP/level info to
                     // the summary so it can celebrate with real numbers.
@@ -120,6 +168,19 @@ export function usePracticeSessionPersistence({
                         levelEvent: result.levelEvent,
                         xpMultiplier: result.xpMultiplier ?? 1,
                     });
+                    // A failed habit call must not lose the answers that already
+                    // saved, so it queues rather than throwing into the catch.
+                    try {
+                        await recordHabitFromSync(result.countedWordsByDate);
+                    } catch {
+                        if (userLoginId) {
+                            await mergeDailyHabitRecord({
+                                userLoginId,
+                                clientDate: localDateString(),
+                                wordCount: payload.wordResults.length,
+                            });
+                        }
+                    }
                 }
             } catch {
                 // saveSessionResults already queues on a failed request, so
@@ -139,7 +200,12 @@ export function usePracticeSessionPersistence({
                 toast.error("Could not save progress. It is queued for retry.");
             }
         },
-        [invalidateProgressQueries, applyLevelEvent, userLoginId],
+        [
+            invalidateProgressQueries,
+            applyLevelEvent,
+            userLoginId,
+            recordHabitFromSync,
+        ],
     );
 
     // Commit the graded results (optimistic cache update + background sync)

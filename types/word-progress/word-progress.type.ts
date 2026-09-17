@@ -86,6 +86,15 @@ export interface IBulkRecordAnswersResponse {
     levelEvent?: ILevelEvent;
     /** Streak-bonus multiplier applied to XP (1 = no bonus). */
     xpMultiplier: number;
+    /**
+     * Words that counted toward the daily goal, keyed by local calendar date.
+     *
+     * A word counts at most once a day however many times it was answered, so
+     * this is what the daily-habit call must send. The client used to count the
+     * session itself, which meant a second round through the same words — now
+     * one tap away, from the difficult-words list — inflated the goal.
+     */
+    countedWordsByDate?: Record<string, number>;
 }
 
 /** Daily pacing snapshot returned alongside due-word-ids. */

@@ -1,5 +1,6 @@
 import { recordDailyPracticeBatch } from "@/apis/daily-habit.api";
 import { recordAnswerBulkSync } from "@/apis/word-progress.api";
+import { saveWord, unsaveWord } from "@/apis/saved-words.api";
 import { toApiError } from "@/lib/api-error";
 import {
 	backoffMs,
@@ -62,6 +63,19 @@ async function sendRecord(record: SyncRecord): Promise<void> {
 			...record.op.body,
 			clientRequestId: record.clientRequestId,
 		});
+		return;
+	}
+
+	if (record.op.kind === "saved-word") {
+		const { wordId, note, saved } = record.op.body;
+		// A queued flag whose word was deleted meanwhile 404s, which is not
+		// retryable and lands in failed-permanent for the learner to discard —
+		// the same path every other permanently-rejected record takes.
+		if (saved) {
+			await saveWord({ wordId, note });
+		} else {
+			await unsaveWord(wordId);
+		}
 		return;
 	}
 

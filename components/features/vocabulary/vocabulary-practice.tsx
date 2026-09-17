@@ -1,5 +1,6 @@
 "use client";
 
+import { SaveWordToggle } from "@/components/common/save-word-toggle";
 import { LeechWordBanner } from "@/components/features/vocabulary/leech-word-banner";
 import { NewWordIntroPanel } from "@/components/features/vocabulary/new-word-intro-panel";
 import { PracticeCardShell } from "@/components/features/vocabulary/practice-card-shell";
@@ -28,14 +29,10 @@ import {
     type FlashcardRating,
 } from "@/lib/answer-quality";
 import { fireMiniConfetti } from "@/lib/confetti";
-import {
-    localDateString,
-    recordPracticeWordsLocally,
-} from "@/lib/daily-habit";
+import { recordPracticeWordsLocally } from "@/lib/daily-habit";
 import { getLastLearnCourse } from "@/lib/learning-session";
 import { recordSession } from "@/lib/session-history";
 import type { IDailyHabit } from "@/types/daily-habit/daily-habit.type";
-import { useRecordDailyPracticeMutation } from "@/queries/daily-habit.query";
 import { playAudioUrl, preloadAudioUrl, stopAudio } from "@/lib/practice-audio";
 import { pickMilestoneMessage } from "@/lib/practice-feedback";
 import type { PracticeSessionKind } from "@/lib/practice-session";
@@ -71,8 +68,6 @@ import {
     isEditableKeyboardTarget,
 } from "@/lib/keyboard-utils";
 import { cn } from "@/lib/utils";
-import { mergeDailyHabitRecord } from "@/lib/offline/sync-queue";
-import { useAppSelector } from "@/store/hooks";
 import type { SessionCompletePayload, WordResult } from "@/types/practice/practice.type";
 import { IWord, IWordExample } from "@/types/courses/courses.type";
 import {
@@ -148,6 +143,12 @@ interface VocabularyPracticeProps {
      * manual action. Must be idempotent (may be called more than once).
      */
     onSubmitResults?: (payload: SessionCompletePayload) => void;
+    /**
+     * The server's habit row, once the answers have saved and the daily goal has
+     * been recorded from the server's own per-day word counts. Replaces the
+     * optimistic local row the summary first shows.
+     */
+    syncedHabit?: IDailyHabit | null;
     /** Server level snapshot + XP delta from the live sync (for the summary). */
     levelEvent?: ILevelEvent;
     /** Streak-bonus XP multiplier from the live sync (1 = no bonus). */
@@ -167,6 +168,7 @@ export default function VocabularyPractice({
     exitDisabled = false,
     onComplete,
     onSubmitResults,
+    syncedHabit,
     levelEvent,
     xpMultiplier,
     isSavedOffline,
@@ -194,11 +196,6 @@ export default function VocabularyPractice({
     const [pendingResult, setPendingResult] = useState<WordResult | null>(null);
     const [sessionStreak, setSessionStreak] = useState(0);
     const [habitState, setHabitState] = useState<IDailyHabit | null>(null);
-    const recordDailyPractice = useRecordDailyPracticeMutation();
-    // Queued habit days are scoped per account, like every other offline write.
-    const habitUserLoginId = useAppSelector(
-        (state) => state.user.profile?.userLoginId ?? null,
-    );
     const [timeSpentSeconds, setTimeSpentSeconds] = useState<number | undefined>(undefined);
     const [feedbackSeed] = useState(() => Date.now());
     const [introCompletedIds, setIntroCompletedIds] = useState<Set<string>>(
@@ -382,33 +379,12 @@ export default function VocabularyPractice({
                 new Date().toISOString(),
             );
 
-            const clientDate = localDateString();
-            recordDailyPractice.mutate(
-                { wordCount, clientDate },
-                {
-                    onSuccess: (habit) => {
-                        setHabitState(habit);
-                        if (habit.streakFreezes > localHabit.streakFreezes) {
-                            fireMiniConfetti();
-                            toast.success("Streak freeze earned! ❄️", {
-                                description:
-                                    "It'll auto-protect your streak if you miss a day.",
-                            });
-                        }
-                    },
-                    onError: () => {
-                        // Offline: queue instead, merged into any day bucket
-                        // already waiting so several offline sessions become one
-                        // request rather than one per session.
-                        if (!habitUserLoginId) return;
-                        void mergeDailyHabitRecord({
-                            userLoginId: habitUserLoginId,
-                            clientDate,
-                            wordCount,
-                        });
-                    },
-                },
-            );
+            // The SERVER half of this is deliberately not here. It now runs
+            // after the answers are saved (usePracticeSessionPersistence), from
+            // the per-day counts the save returns, because a word counts toward
+            // the goal at most once a day and only the server knows which of
+            // these words were already counted earlier today. `localHabit` still
+            // moves the dial instantly; `onHabitSynced` replaces it with truth.
 
             const payload: SessionCompletePayload = {
                 score: scoreFromResults(results),
@@ -418,8 +394,29 @@ export default function VocabularyPractice({
             finalizedPayloadRef.current = payload;
             return payload;
         },
-        [recordDailyPractice, habitUserLoginId],
+        [],
     );
+
+    // Swap the optimistic habit for the server's, and celebrate a freeze the
+    // day's practice just earned. Lives here rather than beside the request
+    // because the streak UI it feeds is this component's summary.
+    // Read through a ref so the effect keys off the arriving row alone; putting
+    // habitState in the deps would re-run it on the very update it performs.
+    const habitStateRef = useRef<IDailyHabit | null>(null);
+    habitStateRef.current = habitState;
+
+    useEffect(() => {
+        if (!syncedHabit) return;
+        const previous = habitStateRef.current;
+        if (previous && syncedHabit.streakFreezes > previous.streakFreezes) {
+            fireMiniConfetti();
+            toast.success("Streak freeze earned! ❄️", {
+                description:
+                    "It'll auto-protect your streak if you miss a day.",
+            });
+        }
+        setHabitState(syncedHabit);
+    }, [syncedHabit]);
 
     const finishSession = useCallback(
         (results: WordResult[]) => {
@@ -1037,17 +1034,23 @@ export default function VocabularyPractice({
                 exitDisabled={exitDisabled}
                 className="mb-4"
                 actions={
-                    <PracticeToolbar
-                        showSettings={showSettings}
-                        showWordsList={showWordsList}
-                        queue={queue}
-                        currentIndex={currentIndex}
-                        onOpenSettings={() => setShowSettings(true)}
-                        onCloseSettings={() => setShowSettings(false)}
-                        onOpenWordsList={() => setShowWordsList(true)}
-                        onCloseWordsList={() => setShowWordsList(false)}
-                        hidden={showIntro}
-                    />
+                    <>
+                        {/* Flagging is most useful in the moment the word is
+                            hard, so it sits with the session controls rather
+                            than behind the words list. */}
+                        <SaveWordToggle wordId={currentWord.id} iconOnly />
+                        <PracticeToolbar
+                            showSettings={showSettings}
+                            showWordsList={showWordsList}
+                            queue={queue}
+                            currentIndex={currentIndex}
+                            onOpenSettings={() => setShowSettings(true)}
+                            onCloseSettings={() => setShowSettings(false)}
+                            onOpenWordsList={() => setShowWordsList(true)}
+                            onCloseWordsList={() => setShowWordsList(false)}
+                            hidden={showIntro}
+                        />
+                    </>
                 }
             />
 

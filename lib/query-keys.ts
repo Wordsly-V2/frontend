@@ -107,6 +107,11 @@ export const queryKeys = {
         list: (courseId?: string, lessonId?: string) =>
             ["leeches", courseId, lessonId] as const,
     },
+    savedWords: {
+        all: ["saved-words"] as const,
+        list: (courseId?: string, lessonId?: string) =>
+            ["saved-words", courseId, lessonId] as const,
+    },
     learningSettings: {
         all: ["learning-settings"] as const,
     },

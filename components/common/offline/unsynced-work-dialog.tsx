@@ -24,6 +24,11 @@ function describe(record: SyncRecord): string {
 		const count = record.op.body.answers?.length ?? 0;
 		return `${count} answer${count === 1 ? "" : "s"}`;
 	}
+	if (record.op.kind === "saved-word") {
+		return record.op.body.saved
+			? "1 word flagged as difficult"
+			: "1 word unflagged";
+	}
 	const days = record.op.body.days?.length ?? 0;
 	return `${days} day${days === 1 ? "" : "s"} of practice`;
 }

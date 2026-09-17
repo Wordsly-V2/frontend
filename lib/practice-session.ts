@@ -1,11 +1,11 @@
 import { createSerializer, parseAsStringLiteral } from "nuqs/server";
 import { wordSelectionSearchParams } from "@/lib/search-params/word-selection";
 
-export type PracticeSessionKind = "new" | "review" | "leech";
+export type PracticeSessionKind = "new" | "review" | "leech" | "saved";
 
 export const practiceSessionSearchParams = {
     ...wordSelectionSearchParams,
-    kind: parseAsStringLiteral(["new", "review", "leech"] as const).withDefault("new"),
+    kind: parseAsStringLiteral(["new", "review", "leech", "saved"] as const).withDefault("new"),
 };
 
 const serializePracticeSession = createSerializer(practiceSessionSearchParams);

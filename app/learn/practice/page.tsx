@@ -13,6 +13,7 @@ import { resolveProgress } from "@/lib/offline/progress-cache";
 import { practiceSessionSearchParams } from "@/lib/practice-session";
 import { useGetProgressByWordIdsQuery } from "@/queries/word-progress.query";
 import { useGetWordsByIdsQuery } from "@/queries/words.query";
+import type { IDailyHabit } from "@/types/daily-habit/daily-habit.type";
 import type { PracticePhase } from "@/types/practice/practice.type";
 import { useQueryClient } from "@tanstack/react-query";
 import { useBackNavigation } from "@/hooks/useBackNavigation.hook";
@@ -70,6 +71,12 @@ export default function PracticePage() {
         kind,
     );
 
+    // The server's habit row, which only arrives after the answers save (the
+    // goal counts each word once a day, so the server decides how many of this
+    // session's words actually counted). Handed to the session so the summary
+    // can replace its optimistic streak with the real one.
+    const [syncedHabit, setSyncedHabit] = useState<IDailyHabit | null>(null);
+
     const {
         saveSession,
         persistSession,
@@ -81,6 +88,7 @@ export default function PracticePage() {
             courseId: courseId ?? "",
             wordIdList,
             progressByWordId,
+            onHabitSynced: setSyncedHabit,
         });
 
     // Prefers history.back(), so leaving a session returns to the course page in
@@ -188,6 +196,7 @@ export default function PracticePage() {
                         levelEvent={sessionSyncResult?.levelEvent}
                         xpMultiplier={sessionSyncResult?.xpMultiplier}
                         isSavedOffline={isSavedOffline}
+                        syncedHabit={syncedHabit}
                     />
                 </div>
             </main>

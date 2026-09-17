@@ -82,6 +82,12 @@ export const apiPaths = {
             user(`word-progress/words/${wordId}/unsuspend`),
     },
 
+    savedWords: {
+        root: () => user('saved-words'),
+        list: () => user('saved-words/list'),
+        byId: (wordId: string) => user(`saved-words/${wordId}`),
+    },
+
     dailyHabit: {
         root: () => user('daily-habit'),
         recordPractice: () => user('daily-habit/record-practice'),

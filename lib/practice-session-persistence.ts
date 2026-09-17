@@ -21,6 +21,13 @@ export interface SaveSessionResult {
     levelEvent?: ILevelEvent;
     /** Streak-bonus multiplier from a live sync (1 = no bonus). */
     xpMultiplier?: number;
+    /**
+     * Words the SERVER counted toward the daily goal, per calendar date, from a
+     * live sync only. Undefined when queued — the caller then falls back to the
+     * session's own count, which is right for a first pass through a set of
+     * words and is the best a disconnected client can know.
+     */
+    countedWordsByDate?: Record<string, number>;
 }
 
 /** Minutes to add to a UTC instant to get local wall-clock time. */
@@ -54,6 +61,7 @@ export async function saveSessionResults(
             outcome: "sync",
             levelEvent: response.levelEvent,
             xpMultiplier: response.xpMultiplier,
+            countedWordsByDate: response.countedWordsByDate,
         };
     } catch {
         if (userLoginId) {
