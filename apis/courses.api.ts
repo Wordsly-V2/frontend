@@ -28,5 +28,11 @@ export const deleteMyCourse = (courseId: string): Promise<{ success: boolean }> 
 export const updateMyCourse = (courseId: string, course: CreateUpdateMyCourse): Promise<{ success: boolean }> =>
     request((i) => i.put(apiPaths.courses.byId(courseId), course));
 
+export const setMyCoursePin = (
+    courseId: string,
+    pinned: boolean,
+): Promise<{ id: string; isPinned: boolean }> =>
+    request((i) => i.put(apiPaths.courses.pin(courseId), { pinned }));
+
 export const getCourseDetailById = (courseId: string): Promise<ICourse> =>
     request((i) => i.get(apiPaths.courses.byId(courseId)));

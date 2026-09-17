@@ -23,6 +23,7 @@ export const apiPaths = {
         root: () => user('courses'),
         totalStats: () => user('courses/total-stats'),
         byId: (courseId: string) => user(`courses/${courseId}`),
+        pin: (courseId: string) => user(`courses/${courseId}/pin`),
         words: (courseId: string) => user(`courses/${courseId}/words`),
         wordsBulkDelete: (courseId: string) =>
             user(`courses/${courseId}/words/bulk-delete`),

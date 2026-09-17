@@ -20,14 +20,22 @@ export function CoursePath() {
         startTransition(() => setLastId(getLastLearnCourse()?.id ?? null));
     }, []);
 
+    // Pinned courses lead (the server already returns them first), then the
+    // last-opened one, then whatever else fits in the row.
     const courses = useMemo(() => {
         const items = data?.items ?? [];
-        if (!lastId) return items.slice(0, 3);
-        const sorted = [...items].sort((a, b) => {
-            if (a.id === lastId) return -1;
-            if (b.id === lastId) return 1;
-            return 0;
-        });
+        const rank = (course: (typeof items)[number]) => {
+            if (course.isPinned) return 0;
+            if (course.id === lastId) return 1;
+            return 2;
+        };
+        const sorted = [...items]
+            .map((course, index) => ({ course, index }))
+            .sort(
+                (a, b) =>
+                    rank(a.course) - rank(b.course) || a.index - b.index,
+            )
+            .map(({ course }) => course);
         return sorted.slice(0, 3);
     }, [data?.items, lastId]);
 

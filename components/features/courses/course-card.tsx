@@ -6,13 +6,16 @@ import type { IWordProgressStats } from "@/types/word-progress/word-progress.typ
 import Image from "next/image";
 import Link from "next/link";
 import { BookOpen, GraduationCap } from "lucide-react";
+import CoursePinButton from "./course-pin-button";
 
 interface CourseCardProps {
     course: ICourse;
     wordProgressStats?: IWordProgressStats;
+    /** Hide the pin toggle where pinning makes no sense (e.g. read-only lists). */
+    showPin?: boolean;
 }
 
-export default function CourseCard({ course, wordProgressStats }: Readonly<CourseCardProps>) {
+export default function CourseCard({ course, wordProgressStats, showPin = true }: Readonly<CourseCardProps>) {
     const lessonCount = course.totalLessonsCount || 0;
     const wordCount = course.totalWordsCount || 0;
     const stats = wordProgressStats;
@@ -41,6 +44,15 @@ export default function CourseCard({ course, wordProgressStats }: Readonly<Cours
                     )}
                     {/* Overlay gradient for better text readability */}
                     <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
+
+                    {showPin && (
+                        <CoursePinButton
+                            courseId={course.id}
+                            courseName={course.name}
+                            isPinned={!!course.isPinned}
+                            className="absolute right-2 top-2"
+                        />
+                    )}
                 </div>
 
                 {/* Content */}
@@ -48,6 +60,11 @@ export default function CourseCard({ course, wordProgressStats }: Readonly<Cours
                     <h3 className="font-semibold text-base sm:text-lg mb-2 group-hover:text-primary transition-colors line-clamp-2">
                         {course.name}
                     </h3>
+                    {course.isPinned && (
+                        <p className="-mt-1 mb-2 text-xs font-semibold uppercase tracking-wide text-primary">
+                            Pinned
+                        </p>
+                    )}
 
                     {/* Stats */}
                     <div className="flex items-center gap-3 sm:gap-4 text-xs sm:text-sm text-muted-foreground">

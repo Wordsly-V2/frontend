@@ -4,6 +4,7 @@ import {
     getCourseDetailById,
     getMyCourses,
     getMyCoursesTotalStats,
+    setMyCoursePin,
     updateMyCourse,
 } from "@/apis/courses.api";
 import { queryKeys } from "@/lib/query-keys";
@@ -89,6 +90,19 @@ export const useUpdateMyCourseMutation = () => {
     return useMutation({
         mutationFn: ({ courseId, courseData }: { courseId: string; courseData: CreateUpdateMyCourse }) =>
             updateMyCourse(courseId, courseData),
+        onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.courses.all }),
+    });
+};
+
+/**
+ * Pinning changes the order of every course list (pinned first), so it
+ * invalidates the same `courses` root as the other course mutations.
+ */
+export const useSetMyCoursePinMutation = () => {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: ({ courseId, pinned }: { courseId: string; pinned: boolean }) =>
+            setMyCoursePin(courseId, pinned),
         onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.courses.all }),
     });
 };

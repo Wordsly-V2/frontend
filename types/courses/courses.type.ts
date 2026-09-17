@@ -10,6 +10,8 @@ export interface ICourse {
   name: string;
   coverImageUrl?: string;
   userLoginId?: string;
+  /** Pinned courses are listed first, in the library and on the learn screen. */
+  isPinned?: boolean;
   // API-sourced timestamps are ISO strings at runtime (JSON), not Date objects.
   createdAt?: string;
   updatedAt?: string;
