@@ -3,7 +3,7 @@
 import { useNextPracticeAction } from "@/hooks/useNextPracticeAction.hook";
 import { useUser } from "@/hooks/useUser.hook";
 import { cn } from "@/lib/utils";
-import { BarChart3, BookOpen, Dumbbell, Library, Settings, User } from "lucide-react";
+import { BarChart3, BookOpen, Dumbbell, Library, Settings } from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -40,12 +40,6 @@ const TABS: Tab[] = [
         icon: Settings,
         match: (p) => p.startsWith("/manage"),
     },
-    {
-        href: "/profile",
-        label: "Profile",
-        icon: User,
-        match: (p) => p.startsWith("/profile"),
-    },
 ];
 
 export function BottomTabBar() {
@@ -76,7 +70,7 @@ export function BottomTabBar() {
                 aria-label="Primary"
                 className="fixed inset-x-3 bottom-keyboard-safe z-40 lg:hidden"
             >
-                <div className="glass-surface mx-auto grid max-w-md grid-cols-6 items-end rounded-3xl px-2 py-1.5 shadow-[0_16px_48px_-12px_rgba(15,23,42,0.3)] dark:shadow-[0_16px_48px_-12px_rgba(0,0,0,0.6)]">
+                <div className="glass-surface mx-auto grid max-w-md grid-cols-5 items-end rounded-3xl px-2 py-1.5 shadow-[0_16px_48px_-12px_rgba(15,23,42,0.3)] dark:shadow-[0_16px_48px_-12px_rgba(0,0,0,0.6)]">
                     {left.map((tab) => (
                         <TabButton key={tab.href} tab={tab} pathname={pathname} />
                     ))}
