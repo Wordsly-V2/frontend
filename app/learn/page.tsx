@@ -6,6 +6,7 @@ import LearningProgressSection from "@/components/common/word-progress-stats/lea
 import { CoursePath } from "@/components/features/learn/course-path";
 import { DailyHabitCard } from "@/components/features/learn/daily-habit-card";
 import { DailyHero } from "@/components/features/learn/daily-hero";
+import { DifficultWordsEntry } from "@/components/features/learn/difficult-words-entry";
 import PracticeSettingsDialog from "@/components/features/vocabulary/practice-settings-dialog";
 import { Button } from "@/components/ui/button";
 import { isOnboardingDone } from "@/lib/onboarding";
@@ -91,6 +92,9 @@ export default function LearnPage() {
                 <DailyHero />
 
                 <DailyHabitCard />
+
+                {/* Only rendered when there is something tricky to work on. */}
+                <DifficultWordsEntry />
 
                 {/* Progress — surfaced above the course list */}
                 <section className="glass-surface mb-8 rounded-3xl">

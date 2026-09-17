@@ -13,6 +13,7 @@ import {
 import { useNextPracticeAction } from "@/hooks/useNextPracticeAction.hook";
 import { useUser } from "@/hooks/useUser.hook";
 import {
+    AlertTriangle,
     BarChart3,
     BookOpen,
     Dumbbell,
@@ -43,6 +44,12 @@ const PUBLIC_ROUTES: PaletteRoute[] = [
 const LEARN_ROUTES: PaletteRoute[] = [
     { href: "/learn", label: "Learn", icon: BookOpen, keywords: ["dashboard", "today", "home"] },
     { href: "/learn/courses", label: "Courses", icon: Library, keywords: ["my courses", "lessons", "words"] },
+    {
+        href: "/learn/difficult",
+        label: "Difficult words",
+        icon: AlertTriangle,
+        keywords: ["hard", "saved", "tricky", "leech", "bookmark", "mark"],
+    },
     {
         href: "/progress",
         label: "Progress",

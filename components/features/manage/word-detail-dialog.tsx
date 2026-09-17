@@ -8,6 +8,7 @@ import {
     DialogTitle,
 } from "@/components/ui/dialog";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { SaveWordToggle } from "@/components/common/save-word-toggle";
 import { WordPill } from "@/components/common/word-pill";
 import { getPlayPhraseSearchUrl } from "@/lib/playphrase";
 import { getWordExampleObjects } from "@/lib/practice-utils";
@@ -35,9 +36,15 @@ interface WordDetailDialogProps {
     readonly isNotFound?: boolean;
     /** When set and word is not in my words (no courseId/lessonId), show "Quick add word" button. */
     readonly onQuickAdd?: (word: WordDetailView) => void;
+    /**
+     * Show the flag-as-difficult toggle. Opt-in because this dialog is shared
+     * with the Manage screens, where the viewer is authoring the course rather
+     * than learning from it and has no difficult-word list of their own.
+     */
+    readonly canFlagDifficult?: boolean;
 }
 
-export default function WordDetailDialog({ word, isOpen, onClose, courseId, lessonId, isLoading, isNotFound, onQuickAdd }: WordDetailDialogProps) {
+export default function WordDetailDialog({ word, isOpen, onClose, courseId, lessonId, isLoading, isNotFound, onQuickAdd, canFlagDifficult }: WordDetailDialogProps) {
     const router = useRouter();
     const canNavigate = !!(courseId && lessonId);
 
@@ -98,12 +105,20 @@ export default function WordDetailDialog({ word, isOpen, onClose, courseId, less
         <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
             <DialogContent className="sm:max-w-md flex max-h-[90dvh] flex-col p-0">
                 <DialogHeader className="flex-shrink-0 px-6 pt-6 pb-2">
-                    <DialogTitle className="flex items-center gap-2 flex-wrap">
-                        <span>{word!.word}</span>
-                        {word!.partOfSpeech && (
-                            <WordPill className="text-sm font-normal">{word!.partOfSpeech}</WordPill>
+                    <div className="flex items-start justify-between gap-2">
+                        <DialogTitle className="flex items-center gap-2 flex-wrap">
+                            <span>{word!.word}</span>
+                            {word!.partOfSpeech && (
+                                <WordPill className="text-sm font-normal">{word!.partOfSpeech}</WordPill>
+                            )}
+                        </DialogTitle>
+                        {/* In the header rather than with the actions below, so
+                            it is reachable without scrolling a long entry. A
+                            dictionary result has no id yet and cannot be flagged. */}
+                        {canFlagDifficult && word!.id && (
+                            <SaveWordToggle wordId={word!.id} />
                         )}
-                    </DialogTitle>
+                    </div>
                 </DialogHeader>
                 <div className="flex-1 min-h-0 overflow-y-auto px-6 pb-6 space-y-4">
                     {word!.imageUrl && (

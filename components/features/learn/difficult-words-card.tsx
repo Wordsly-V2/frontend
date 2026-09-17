@@ -1,22 +1,17 @@
 "use client";
 
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { DifficultWordRow } from "@/components/features/learn/difficult-word-row";
+import { useDifficultWords } from "@/hooks/useDifficultWords.hook";
 import { buildPracticeUrl } from "@/lib/practice-session";
-import {
-    useGetSavedWordsQuery,
-    useToggleSavedWordMutation,
-} from "@/queries/saved-words.query";
-import {
-    useGetLeechesQuery,
-    useUnsuspendWordMutation,
-} from "@/queries/word-progress.query";
-import { useAppSelector } from "@/store/hooks";
 import type { IWord } from "@/types/courses/courses.type";
-import { AlertTriangle, Bookmark, RotateCcw, X, Zap } from "lucide-react";
+import { AlertTriangle, ArrowRight, Zap } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
 import { toast } from "sonner";
+
+/** Rows shown inline before the card defers to the full page. */
+const PREVIEW_LIMIT = 5;
 
 interface DifficultWordsCardProps {
     /** Scope both lists to a single course; omit for all courses. */
@@ -27,19 +22,18 @@ interface DifficultWordsCardProps {
     className?: string;
 }
 
-type Filter = "all" | "saved" | "detected";
-
 /**
- * One screen for every word that needs extra attention, from either direction:
- * words the learner flagged themselves, and words the scheduler flagged after
- * enough lapses ("leeches"). A word can be on both lists, so they are merged
- * into one and each row says why it is there — two near-identical lists side by
- * side would just make the learner pick between them.
+ * This course's difficult words, in brief.
  *
- * "Practice these" starts a hand-picked session. Answering a word early that
- * way cannot push its review date out (the server ignores the schedule update
- * for a correct answer given ahead of time), so the list is safe to run through
- * as often as the learner likes.
+ * A preview, not the whole list: the full cross-course view lives at
+ * `/learn/difficult`, so a learner with sixty tricky words does not get sixty
+ * rows wedged into the middle of a course page.
+ *
+ * "Practice them" starts a hand-picked session over everything in scope, not
+ * just the previewed rows. Answering a word early that way cannot push its
+ * review date out (the server ignores a schedule update for a correct answer
+ * given ahead of time), so it is safe to run through as often as the learner
+ * likes.
  */
 export function DifficultWordsCard({
     courseId,
@@ -48,67 +42,9 @@ export function DifficultWordsCard({
     className,
 }: Readonly<DifficultWordsCardProps>) {
     const router = useRouter();
-    const userLoginId = useAppSelector(
-        (state) => state.user.profile?.userLoginId ?? null,
-    );
-    const { data: leechData, isLoading: leechesLoading } = useGetLeechesQuery({
-        courseId,
-    });
-    const { data: savedData, isLoading: savedLoading } = useGetSavedWordsQuery({
-        courseId,
-    });
-    const unsuspend = useUnsuspendWordMutation();
-    const unsave = useToggleSavedWordMutation({ courseId }, userLoginId);
-    const [filter, setFilter] = useState<Filter>("all");
+    const { rows, isLoading, unsuspend, unsave } = useDifficultWords(courseId);
 
-    const rows = useMemo(() => {
-        const leeches = leechData?.leeches ?? [];
-        const saved = savedData?.savedWords ?? [];
-        const savedIds = new Set(saved.map((word) => word.wordId));
-
-        const merged = [
-            // Saved first: the learner's own picks outrank the algorithm's.
-            ...saved.map((word) => ({
-                wordId: word.wordId,
-                isSaved: true,
-                isDetected:
-                    word.isLeech ||
-                    leeches.some((leech) => leech.wordId === word.wordId),
-                successRate: word.successRate,
-                totalReviews: word.totalReviews,
-                lapses: leeches.find((l) => l.wordId === word.wordId)?.lapses ?? 0,
-                suspended:
-                    leeches.find((l) => l.wordId === word.wordId)?.suspendedAt !=
-                    null,
-                isSettled: word.isSettled,
-                note: word.note,
-            })),
-            ...leeches
-                .filter((leech) => !savedIds.has(leech.wordId))
-                .map((leech) => ({
-                    wordId: leech.wordId,
-                    isSaved: false,
-                    isDetected: true,
-                    successRate: leech.successRate,
-                    totalReviews: leech.totalReviews,
-                    lapses: leech.lapses,
-                    suspended: leech.suspendedAt != null,
-                    isSettled: false,
-                    note: undefined as string | undefined,
-                })),
-        ];
-
-        if (filter === "saved") return merged.filter((row) => row.isSaved);
-        if (filter === "detected") return merged.filter((row) => row.isDetected);
-        return merged;
-    }, [leechData, savedData, filter]);
-
-    // All rows, not the filtered view: the empty state is about having nothing
-    // to work on, not about the filter currently in force.
-    const hasAny =
-        (leechData?.leeches.length ?? 0) > 0 ||
-        (savedData?.savedWords.length ?? 0) > 0;
-    if (leechesLoading || savedLoading || !hasAny) return null;
+    if (isLoading || rows.length === 0) return null;
 
     const handlePractice = () => {
         router.push(
@@ -120,25 +56,6 @@ export function DifficultWordsCard({
             }),
         );
     };
-
-    const handleUnsuspend = (wordId: string) => {
-        unsuspend.mutate(wordId, {
-            onError: () => toast.error("Couldn't unsuspend that word"),
-        });
-    };
-
-    const handleUnsave = (wordId: string) => {
-        unsave.mutate(
-            { wordId, saved: false },
-            { onError: () => toast.error("Couldn't remove that word") },
-        );
-    };
-
-    const filters: { key: Filter; label: string }[] = [
-        { key: "all", label: "All" },
-        { key: "saved", label: "Saved by me" },
-        { key: "detected", label: "Keeps slipping" },
-    ];
 
     return (
         <section
@@ -166,7 +83,6 @@ export function DifficultWordsCard({
                 <Button
                     type="button"
                     onClick={handlePractice}
-                    disabled={rows.length === 0}
                     className="shrink-0 gap-2 rounded-xl bg-amber-600 text-white hover:bg-amber-700"
                 >
                     <Zap className="h-4 w-4" aria-hidden />
@@ -174,97 +90,46 @@ export function DifficultWordsCard({
                 </Button>
             </div>
 
-            <div className="mt-3 flex flex-wrap gap-1.5">
-                {filters.map(({ key, label }) => (
-                    <Button
-                        key={key}
-                        type="button"
-                        variant={filter === key ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => setFilter(key)}
-                        className="h-7 rounded-lg text-xs"
-                    >
-                        {label}
-                    </Button>
-                ))}
-            </div>
-
             <ul className="mt-3 flex flex-col gap-1.5">
-                {rows.map((row) => {
-                    const word = wordsById[row.wordId];
-                    return (
-                        <li
-                            key={row.wordId}
-                            className="flex items-center justify-between gap-3 rounded-xl border border-amber-200/60 bg-white/60 px-3 py-2 text-sm dark:border-amber-800/40 dark:bg-transparent"
-                        >
-                            <div className="min-w-0">
-                                <div className="flex flex-wrap items-center gap-1.5">
-                                    <span className="font-medium text-amber-900 dark:text-amber-100">
-                                        {word?.word ?? "This word"}
-                                    </span>
-                                    {row.isSaved && (
-                                        <Badge variant="secondary" className="h-5 gap-1 px-1.5 text-[10px]">
-                                            <Bookmark className="h-3 w-3" aria-hidden />
-                                            Saved
-                                        </Badge>
-                                    )}
-                                    {row.isDetected && (
-                                        <Badge variant="outline" className="h-5 px-1.5 text-[10px]">
-                                            Keeps slipping
-                                        </Badge>
-                                    )}
-                                    {row.isSettled && (
-                                        <Badge variant="outline" className="h-5 px-1.5 text-[10px]">
-                                            Got it now
-                                        </Badge>
-                                    )}
-                                </div>
-                                <span className="mt-0.5 block text-xs text-amber-700/80 dark:text-amber-300/80">
-                                    {row.totalReviews > 0
-                                        ? `${Math.round(row.successRate)}% correct`
-                                        : "Not practised yet"}
-                                    {row.lapses > 0 &&
-                                        ` · ${row.lapses} lapse${row.lapses === 1 ? "" : "s"}`}
-                                    {row.suspended && " · suspended"}
-                                </span>
-                                {row.note && (
-                                    <span className="mt-0.5 block text-xs italic text-amber-700/70 dark:text-amber-300/70">
-                                        {row.note}
-                                    </span>
-                                )}
-                            </div>
-                            <div className="flex shrink-0 items-center gap-1.5">
-                                {row.suspended && (
-                                    <Button
-                                        type="button"
-                                        variant="outline"
-                                        size="sm"
-                                        disabled={unsuspend.isPending}
-                                        onClick={() => handleUnsuspend(row.wordId)}
-                                        className="h-8 gap-1.5 rounded-lg border-amber-300/60 bg-white/50 text-amber-800 dark:bg-transparent dark:text-amber-200"
-                                    >
-                                        <RotateCcw className="h-3.5 w-3.5" aria-hidden />
-                                        Unsuspend
-                                    </Button>
-                                )}
-                                {row.isSaved && (
-                                    <Button
-                                        type="button"
-                                        variant="ghost"
-                                        size="icon"
-                                        aria-label="Remove from difficult words"
-                                        disabled={unsave.isPending}
-                                        onClick={() => handleUnsave(row.wordId)}
-                                        className="h-8 w-8 rounded-lg text-amber-800 dark:text-amber-200"
-                                    >
-                                        <X className="h-4 w-4" aria-hidden />
-                                    </Button>
-                                )}
-                            </div>
-                        </li>
-                    );
-                })}
+                {rows.slice(0, PREVIEW_LIMIT).map((row) => (
+                    <DifficultWordRow
+                        key={row.wordId}
+                        row={row}
+                        word={wordsById[row.wordId]}
+                        unsuspendPending={unsuspend.isPending}
+                        unsavePending={unsave.isPending}
+                        onUnsuspend={(wordId) =>
+                            unsuspend.mutate(wordId, {
+                                onError: () =>
+                                    toast.error("Couldn't unsuspend that word"),
+                            })
+                        }
+                        onUnsave={(wordId) =>
+                            unsave.mutate(
+                                { wordId, saved: false },
+                                {
+                                    onError: () =>
+                                        toast.error("Couldn't remove that word"),
+                                },
+                            )
+                        }
+                    />
+                ))}
             </ul>
+
+            <Button
+                asChild
+                variant="ghost"
+                size="sm"
+                className="mt-2 h-8 gap-1.5 rounded-lg text-amber-800 dark:text-amber-200"
+            >
+                <Link href="/learn/difficult">
+                    {rows.length > PREVIEW_LIMIT
+                        ? `See all ${rows.length}, across every course`
+                        : "See every course's difficult words"}
+                    <ArrowRight className="h-3.5 w-3.5" aria-hidden />
+                </Link>
+            </Button>
         </section>
     );
 }

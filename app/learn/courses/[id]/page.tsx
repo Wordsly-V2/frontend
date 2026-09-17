@@ -768,7 +768,12 @@ export default function LearnCourseDetailPage({ params }: { params: Promise<{ id
                 </div>
             </div>
             {viewingWord && (
-                <WordDetailDialog word={viewingWord} isOpen={!!viewingWord} onClose={() => setViewingWord(null)} />
+                <WordDetailDialog
+                    word={viewingWord}
+                    isOpen={!!viewingWord}
+                    onClose={() => setViewingWord(null)}
+                    canFlagDifficult
+                />
             )}
 
             {totalWords > 0 && (
