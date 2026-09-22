@@ -29,6 +29,48 @@ export type WakeResult = {
  */
 const WAKE_TIMEOUT_MS = 90_000;
 
+/**
+ * The services' own public URLs, so the browser can nudge them directly.
+ *
+ * Optional, and empty in local dev. Without it the gateway is the only thing
+ * the browser can reach, and the boots serialize: the gateway's own cold start
+ * has to finish before it can even begin waking the three services behind it.
+ */
+function getBootstrapServiceUrls(): string[] {
+    return (
+        process.env.NEXT_PUBLIC_BOOTSTRAP_SERVICE_URLS?.split(',')
+            .map((url) => url.trim().replace(/\/$/, ''))
+            .filter(Boolean) ?? []
+    );
+}
+
+/** Long enough to cover a boot; the nudge is abandoned, never the boot. */
+const NUDGE_TIMEOUT_MS = 90_000;
+
+/**
+ * Start every service booting at once, without waiting for any of them.
+ *
+ * `mode: 'no-cors'` on purpose. The services answer only the gateway, so they
+ * send no CORS headers for this origin and the browser hands back an opaque
+ * response we cannot read — which is fine, because reading it is not the point.
+ * The request still reaches the platform's router, and that is what starts the
+ * container. Readiness remains the gateway's `/wake` to report; this only makes
+ * sure the four cold starts overlap instead of stacking end to end.
+ *
+ * Fire-and-forget by design: awaiting these would reintroduce the very wait it
+ * exists to remove, and an abort here does not stop a boot already underway.
+ */
+export function nudgeServicesAwake(): void {
+    for (const url of getBootstrapServiceUrls()) {
+        void fetch(`${url}/health`, {
+            mode: 'no-cors',
+            cache: 'no-store',
+            // Liveness: the cheapest endpoint that still forces the container up.
+            signal: AbortSignal.timeout(NUDGE_TIMEOUT_MS),
+        }).catch(() => undefined);
+    }
+}
+
 function getApiUrl(): string {
     const apiUrl = process.env.NEXT_PUBLIC_API_URL?.trim();
     if (!apiUrl) {

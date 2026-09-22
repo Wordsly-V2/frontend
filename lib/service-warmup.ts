@@ -1,4 +1,8 @@
-import { wakeServices, type WakeResult } from '@/apis/app.api';
+import {
+	nudgeServicesAwake,
+	wakeServices,
+	type WakeResult,
+} from '@/apis/app.api';
 import { isOffline } from '@/lib/offline/online-status';
 
 export type WarmupState =
@@ -129,6 +133,13 @@ export function warmUpServices(): Promise<boolean> {
 }
 
 async function runWake(): Promise<boolean> {
+	// First, and without waiting: hit each service's own public URL so all four
+	// containers start booting at the same moment. Left to the gateway alone,
+	// the gateway's cold start has to complete before it can begin waking the
+	// services behind it, which stacks two boots back to back for no reason.
+	// Costs nothing when the URLs aren't configured (local dev, single host).
+	nudgeServicesAwake();
+
 	for (let attempt = 1; attempt <= WAKE_ATTEMPTS; attempt++) {
 		try {
 			const result = await wakeServices();

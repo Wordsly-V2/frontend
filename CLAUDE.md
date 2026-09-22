@@ -59,6 +59,14 @@ The backend is suspended when idle, so the first load after a quiet spell hits
 instances that do not exist yet and takes 30–60s to boot. `lib/service-warmup.ts`
 owns this; the rules mirror offline mode's and are just as easy to break:
 
+- **The browser nudges the services directly, the gateway reports readiness.**
+  `NEXT_PUBLIC_BOOTSTRAP_SERVICE_URLS` lists the services' own public URLs, and a
+  wake fires one opaque `no-cors` GET at each `/health` *without awaiting them*,
+  so all four containers boot at once. Left to the gateway's `/wake` alone, its
+  own cold start has to finish before it can even begin waking the three behind
+  it — two boots end to end. The opaque response is unreadable by design (the
+  services send no CORS headers for this origin); `/wake` remains the only thing
+  that reports whether they are actually up.
 - **One wake at a time, and everything waits on it.** `lib/axios.ts`'s request
   interceptor awaits `whenWarm()`. It never *starts* a wake — that would let any
   request hold the app hostage — it only joins one already in flight. The old
