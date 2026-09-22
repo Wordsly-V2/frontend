@@ -4,6 +4,7 @@ import { MyWordsSearchFab } from '@/components/common/my-words-search';
 import { NavigationHistoryTracker } from '@/components/common/navigation-history-tracker';
 import OfflineBanner from '@/components/common/offline/offline-banner';
 import { ServiceWorkerRegistration } from '@/components/common/pwa/service-worker-registration';
+import WakingBanner from '@/components/common/service-health-monitor/waking-banner';
 import { Toaster } from '@/components/ui/sonner';
 import type { Metadata, Viewport } from 'next';
 import { Baloo_2, Geist_Mono, Nunito } from 'next/font/google';
@@ -56,6 +57,7 @@ export default function RootLayout({
                         <NavigationHistoryTracker />
                         <AppNav />
                         <OfflineBanner />
+                        <WakingBanner />
                         {children}
                         <MyWordsSearchFab />
                         <BottomTabBar />

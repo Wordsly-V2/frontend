@@ -1,3 +1,4 @@
+import { isColdStartError } from '@/lib/cold-start';
 import { QueryClient } from '@tanstack/react-query';
 
 /** A day: long enough that stepping away and losing signal still leaves data. */
@@ -5,6 +6,12 @@ const DEFAULT_GC_TIME = 24 * 60 * 60 * 1000;
 
 /** A week, for the handful of queries a practice session cannot start without. */
 export const SESSION_CRITICAL_GC_TIME = 7 * 24 * 60 * 60 * 1000;
+
+/**
+ * 1s + 2s + 4s + 8s of backoff — about fifteen seconds of patience, which
+ * covers a cold start that the warm-up gate did not already absorb.
+ */
+const COLD_START_RETRIES = 4;
 
 export const queryClient = new QueryClient({
   defaultOptions: {
@@ -19,7 +26,17 @@ export const queryClient = new QueryClient({
       gcTime: DEFAULT_GC_TIME,
       refetchOnWindowFocus: true,
       refetchOnMount: true,
-      retry: false,
+      // Retries exist for exactly one failure: an instance that is still
+      // booting. The server suspends when idle, so the first load after a quiet
+      // spell hits a container that does not exist yet and answers 502/503/504
+      // while it starts — and with `retry: false` that killed the query for
+      // good, which is why some widgets came up empty until a manual refresh.
+      //
+      // Still no blanket retry: a 4xx, a real 500 or a failure with no response
+      // at all (the offline signal) must fail on the first attempt, because
+      // retrying them delays the cached-data fallback for no benefit.
+      retry: (failureCount, error) =>
+        failureCount < COLD_START_RETRIES && isColdStartError(error),
       retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
       refetchOnReconnect: true,
       // `navigator.onLine` lies (captive portals, dead uplinks) and the API is on

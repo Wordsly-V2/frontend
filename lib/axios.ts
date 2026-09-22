@@ -10,6 +10,12 @@ import {
 	reportNetworkFailure,
 	reportNetworkSuccess,
 } from '@/lib/offline/online-status';
+import { isColdStartError } from '@/lib/cold-start';
+import {
+	markPossiblyCold,
+	noteServiceActivity,
+	whenWarm,
+} from '@/lib/service-warmup';
 
 const axiosInstance = axios.create({
 	baseURL: process.env.NEXT_PUBLIC_API_URL,
@@ -17,7 +23,18 @@ const axiosInstance = axios.create({
 });
 
 axiosInstance.interceptors.request.use(
-	(config) => {
+	async (config) => {
+		// Hold this request behind a wake that is already running.
+		//
+		// This is the fix for "the page came up empty the first time": on a
+		// suspended free-tier instance the bootstrap's wake used to race the
+		// page's own queries, and the queries lost — twenty requests failed
+		// against a server that was, seconds later, perfectly healthy. Now they
+		// queue behind the same wake instead. Never *starts* a wake (see
+		// whenWarm) and returns immediately when none is in flight, so a warm
+		// app pays nothing for this.
+		await whenWarm();
+
 		if (typeof window !== 'undefined') {
 			const token = getLocalStorageItem(ACCESS_TOKEN_STORAGE_KEY);
 
@@ -54,6 +71,9 @@ const processQueue = (error: Error | null, token: string | null = null) => {
 axiosInstance.interceptors.response.use(
 	(response) => {
 		reportNetworkSuccess();
+		// Also the idle clock the cold-start check measures from: a request that
+		// just succeeded is the best possible proof the instances are awake.
+		noteServiceActivity();
 		return response;
 	},
 	async (error) => {
@@ -128,6 +148,12 @@ axiosInstance.interceptors.response.use(
 		// truest offline signal we get, since it comes from the real API path.
 		if (!(error as AxiosError).response) {
 			reportNetworkFailure();
+		} else if (isColdStartError(error)) {
+			// The opposite case, and one that used to be mistaken for the above:
+			// we reached the platform and it answered 502/503/504 because the
+			// instance is still booting. Not an outage and not this learner's
+			// connection — start a wake so the retry has something to wait for.
+			markPossiblyCold();
 		}
 
 		return Promise.reject(

@@ -53,6 +53,32 @@ Practice is the core loop and has to work with no connection — `lib/offline/*`
 - **The service worker never caches the gateway.** The Cache API keys on URL and ignores `Authorization`, so caching authenticated JSON there leaks across accounts on a shared device (this was a real bug — see the `cross-origin` cleanup in `app/sw.ts`). It caches word media and the app shell only, and it never posts answers itself (no token access).
 - Offline behaviour lives in the production build only (`next.config.ts` disables Serwist in dev), so test it with `npm run build && npm start`, not `npm run dev`.
 
+## Cold starts (free-tier hosting)
+
+The backend is suspended when idle, so the first load after a quiet spell hits
+instances that do not exist yet and takes 30–60s to boot. `lib/service-warmup.ts`
+owns this; the rules mirror offline mode's and are just as easy to break:
+
+- **One wake at a time, and everything waits on it.** `lib/axios.ts`'s request
+  interceptor awaits `whenWarm()`. It never *starts* a wake — that would let any
+  request hold the app hostage — it only joins one already in flight. The old
+  bootstrap fired a wake that nothing waited for, so the page's own queries raced
+  it and lost, which is exactly why widgets came up empty.
+- **Cold is not offline.** A failure *with* an HTTP status (502/503/504/408) means
+  the platform answered while booting: `isColdStartError` in `lib/cold-start.ts`.
+  A failure with *no* response is still the offline signal and must stay that way
+  — never widen the cold-start check to cover it, or a learner with no connection
+  sits through a retry storm instead of dropping to cached data.
+- **`retry` in `lib/queryClient.ts` is for cold starts only.** 4 attempts,
+  exponential backoff, and nothing else retries: a 4xx, a real 500 and an offline
+  failure all still fail on the first attempt.
+- **`ServiceHealthMonitor` owns every wake trigger** (boot, tab becoming visible
+  after `isLikelyCold()`, and a 10-minute keep-alive ping while the tab is
+  visible — under the ~15-minute suspend window). A hidden tab deliberately beats
+  nothing. The keep-alive is the cheap `/health` ping, never a wake.
+- `WakingBanner` names the wait for the learner; it holds back 2.5s so a warm
+  load never flashes it.
+
 ## Design system ("Aurora")
 
 All color comes from OKLCH CSS variables in `app/globals.css` (`:root` and `.dark`) — never hardcode colors in components. Gradients, mesh backgrounds, and glows derive from `--brand-*` via relative color syntax, so swapping the palette re-themes the app (how-to in `COLORS.md`, written in Vietnamese). Utility classes to reuse: `.glass-surface`, `.glow-primary`, `.text-gradient-brand`, `.gradient-hero`, `.gradient-brand/-accent/-warm/-fun`, `.mesh-page-bg`, `.shadow-pressable` (3D buttons). Respect `prefers-reduced-motion` (existing utilities already do; use motion's `useReducedMotion` for JS-driven animation).
