@@ -12,19 +12,51 @@ const AUTH_REDIRECT_STORAGE_KEY = "auth_redirect";
 export const DEFAULT_POST_LOGIN_PATH = "/learn";
 
 /**
+ * Stand-in origin for resolving paths during SSR, where there is no window.
+ * Only ever compared against itself, so it never has to be reachable.
+ */
+const SSR_DUMMY_ORIGIN = "http://localhost.invalid";
+
+/**
+ * ASCII control characters (tab, newline and friends) plus any whitespace. The
+ * URL parser silently deletes tabs and newlines, so `/\t/evil.com` passes a
+ * "starts with / but not //" check yet navigates to `//evil.com`.
+ */
+const CONTROL_OR_WHITESPACE = /[\u0000-\u001f\u007f\s]/;
+
+/**
  * Accept only same-origin absolute paths. `//evil.com` and `https://evil.com`
  * are both browser-valid redirect targets, so a bare "starts with /" check is
- * not enough. Bouncing back into `/auth/*` would also loop.
+ * not enough — the prefix checks are a cheap first pass, and the real test is
+ * resolving the value the way the browser will and requiring the origin to be
+ * unchanged. Bouncing back into `/auth/*` would also loop.
  */
 export function sanitizeRedirectPath(
     value: string | null | undefined,
     fallback: string = DEFAULT_POST_LOGIN_PATH,
 ): string {
     if (!value) return fallback;
+    // Rejected rather than stripped: a legitimate in-app path never contains
+    // them, so their presence is itself the signal of a crafted value.
+    if (CONTROL_OR_WHITESPACE.test(value)) return fallback;
     if (!value.startsWith("/")) return fallback;
     if (value.startsWith("//") || value.startsWith("/\\")) return fallback;
-    if (value.startsWith("/auth")) return fallback;
-    return value;
+
+    const origin =
+        globalThis.window === undefined
+            ? SSR_DUMMY_ORIGIN
+            : globalThis.window.location.origin;
+    let resolved: URL;
+    try {
+        resolved = new URL(value, origin);
+    } catch {
+        return fallback;
+    }
+    if (resolved.origin !== origin) return fallback;
+
+    // Checked on the normalised path so `/./auth` or `/x/../auth` can't loop.
+    if (resolved.pathname.startsWith("/auth")) return fallback;
+    return `${resolved.pathname}${resolved.search}${resolved.hash}`;
 }
 
 export function rememberAuthRedirect(path: string): void {

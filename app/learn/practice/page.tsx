@@ -83,6 +83,7 @@ export default function PracticePage() {
         isPersisting,
         sessionSyncResult,
         isSavedOffline,
+        isSaveFailed,
     } =
         usePracticeSessionPersistence({
             courseId: courseId ?? "",
@@ -196,6 +197,7 @@ export default function PracticePage() {
                         levelEvent={sessionSyncResult?.levelEvent}
                         xpMultiplier={sessionSyncResult?.xpMultiplier}
                         isSavedOffline={isSavedOffline}
+                        isSaveFailed={isSaveFailed}
                         syncedHabit={syncedHabit}
                     />
                 </div>

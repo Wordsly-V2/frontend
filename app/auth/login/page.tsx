@@ -6,8 +6,13 @@ import {
   rememberAuthRedirect,
   sanitizeRedirectPath,
 } from "@/lib/auth-redirect";
+import { clearLogoutPending, isLogoutPending } from "@/lib/logout-pending";
+import { retryPendingLogout } from "@/store/slices/userSlice";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useEffect } from "react";
+import { Suspense, useEffect, type MouseEvent } from "react";
+
+/** How long signing in waits on an unconfirmed sign-out before going ahead. */
+const PENDING_LOGOUT_WAIT_MS = 3000;
 
 function LoginContent() {
   const router = useRouter();
@@ -22,6 +27,22 @@ function LoginContent() {
   useEffect(() => {
     rememberAuthRedirect(redirectTo);
   }, [redirectTo]);
+
+  // A sign-out the server never confirmed blocks every silent refresh. That
+  // must not also block a deliberate new sign-in, and the OAuth callback page
+  // is too late to clear it (the profile check there would run the stale
+  // logout against the NEW session). So give the old one a last try here, then
+  // stand the flag down: the new sign-in replaces the refresh cookie anyway.
+  const handleSignIn = async (e: MouseEvent<HTMLAnchorElement>) => {
+    if (!isLogoutPending()) return;
+    e.preventDefault();
+    await Promise.race([
+      retryPendingLogout(),
+      new Promise((resolve) => setTimeout(resolve, PENDING_LOGOUT_WAIT_MS)),
+    ]);
+    clearLogoutPending();
+    globalThis.location.assign(googleAuthUrl);
+  };
 
   useEffect(() => {
     if (!isLoading && profile) {
@@ -78,6 +99,7 @@ function LoginContent() {
           <CardContent className="space-y-4">
             <a
               href={googleAuthUrl}
+              onClick={handleSignIn}
               className="w-full h-12 text-base font-medium rounded-xl border border-border/90 bg-background/80 hover:border-primary/40 hover:bg-primary/5 transition-colors duration-200 group inline-flex items-center justify-center gap-2"
             >
               <svg

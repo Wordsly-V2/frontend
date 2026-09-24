@@ -42,6 +42,17 @@ function messageFrom(data: unknown, fallback: string): string {
 	return fallback;
 }
 
+/** ApiError's own fields, which a server payload must not overwrite. */
+const RESERVED_API_ERROR_KEYS: ReadonlySet<string> = new Set([
+	'message',
+	'status',
+	'data',
+	'isNetworkError',
+	'name',
+	'stack',
+	'cause',
+]);
+
 /**
  * Wrap any thrown value as an ApiError.
  *
@@ -69,7 +80,15 @@ export function toApiError(error: unknown): ApiError {
 	});
 
 	if (data && typeof data === 'object') {
-		Object.assign(apiError, data);
+		// Server fields are copied for legacy callers, but never over the
+		// normalised ones: a payload with its own `status` (a string like
+		// "error", or a stale code) or a non-string `message` array would
+		// otherwise break isUnauthorizedError and every toast that reads
+		// `.message`.
+		for (const [key, value] of Object.entries(data)) {
+			if (RESERVED_API_ERROR_KEYS.has(key)) continue;
+			(apiError as unknown as Record<string, unknown>)[key] = value;
+		}
 	}
 
 	return apiError;

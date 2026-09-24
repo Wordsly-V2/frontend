@@ -2,11 +2,15 @@ import { recordDailyPracticeBatch } from "@/apis/daily-habit.api";
 import { cacheDailyHabitLocally, localDateString } from "@/lib/daily-habit";
 import { applyOptimisticWordProgress } from "@/lib/optimistic-word-progress";
 import {
-    enqueueSyncRecord,
     mergeDailyHabitRecord,
     newClientRequestId,
 } from "@/lib/offline/sync-queue";
-import { saveSessionResults } from "@/lib/practice-session-persistence";
+import {
+    buildSessionSaveBody,
+    queueSessionSave,
+    saveSessionResults,
+    type SaveSessionResult,
+} from "@/lib/practice-session-persistence";
 import { fireCelebrationConfetti } from "@/lib/confetti";
 import { queryKeys } from "@/lib/query-keys";
 import { userLevelQueryKey } from "@/queries/user-level.query";
@@ -17,6 +21,7 @@ import type {
     ILevelEvent,
     IWordProgressResponse,
 } from "@/types/word-progress/word-progress.type";
+import { useAuthSession } from "@/hooks/useAuthSession.hook";
 import { useAppSelector } from "@/store/hooks";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
@@ -57,11 +62,15 @@ export function usePracticeSessionPersistence({
     const userLoginId = useAppSelector(
         (state) => state.user.profile?.userLoginId ?? null,
     );
+    // Only a live identity check may send answers; offline grace queues them.
+    const { canSync } = useAuthSession();
     const [savedOnce, setSavedOnce] = useState(false);
     const [hasUnsavedPractice, setHasUnsavedPractice] = useState(false);
     const [sessionSyncResult, setSessionSyncResult] =
         useState<SessionSyncResult | null>(null);
     const [isSavedOffline, setIsSavedOffline] = useState(false);
+    // The answers could be kept neither on the server nor on the device.
+    const [isSaveFailed, setIsSaveFailed] = useState(false);
     // Only true while LEAVING with a save still in flight — NOT while the
     // background save runs. The background save starts the moment the summary
     // renders, so a blocking overlay bound to it would cover the celebration.
@@ -143,9 +152,25 @@ export function usePracticeSessionPersistence({
 
     const persistSessionInBackground = useCallback(
         async (payload: SessionCompletePayload) => {
+            // One body for every path below, so a queued retry reuses the same
+            // idempotency key and calendar stamps as the first attempt.
+            const body = buildSessionSaveBody(payload);
+            let result: SaveSessionResult | null = null;
             try {
-                const result = await saveSessionResults(payload, userLoginId);
-                await invalidateProgressQueries();
+                result = await saveSessionResults(body, { userLoginId, canSync });
+
+                if (result.outcome === "not-saved") {
+                    // Nowhere to keep them (signed out, or storage refused the
+                    // write). Say so plainly — "saved on your device" here would
+                    // be a lie the learner only discovers when the work is gone.
+                    setIsSaveFailed(true);
+                    setHasUnsavedPractice(true);
+                    toast.error("We couldn't save this practice. Sign in and try again.");
+                    // Drop the optimistic progress: it describes a save that
+                    // never happened.
+                    await invalidateProgressQueries();
+                    return;
+                }
 
                 if (result.outcome === "queued") {
                     // Also flagged persistently on the summary: a toast vanishes,
@@ -156,7 +181,7 @@ export function usePracticeSessionPersistence({
                     if (userLoginId) {
                         await mergeDailyHabitRecord({
                             userLoginId,
-                            clientDate: localDateString(),
+                            clientDate: body.clientDate ?? localDateString(),
                             wordCount: payload.wordResults.length,
                         });
                     }
@@ -182,28 +207,32 @@ export function usePracticeSessionPersistence({
                         }
                     }
                 }
+
+                await invalidateProgressQueries();
             } catch {
-                // saveSessionResults already queues on a failed request, so
-                // reaching here means something else went wrong (e.g. the cache
-                // invalidation). Queue anyway rather than lose the answers.
-                setHasUnsavedPractice(true);
-                if (userLoginId) {
-                    await enqueueSyncRecord({
-                        userLoginId,
-                        clientRequestId: newClientRequestId(),
-                        op: {
-                            kind: "practice-answers",
-                            body: { answers: payload.wordResults },
-                        },
-                    });
+                // The answers are already on the server or in the outbox, so a
+                // later step failing (cache invalidation, the habit merge) must
+                // NOT queue them again: a second record would carry its own
+                // idempotency key and award the XP twice.
+                if (result) return;
+
+                // saveSessionResults never throws, so this is only a backstop —
+                // queue under the SAME body, never a freshly minted one.
+                if (await queueSessionSave(body, userLoginId)) {
+                    setIsSavedOffline(true);
+                    toast.warning("Saved on your device — we'll sync when you're back online.");
+                } else {
+                    setIsSaveFailed(true);
+                    setHasUnsavedPractice(true);
+                    toast.error("We couldn't save this practice. Sign in and try again.");
                 }
-                toast.error("Could not save progress. It is queued for retry.");
             }
         },
         [
             invalidateProgressQueries,
             applyLevelEvent,
             userLoginId,
+            canSync,
             recordHabitFromSync,
         ],
     );
@@ -281,5 +310,7 @@ export function usePracticeSessionPersistence({
         sessionSyncResult,
         /** True when the results are queued on the device awaiting a connection. */
         isSavedOffline,
+        /** True when the results could not be saved anywhere — they are lost on exit. */
+        isSaveFailed,
     };
 }

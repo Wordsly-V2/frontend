@@ -2,6 +2,15 @@ import { logout as logoutApi } from '@/apis/auth.api';
 import { getUserProfile } from '@/apis/users.api';
 import { isUnauthorizedError } from '@/lib/api-error';
 import {
+    ACCESS_TOKEN_STORAGE_KEY,
+    removeLocalStorageItem,
+} from '@/lib/local-storage';
+import {
+    clearLogoutPending,
+    markLogoutPending,
+    readLogoutPending,
+} from '@/lib/logout-pending';
+import {
     clearOfflineAuthSession,
     readOfflineAuthSession,
     saveOfflineAuthSession,
@@ -43,6 +52,43 @@ interface FetchProfileRejection {
     status?: number;
 }
 
+/**
+ * Ask the server to end the session; clears the pending flag once it has.
+ *
+ * A 401 counts as done: the logout call is allowed one refresh to authenticate
+ * itself (see lib/axios.ts), so a 401 means the refresh token was already
+ * rejected and there is no live session left to end. Anything else — offline,
+ * a cold start, a 5xx — keeps the flag so the next load tries again.
+ */
+async function logoutOnServer(allDevices: boolean): Promise<void> {
+    try {
+        await logoutApi(allDevices);
+    } catch (error) {
+        if (!isUnauthorizedError(error)) throw error;
+    }
+    clearLogoutPending();
+}
+
+let inFlightLogoutRetry: Promise<boolean> | null = null;
+
+/**
+ * Retry a sign-out an earlier load could not confirm. Resolves true when none
+ * is pending or it has now gone through. Boot and reconnect can both ask at
+ * once; they share one request rather than each spending the refresh token.
+ */
+export function retryPendingLogout(): Promise<boolean> {
+    const pending = readLogoutPending();
+    if (!pending) return Promise.resolve(true);
+
+    inFlightLogoutRetry ??= logoutOnServer(pending.allDevices)
+        .then(() => true)
+        .catch(() => false)
+        .finally(() => {
+            inFlightLogoutRetry = null;
+        });
+    return inFlightLogoutRetry;
+}
+
 export const fetchProfile = createAsyncThunk<
     IUserProfile,
     { force?: boolean } | undefined,
@@ -50,6 +96,14 @@ export const fetchProfile = createAsyncThunk<
 >(
     'user/fetchProfile',
     async (_arg, { rejectWithValue }) => {
+        // An unconfirmed sign-out goes first, before anything can use the
+        // refresh cookie it left behind. Whether or not the retry lands, the
+        // learner asked to be signed out, so this load stays signed out.
+        if (readLogoutPending()) {
+            await retryPendingLogout();
+            return rejectWithValue({ reason: 'unauthorized' });
+        }
+
         try {
             const profile = await getUserProfile();
             saveOfflineAuthSession(profile);
@@ -80,8 +134,12 @@ export const fetchProfile = createAsyncThunk<
 );
 
 export const logout = createAsyncThunk('user/logout', async ({ isLoggedOutFromAllDevices }: { isLoggedOutFromAllDevices?: boolean }, { rejectWithValue }) => {
+    // Persisted BEFORE the call: local state is wiped either way, and if the
+    // call fails the flag is all that stops the surviving httpOnly refresh
+    // cookie from silently signing this user back in on the next load.
+    markLogoutPending(isLoggedOutFromAllDevices ?? false);
     try {
-        return await logoutApi(isLoggedOutFromAllDevices);
+        await logoutOnServer(isLoggedOutFromAllDevices ?? false);
     } catch (error) {
         return rejectWithValue(error);
     }
@@ -119,8 +177,11 @@ const userSlice = createSlice({
             }
 
             // The server rejected this identity. Nothing cached about it may be
-            // trusted from here on.
+            // trusted from here on — including the access token, which would
+            // otherwise keep going out on every request and keep matching the
+            // offline-grace fingerprint check.
             clearOfflineAuthSession();
+            removeLocalStorageItem(ACCESS_TOKEN_STORAGE_KEY);
             state.profile = null;
             state.isProfileFromCache = false;
         });
@@ -137,6 +198,9 @@ const userSlice = createSlice({
             state.authFailure = null;
             state.isProfileFromCache = false;
         });
+        // Signed out locally even though the server did not confirm it. That is
+        // safe only because the pending-logout flag set by the thunk blocks the
+        // silent refresh and retries the logout on the next load.
         builder.addCase(logout.rejected, (state, action) => {
             clearOfflineAuthSession();
             state.error = action.error.message;

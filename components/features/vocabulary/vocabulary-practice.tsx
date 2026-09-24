@@ -24,6 +24,7 @@ import {
 } from "@/components/features/vocabulary/modes/sentence-build-mode";
 import {
     calculateAnswerQuality,
+    calculateRecognitionAnswerQuality,
     flashcardRatingToQuality,
     isWeakAnswer,
     type FlashcardRating,
@@ -155,6 +156,8 @@ interface VocabularyPracticeProps {
     xpMultiplier?: number;
     /** True when this session's results are queued on the device, not synced. */
     isSavedOffline?: boolean;
+    /** True when this session's results could not be saved anywhere. */
+    isSaveFailed?: boolean;
 }
 
 export default function VocabularyPractice({
@@ -172,6 +175,7 @@ export default function VocabularyPractice({
     levelEvent,
     xpMultiplier,
     isSavedOffline,
+    isSaveFailed,
 }: Readonly<VocabularyPracticeProps>) {
     const [queue, setQueue] = useState(() => practiceQueue ?? shuffleArray(words));
     const [currentIndex, setCurrentIndex] = useState(0);
@@ -618,7 +622,8 @@ export default function VocabularyPractice({
         if (elapsed != null) setTimeSpentSeconds(elapsed);
         setSelectedChoice(selectedWord);
         const isCorrect = normalizeAnswer(selectedWord) === normalizeAnswer(correctWord);
-        const quality = calculateAnswerQuality(isCorrect, hintsUsed, elapsed);
+        // Picking from shown options is recognition, so it never grades Easy.
+        const quality = calculateRecognitionAnswerQuality(isCorrect, hintsUsed, elapsed);
         stageResult({ wordId: currentWord.id, quality });
         setTypingResult(isCorrect ? "correct" : "incorrect");
         playResultSound(isCorrect);
@@ -906,6 +911,9 @@ export default function VocabularyPractice({
         if (options.length === 0) return;
 
         const onKeyDown = (e: KeyboardEvent) => {
+            // Auto-repeat from a held key would answer again the moment the
+            // next word mounts; one press is one answer.
+            if (e.repeat) return;
             if (hasShortcutModifier(e)) return;
             const key = e.key.toLowerCase();
             if (!["a", "b", "c", "d"].includes(key)) return;
@@ -941,6 +949,8 @@ export default function VocabularyPractice({
     useEffect(() => {
         if (activeMode !== "flashcard" || !showAnswer) return;
         const onKeyDown = (e: KeyboardEvent) => {
+            // A held number key must not rate the next card too.
+            if (e.repeat) return;
             if (hasShortcutModifier(e)) return;
             if (isEditableKeyboardTarget(e.target)) return;
             const ratings: FlashcardRating[] = ["easy", "good", "hard", "forgot"];
@@ -970,6 +980,7 @@ export default function VocabularyPractice({
                 levelEvent={levelEvent}
                 xpMultiplier={xpMultiplier}
                 isSavedOffline={isSavedOffline}
+                isSaveFailed={isSaveFailed}
                 onKeepGoing={() =>
                     onComplete?.({
                         score: scoreFromResults(wordResults),

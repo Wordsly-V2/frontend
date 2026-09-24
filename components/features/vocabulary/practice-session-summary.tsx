@@ -6,6 +6,7 @@ import { dailyGoalProgress } from "@/lib/daily-habit";
 import { fireCelebrationConfetti } from "@/lib/confetti";
 import { playLevelUpSound } from "@/lib/practice-sounds";
 import { useEnterKeyAction } from "@/lib/keyboard-utils";
+import { isCorrectAnswer } from "@/lib/answer-quality";
 import { pickSessionCompleteMessage } from "@/lib/practice-feedback";
 import type { IDailyHabit } from "@/types/daily-habit/daily-habit.type";
 import { AnswerQuality } from "@/types/word-progress/word-progress.type";
@@ -37,6 +38,8 @@ export interface PracticeSessionSummaryProps {
     xpMultiplier?: number;
     /** True when the results are queued on this device awaiting a connection. */
     isSavedOffline?: boolean;
+    /** True when the results could not be kept anywhere — nothing was saved. */
+    isSaveFailed?: boolean;
     onKeepGoing: () => void;
     onBackToDashboard: () => void;
 }
@@ -48,15 +51,21 @@ export function PracticeSessionSummary({
     levelEvent,
     xpMultiplier,
     isSavedOffline = false,
+    isSaveFailed = false,
     onKeepGoing,
     onBackToDashboard,
 }: Readonly<PracticeSessionSummaryProps>) {
+    // "Strong" is deliberately stricter than correct: Good or Easy (>= 4), a
+    // confident recall. It is a highlight tile, never the correctness line.
     const strongCount = wordResults.filter(
         (r) => r.quality >= AnswerQuality.CORRECT_WITH_HESITATION,
     ).length;
     // Prefer the server-authoritative XP for this session; fall back to a local
-    // estimate only while the live sync is still in flight (or offline).
-    const xp = levelEvent?.xpEarned ?? strongCount * 10;
+    // estimate only while the live sync is still in flight (or offline). The
+    // estimate counts correct answers (quality >= 3, the backend's line) — the
+    // same rule the in-session XP uses, so the number doesn't drop at the end.
+    const correctCount = wordResults.filter((r) => isCorrectAnswer(r.quality)).length;
+    const xp = levelEvent?.xpEarned ?? correctCount * 10;
     const leveledUp = levelEvent?.leveledUp ?? false;
     const hasStreakBonus = (xpMultiplier ?? 1) > 1;
     const goal = dailyGoalProgress(habitState.wordsToday, habitState.goal);
@@ -136,6 +145,20 @@ export function PracticeSessionSummary({
                 >
                     Saved on your device — your XP and streak will be confirmed
                     when you&apos;re back online.
+                </motion.p>
+            )}
+
+            {isSaveFailed && (
+                // The honest counterpart to the note above: with no account to
+                // queue under, nothing was kept, and the learner needs to know
+                // before they close the tab rather than after.
+                <motion.p
+                    {...reveal(0.16)}
+                    role="alert"
+                    className="mx-auto mb-4 max-w-sm rounded-xl bg-destructive/10 px-3 py-2 text-xs text-destructive"
+                >
+                    This practice wasn&apos;t saved. Sign in to keep your
+                    progress next time.
                 </motion.p>
             )}
 

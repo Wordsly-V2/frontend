@@ -3,6 +3,7 @@ import { clearUserLocalData } from '@/lib/user-local-data';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { fetchProfile as fetchProfileAction, logout as logoutAction } from '@/store/slices/userSlice';
 import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
 
 export const useUser = () => {
     const router = useRouter();
@@ -23,7 +24,16 @@ export const useUser = () => {
     function logout(options?: { allDevices?: boolean; redirectTo?: string }) {
         return dispatch(
             logoutAction({ isLoggedOutFromAllDevices: options?.allDevices }),
-        ).then(() => {
+        ).then((action) => {
+            // Cleared even when the server call failed: the learner asked to
+            // leave, and the pending-logout flag the thunk persisted keeps the
+            // surviving refresh cookie from signing them back in until the
+            // retry on a later load goes through.
+            if (logoutAction.rejected.match(action)) {
+                toast.warning(
+                    "Signed out on this device. We'll finish signing you out when you're back online.",
+                );
+            }
             clearUserLocalData();
             clearAuthRedirect();
             // `replace`: the signed-in page behind us is gone, so Back must not

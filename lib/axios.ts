@@ -7,6 +7,7 @@ import {
 } from '@/lib/local-storage';
 import { toApiError } from '@/lib/api-error';
 import { apiPaths } from '@/lib/api-paths';
+import { isLogoutPending } from '@/lib/logout-pending';
 import {
 	reportNetworkFailure,
 	reportNetworkSuccess,
@@ -127,6 +128,20 @@ axiosInstance.interceptors.response.use(
 		const originalRequest = error.config;
 
 		if (error.response?.status === 401 && originalRequest && !originalRequest._retry) {
+			// A sign-out the server never confirmed leaves the refresh cookie
+			// alive; refreshing with it now would silently sign the previous
+			// user back in. Let the 401 stand — it reads as "signed out" — with
+			// one exception: the logout retry itself, which needs a live token
+			// to authenticate the very call that ends the session.
+			if (
+				isLogoutPending() &&
+				originalRequest.url !== apiPaths.auth.logout()
+			) {
+				return Promise.reject(
+					error instanceof Error ? error : new Error(String(error)),
+				);
+			}
+
 			originalRequest._retry = true;
 
 			try {

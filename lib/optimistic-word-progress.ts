@@ -4,18 +4,15 @@ import type {
     IBulkRecordAnswersDto,
     IWordProgressResponse,
 } from "@/types/word-progress/word-progress.type";
-import { AnswerQuality } from "@/types/word-progress/word-progress.type";
-
-function isCorrectQuality(quality: AnswerQuality): boolean {
-    return quality >= AnswerQuality.CORRECT_WITH_DIFFICULTY;
-}
+import type { AnswerQuality } from "@/types/word-progress/word-progress.type";
+import { isCorrectAnswer } from "@/lib/answer-quality";
 
 function applyAnswerToProgress(
     prev: IWordProgressResponse | null | undefined,
     wordId: string,
     quality: AnswerQuality,
 ): IWordProgressResponse {
-    const correct = isCorrectQuality(quality);
+    const correct = isCorrectAnswer(quality);
     const now = new Date();
 
     if (!prev) {
