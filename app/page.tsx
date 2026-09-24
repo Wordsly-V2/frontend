@@ -34,7 +34,7 @@ export default function HomePage() {
                     <div className="relative overflow-hidden rounded-3xl gradient-hero px-6 py-12 text-center shadow-xl sm:px-12 sm:py-14">
                         <div
                             aria-hidden
-                            className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_60%_60%_at_50%_-20%,rgba(255,255,255,0.25),transparent_60%)]"
+                            className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_60%_60%_at_50%_-20%,rgba(255,255,255,0.25),transparent_60%)] dark:opacity-40"
                         />
                         <h2 className="relative text-2xl font-bold text-white sm:text-3xl">
                             Two minutes is enough to keep a word.
@@ -45,7 +45,7 @@ export default function HomePage() {
                         </p>
                         <Button
                             size="xl"
-                            className="relative mt-7 bg-white font-extrabold uppercase tracking-wide text-primary shadow-lg hover:bg-white/90"
+                            className="relative mt-7 bg-white font-extrabold uppercase tracking-wide text-primary shadow-lg hover:bg-white/90 dark:bg-white/90 dark:text-[oklch(from_var(--brand-primary)_0.42_0.16_h)] dark:hover:bg-white/80"
                             asChild
                         >
                             <Link href="/learn">

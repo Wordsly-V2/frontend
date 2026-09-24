@@ -319,7 +319,73 @@
         oklch(from var(--brand-primary) calc(l - 0.08) calc(c + 0.02) calc(h + 15)) 100%
       );
   }
-  
+
+  /* Dark mode: the .dark brand colors are lifted for text contrast, which makes
+     filled gradient surfaces glare against the near-black page. Pin the fill
+     stops to a low, fixed lightness and tone down chroma (hues still follow the
+     brand variables); white text on top stays well above AA. */
+  .dark .gradient-brand {
+    background: linear-gradient(
+      135deg,
+      oklch(from var(--brand-primary) 0.5 0.16 h) 0%,
+      oklch(from var(--brand-primary) 0.42 0.14 calc(h + 23)) 100%
+    );
+  }
+
+  .dark .gradient-accent {
+    background: linear-gradient(
+      135deg,
+      oklch(from var(--brand-secondary) 0.5 0.1 h) 0%,
+      oklch(from var(--brand-primary) 0.45 0.15 h) 100%
+    );
+  }
+
+  .dark .gradient-success {
+    background: linear-gradient(
+      135deg,
+      oklch(from var(--brand-success) 0.5 0.13 h) 0%,
+      oklch(from var(--brand-success) 0.45 0.11 calc(h + 23)) 100%
+    );
+  }
+
+  .dark .gradient-warm {
+    background: linear-gradient(
+      135deg,
+      oklch(from var(--brand-warning) 0.55 0.12 h) 0%,
+      oklch(from var(--brand-orange) 0.5 0.14 h) 100%
+    );
+  }
+
+  .dark .gradient-fun {
+    background: linear-gradient(
+      135deg,
+      oklch(from var(--brand-pink) 0.5 0.15 h) 0%,
+      oklch(from var(--brand-accent) 0.5 0.14 h) 100%
+    );
+  }
+
+  .dark .gradient-rainbow {
+    background: linear-gradient(
+      125deg,
+      oklch(from var(--brand-primary) 0.5 0.15 h) 0%,
+      oklch(from var(--brand-secondary) 0.5 0.1 h) 30%,
+      oklch(from var(--brand-pink) 0.5 0.14 h) 60%,
+      oklch(from var(--brand-accent) 0.52 0.13 h) 80%,
+      oklch(from var(--brand-warning) 0.56 0.12 h) 100%
+    );
+  }
+
+  .dark .gradient-hero {
+    background:
+      radial-gradient(ellipse 80% 80% at 85% 10%, oklch(from var(--brand-secondary) 0.5 0.1 h / 0.3), transparent 55%),
+      radial-gradient(ellipse 60% 70% at 10% 90%, oklch(from var(--brand-pink) 0.45 0.13 h / 0.3), transparent 55%),
+      linear-gradient(
+        135deg,
+        oklch(from var(--brand-primary) 0.45 0.15 h) 0%,
+        oklch(from var(--brand-primary) 0.36 0.13 calc(h + 15)) 100%
+      );
+  }
+
   /* Badge variants for CEFR levels — saturated pills */
   .badge-a2 {
     @apply rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300 font-extrabold;

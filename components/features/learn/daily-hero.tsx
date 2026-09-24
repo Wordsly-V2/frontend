@@ -115,7 +115,7 @@ export function DailyHero() {
                                 size="xl"
                                 asChild
                                 disabled={next.wordsLoading}
-                                className="glow-primary bg-white text-primary border-black/10 hover:bg-white hover:brightness-[1.02] focus-visible:ring-white/60 focus-visible:border-white"
+                                className="glow-primary bg-white text-primary border-black/10 hover:bg-white hover:brightness-[1.02] dark:bg-white/90 dark:text-[oklch(from_var(--brand-primary)_0.42_0.16_h)] dark:hover:bg-white/90 focus-visible:ring-white/60 focus-visible:border-white"
                             >
                                 <Link
                                     href={ctaHref}
