@@ -129,6 +129,10 @@ export const queryKeys = {
         /** Due Path items for a lesson's warm-up; not persisted (changes by the minute). */
         warmup: (lessonId: string, limit: number) =>
             ["path", "warmup", lessonId, limit] as const,
+        /** Due Path items for /path/review; not persisted, fetched fresh per visit. */
+        review: (limit: number) => ["path", "review", limit] as const,
+        /** How many Path items are due, for the Review buttons; not persisted. */
+        dueCount: () => ["path", "due-count"] as const,
     },
     learningSettings: {
         all: ["learning-settings"] as const,

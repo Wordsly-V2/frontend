@@ -5,6 +5,7 @@ import { usePracticeSessionPersistence } from "@/hooks/usePracticeSessionPersist
 import { buildPathPracticePlan } from "@/lib/path/item-to-word";
 import type { ActivePracticeMode } from "@/lib/practice-settings";
 import type { PathItem, PathItemRole } from "@/types/path/path.type";
+import type { SessionCompletePayload } from "@/types/practice/practice.type";
 import { useEffect, useState } from "react";
 
 /**
@@ -25,7 +26,8 @@ export function PracticeStep({
     lessonTitle: string;
     subtitle: string;
     onExit: () => void;
-    onDone: () => void;
+    /** The session's results; none when there was nothing to drill. */
+    onDone: (payload?: SessionCompletePayload) => void;
 }>) {
     // Built once: the queue must not reshuffle under the learner.
     const [plan] = useState(() => buildPathPracticePlan(items));

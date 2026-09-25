@@ -10,6 +10,7 @@ import {
     getPathUnit,
     submitPathCheckpoint,
 } from "@/apis/path.api";
+import { PATH_REVIEW_SESSION_SIZE } from "@/lib/path/path-tree";
 import { queryKeys } from "@/lib/query-keys";
 import type {
     CompletePathLessonDto,
@@ -67,6 +68,29 @@ export const usePathCheckpointQuery = (unitId: string) =>
         refetchOnWindowFocus: false,
     });
 
+/** Up to `limit` due Path items, hydrated, plus the counts they came from. */
+export interface PathDueItems {
+    items: PathItem[];
+    /** Every due Path item, uncapped. */
+    dueTotal: number;
+    /** Reviews left under today's `dailyReviewLimit` (shared with vocabulary). */
+    reviewsRemainingToday: number | undefined;
+}
+
+/** New items only come in through lessons, so a review never includes them. */
+async function fetchDuePathItems(limit: number): Promise<PathDueItems> {
+    const { dueWordIds, dueTotal, pacing } = await getDueWordIds({
+        source: "path",
+        limit,
+        includeNew: false,
+    });
+    return {
+        items: dueWordIds.length > 0 ? await hydratePathItems(dueWordIds) : [],
+        dueTotal,
+        reviewsRemainingToday: pacing?.reviewsRemainingToday,
+    };
+}
+
 /**
  * Path items due for review, hydrated, for a lesson's warm-up. Empty when none
  * are due. Fetched fresh each time a lesson starts.
@@ -74,16 +98,42 @@ export const usePathCheckpointQuery = (unitId: string) =>
 export const usePathWarmupQuery = (lessonId: string, limit: number) =>
     useQuery<PathItem[]>({
         queryKey: queryKeys.path.warmup(lessonId, limit),
-        queryFn: async () => {
-            const { dueWordIds } = await getDueWordIds({
-                source: "path",
-                limit,
-                includeNew: false,
-            });
-            return dueWordIds.length > 0 ? hydratePathItems(dueWordIds) : [];
-        },
+        queryFn: async () => (await fetchDuePathItems(limit)).items,
         staleTime: 0,
         gcTime: 0,
+    });
+
+/**
+ * One /path/review session. Fetched fresh on every visit and never refetched
+ * underneath it: the engine builds its queue once from the first result.
+ */
+export const usePathReviewQuery = (limit: number) =>
+    useQuery<PathDueItems>({
+        queryKey: queryKeys.path.review(limit),
+        queryFn: () => fetchDuePathItems(limit),
+        staleTime: Infinity,
+        gcTime: 0,
+        refetchOnWindowFocus: false,
+        refetchOnReconnect: false,
+    });
+
+/**
+ * How many Path items are due now, for the Review buttons. Only ids, no
+ * hydrate; the session size is what `/path/review` would start with.
+ */
+export const usePathDueCountQuery = (enabled: boolean = true) =>
+    useQuery({
+        queryKey: queryKeys.path.dueCount(),
+        queryFn: async () => {
+            const { dueWordIds, dueTotal } = await getDueWordIds({
+                source: "path",
+                limit: PATH_REVIEW_SESSION_SIZE,
+                includeNew: false,
+            });
+            return { sessionCount: dueWordIds.length, dueTotal };
+        },
+        enabled,
+        staleTime: 60 * 1000,
     });
 
 /**
