@@ -3,7 +3,7 @@
 import { useNextPracticeAction } from "@/hooks/useNextPracticeAction.hook";
 import { useUser } from "@/hooks/useUser.hook";
 import { cn } from "@/lib/utils";
-import { BarChart3, BookOpen, Dumbbell, Library, Settings } from "lucide-react";
+import { BarChart3, BookOpen, Dumbbell, Library, Route } from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -23,6 +23,12 @@ const TABS: Tab[] = [
         match: (p) => p === "/learn",
     },
     {
+        href: "/path",
+        label: "Path",
+        icon: Route,
+        match: (p) => p.startsWith("/path"),
+    },
+    {
         href: "/learn/courses",
         label: "Courses",
         icon: Library,
@@ -33,12 +39,6 @@ const TABS: Tab[] = [
         label: "Progress",
         icon: BarChart3,
         match: (p) => p.startsWith("/progress"),
-    },
-    {
-        href: "/manage",
-        label: "Manage",
-        icon: Settings,
-        match: (p) => p.startsWith("/manage"),
     },
 ];
 

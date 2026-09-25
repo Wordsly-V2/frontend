@@ -102,6 +102,20 @@ export const apiPaths = {
         activityCalendar: () => user('learning-report/activity-calendar'),
     },
 
+    /**
+     * Wordsly Path (curriculum-service). The map is the same for everyone; the
+     * rest is the signed-in learner's own progress.
+     */
+    path: {
+        tree: () => '/path',
+        me: () => user('path/me'),
+        enroll: () => user('path/enroll'),
+        unit: (unitId: string) => user(`path/units/${unitId}`),
+        lesson: (lessonId: string) => user(`path/lessons/${lessonId}`),
+        completeLesson: (lessonId: string) =>
+            user(`path/lessons/${lessonId}/complete`),
+    },
+
     learningSettings: () => user('learning-settings'),
     preferences: () => user('preferences'),
     level: () => user('level'),

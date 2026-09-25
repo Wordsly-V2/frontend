@@ -22,6 +22,7 @@ import {
     Library,
     LogIn,
     Sparkles,
+    Route,
     User,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -43,6 +44,12 @@ const PUBLIC_ROUTES: PaletteRoute[] = [
 /** Pages that need a signed-in learner. Practice is added separately — its href is dynamic. */
 const LEARN_ROUTES: PaletteRoute[] = [
     { href: "/learn", label: "Learn", icon: BookOpen, keywords: ["dashboard", "today", "home"] },
+    {
+        href: "/path",
+        label: "Wordsly Path",
+        icon: Route,
+        keywords: ["path", "curriculum", "lessons", "units", "cefr", "lộ trình"],
+    },
     { href: "/learn/courses", label: "Courses", icon: Library, keywords: ["my courses", "lessons", "words"] },
     {
         href: "/learn/difficult",

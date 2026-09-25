@@ -7,6 +7,7 @@ import { CoursePath } from "@/components/features/learn/course-path";
 import { DailyHabitCard } from "@/components/features/learn/daily-habit-card";
 import { DailyHero } from "@/components/features/learn/daily-hero";
 import { DifficultWordsEntry } from "@/components/features/learn/difficult-words-entry";
+import { PathEntryCard } from "@/components/features/path/path-entry-card";
 import PracticeSettingsDialog from "@/components/features/vocabulary/practice-settings-dialog";
 import { Button } from "@/components/ui/button";
 import { isOnboardingDone } from "@/lib/onboarding";
@@ -92,6 +93,8 @@ export default function LearnPage() {
                 <DailyHero />
 
                 <DailyHabitCard />
+
+                <PathEntryCard />
 
                 {/* Only rendered when there is something tricky to work on. */}
                 <DifficultWordsEntry />

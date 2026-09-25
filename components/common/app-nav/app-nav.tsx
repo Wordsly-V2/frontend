@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { motion, useReducedMotion } from "motion/react";
-import { BarChart3, BookOpen, Dumbbell, GraduationCap, Library, Settings, User, LogOut, LogIn, Smartphone, Menu } from "lucide-react";
+import { BarChart3, BookOpen, Dumbbell, GraduationCap, Library, Route, Settings, User, LogOut, LogIn, Smartphone, Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { MyWordsSearch } from "@/components/common/my-words-search";
@@ -38,6 +38,7 @@ function openCommandPalette() {
 
 const NAV_SECTIONS = [
     { href: "/learn", label: "Learn", icon: BookOpen },
+    { href: "/path", label: "Path", icon: Route },
     { href: "/learn/courses", label: "Courses", icon: Library },
     { href: "/progress", label: "Progress", icon: BarChart3 },
     { href: "/manage", label: "Manage", icon: Settings },
