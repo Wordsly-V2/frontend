@@ -87,6 +87,16 @@ owns this; the rules mirror offline mode's and are just as easy to break:
 - `WakingBanner` names the wait for the learner; it holds back 2.5s so a warm
   load never flashes it.
 
+## Wordsly Path
+
+A public CEFR curriculum served by curriculum-service (tracker: `../../docs/wordsly-path/PROGRESS.md`). Routes live under `app/path/` (`/path` map, `/path/unit/[unitId]`), components in `components/features/path/`, data in `apis/path.api.ts` + `queries/path.query.ts` (keys under `queryKeys.path`), response types in `types/path/path.type.ts` (copied from the backend; keep them in step), pure helpers in `lib/path/path-tree.ts`.
+
+- `GET /path` 404s until something is published: the API returns `null` and the page shows "on its way". Unit and lesson reads 403 while locked; the unit page tells locked (403) from missing (404) through `ApiError.status`.
+- Progress writes (`enroll`, `complete`) return the new `me`: write it into the cache, then invalidate the rest of `path` (units carry lock state).
+- `path.tree`, `path.me`, `path.unit` and `path.lesson` are on the offline persist allowlist.
+- Content strings ending in `Vi` are Vietnamese (`titleVi`, `canDo`, `noteVi`…); the UI chrome stays English like the rest of the app.
+- On mobile, Path took Manage's place in the bottom tab bar; Manage is still in the command palette (the header menu button).
+
 ## Design system ("Aurora")
 
 All color comes from OKLCH CSS variables in `app/globals.css` (`:root` and `.dark`) — never hardcode colors in components. Gradients, mesh backgrounds, and glows derive from `--brand-*` via relative color syntax, so swapping the palette re-themes the app (how-to in `COLORS.md`, written in Vietnamese). Utility classes to reuse: `.glass-surface`, `.glow-primary`, `.text-gradient-brand`, `.gradient-hero`, `.gradient-brand/-accent/-warm/-fun`, `.mesh-page-bg`, `.shadow-pressable` (3D buttons). Respect `prefers-reduced-motion` (existing utilities already do; use motion's `useReducedMotion` for JS-driven animation).

@@ -112,6 +112,18 @@ export const queryKeys = {
         list: (courseId?: string, lessonId?: string) =>
             ["saved-words", courseId, lessonId] as const,
     },
+    /**
+     * Wordsly Path. `tree` and `lesson` are release content (the same for every
+     * learner); `me` and `unit` carry the learner's progress, so every progress
+     * write invalidates the `path` root.
+     */
+    path: {
+        all: ["path"] as const,
+        tree: () => ["path", "tree"] as const,
+        me: () => ["path", "me"] as const,
+        unit: (unitId: string) => ["path", "unit", unitId] as const,
+        lesson: (lessonId: string) => ["path", "lesson", lessonId] as const,
+    },
     learningSettings: {
         all: ["learning-settings"] as const,
     },

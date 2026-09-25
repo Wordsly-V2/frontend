@@ -30,6 +30,12 @@ const PERSISTED_KEY_PREFIXES: readonly (readonly unknown[])[] = [
     ["preferences"],
     // The warmer's record of what is available offline.
     ["offline-pool"],
+    // Wordsly Path: the map, the learner's place on it, and lessons already
+    // opened, so the path can be browsed and a lesson resumed offline.
+    ["path", "tree"],
+    ["path", "me"],
+    ["path", "unit"],
+    ["path", "lesson"],
 ];
 
 /**
