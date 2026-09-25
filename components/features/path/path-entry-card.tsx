@@ -2,7 +2,7 @@
 
 import { Bounce } from "@/components/common/motion";
 import { findLesson } from "@/lib/path/path-tree";
-import { usePathMeQuery, usePathTreeQuery } from "@/queries/path.query";
+import { usePathDueCountQuery, usePathMeQuery, usePathTreeQuery } from "@/queries/path.query";
 import { ArrowRight, Route } from "lucide-react";
 import Link from "next/link";
 
@@ -13,6 +13,7 @@ import Link from "next/link";
 export function PathEntryCard() {
     const { data: tree } = usePathTreeQuery();
     const { data: me } = usePathMeQuery();
+    const { data: due } = usePathDueCountQuery(!!me?.enrolled);
 
     if (!tree || !me) return null;
 
@@ -25,6 +26,7 @@ export function PathEntryCard() {
         subtitle = next
             ? `Up next: ${next.lesson.title} · ${done} of ${total} lessons done`
             : `${done} of ${total} lessons done`;
+        if (due && due.sessionCount > 0) subtitle = `${due.sessionCount} to review · ${subtitle}`;
     }
 
     return (

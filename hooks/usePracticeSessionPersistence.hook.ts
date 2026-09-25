@@ -88,6 +88,7 @@ export function usePracticeSessionPersistence({
         await queryClient.invalidateQueries({ queryKey: queryKeys.wordProgress.all });
         await queryClient.invalidateQueries({ queryKey: queryKeys.dueWords.all });
         await queryClient.invalidateQueries({ queryKey: queryKeys.dueWordIds.all });
+        await queryClient.invalidateQueries({ queryKey: queryKeys.path.dueCount() });
     }, [queryClient]);
 
     // Flushing the offline queue is owned by OfflineBootstrap, which listens for

@@ -1,10 +1,10 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { CEFR_LABELS, findLesson, pathLessonHref } from "@/lib/path/path-tree";
-import { useEnrollPathMutation } from "@/queries/path.query";
+import { CEFR_LABELS, PATH_REVIEW_HREF, findLesson, pathLessonHref } from "@/lib/path/path-tree";
+import { useEnrollPathMutation, usePathDueCountQuery } from "@/queries/path.query";
 import type { PathMe, PathTree } from "@/types/path/path.type";
-import { Play, Rocket, Trophy } from "lucide-react";
+import { Play, Rocket, RotateCcw, Trophy } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
 
@@ -107,19 +107,39 @@ function ContinueContent({ tree, me }: Readonly<{ tree: PathTree; me: PathMe }>)
                 </div>
             </div>
 
-            {next ? (
-                <Button variant="play" size="xl" asChild className={`w-fit ${HERO_BUTTON}`}>
-                    <Link href={pathLessonHref(next.lesson.id)} className="gap-2">
-                        <Play className="h-5 w-5 fill-current" aria-hidden />
-                        {done === 0 ? "Start first lesson" : "Continue"}
-                    </Link>
-                </Button>
-            ) : (
-                <p className="inline-flex w-fit items-center gap-2 rounded-2xl border border-white/25 bg-white/10 px-4 py-2 text-sm font-bold">
-                    <Trophy className="h-4 w-4" aria-hidden />
-                    Great work so far!
-                </p>
-            )}
+            <div className="flex flex-wrap items-center gap-3">
+                {next ? (
+                    <Button variant="play" size="xl" asChild className={`w-fit ${HERO_BUTTON}`}>
+                        <Link href={pathLessonHref(next.lesson.id)} className="gap-2">
+                            <Play className="h-5 w-5 fill-current" aria-hidden />
+                            {done === 0 ? "Start first lesson" : "Continue"}
+                        </Link>
+                    </Button>
+                ) : (
+                    <p className="inline-flex w-fit items-center gap-2 rounded-2xl border border-white/25 bg-white/10 px-4 py-2 text-sm font-bold">
+                        <Trophy className="h-4 w-4" aria-hidden />
+                        Great work so far!
+                    </p>
+                )}
+                <ReviewLink />
+            </div>
         </div>
+    );
+}
+
+/** Shown only when some Path items are due and today's review budget allows. */
+function ReviewLink() {
+    const { data } = usePathDueCountQuery();
+    if (!data || data.sessionCount === 0) return null;
+
+    return (
+        <Link
+            href={PATH_REVIEW_HREF}
+            className="inline-flex h-14 items-center gap-2 rounded-2xl border border-white/30 bg-white/10 px-5 text-base font-bold text-white transition-colors hover:bg-white/20 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-white/60"
+        >
+            <RotateCcw className="h-4 w-4" aria-hidden />
+            Review {data.sessionCount}
+            <span className="sr-only"> due items</span>
+        </Link>
     );
 }

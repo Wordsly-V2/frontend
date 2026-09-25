@@ -21,6 +21,10 @@ export const CEFR_LABELS: Record<CefrLevel, string> = {
 export const pathLessonHref = (lessonId: string) => `/path/lesson/${lessonId}`;
 export const pathUnitHref = (unitId: string) => `/path/unit/${unitId}`;
 export const pathCheckpointHref = (unitId: string) => `/path/checkpoint/${unitId}`;
+export const PATH_REVIEW_HREF = "/path/review";
+
+/** Items in one /path/review session (still capped by `dailyReviewLimit`). */
+export const PATH_REVIEW_SESSION_SIZE = 20;
 
 /** Progress per unit id, for looking units up while walking the tree. */
 export function unitProgressById(me: PathMe | undefined): Map<string, PathUnitProgress> {
