@@ -32,10 +32,12 @@ export type WarmupSnapshot = {
  * the server is the one that failed — the learner is left staring at empty
  * widgets on a server that is now perfectly healthy.
  *
- * The old bootstrap did fire a wake, but nothing waited for it: it raced the
- * page's own queries and they lost. So the rule here is that there is exactly
- * one wake in flight at a time, everything else *waits on that same promise*,
- * and only requests that have something to wait for are held.
+ * A wake is only an external call that starts the services booting. It never
+ * holds a request: gating the app on it meant one broken service kept every
+ * page on "Loading…". Requests go out at once, and the ones that land on a
+ * booting instance are carried by the query retry policy (`lib/queryClient.ts`)
+ * and the platform, which holds a connection while the container starts. There
+ * is exactly one wake in flight at a time, and the banner reports on it.
  */
 
 /**
@@ -44,17 +46,17 @@ export type WarmupSnapshot = {
  */
 const COLD_AFTER_MS = 13 * 60_000;
 
-/** Wake attempts before giving up and letting requests through unheld. */
+/** Wake attempts before giving up. */
 const WAKE_ATTEMPTS = 3;
 
 /**
- * Longest a real request will wait on a wake.
+ * How long after a wake finishes a failed request may not start another.
  *
- * A gate that can outlast the learner's patience is worse than the failure it
- * replaces, so past this point requests go through and take their chances — the
- * query retry policy is the next line of defence.
+ * A wake has just told us which services are up. A 502 from one it found down
+ * means that service is broken, and a fresh wake would hold every request in
+ * the app for another full gateway budget to learn the same thing again.
  */
-const MAX_GATE_WAIT_MS = 75_000;
+const REWAKE_COOLDOWN_MS = 2 * 60_000;
 
 let snapshot: WarmupSnapshot = {
 	state: 'unknown',
@@ -64,6 +66,7 @@ let snapshot: WarmupSnapshot = {
 let listeners = new Set<() => void>();
 let inFlight: Promise<boolean> | null = null;
 let lastSuccessAt = 0;
+let lastWakeEndedAt = 0;
 
 function emit(next: Partial<WarmupSnapshot>): void {
 	// Replaced rather than mutated: useSyncExternalStore compares by identity,
@@ -127,6 +130,7 @@ export function warmUpServices(): Promise<boolean> {
 
 	inFlight = runWake().finally(() => {
 		inFlight = null;
+		lastWakeEndedAt = Date.now();
 	});
 
 	return inFlight;
@@ -149,6 +153,17 @@ async function runWake(): Promise<boolean> {
 				noteServiceActivity();
 				return true;
 			}
+
+			// Some answered, some did not. The gateway only replies once its
+			// full budget — longer than any cold boot — has run out, so a
+			// service still down now is broken, not booting, and waking again
+			// cannot fix it. Release the app: everything backed by the healthy
+			// services works, and the pages that need the broken one fail on
+			// their own requests instead of holding every page hostage.
+			if (result.services.some((service) => service.state === 'awake')) {
+				noteServiceActivity();
+				return false;
+			}
 		} catch {
 			// The gateway itself is still booting, or the wake outran its own
 			// timeout. Either way the request has done its job — it started
@@ -163,26 +178,13 @@ async function runWake(): Promise<boolean> {
 }
 
 /**
- * Wait for an in-flight wake, bounded.
- *
- * Only ever waits on a wake that is *already* running — it never starts one, so
- * a request can't be held hostage by a warm-up nobody asked for.
- */
-export async function whenWarm(): Promise<void> {
-	if (!inFlight) return;
-
-	await Promise.race([
-		inFlight,
-		new Promise((resolve) => setTimeout(resolve, MAX_GATE_WAIT_MS)),
-	]).catch(() => undefined);
-}
-
-/**
  * Report a failure that looks like a sleeping instance, and start a wake if one
- * isn't already running. The request that triggered this is lost, but its retry
- * now has something to wait for.
+ * isn't already running, so the query's retry lands on a booting instance.
+ * Ignored within `REWAKE_COOLDOWN_MS` of the last
+ * wake, which has already said what is up and what is broken.
  */
 export function markPossiblyCold(): void {
+	if (Date.now() - lastWakeEndedAt < REWAKE_COOLDOWN_MS) return;
 	lastSuccessAt = 0;
 	void warmUpServices().catch(() => undefined);
 }
@@ -193,4 +195,5 @@ export function resetServiceWarmupForTests(): void {
 	listeners = new Set();
 	inFlight = null;
 	lastSuccessAt = 0;
+	lastWakeEndedAt = 0;
 }

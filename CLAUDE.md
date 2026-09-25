@@ -68,11 +68,14 @@ owns this; the rules mirror offline mode's and are just as easy to break:
   it — two boots end to end. The opaque response is unreadable by design (the
   services send no CORS headers for this origin); `/wake` remains the only thing
   that reports whether they are actually up.
-- **One wake at a time, and everything waits on it.** `lib/axios.ts`'s request
-  interceptor awaits `whenWarm()`. It never *starts* a wake — that would let any
-  request hold the app hostage — it only joins one already in flight. The old
-  bootstrap fired a wake that nothing waited for, so the page's own queries raced
-  it and lost, which is exactly why widgets came up empty.
+- **A wake never blocks anything.** It is only an external call that starts the
+  services booting; no request waits on it (there is no gate in `lib/axios.ts`).
+  Gating the app on it meant one broken service kept every page on "Loading…".
+  Requests on a booting instance are carried by the platform holding the
+  connection and the cold-start query retry. One wake runs at a time, a partial
+  answer (some services awake) ends it without retrying, and `markPossiblyCold`
+  is ignored for `REWAKE_COOLDOWN_MS` after a wake so a broken service's 502s
+  cannot start one after another.
 - **Cold is not offline.** A failure *with* an HTTP status (502/503/504/408) means
   the platform answered while booting: `isColdStartError` in `lib/cold-start.ts`.
   A failure with *no* response is still the offline signal and must stay that way

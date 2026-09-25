@@ -16,7 +16,6 @@ import { isColdStartError } from '@/lib/cold-start';
 import {
 	markPossiblyCold,
 	noteServiceActivity,
-	whenWarm,
 } from '@/lib/service-warmup';
 
 const axiosInstance = axios.create({
@@ -25,18 +24,9 @@ const axiosInstance = axios.create({
 });
 
 axiosInstance.interceptors.request.use(
-	async (config) => {
-		// Hold this request behind a wake that is already running.
-		//
-		// This is the fix for "the page came up empty the first time": on a
-		// suspended free-tier instance the bootstrap's wake used to race the
-		// page's own queries, and the queries lost — twenty requests failed
-		// against a server that was, seconds later, perfectly healthy. Now they
-		// queue behind the same wake instead. Never *starts* a wake (see
-		// whenWarm) and returns immediately when none is in flight, so a warm
-		// app pays nothing for this.
-		await whenWarm();
-
+	(config) => {
+		// Never held behind a wake (`lib/service-warmup.ts`): a wake only starts
+		// the services booting, and one broken service must not stall the app.
 		if (typeof window !== 'undefined') {
 			const token = getLocalStorageItem(ACCESS_TOKEN_STORAGE_KEY);
 
