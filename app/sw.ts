@@ -16,6 +16,7 @@ import {
     SYNC_TAG_PRACTICE,
     WORD_MEDIA_CACHE,
 } from "@/lib/offline/media-cache";
+import { getBootstrapServiceOrigins } from "@/lib/bootstrap-services";
 
 // Serwist injects the precache manifest at build time via `self.__SW_MANIFEST`.
 declare global {
@@ -37,6 +38,8 @@ const API_ORIGIN = (() => {
 })();
 
 const MEDIA_HOSTS = getMediaHosts();
+
+const BOOTSTRAP_SERVICE_ORIGINS = getBootstrapServiceOrigins();
 
 /**
  * Authenticated API responses cached by an earlier build. `@serwist/next`'s
@@ -121,6 +124,18 @@ const serwist = new Serwist({
             },
         ],
     },
+});
+
+// The cold-start nudges (`nudgeServicesAwake`) must reach the network untouched.
+// Left to Serwist they fall into `defaultCache`'s cross-origin NetworkFirst,
+// which re-issues them from the worker, fails within milliseconds with
+// `no-response`, and so never starts the boot they exist for. Registered before
+// Serwist's own listener and without `respondWith`, so the browser fetches them
+// as if there were no worker at all.
+self.addEventListener("fetch", (event) => {
+    if (BOOTSTRAP_SERVICE_ORIGINS.has(new URL(event.request.url).origin)) {
+        event.stopImmediatePropagation();
+    }
 });
 
 serwist.addEventListeners();

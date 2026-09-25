@@ -1,5 +1,6 @@
 import { request } from '@/lib/axios';
 import axios from 'axios';
+import { getBootstrapServiceUrls } from '@/lib/bootstrap-services';
 
 export type ServiceHealth = {
     name: string;
@@ -27,22 +28,7 @@ export type WakeResult = {
  * three sleeping services. The gateway caps its fan-out well below this so it
  * can answer with partial progress rather than having this socket time out.
  */
-const WAKE_TIMEOUT_MS = 90_000;
-
-/**
- * The services' own public URLs, so the browser can nudge them directly.
- *
- * Optional, and empty in local dev. Without it the gateway is the only thing
- * the browser can reach, and the boots serialize: the gateway's own cold start
- * has to finish before it can even begin waking the three services behind it.
- */
-function getBootstrapServiceUrls(): string[] {
-    return (
-        process.env.NEXT_PUBLIC_BOOTSTRAP_SERVICE_URLS?.split(',')
-            .map((url) => url.trim().replace(/\/$/, ''))
-            .filter(Boolean) ?? []
-    );
-}
+const WAKE_TIMEOUT_MS = 120_000;
 
 /** Long enough to cover a boot; the nudge is abandoned, never the boot. */
 const NUDGE_TIMEOUT_MS = 90_000;

@@ -67,7 +67,10 @@ owns this; the rules mirror offline mode's and are just as easy to break:
   own cold start has to finish before it can even begin waking the three behind
   it — two boots end to end. The opaque response is unreadable by design (the
   services send no CORS headers for this origin); `/wake` remains the only thing
-  that reports whether they are actually up.
+  that reports whether they are actually up. The service worker must stay out
+  of their way (`app/sw.ts` stops propagation for those origins before Serwist
+  sees them): routed through `defaultCache`'s cross-origin NetworkFirst they
+  failed in milliseconds and woke nothing.
 - **One wake at a time, and everything waits on it.** `lib/axios.ts`'s request
   interceptor awaits `whenWarm()`. It never *starts* a wake — that would let any
   request hold the app hostage — it only joins one already in flight. The old
