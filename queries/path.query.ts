@@ -1,5 +1,7 @@
+import { getDueWordIds } from "@/apis/word-progress.api";
 import {
     completePathLesson,
+    hydratePathItems,
     enrollPath,
     getPathLesson,
     getPathMe,
@@ -9,6 +11,7 @@ import {
 import { queryKeys } from "@/lib/query-keys";
 import type {
     CompletePathLessonDto,
+    PathItem,
     PathLessonView,
     PathMe,
     PathTree,
@@ -47,6 +50,25 @@ export const usePathLessonQuery = (lessonId: string, enabled: boolean = true) =>
         queryKey: queryKeys.path.lesson(lessonId),
         queryFn: () => getPathLesson(lessonId),
         enabled: enabled && !!lessonId,
+    });
+
+/**
+ * Path items due for review, hydrated, for a lesson's warm-up. Empty when none
+ * are due. Fetched fresh each time a lesson starts.
+ */
+export const usePathWarmupQuery = (lessonId: string, limit: number) =>
+    useQuery<PathItem[]>({
+        queryKey: queryKeys.path.warmup(lessonId, limit),
+        queryFn: async () => {
+            const { dueWordIds } = await getDueWordIds({
+                source: "path",
+                limit,
+                includeNew: false,
+            });
+            return dueWordIds.length > 0 ? hydratePathItems(dueWordIds) : [];
+        },
+        staleTime: 0,
+        gcTime: 0,
     });
 
 /**

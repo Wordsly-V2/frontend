@@ -86,6 +86,7 @@ export const queryKeys = {
                 o.limit,
                 o.newLimit,
                 o.includeNew,
+                o.source,
             ] as const,
         byWordIds: (
             wordIds: string[],
@@ -123,6 +124,9 @@ export const queryKeys = {
         me: () => ["path", "me"] as const,
         unit: (unitId: string) => ["path", "unit", unitId] as const,
         lesson: (lessonId: string) => ["path", "lesson", lessonId] as const,
+        /** Due Path items for a lesson's warm-up; not persisted (changes by the minute). */
+        warmup: (lessonId: string, limit: number) =>
+            ["path", "warmup", lessonId, limit] as const,
     },
     learningSettings: {
         all: ["learning-settings"] as const,

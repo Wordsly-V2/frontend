@@ -22,7 +22,15 @@ export interface IRecordAnswerDto {
      * gets Wednesday's intervals.
      */
     reviewedAt?: string;
+    /**
+     * Which service the id belongs to. Omitted means `vocab` (the learner's own
+     * words); Wordsly Path items send `path`.
+     */
+    source?: AnswerSource;
 }
+
+/** Where an answered item lives, as learning-service spells it. */
+export type AnswerSource = "vocab" | "path";
 
 export interface IBulkRecordAnswersDto {
     answers: IRecordAnswerDto[];
@@ -175,4 +183,6 @@ export interface WordProgressScope {
      */
     newLimit?: number;
     includeNew?: boolean;
+    /** Only cards of this source (`path` for Wordsly Path review). */
+    source?: AnswerSource;
 }
