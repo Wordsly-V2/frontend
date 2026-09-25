@@ -51,7 +51,8 @@ export function BottomTabBar() {
     const hidden =
         !profile ||
         pathname.startsWith("/auth") ||
-        pathname.startsWith("/learn/practice");
+        pathname.startsWith("/learn/practice") ||
+        pathname.startsWith("/path/lesson");
 
     if (hidden) return null;
 

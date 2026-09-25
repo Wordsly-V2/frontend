@@ -48,7 +48,8 @@ export function MyWordsSearchFab() {
     if (!profile || pathname.startsWith("/auth")) return null;
 
     /** The bottom tab bar hides itself during the immersive practice flow. */
-    const tabBarPresent = !pathname.startsWith("/learn/practice");
+    const tabBarPresent =
+        !pathname.startsWith("/learn/practice") && !pathname.startsWith("/path/lesson");
 
     const openWith = (nextQuery: string) => {
         setQuery(nextQuery);

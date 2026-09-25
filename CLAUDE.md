@@ -89,12 +89,13 @@ owns this; the rules mirror offline mode's and are just as easy to break:
 
 ## Wordsly Path
 
-A public CEFR curriculum served by curriculum-service (tracker: `../../docs/wordsly-path/PROGRESS.md`). Routes live under `app/path/` (`/path` map, `/path/unit/[unitId]`), components in `components/features/path/`, data in `apis/path.api.ts` + `queries/path.query.ts` (keys under `queryKeys.path`), response types in `types/path/path.type.ts` (copied from the backend; keep them in step), pure helpers in `lib/path/path-tree.ts`.
+A public CEFR curriculum served by curriculum-service (tracker: `../../docs/wordsly-path/PROGRESS.md`). Routes live under `app/path/` (`/path` map, `/path/unit/[unitId]`, `/path/lesson/[lessonId]` player), components in `components/features/path/`, data in `apis/path.api.ts` + `queries/path.query.ts` (keys under `queryKeys.path`), response types in `types/path/path.type.ts` (copied from the backend; keep them in step), pure helpers in `lib/path/path-tree.ts`.
 
 - `GET /path` 404s until something is published: the API returns `null` and the page shows "on its way". Unit and lesson reads 403 while locked; the unit page tells locked (403) from missing (404) through `ApiError.status`.
 - Progress writes (`enroll`, `complete`) return the new `me`: write it into the cache, then invalidate the rest of `path` (units carry lock state).
 - `path.tree`, `path.me`, `path.unit` and `path.lesson` are on the offline persist allowlist.
 - Content strings ending in `Vi` are Vietnamese (`titleVi`, `canDo`, `noteVi`…); the UI chrome stays English like the rest of the app.
+- The lesson player (`components/features/path/lesson-player/`) runs `lesson.steps` in order; each step component calls `onDone` and is keyed by step id so its state resets. Steps it can't run yet are skipped in `playableSteps`. The summary records the completion once, reusing one `clientRequestId` for retries. Sentences use browser TTS (`lib/path/speech.ts`); `EXPLAIN.bodyVi` renders through `MiniMarkdown` (React nodes, never HTML). Quiz grading is `lib/path/quiz.ts`.
 - On mobile, Path took Manage's place in the bottom tab bar; Manage is still in the command palette (the header menu button).
 
 ## Design system ("Aurora")
