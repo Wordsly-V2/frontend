@@ -2,6 +2,7 @@ import { apiPaths } from "@/lib/api-paths";
 import { request } from "@/lib/axios";
 import type {
     CompletePathLessonDto,
+    PathItem,
     CompletePathLessonResult,
     PathLessonView,
     PathMe,
@@ -33,3 +34,7 @@ export const completePathLesson = (
     body: CompletePathLessonDto,
 ): Promise<CompletePathLessonResult> =>
     request((i) => i.post(apiPaths.path.completeLesson(lessonId), body));
+
+/** Published items by id (unknown or retired ids are left out). */
+export const hydratePathItems = (itemIds: string[]): Promise<PathItem[]> =>
+    request((i) => i.post(apiPaths.path.hydrateItems(), { itemIds }));

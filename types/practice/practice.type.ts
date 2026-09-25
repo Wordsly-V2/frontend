@@ -1,5 +1,5 @@
 import type { IDailyHabit } from "@/types/daily-habit/daily-habit.type";
-import type { AnswerQuality } from "@/types/word-progress/word-progress.type";
+import type { AnswerQuality, AnswerSource } from "@/types/word-progress/word-progress.type";
 
 export interface WordResult {
     wordId: string;
@@ -14,6 +14,8 @@ export interface WordResult {
      * instant of the *recorded* grade, not of the word's last appearance.
      */
     reviewedAt?: string;
+    /** Set for Wordsly Path items; omitted for the learner's own words. */
+    source?: AnswerSource;
 }
 
 export interface SessionCompletePayload {

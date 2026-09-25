@@ -46,10 +46,13 @@ import { type WordLearningStage } from "@/lib/word-progress-stage";
 import { PEDAGOGY, type ModeAvailability } from "@/lib/learning-pedagogy";
 import {
     buildMixedModePlan,
+    MIXED_PRACTICE_MODES,
     mixedModePlanKey,
     resolveActiveMode,
     wordOccurrenceAtIndex,
     type ActivePracticeMode,
+    type MixedPracticeMethod,
+    type PracticeMode,
 } from "@/lib/practice-settings";
 import { usePracticeSettings } from "@/hooks/usePracticeSettings.hook";
 import {
@@ -158,6 +161,32 @@ interface VocabularyPracticeProps {
     isSavedOffline?: boolean;
     /** True when this session's results could not be saved anywhere. */
     isSaveFailed?: boolean;
+    /**
+     * Practice as one step of something larger (a Wordsly Path lesson): no
+     * summary screen (`onFinished` fires instead) and no difficult-word flag
+     * (it belongs to the learner's own words).
+     */
+    embedded?: boolean;
+    /** Called once when the last exercise is done, after `onSubmitResults`. */
+    onFinished?: (payload: SessionCompletePayload) => void;
+    /** Exercise methods for this session, overriding the learner's settings. */
+    modes?: ActivePracticeMode[];
+    /** New words already introduced elsewhere: skip their Learn card. */
+    introSeenWordIds?: ReadonlySet<string>;
+}
+
+/** The learner's mode settings, or the session's own methods when it has them. */
+function sessionModes(
+    settingsMode: PracticeMode,
+    settingsMixed: MixedPracticeMethod[],
+    modes: ActivePracticeMode[] | undefined,
+): { mode: PracticeMode; mixedModes: MixedPracticeMethod[] } {
+    if (!modes?.length) return { mode: settingsMode, mixedModes: settingsMixed };
+    const mixed = modes.filter((m): m is MixedPracticeMethod =>
+        (MIXED_PRACTICE_MODES as readonly string[]).includes(m),
+    );
+    if (mixed.length > 1) return { mode: "mixed", mixedModes: mixed };
+    return { mode: modes[0], mixedModes: settingsMixed };
 }
 
 export default function VocabularyPractice({
@@ -176,6 +205,10 @@ export default function VocabularyPractice({
     xpMultiplier,
     isSavedOffline,
     isSaveFailed,
+    embedded = false,
+    onFinished,
+    modes,
+    introSeenWordIds,
 }: Readonly<VocabularyPracticeProps>) {
     const [queue, setQueue] = useState(() => practiceQueue ?? shuffleArray(words));
     const [currentIndex, setCurrentIndex] = useState(0);
@@ -183,7 +216,12 @@ export default function VocabularyPractice({
     const [showAnswer, setShowAnswer] = useState(false);
     const [userAnswer, setUserAnswer] = useState("");
     const { settings: practiceSettings } = usePracticeSettings();
-    const { mode, mixedModes, autoCheck, soundEnabled } = practiceSettings;
+    const { autoCheck, soundEnabled } = practiceSettings;
+    const { mode, mixedModes } = sessionModes(
+        practiceSettings.mode,
+        practiceSettings.mixedModes,
+        modes,
+    );
     const [typingResult, setTypingResult] = useState<"correct" | "incorrect" | null>(null);
     const [isNearMiss, setIsNearMiss] = useState(false);
     const [showSettings, setShowSettings] = useState(false);
@@ -203,7 +241,7 @@ export default function VocabularyPractice({
     const [timeSpentSeconds, setTimeSpentSeconds] = useState<number | undefined>(undefined);
     const [feedbackSeed] = useState(() => Date.now());
     const [introCompletedIds, setIntroCompletedIds] = useState<Set<string>>(
-        () => new Set(),
+        () => new Set(introSeenWordIds),
     );
     // Set once the user reports they can't hear the audio. For the rest of the
     // session, every listening word falls back to a text or recognition exercise.
@@ -375,7 +413,9 @@ export default function VocabularyPractice({
             // Local-only session history (no backend).
             recordSession(
                 {
-                    courseName: getLastLearnCourse()?.name,
+                    // Embedded practice belongs to its host (a Path lesson),
+                    // not to the course the learner last opened.
+                    courseName: embedded ? courseName : getLastLearnCourse()?.name,
                     words: wordCount,
                     score: scoreFromResults(results),
                     xp: results.filter((r) => !isWeakAnswer(r.quality)).length * 10,
@@ -398,7 +438,7 @@ export default function VocabularyPractice({
             finalizedPayloadRef.current = payload;
             return payload;
         },
-        [],
+        [embedded, courseName],
     );
 
     // Swap the optimistic habit for the server's, and celebrate a freeze the
@@ -422,13 +462,23 @@ export default function VocabularyPractice({
         setHabitState(syncedHabit);
     }, [syncedHabit]);
 
+    // Set when the finished session has been handed to onSubmitResults, so the
+    // unmount flush below never submits it again. That flush reads the props of
+    // the last render: when a host unmounts the engine in the same update that
+    // finished it (embedded in a Path lesson), that render still had the
+    // host's pre-save callback, and a second submit would carry a fresh
+    // idempotency key — double XP, double FSRS update.
+    const submittedRef = useRef(false);
+
     const finishSession = useCallback(
         (results: WordResult[]) => {
             const payload = finalizeSession(results);
+            submittedRef.current = true;
             setPhase("summary");
             onSubmitResults?.(payload);
+            onFinished?.(payload);
         },
-        [finalizeSession, onSubmitResults],
+        [finalizeSession, onSubmitResults, onFinished],
     );
 
     const mergeWordResult = useCallback(
@@ -453,6 +503,7 @@ export default function VocabularyPractice({
         wordResultsRef.current = wordResults;
         pendingResultRef.current = pendingResult;
         submitOnLeaveRef.current = () => {
+            if (submittedRef.current) return;
             let results = wordResultsRef.current;
             if (pendingResultRef.current) {
                 results = mergeWordResult(results, pendingResultRef.current);
@@ -971,6 +1022,9 @@ export default function VocabularyPractice({
         }
     }, [showResultDialog]);
 
+    // Embedded: the host moves on in `onFinished`; there is no summary here.
+    if (phase === "summary" && embedded) return null;
+
     if (phase === "summary" && habitState) {
         return (
             <PracticeSessionSummary
@@ -1049,7 +1103,9 @@ export default function VocabularyPractice({
                         {/* Flagging is most useful in the moment the word is
                             hard, so it sits with the session controls rather
                             than behind the words list. */}
-                        <SaveWordToggle wordId={currentWord.id} iconOnly />
+                        {!embedded && (
+                            <SaveWordToggle wordId={currentWord.id} iconOnly />
+                        )}
                         <PracticeToolbar
                             showSettings={showSettings}
                             showWordsList={showWordsList}

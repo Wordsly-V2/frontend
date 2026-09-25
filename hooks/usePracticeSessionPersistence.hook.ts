@@ -18,6 +18,7 @@ import type { IDailyHabit } from "@/types/daily-habit/daily-habit.type";
 import type { SessionCompletePayload } from "@/types/practice/practice.type";
 import type { IUserLevel } from "@/types/user-level/user-level.type";
 import type {
+    AnswerSource,
     ILevelEvent,
     IWordProgressResponse,
 } from "@/types/word-progress/word-progress.type";
@@ -48,6 +49,10 @@ interface UsePracticeSessionPersistenceOptions {
     progressByWordId: Record<string, IWordProgressResponse | null> | undefined;
     /** Called with the server's habit row once the daily goal has been recorded. */
     onHabitSynced?: (habit: IDailyHabit) => void;
+    /** Stamped on every answer; `path` for Wordsly Path items. */
+    answerSource?: AnswerSource;
+    /** Confetti when the session saves. Off when practice is one step of a lesson. */
+    celebrate?: boolean;
 }
 
 export function usePracticeSessionPersistence({
@@ -55,6 +60,8 @@ export function usePracticeSessionPersistence({
     wordIdList,
     progressByWordId,
     onHabitSynced,
+    answerSource,
+    celebrate = true,
 }: UsePracticeSessionPersistenceOptions) {
     const router = useRouter();
     const queryClient = useQueryClient();
@@ -241,10 +248,19 @@ export function usePracticeSessionPersistence({
     // without navigating. Idempotent: safe to call once when the summary
     // appears and again when the learner leaves — the second call no-ops.
     const saveSession = useCallback(
-        (payload: SessionCompletePayload) => {
-            if (savedOnce || payload.wordResults.length === 0) {
+        (rawPayload: SessionCompletePayload) => {
+            if (savedOnce || rawPayload.wordResults.length === 0) {
                 return;
             }
+            const payload: SessionCompletePayload = answerSource
+                ? {
+                      ...rawPayload,
+                      wordResults: rawPayload.wordResults.map((result) => ({
+                          ...result,
+                          source: answerSource,
+                      })),
+                  }
+                : rawPayload;
             setSavedOnce(true);
             setHasUnsavedPractice(false);
 
@@ -255,7 +271,7 @@ export function usePracticeSessionPersistence({
                 { answers: payload.wordResults },
             );
 
-            fireCelebrationConfetti();
+            if (celebrate) fireCelebrationConfetti();
 
             // Keep a handle on the in-flight save so an exit can wait for it.
             // `persistSessionInBackground` swallows its own errors, so this
@@ -267,6 +283,8 @@ export function usePracticeSessionPersistence({
         },
         [
             savedOnce,
+            answerSource,
+            celebrate,
             progressByWordId,
             queryClient,
             wordIdList,

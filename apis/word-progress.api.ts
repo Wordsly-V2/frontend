@@ -34,7 +34,7 @@ export const recordAnswerBulkSync = (
  * call with `includeNew: false` to work out which is which.
  */
 export const getDueWordIds = (
-    { courseId, lessonId, limit, newLimit, includeNew }: WordProgressScope = {},
+    { courseId, lessonId, limit, newLimit, includeNew, source }: WordProgressScope = {},
 ): Promise<IDueWordIdsResponse> =>
     request((i) => i.post(apiPaths.wordProgress.dueWordIds(), {
         courseId,
@@ -42,6 +42,7 @@ export const getDueWordIds = (
         limit,
         newLimit,
         includeNew,
+        source,
         // The learner's local day drives daily-pacing limits, not the server's.
         clientDate: localDateString(),
     }));

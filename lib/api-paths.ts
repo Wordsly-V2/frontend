@@ -114,6 +114,7 @@ export const apiPaths = {
         lesson: (lessonId: string) => user(`path/lessons/${lessonId}`),
         completeLesson: (lessonId: string) =>
             user(`path/lessons/${lessonId}/complete`),
+        hydrateItems: () => '/path/items/hydrate',
     },
 
     learningSettings: () => user('learning-settings'),
