@@ -1,21 +1,24 @@
 "use client";
 
 import { playPathAudio, SpeakButton } from "@/components/features/path/path-speech";
+import { SpeakAttempt } from "@/components/features/path/speak-attempt";
 import { StepFooter } from "@/components/features/path/lesson-player/step-footer";
-import { Mic } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 /**
- * SPEAK: listen, then say the line out loud. Speech scoring comes with the
- * speaking mode (P2); for now the learner moves on when they have said it.
+ * SPEAK: listen, then say the line out loud. The mic checks it when the
+ * browser can recognise speech; otherwise the learner checks themselves.
+ * Lines aren't items, so nothing here goes to FSRS: the score is feedback.
  */
 export function SpeakStep({
     lines,
     onDone,
 }: Readonly<{ lines: { en: string; vi: string }[]; onDone: () => void }>) {
     const [index, setIndex] = useState(0);
+    const [settled, setSettled] = useState(false);
     const line = lines[index];
     const last = index >= lines.length - 1;
+    const settle = useCallback(() => setSettled(true), []);
 
     // Play each line once when it appears.
     useEffect(() => {
@@ -24,6 +27,15 @@ export function SpeakStep({
 
     // The player never renders an empty step.
     if (!line) return null;
+
+    const next = () => {
+        if (last) {
+            onDone();
+            return;
+        }
+        setSettled(false);
+        setIndex(index + 1);
+    };
 
     return (
         <div>
@@ -36,12 +48,9 @@ export function SpeakStep({
                     <p className="font-display text-2xl font-bold sm:text-3xl">{line.en}</p>
                     <p className="text-muted-foreground">{line.vi}</p>
                 </div>
-                <p className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-sm font-semibold text-primary">
-                    <Mic className="h-4 w-4" aria-hidden />
-                    Your turn
-                </p>
+                <SpeakAttempt key={index} expected={line.en} onSettled={settle} />
             </article>
-            <StepFooter label="I said it" onClick={() => (last ? onDone() : setIndex(index + 1))} />
+            <StepFooter label={last ? "Continue" : "Next"} onClick={next} disabled={!settled} />
         </div>
     );
 }
