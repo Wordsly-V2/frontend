@@ -4,10 +4,13 @@ import type {
     CompletePathLessonDto,
     PathItem,
     CompletePathLessonResult,
+    PathCheckpointResult,
+    PathCheckpointView,
     PathLessonView,
     PathMe,
     PathTree,
     PathUnitView,
+    SubmitPathCheckpointDto,
 } from "@/types/path/path.type";
 
 /** The path map, or null while nothing has been published yet (404). */
@@ -34,6 +37,17 @@ export const completePathLesson = (
     body: CompletePathLessonDto,
 ): Promise<CompletePathLessonResult> =>
     request((i) => i.post(apiPaths.path.completeLesson(lessonId), body));
+
+/** The unit test without its answers. 403 until every lesson of the unit is done. */
+export const getPathCheckpoint = (unitId: string): Promise<PathCheckpointView> =>
+    request((i) => i.get(apiPaths.path.checkpoint(unitId)));
+
+/** Graded on the server; 409 when a newer release replaced the questions. */
+export const submitPathCheckpoint = (
+    unitId: string,
+    body: SubmitPathCheckpointDto,
+): Promise<PathCheckpointResult> =>
+    request((i) => i.post(apiPaths.path.submitCheckpoint(unitId), body));
 
 /** Published items by id (unknown or retired ids are left out). */
 export const hydratePathItems = (itemIds: string[]): Promise<PathItem[]> =>

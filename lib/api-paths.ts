@@ -114,6 +114,9 @@ export const apiPaths = {
         lesson: (lessonId: string) => user(`path/lessons/${lessonId}`),
         completeLesson: (lessonId: string) =>
             user(`path/lessons/${lessonId}/complete`),
+        checkpoint: (unitId: string) => user(`path/units/${unitId}/checkpoint`),
+        submitCheckpoint: (unitId: string) =>
+            user(`path/units/${unitId}/checkpoint/submit`),
         hydrateItems: () => '/path/items/hydrate',
     },
 

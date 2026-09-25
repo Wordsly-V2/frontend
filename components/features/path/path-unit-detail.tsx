@@ -6,7 +6,7 @@ import { PathNodeBadge } from "@/components/features/path/path-node-badge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ApiError } from "@/lib/api-error";
-import { CEFR_LABELS, lessonState, pathLessonHref } from "@/lib/path/path-tree";
+import { CEFR_LABELS, lessonState, pathCheckpointHref, pathLessonHref } from "@/lib/path/path-tree";
 import { cn } from "@/lib/utils";
 import { usePathMeQuery, usePathUnitQuery } from "@/queries/path.query";
 import type {
@@ -140,7 +140,7 @@ function UnitContent({
                     ))}
                     {checkpoint && (
                         <li>
-                            <CheckpointRow state={checkpoint.state} />
+                            <CheckpointRow unitId={unit.id} state={checkpoint.state} />
                         </li>
                     )}
                 </ol>
@@ -194,7 +194,7 @@ function LessonRow({
     );
 }
 
-function CheckpointRow({ state }: Readonly<{ state: PathNodeState }>) {
+function CheckpointRow({ unitId, state }: Readonly<{ unitId: string; state: PathNodeState }>) {
     return (
         <div
             className={cn(
@@ -212,9 +212,22 @@ function CheckpointRow({ state }: Readonly<{ state: PathNodeState }>) {
                 <p className="text-sm text-muted-foreground">
                     {state === "completed"
                         ? "Passed. The next unit is open."
-                        : "Finish every lesson, then pass the test to open the next unit. Coming soon."}
+                        : state === "available"
+                          ? "Pass it to open the next unit."
+                          : "Finish every lesson, then pass the test to open the next unit."}
                 </p>
             </div>
+            {state !== "locked" && (
+                <Button
+                    variant={state === "completed" ? "playOutline" : "play"}
+                    size="sm"
+                    asChild
+                >
+                    <Link href={pathCheckpointHref(unitId)}>
+                        {state === "completed" ? "Retake" : "Start"}
+                    </Link>
+                </Button>
+            )}
         </div>
     );
 }
