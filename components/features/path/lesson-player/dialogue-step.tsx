@@ -2,16 +2,17 @@
 
 import { playPathAudio, SpeakButton } from "@/components/features/path/path-speech";
 import { StepFooter } from "@/components/features/path/lesson-player/step-footer";
-import { Button } from "@/components/ui/button";
+import { SpeakAttempt } from "@/components/features/path/speak-attempt";
 import { cn } from "@/lib/utils";
 import type { PathDialogue } from "@/types/path/path.type";
-import { Eye, MessageCircle } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { MessageCircle } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 /**
  * DIALOGUE: the conversation line by line, as chat bubbles. `listen` plays
  * every line. `roleplay` stops on the learner's lines: they say it from the
- * Vietnamese, then reveal the English and hear it.
+ * Vietnamese (checked by the mic when there is one), then the English is
+ * revealed and played. The feedback stays up until the next line.
  */
 export function DialogueStep({
     dialogue,
@@ -34,10 +35,10 @@ export function DialogueStep({
         endRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
     }, [line, mode]);
 
-    const reveal = () => {
-        setRevealed(new Set(revealed).add(current));
+    const reveal = useCallback(() => {
+        setRevealed((prev) => new Set(prev).add(current));
         if (line) playPathAudio(line.en);
-    };
+    }, [current, line]);
 
     return (
         <div>
@@ -87,14 +88,13 @@ export function DialogueStep({
                 <div ref={endRef} />
             </article>
 
-            {waitingForLearner ? (
-                <div className="mt-6 flex justify-end">
-                    <Button variant="play" size="lg" onClick={reveal} className="gap-2">
-                        <Eye className="h-4 w-4" aria-hidden />
-                        I said it, show me
-                    </Button>
+            {isLearnerTurn && line && (
+                <div className="glass-surface mt-4 rounded-3xl p-5">
+                    <SpeakAttempt key={current} expected={line.en} onSettled={reveal} />
                 </div>
-            ) : (
+            )}
+
+            {!waitingForLearner && (
                 <StepFooter
                     label={finished ? "Continue" : "Next line"}
                     onClick={() => (finished ? onDone() : setShown(shown + 1))}

@@ -2,6 +2,7 @@
 
 import { playPathAudio, SpeakButton } from "@/components/features/path/path-speech";
 import { StepFooter } from "@/components/features/path/lesson-player/step-footer";
+import { SpeakAttempt } from "@/components/features/path/speak-attempt";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { usePracticeSettings } from "@/hooks/usePracticeSettings.hook";
@@ -10,13 +11,13 @@ import { playPracticeErrorSound, playPracticeSuccessSound } from "@/lib/practice
 import { cn } from "@/lib/utils";
 import type { PathItem } from "@/types/path/path.type";
 import { CheckCircle2, XCircle } from "lucide-react";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 
 type Prompt = { cueVi: string; slots: Record<string, string>; answer: string };
 
 /**
  * PATTERN_DRILL: the sentence frame with its slots open. The learner reads the
- * Vietnamese cue, fills each slot, then hears the whole sentence.
+ * Vietnamese cue, fills each slot, hears the whole sentence, then says it.
  */
 export function PatternDrillStep({
     pattern,
@@ -56,6 +57,8 @@ function DrillPrompt({
     const slotNames = Object.keys(prompt.slots);
     const [values, setValues] = useState<Record<string, string>>({});
     const [verdict, setVerdict] = useState<boolean | null>(null);
+    const [spoken, setSpoken] = useState(false);
+    const markSpoken = useCallback(() => setSpoken(true), []);
     const answered = verdict !== null;
     const complete = slotNames.every((name) => values[name]?.trim());
 
@@ -114,10 +117,16 @@ function DrillPrompt({
                         Check
                     </Button>
                 )}
+                {answered && (
+                    <div className="space-y-3 border-t border-border pt-5 text-center">
+                        <p className="text-sm font-semibold text-muted-foreground">Now say the whole sentence</p>
+                        <SpeakAttempt expected={prompt.answer} onSettled={markSpoken} />
+                    </div>
+                )}
             </form>
 
             {answered && (
-                <StepFooter label={last ? "Continue" : "Next"} onClick={onNext}>
+                <StepFooter label={last ? "Continue" : "Next"} onClick={onNext} disabled={!spoken}>
                     <div
                         role="status"
                         className={cn(
