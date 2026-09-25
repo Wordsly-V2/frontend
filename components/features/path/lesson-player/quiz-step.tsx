@@ -9,11 +9,11 @@ import { StepFooter } from "@/components/features/path/lesson-player/step-footer
 import { usePracticeSettings } from "@/hooks/usePracticeSettings.hook";
 import { pickCorrectMessage, pickIncorrectMessage } from "@/lib/practice-feedback";
 import { playPracticeErrorSound, playPracticeSuccessSound } from "@/lib/practice-sounds";
-import { correctAnswerText } from "@/lib/path/quiz";
+import { correctAnswerText, isGapCorrect, isOrderCorrect, orderTiles } from "@/lib/path/quiz";
 import { cn } from "@/lib/utils";
 import type { PathQuestion } from "@/types/path/path.type";
 import { CheckCircle2, XCircle } from "lucide-react";
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 
 export interface QuizResult {
     correct: number;
@@ -31,6 +31,10 @@ export function QuizStep({
     const [correct, setCorrect] = useState(0);
     const question = questions[index];
     const last = index >= questions.length - 1;
+    const orderWords = useMemo(
+        () => (question?.kind === "order" ? orderTiles(question.answer) : []),
+        [question],
+    );
 
     const onAnswer = useCallback(
         (isCorrect: boolean) => {
@@ -55,7 +59,7 @@ export function QuizStep({
 
     if (!question) return null;
     const answered = verdict !== null;
-    const props = { answered, onAnswer };
+    const props = { answered };
 
     return (
         <div>
@@ -65,9 +69,28 @@ export function QuizStep({
                 </p>
                 {/* Keyed so each question starts with fresh local state. */}
                 <div key={index}>
-                    {question.kind === "choice" && <ChoiceQuestion question={question} {...props} />}
-                    {question.kind === "gap" && <GapQuestion question={question} {...props} />}
-                    {question.kind === "order" && <OrderQuestion question={question} {...props} />}
+                    {question.kind === "choice" && (
+                        <ChoiceQuestion
+                            question={question}
+                            correctIndex={question.answer}
+                            onAnswer={(picked) => onAnswer(picked === question.answer)}
+                            {...props}
+                        />
+                    )}
+                    {question.kind === "gap" && (
+                        <GapQuestion
+                            question={question}
+                            onAnswer={(typed) => onAnswer(isGapCorrect(question, typed))}
+                            {...props}
+                        />
+                    )}
+                    {question.kind === "order" && (
+                        <OrderQuestion
+                            question={{ vi: question.vi, words: orderWords }}
+                            onAnswer={(picked) => onAnswer(isOrderCorrect(question.answer, picked))}
+                            {...props}
+                        />
+                    )}
                 </div>
             </article>
 

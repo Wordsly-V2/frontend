@@ -225,3 +225,49 @@ export interface CompletePathLessonResult {
     replayed: boolean;
     me: PathMe;
 }
+
+// ─── Checkpoint (unit test) ────────────────────────────────────────────────
+
+/** A checkpoint question as the server sends it: no answer, no explanation. */
+export type PathCheckpointQuestion = { itemId?: string } & (
+    | { kind: "choice"; prompt: string; audioText?: string; options: string[] }
+    | { kind: "gap"; sentence: string; hintVi?: string }
+    /** The answer's words, sorted; shuffle before showing them. */
+    | { kind: "order"; vi: string; tiles: string[] }
+);
+
+export interface PathCheckpointView {
+    unitId: string;
+    checkpointId: string;
+    /** Sent back on submit; the server answers 409 if a newer release is active. */
+    releaseId: string;
+    passPercent: number;
+    state: PathNodeState;
+    questions: PathCheckpointQuestion[];
+}
+
+/** Option index (choice), typed text (gap), words in order (order). */
+export type PathCheckpointResponse = number | string | string[];
+
+export interface SubmitPathCheckpointDto {
+    /** Minted once per attempt, so a retry returns the first grade. */
+    clientRequestId: string;
+    releaseId: string;
+    answers: PathCheckpointResponse[];
+}
+
+export interface PathCheckpointQuestionResult {
+    correct: boolean;
+    /** Only once the checkpoint is passed. */
+    correctAnswer?: string;
+    explanationVi?: string;
+}
+
+export interface PathCheckpointResult {
+    replayed: boolean;
+    scorePercent: number;
+    passed: boolean;
+    passPercent: number;
+    results: PathCheckpointQuestionResult[];
+    me: PathMe;
+}

@@ -3,19 +3,23 @@ import {
     completePathLesson,
     hydratePathItems,
     enrollPath,
+    getPathCheckpoint,
     getPathLesson,
     getPathMe,
     getPathTree,
     getPathUnit,
+    submitPathCheckpoint,
 } from "@/apis/path.api";
 import { queryKeys } from "@/lib/query-keys";
 import type {
     CompletePathLessonDto,
     PathItem,
+    PathCheckpointView,
     PathLessonView,
     PathMe,
     PathTree,
     PathUnitView,
+    SubmitPathCheckpointDto,
 } from "@/types/path/path.type";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
@@ -50,6 +54,17 @@ export const usePathLessonQuery = (lessonId: string, enabled: boolean = true) =>
         queryKey: queryKeys.path.lesson(lessonId),
         queryFn: () => getPathLesson(lessonId),
         enabled: enabled && !!lessonId,
+    });
+
+/** Fetched fresh on every visit: the questions must match the active release. */
+export const usePathCheckpointQuery = (unitId: string) =>
+    useQuery<PathCheckpointView>({
+        queryKey: queryKeys.path.checkpoint(unitId),
+        queryFn: () => getPathCheckpoint(unitId),
+        enabled: !!unitId,
+        staleTime: 0,
+        gcTime: 0,
+        refetchOnWindowFocus: false,
     });
 
 /**
@@ -100,6 +115,26 @@ export const useCompletePathLessonMutation = () => {
             return queryClient.invalidateQueries({
                 queryKey: queryKeys.path.all,
                 predicate: (query) => query.queryKey[1] !== "me",
+            });
+        },
+    });
+};
+
+/**
+ * A pass opens the next unit, so like a completion it writes `me` and drops
+ * the rest of `path`, except the checkpoint being shown (the attempt screen
+ * must not reload its questions under the results).
+ */
+export const useSubmitPathCheckpointMutation = () => {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: ({ unitId, body }: { unitId: string; body: SubmitPathCheckpointDto }) =>
+            submitPathCheckpoint(unitId, body),
+        onSuccess: ({ me }) => {
+            queryClient.setQueryData(queryKeys.path.me(), me);
+            return queryClient.invalidateQueries({
+                queryKey: queryKeys.path.all,
+                predicate: (query) => query.queryKey[1] !== "me" && query.queryKey[1] !== "checkpoint",
             });
         },
     });

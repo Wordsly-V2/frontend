@@ -3,21 +3,36 @@
 import { playPathAudio, SpeakButton } from "@/components/features/path/path-speech";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { isGapCorrect, isOrderCorrect, orderTiles, shuffleTiles } from "@/lib/path/quiz";
+import { shuffleTiles } from "@/lib/path/quiz";
 import { cn } from "@/lib/utils";
-import type { PathQuestion } from "@/types/path/path.type";
 import { useEffect, useMemo, useState } from "react";
 
-type Props<K extends PathQuestion["kind"]> = Readonly<{
-    question: Extract<PathQuestion, { kind: K }>;
+/**
+ * The question views, shared by the lesson quiz (which grades on the client
+ * and shows the verdict) and the checkpoint (graded on the server, so it has
+ * no answers to show). Each reports what the learner answered, not whether it
+ * was right.
+ */
+type Props<Q, R> = Readonly<{
+    question: Q;
     /** Set once the learner has answered; the question is then read-only. */
     answered: boolean;
-    onAnswer: (correct: boolean) => void;
+    onAnswer: (response: R) => void;
+    /** Label of the confirm button (gap, order). */
+    submitLabel?: string;
 }>;
 
 const KEYS = ["a", "b", "c", "d", "e", "f"];
 
-export function ChoiceQuestion({ question, answered, onAnswer }: Props<"choice">) {
+export function ChoiceQuestion({
+    question,
+    answered,
+    onAnswer,
+    correctIndex,
+}: Props<{ prompt: string; audioText?: string; options: string[] }, number> & {
+    /** Highlights the right option once answered; omitted when it is unknown. */
+    correctIndex?: number;
+}) {
     const [picked, setPicked] = useState<number | null>(null);
 
     useEffect(() => {
@@ -27,7 +42,7 @@ export function ChoiceQuestion({ question, answered, onAnswer }: Props<"choice">
     const pick = (index: number) => {
         if (answered) return;
         setPicked(index);
-        onAnswer(index === question.answer);
+        onAnswer(index);
     };
 
     // a–f pick an option, like the practice engine.
@@ -37,12 +52,12 @@ export function ChoiceQuestion({ question, answered, onAnswer }: Props<"choice">
             const index = KEYS.indexOf(event.key.toLowerCase());
             if (index >= 0 && index < question.options.length && !(event.target as HTMLElement)?.closest("input")) {
                 setPicked(index);
-                onAnswer(index === question.answer);
+                onAnswer(index);
             }
         };
         globalThis.addEventListener("keydown", onKey);
         return () => globalThis.removeEventListener("keydown", onKey);
-    }, [answered, onAnswer, question.answer, question.options.length]);
+    }, [answered, onAnswer, question.options.length]);
 
     return (
         <div className="space-y-4">
@@ -52,7 +67,8 @@ export function ChoiceQuestion({ question, answered, onAnswer }: Props<"choice">
             </div>
             <div className="grid gap-2.5">
                 {question.options.map((option, i) => {
-                    const isAnswer = i === question.answer;
+                    const graded = answered && correctIndex !== undefined;
+                    const isAnswer = i === correctIndex;
                     return (
                         <Button
                             key={option}
@@ -62,8 +78,9 @@ export function ChoiceQuestion({ question, answered, onAnswer }: Props<"choice">
                             disabled={answered && !isAnswer && i !== picked}
                             className={cn(
                                 "h-auto min-h-12 justify-start whitespace-normal py-3 text-left",
-                                answered && isAnswer && "border-[var(--brand-success)] bg-[var(--brand-success)]/10",
-                                answered && i === picked && !isAnswer && "border-destructive bg-destructive/10",
+                                graded && isAnswer && "border-[var(--brand-success)] bg-[var(--brand-success)]/10",
+                                graded && i === picked && !isAnswer && "border-destructive bg-destructive/10",
+                                answered && !graded && i === picked && "border-primary bg-primary/10",
                             )}
                         >
                             <kbd className="mr-1 hidden rounded-md border border-border px-1.5 text-xs text-muted-foreground sm:inline">
@@ -78,12 +95,17 @@ export function ChoiceQuestion({ question, answered, onAnswer }: Props<"choice">
     );
 }
 
-export function GapQuestion({ question, answered, onAnswer }: Props<"gap">) {
+export function GapQuestion({
+    question,
+    answered,
+    onAnswer,
+    submitLabel = "Check",
+}: Props<{ sentence: string; hintVi?: string }, string>) {
     const [typed, setTyped] = useState("");
     const [before, after] = question.sentence.split("___");
 
     const check = () => {
-        if (!answered && typed.trim()) onAnswer(isGapCorrect(question, typed));
+        if (!answered && typed.trim()) onAnswer(typed);
     };
 
     return (
@@ -114,15 +136,21 @@ export function GapQuestion({ question, answered, onAnswer }: Props<"gap">) {
             </p>
             {!answered && (
                 <Button type="submit" variant="play" size="lg" disabled={!typed.trim()}>
-                    Check
+                    {submitLabel}
                 </Button>
             )}
         </form>
     );
 }
 
-export function OrderQuestion({ question, answered, onAnswer }: Props<"order">) {
-    const tiles = useMemo(() => shuffleTiles(orderTiles(question.answer).map((word, i) => ({ word, i }))), [question.answer]);
+export function OrderQuestion({
+    question,
+    answered,
+    onAnswer,
+    submitLabel = "Check",
+}: Props<{ vi: string; words: readonly string[] }, string[]>) {
+    const { words } = question;
+    const tiles = useMemo(() => shuffleTiles(words.map((word, i) => ({ word, i }))), [words]);
     const [picked, setPicked] = useState<number[]>([]);
     const remaining = tiles.filter((tile) => !picked.includes(tile.i));
     const pickedWords = picked.map((i) => tiles.find((t) => t.i === i)!.word);
@@ -165,9 +193,9 @@ export function OrderQuestion({ question, answered, onAnswer }: Props<"order">) 
                     variant="play"
                     size="lg"
                     disabled={remaining.length > 0}
-                    onClick={() => onAnswer(isOrderCorrect(question.answer, pickedWords))}
+                    onClick={() => onAnswer(pickedWords)}
                 >
-                    Check
+                    {submitLabel}
                 </Button>
             )}
         </div>
