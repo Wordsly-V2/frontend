@@ -134,6 +134,15 @@ export const queryKeys = {
         /** How many Path items are due, for the Review buttons; not persisted. */
         dueCount: () => ["path", "due-count"] as const,
     },
+    /** Wordsly Path authoring. Never persisted (admin data stays off the device). */
+    adminPath: {
+        all: ["admin-path"] as const,
+        overview: () => ["admin-path", "overview"] as const,
+        validate: () => ["admin-path", "validate"] as const,
+        seedPlan: () => ["admin-path", "seed-plan"] as const,
+        releases: () => ["admin-path", "releases"] as const,
+        record: (kind: string, slug: string) => ["admin-path", "record", kind, slug] as const,
+    },
     learningSettings: {
         all: ["learning-settings"] as const,
     },

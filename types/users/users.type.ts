@@ -10,4 +10,10 @@ export interface IUserProfile {
     gmail: string;
     displayName: string;
     pictureUrl: string;
+    /**
+     * Authorization roles (e.g. `admin`). Only to show or hide UI: every service
+     * checks the access token's own `roles` claim. Missing on profiles cached
+     * before roles existed.
+     */
+    roles?: string[];
 }

@@ -120,6 +120,18 @@ export const apiPaths = {
         hydrateItems: () => '/path/items/hydrate',
     },
 
+    /** Wordsly Path authoring (admins only; curriculum-service). */
+    adminPath: {
+        overview: () => '/admin/path/overview',
+        validate: () => '/admin/path/validate',
+        seedPlan: () => '/admin/path/seed-plan',
+        releases: () => '/admin/path/releases',
+        activate: (releaseId: string) => `/admin/path/releases/${releaseId}/activate`,
+        content: (kind: string) => `/admin/path/content/${kind}`,
+        record: (kind: string, slug: string) => `/admin/path/content/${kind}/${slug}`,
+        restore: (kind: string, slug: string) => `/admin/path/content/${kind}/${slug}/restore`,
+    },
+
     learningSettings: () => user('learning-settings'),
     preferences: () => user('preferences'),
     level: () => user('level'),
