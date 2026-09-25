@@ -5,6 +5,7 @@ import {
     CheckSquare,
     Headphones,
     Layers,
+    Mic,
     TextCursorInput,
     TextQuote,
 } from "lucide-react";
@@ -46,6 +47,12 @@ export const PRACTICE_MODE_META: Record<ActivePracticeMode, PracticeModeMeta> = 
         shortLabel: "Build",
         instruction: "Read the meaning, then tap the words in the right order",
         icon: Blocks,
+    },
+    speaking: {
+        label: "Speaking",
+        shortLabel: "Speaking",
+        instruction: "Read the meaning, then say the word out loud",
+        icon: Mic,
     },
     flashcard: {
         label: "Flashcard",

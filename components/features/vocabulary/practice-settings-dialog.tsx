@@ -11,6 +11,7 @@ import { useDueWordsLimit, setDueWordsLimit } from "@/hooks/useDueWordsLimit.hoo
 import { useNewWordsLimit, setNewWordsLimit } from "@/hooks/useNewWordsLimit.hook";
 import {
     MIXED_PRACTICE_MODES,
+    SELECTABLE_MIXED_PRACTICE_MODES,
     type MixedPracticeMethod,
     type PracticeMode,
     type PracticeSettings,
@@ -41,6 +42,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import {
     Blocks,
+    Mic,
     Sparkles,
     Volume2,
     MessageSquare,
@@ -100,7 +102,7 @@ function PracticeSettingsForm({
         setTempMixedModes((prev) => {
             const next = prev.includes(method)
                 ? prev.filter((m) => m !== method)
-                : MIXED_PRACTICE_MODES.filter(
+                : SELECTABLE_MIXED_PRACTICE_MODES.filter(
                       (m) => m === method || prev.includes(m),
                   );
             // Never allow an empty mix — keep at least the last selected method.
@@ -135,6 +137,7 @@ function PracticeSettingsForm({
         { id: "cloze", icon: TextCursorInput, label: "Fill-in", desc: "Pick the word in context" },
         { id: "word-bank", icon: LayoutGrid, label: "Word bank", desc: "Pick the word for a meaning" },
         { id: "sentence-build", icon: Blocks, label: "Build", desc: "Put the words in order" },
+        { id: "speaking", icon: Mic, label: "Speaking", desc: "Say the word out loud" },
         { id: "flashcard", icon: Sparkles, label: "Flashcard", desc: "Reveal and rate" },
     ];
 
@@ -168,10 +171,10 @@ function PracticeSettingsForm({
                     {isMixed && (
                         <div className="mt-4">
                             <p className="text-xs text-muted-foreground mb-3">
-                                Choose which methods to mix. All are on for the strongest recall.
+                                Choose which methods to mix. Speaking uses your microphone, so it stays off until you turn it on.
                             </p>
                             <div className="flex flex-wrap gap-2">
-                                {MIXED_PRACTICE_MODES.map((method) => {
+                                {SELECTABLE_MIXED_PRACTICE_MODES.map((method) => {
                                     const meta = getPracticeModeMeta(method);
                                     const MethodIcon = meta.icon;
                                     const selected = tempMixedModes.includes(method);

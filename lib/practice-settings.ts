@@ -36,7 +36,20 @@ export const MIXED_PRACTICE_MODES = [
     'sentence-build',
 ] as const;
 
-export type MixedPracticeMethod = (typeof MIXED_PRACTICE_MODES)[number];
+/**
+ * Methods a learner can add to the mix but that start switched off. Speaking
+ * asks for the microphone, which nobody should meet by surprise mid-session,
+ * so it is opt-in (and "all methods" / an empty list never includes it).
+ */
+export const OPT_IN_MIXED_PRACTICE_MODES = ['speaking'] as const;
+
+/** Every method the mix may contain, in canonical rotation order. */
+export const SELECTABLE_MIXED_PRACTICE_MODES = [
+    ...MIXED_PRACTICE_MODES,
+    ...OPT_IN_MIXED_PRACTICE_MODES,
+] as const;
+
+export type MixedPracticeMethod = (typeof SELECTABLE_MIXED_PRACTICE_MODES)[number];
 
 /** Every selectable practice mode (concrete methods + the meta "mixed" mode). */
 export type PracticeMode =
@@ -46,6 +59,7 @@ export type PracticeMode =
     | 'listening'
     | 'cloze'
     | 'sentence-build'
+    | 'speaking'
     | 'mixed';
 
 export interface PracticeSettings {
@@ -65,7 +79,7 @@ export const DEFAULT_PRACTICE_SETTINGS: PracticeSettings = {
 
 /** Every selectable practice mode (concrete methods + meta modes). */
 const VALID_PRACTICE_MODES = new Set<string>([
-    ...MIXED_PRACTICE_MODES,
+    ...SELECTABLE_MIXED_PRACTICE_MODES,
     'flashcard',
     'mixed',
 ]);
@@ -86,8 +100,8 @@ function parseMixedModes(
     fallback: MixedPracticeMethod[],
 ): MixedPracticeMethod[] {
     if (!Array.isArray(value)) return fallback;
-    const valid = new Set<string>(MIXED_PRACTICE_MODES);
-    const picked = MIXED_PRACTICE_MODES.filter(
+    const valid = new Set<string>(SELECTABLE_MIXED_PRACTICE_MODES);
+    const picked = SELECTABLE_MIXED_PRACTICE_MODES.filter(
         (mode) => value.includes(mode) && valid.has(mode),
     );
     return picked.length > 0 ? [...picked] : fallback;
@@ -169,7 +183,7 @@ export const REVIEW_MIXED_MODES = [
 ] as const;
 
 export type ActivePracticeMode =
-    | (typeof MIXED_PRACTICE_MODES)[number]
+    | MixedPracticeMethod
     | (typeof NEW_WORD_MIXED_MODES)[number]
     | 'flashcard';
 
@@ -203,6 +217,10 @@ function applyModeFallbacks(
     // Sentence-build needs a *translated* example — much rarer than a plain
     // one, so step down to the typed cloze before giving up on the sentence.
     if (mode === 'sentence-build' && !availability.sentenceBuild) {
+        return availability.cloze ? 'context' : resolveClozeFallback(availability);
+    }
+    // No speech recognition in this browser: type the word instead.
+    if (mode === 'speaking' && !availability.speaking) {
         return availability.cloze ? 'context' : resolveClozeFallback(availability);
     }
     return mode;
@@ -248,6 +266,13 @@ export function buildMixedModePlan(
     for (const word of queue) {
         const stage = stagesByWordId?.[word.id] ?? 'new';
         let allowed = new Set(mixedModesForStage(stage));
+        // Opt-in methods join only when chosen, and never for a word's first
+        // rounds: saying a word you met a minute ago is repetition, not recall.
+        if (stage !== 'new') {
+            for (const mode of OPT_IN_MIXED_PRACTICE_MODES) {
+                if (enabled?.has(mode)) allowed.add(mode);
+            }
+        }
         if (enabled) {
             // Keep only the methods the user opted into. If the intersection is
             // empty for this stage, keep the full stage pool so the word still

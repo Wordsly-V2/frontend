@@ -24,6 +24,7 @@ const SHORTCUTS_BY_MODE: Record<ActivePracticeMode, ShortcutItem[]> = {
     ],
     listening: [{ keys: ["Enter"], label: "Submit" }],
     context: [{ keys: ["Enter"], label: "Submit" }],
+    speaking: [{ keys: ["Space"], label: "Start or stop the mic" }],
     "sentence-build": [
         { keys: ["1", "…", "9"], label: "Add word" },
         { keys: ["Backspace"], label: "Undo" },

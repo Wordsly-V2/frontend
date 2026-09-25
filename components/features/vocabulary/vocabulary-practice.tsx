@@ -18,6 +18,7 @@ import { ChoiceMode } from "@/components/features/vocabulary/modes/choice-mode";
 import { ContextMode } from "@/components/features/vocabulary/modes/context-mode";
 import { FlashcardMode } from "@/components/features/vocabulary/modes/flashcard-mode";
 import { ListeningMode } from "@/components/features/vocabulary/modes/listening-mode";
+import { SpeakingMode } from "@/components/features/vocabulary/modes/speaking-mode";
 import {
     SentenceBuildMode,
     remainingTileIndices,
@@ -26,6 +27,7 @@ import {
     calculateAnswerQuality,
     calculateRecognitionAnswerQuality,
     flashcardRatingToQuality,
+    isCorrectAnswer,
     isWeakAnswer,
     type FlashcardRating,
 } from "@/lib/answer-quality";
@@ -37,17 +39,19 @@ import type { IDailyHabit } from "@/types/daily-habit/daily-habit.type";
 import { playAudioUrl, preloadAudioUrl, stopAudio } from "@/lib/practice-audio";
 import { pickMilestoneMessage } from "@/lib/practice-feedback";
 import type { PracticeSessionKind } from "@/lib/practice-session";
-import type { ILevelEvent } from "@/types/word-progress/word-progress.type";
+import { AnswerQuality, type ILevelEvent } from "@/types/word-progress/word-progress.type";
 import {
     playPracticeErrorSound,
     playPracticeSuccessSound,
 } from "@/lib/practice-sounds";
 import { type WordLearningStage } from "@/lib/word-progress-stage";
 import { PEDAGOGY, type ModeAvailability } from "@/lib/learning-pedagogy";
+import { isSpeechRecognitionSupported } from "@/lib/speech-recognition";
+import type { SpeechScore } from "@/lib/speech-scoring";
 import {
     buildMixedModePlan,
-    MIXED_PRACTICE_MODES,
     mixedModePlanKey,
+    SELECTABLE_MIXED_PRACTICE_MODES,
     resolveActiveMode,
     wordOccurrenceAtIndex,
     type ActivePracticeMode,
@@ -99,6 +103,8 @@ export type { SessionCompletePayload, WordResult } from "@/types/practice/practi
  * would keep the word on a short interval forever.
  */
 const SENTENCE_BUILD_TIME_THRESHOLDS = { fastSeconds: 25, slowSeconds: 60 };
+// Speaking includes starting the mic and the recogniser's pause detection.
+const SPEAKING_TIME_THRESHOLDS = { fastSeconds: 12, slowSeconds: 30 };
 
 /**
  * Stamp the moment the grade was given.
@@ -183,7 +189,7 @@ function sessionModes(
 ): { mode: PracticeMode; mixedModes: MixedPracticeMethod[] } {
     if (!modes?.length) return { mode: settingsMode, mixedModes: settingsMixed };
     const mixed = modes.filter((m): m is MixedPracticeMethod =>
-        (MIXED_PRACTICE_MODES as readonly string[]).includes(m),
+        (SELECTABLE_MIXED_PRACTICE_MODES as readonly string[]).includes(m),
     );
     if (mixed.length > 1) return { mode: "mixed", mixedModes: mixed };
     return { mode: modes[0], mixedModes: settingsMixed };
@@ -283,6 +289,7 @@ export default function VocabularyPractice({
             cloze: clozePrompt != null,
             listening: Boolean(currentWord?.audioUrl),
             sentenceBuild: sentenceBuildPrompt != null,
+            speaking: isSpeechRecognitionSupported(),
         }),
         [clozePrompt, currentWord?.audioUrl, sentenceBuildPrompt],
     );
@@ -766,6 +773,49 @@ export default function VocabularyPractice({
         playResultSound,
     ]);
 
+    // Speaking grades like a typed answer: a retry the mode allowed counts as a
+    // hint, and a pass that wasn't word-perfect is a near miss (capped at 3).
+    const handleSpeakingResult = useCallback(
+        (score: SpeechScore, attempts: number) => {
+            if (!currentWord || typingResult || showResultDialog) return;
+            const elapsed =
+                wordStartTimeRef.current != null
+                    ? (Date.now() - wordStartTimeRef.current) / 1000
+                    : undefined;
+            if (elapsed != null) setTimeSpentSeconds(elapsed);
+            const isCorrect = isCorrectAnswer(score.quality);
+            const nearMiss = isCorrect && score.accuracy < 1;
+            const quality = calculateAnswerQuality(
+                isCorrect,
+                hintsUsed + attempts - 1,
+                elapsed,
+                nearMiss,
+                SPEAKING_TIME_THRESHOLDS,
+            );
+            stageResult({ wordId: currentWord.id, quality });
+            setUserAnswer(score.heard);
+            setTypingResult(isCorrect ? "correct" : "incorrect");
+            setIsNearMiss(nearMiss);
+            playResultSound(isCorrect);
+            setShowResultDialog(true);
+        },
+        [currentWord, typingResult, showResultDialog, hintsUsed, stageResult, playResultSound],
+    );
+
+    // Without a recogniser the learner judges themselves, so a "right" is
+    // never better than hard-won (the same cap as a hinted answer).
+    const handleSpeakingSelfCheck = (saidItRight: boolean) => {
+        if (!currentWord || typingResult || showResultDialog) return;
+        stageResult({
+            wordId: currentWord.id,
+            quality: saidItRight ? AnswerQuality.CORRECT_WITH_DIFFICULTY : AnswerQuality.INCORRECT,
+        });
+        setUserAnswer(saidItRight ? currentWord.word : "");
+        setTypingResult(saidItRight ? "correct" : "incorrect");
+        playResultSound(saidItRight);
+        setShowResultDialog(true);
+    };
+
     const handleFlashcardRate = (rating: FlashcardRating) => {
         if (!currentWord) return;
         const result = { wordId: currentWord.id, quality: flashcardRatingToQuality(rating) };
@@ -811,7 +861,7 @@ export default function VocabularyPractice({
 
     useEffect(() => {
         if (showIntro) return;
-        if (["listening", "context", "sentence-build"].includes(activeMode)) {
+        if (["listening", "context", "sentence-build", "speaking"].includes(activeMode)) {
             wordStartTimeRef.current = Date.now();
         }
         if (isWordChoiceMode) {
@@ -1295,6 +1345,24 @@ export default function VocabularyPractice({
                                         <div className="text-center">
                                             <WordRevealHint
                                                 word={currentWord}
+                                                onReveal={handleRevealHint}
+                                            />
+                                        </div>
+                                    </div>
+                                )}
+
+                                {activeMode === "speaking" && (
+                                    <div className="space-y-4">
+                                        <SpeakingMode
+                                            key={`${currentWord.id}:${currentIndex}`}
+                                            word={currentWord}
+                                            onResult={handleSpeakingResult}
+                                            onSelfCheck={handleSpeakingSelfCheck}
+                                        />
+                                        <div className="text-center">
+                                            <WordRevealHint
+                                                word={currentWord}
+                                                showMeaning={false}
                                                 onReveal={handleRevealHint}
                                             />
                                         </div>

@@ -1,3 +1,4 @@
+import { isSpeechRecognitionSupported } from "@/lib/speech-recognition";
 import { getClozePrompt, getSentenceBuildPrompt } from "@/lib/practice-utils";
 import type { WordLearningStage } from "@/lib/word-progress-stage";
 import type { IWord } from "@/types/courses/courses.type";
@@ -8,6 +9,7 @@ export type PedagogyPracticeMode =
     | "word-bank"
     | "cloze"
     | "sentence-build"
+    | "speaking"
     | "flashcard";
 
 /** Per-word / per-session availability of the exercise types that can't always run. */
@@ -18,6 +20,8 @@ export interface ModeAvailability {
     listening: boolean;
     /** A translated, tile-sized example exists (sentence-build). */
     sentenceBuild: boolean;
+    /** The browser can recognise speech (speaking). Same for every word. */
+    speaking: boolean;
 }
 
 /** Availability flags for a single word, shared by the planner and the engine. */
@@ -26,6 +30,7 @@ export function getModeAvailability(word: IWord): ModeAvailability {
         cloze: getClozePrompt(word) != null,
         listening: Boolean(word.audioUrl),
         sentenceBuild: getSentenceBuildPrompt(word) != null,
+        speaking: isSpeechRecognitionSupported(),
     };
 }
 
@@ -52,7 +57,7 @@ export const PEDAGOGY = {
 
 export type PracticeDirection = "production" | "recognition";
 
-export const PRODUCTION_MODES = ["listening", "context", "sentence-build"] as const;
+export const PRODUCTION_MODES = ["listening", "context", "sentence-build", "speaking"] as const;
 export const RECOGNITION_MODES = ["word-bank", "cloze"] as const;
 
 export function modeDirection(mode: string): PracticeDirection | null {
@@ -67,6 +72,7 @@ function modeAvailable(mode: string, availability: ModeAvailability): boolean {
     if (mode === "listening" && !availability.listening) return false;
     // Sentence-build additionally needs that example to be translated.
     if (mode === "sentence-build" && !availability.sentenceBuild) return false;
+    if (mode === "speaking" && !availability.speaking) return false;
     return true;
 }
 

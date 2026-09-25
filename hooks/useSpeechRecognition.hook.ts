@@ -1,5 +1,10 @@
 "use client";
 
+import {
+    isSpeechRecognitionSupported,
+    type Recognition,
+    recognitionConstructor,
+} from "@/lib/speech-recognition";
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 
 /**
@@ -20,46 +25,6 @@ export type SpeechRecognitionErrorCode =
     | "network" // recognition needs a connection
     | "aborted"
     | "other";
-
-// The Web Speech API isn't in TypeScript's DOM lib; only what we use.
-interface RecognitionAlternative {
-    transcript: string;
-}
-interface RecognitionResult {
-    readonly isFinal: boolean;
-    readonly length: number;
-    [index: number]: RecognitionAlternative;
-}
-interface RecognitionEvent {
-    readonly resultIndex: number;
-    readonly results: { readonly length: number; [index: number]: RecognitionResult };
-}
-interface Recognition {
-    lang: string;
-    interimResults: boolean;
-    continuous: boolean;
-    maxAlternatives: number;
-    onresult: ((event: RecognitionEvent) => void) | null;
-    onerror: ((event: { error: string }) => void) | null;
-    onend: (() => void) | null;
-    start(): void;
-    stop(): void;
-    abort(): void;
-}
-type RecognitionConstructor = new () => Recognition;
-
-function recognitionConstructor(): RecognitionConstructor | undefined {
-    if (typeof globalThis.window === "undefined") return undefined;
-    const w = globalThis.window as unknown as {
-        SpeechRecognition?: RecognitionConstructor;
-        webkitSpeechRecognition?: RecognitionConstructor;
-    };
-    return w.SpeechRecognition ?? w.webkitSpeechRecognition;
-}
-
-export function isSpeechRecognitionSupported(): boolean {
-    return recognitionConstructor() !== undefined;
-}
 
 function toErrorCode(error: string): SpeechRecognitionErrorCode {
     switch (error) {
