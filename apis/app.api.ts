@@ -48,7 +48,9 @@ const NUDGE_TIMEOUT_MS = 90_000;
  */
 export function nudgeServicesAwake(): void {
     for (const url of getBootstrapServiceUrls()) {
-        void fetch(`${url}/health`, {
+        // `/ping`, not `/health`: Render blocks browser requests to a
+        // service's `/health`, so those never reached the container.
+        void fetch(`${url}/ping`, {
             mode: 'no-cors',
             cache: 'no-store',
             // Liveness: the cheapest endpoint that still forces the container up.

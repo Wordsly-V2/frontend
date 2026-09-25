@@ -13,9 +13,10 @@ npm run dev      # dev server on port 4000
 npm run build    # production build (also the typecheck gate)
 npm run lint     # eslint
 npx tsc --noEmit # typecheck only
+npm test         # vitest, pure logic only (lib/**/*.test.ts)
 ```
 
-There are no tests in this repo.
+Tests cover pure logic in `lib/` only (Vitest, `vitest.config.ts`); UI is checked by hand.
 
 ## State management — three systems, don't mix them up
 
@@ -62,7 +63,8 @@ owns this; the rules mirror offline mode's and are just as easy to break:
 
 - **The browser nudges the services directly, the gateway reports readiness.**
   `NEXT_PUBLIC_BOOTSTRAP_SERVICE_URLS` lists the services' own public URLs, and a
-  wake fires one opaque `no-cors` GET at each `/health` *without awaiting them*,
+  wake fires one opaque `no-cors` GET at each `/ping` (never `/health`, which
+  Render blocks) *without awaiting them*,
   so all four containers boot at once. Left to the gateway's `/wake` alone, its
   own cold start has to finish before it can even begin waking the three behind
   it — two boots end to end. The opaque response is unreadable by design (the
@@ -106,6 +108,7 @@ A public CEFR curriculum served by curriculum-service (tracker: `../../docs/word
 - The question views in `lesson-player/quiz-questions.tsx` report the raw response (option index, typed text, words in order); the lesson quiz grades it with `lib/path/quiz.ts`, the checkpoint doesn't. The checkpoint (`components/features/path/checkpoint/`) has no answers on the client: it collects one response per question, submits once with the `releaseId` it was served (409 → reload the test) and one `clientRequestId` per attempt, and shows the server's results. The checkpoint query is online only (not persisted, `gcTime: 0`) and is left out of the submit's invalidation so the results screen keeps its questions.
 - PRACTICE and WARMUP embed the practice engine (`VocabularyPractice` with `embedded`, `modes`, `introSeenWordIds`, `onFinished`) through `lib/path/item-to-word.ts`: only LEXICAL and PHRASE items are drilled, new items get 2 interleaved rounds, and `usePracticeSessionPersistence({ answerSource: 'path', celebrate: false })` stamps `source: 'path'` on every answer. WARMUP reviews due Path items (`due-word-ids` with `source: 'path'`, then `POST /path/items/hydrate`) and skips itself when nothing is due or offline.
 - `/path/review` (`components/features/path/review/`) runs one session of due Path items (`PATH_REVIEW_SESSION_SIZE`, still capped by the shared `dailyReviewLimit`) through the same `PracticeStep`, then its own summary. It keeps the first query result as the session so a refetch can't swap items under the engine; "Review more" removes the query and remounts. Online only. The Review buttons (hero, `/learn` card) read `usePathDueCountQuery` (ids only, no hydrate), which the practice save invalidates.
+- Speaking: `hooks/useSpeechRecognition.hook.ts` wraps the Web Speech API (en-US, one utterance per `start()`, alternatives best first; `supported` is false on Firefox and during SSR, `error === 'not-allowed'` when the microphone is refused, `network` offline, since Chrome recognises on Google's servers). `lib/speech-scoring.ts` scores transcripts against the expected sentence: both sides are normalised the same way (contractions expanded, digits and "7:00" spelled out, punctuation dropped), then a word-level edit distance gives `accuracy` and a 0–5 quality whose pass line matches `isCorrectAnswer`. Every speaking UI must keep a way through without recognition (listen, repeat, self-grade).
 - On mobile, Path took Manage's place in the bottom tab bar; Manage is still in the command palette (the header menu button).
 
 ## Design system ("Aurora")
