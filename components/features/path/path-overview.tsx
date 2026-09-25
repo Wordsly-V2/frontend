@@ -1,6 +1,7 @@
 "use client";
 
 import { EmptyState, ErrorState, Skeleton } from "@/components/common/states";
+import { DailyPlanCard } from "@/components/features/path/daily-plan-card";
 import { PathHero } from "@/components/features/path/path-hero";
 import { PathMap } from "@/components/features/path/path-map";
 import { usePathMeQuery, usePathTreeQuery } from "@/queries/path.query";
@@ -42,6 +43,7 @@ export function PathOverview() {
     return (
         <>
             <PathHero tree={tree.data} me={me.data} />
+            <DailyPlanCard tree={tree.data} me={me.data} />
             <PathMap tree={tree.data} me={me.data} />
         </>
     );

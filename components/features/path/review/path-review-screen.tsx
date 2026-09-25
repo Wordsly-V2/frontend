@@ -10,8 +10,11 @@ import { queryKeys } from "@/lib/query-keys";
 import {
     type PathDueItems,
     usePathDueCountQuery,
+    usePathMeQuery,
     usePathReviewQuery,
+    usePathTreeQuery,
 } from "@/queries/path.query";
+import { buildDailyPlan } from "@/lib/path/daily-plan";
 import type { SessionCompletePayload } from "@/types/practice/practice.type";
 import { useQueryClient } from "@tanstack/react-query";
 import { CheckCircle2, WifiOff } from "lucide-react";
@@ -124,6 +127,15 @@ function ReviewSummary({
     // Refetched once this session's answers are saved (the save invalidates it).
     const due = usePathDueCountQuery();
     const moreDue = due.data?.sessionCount ?? 0;
+    // The daily session goes on to new material once reviews are done.
+    const tree = usePathTreeQuery();
+    const me = usePathMeQuery();
+    const upNext =
+        tree.data && me.data
+            ? buildDailyPlan({ tree: tree.data, me: me.data, dueSessionCount: undefined }).find(
+                  (step) => step.kind !== "review",
+              )
+            : undefined;
 
     return (
         <section className="glass-surface flex flex-col items-center gap-5 rounded-3xl p-6 text-center sm:p-10">
@@ -149,8 +161,15 @@ function ReviewSummary({
             </dl>
 
             <div className="flex flex-col gap-3 sm:flex-row">
+                {upNext && (
+                    <Button variant="play" size="lg" asChild>
+                        <Link href={upNext.href}>
+                            {upNext.kind === "lesson" ? `Up next: ${upNext.title}` : "Up next: unit test"}
+                        </Link>
+                    </Button>
+                )}
                 {moreDue > 0 && !due.isFetching && (
-                    <Button variant="play" size="lg" onClick={onAgain}>
+                    <Button variant={upNext ? "playOutline" : "play"} size="lg" onClick={onAgain}>
                         Review {moreDue} more
                     </Button>
                 )}
