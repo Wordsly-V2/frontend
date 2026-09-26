@@ -21,6 +21,8 @@ interface ConfirmDialogProps {
     cancelText?: string;
     variant?: "default" | "destructive";
     isLoading?: boolean;
+    /** Replaces the confirm label while `isLoading`. */
+    loadingText?: string;
 }
 
 export default function ConfirmDialog({
@@ -33,6 +35,7 @@ export default function ConfirmDialog({
     cancelText = "Hủy",
     variant = "default",
     isLoading = false,
+    loadingText = "Đang xử lý...",
 }: Readonly<ConfirmDialogProps>) {
     return (
         <AlertDialog open={isOpen} onOpenChange={onClose}>
@@ -51,7 +54,7 @@ export default function ConfirmDialog({
                         disabled={isLoading}
                         className={`w-full sm:w-auto text-sm ${variant === "destructive" ? "bg-destructive hover:bg-destructive/90" : ""}`}
                     >
-                        {isLoading ? "Đang xử lý..." : confirmText}
+                        {isLoading ? loadingText : confirmText}
                     </AlertDialogAction>
                 </AlertDialogFooter>
             </AlertDialogContent>

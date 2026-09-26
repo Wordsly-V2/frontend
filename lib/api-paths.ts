@@ -122,8 +122,26 @@ export const apiPaths = {
         hydrateItems: () => '/path/items/hydrate',
     },
 
+    /** Account administration (admins only; auth-service). */
+    adminUsers: {
+        list: () => '/admin/users',
+        stats: () => '/admin/users/stats',
+        detail: (userLoginId: string) => `/admin/users/${userLoginId}`,
+        roles: (userLoginId: string) => `/admin/users/${userLoginId}/roles`,
+        status: (userLoginId: string) => `/admin/users/${userLoginId}/status`,
+        revokeSessions: (userLoginId: string) => `/admin/users/${userLoginId}/sessions/revoke`,
+    },
+
+    /** Platform learning stats and learner support (admins only; learning-service). */
+    adminLearning: {
+        stats: () => '/admin/learning/stats',
+        hardestPathItems: () => '/admin/learning/path-items/hardest',
+    },
+
     /** Wordsly Path authoring (admins only; curriculum-service). */
     adminPath: {
+        stats: () => '/admin/path/stats',
+        itemsLookup: () => '/admin/path/items/lookup',
         overview: () => '/admin/path/overview',
         validate: () => '/admin/path/validate',
         seedPlan: () => '/admin/path/seed-plan',

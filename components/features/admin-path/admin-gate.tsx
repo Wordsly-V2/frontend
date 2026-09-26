@@ -21,7 +21,7 @@ export function AdminGate({ children }: Readonly<{ children: React.ReactNode }>)
                 <EmptyState
                     icon={ShieldAlert}
                     title="Admins only"
-                    description="This area is for editing Wordsly Path content. If you were just given access, sign out and back in."
+                    description="This area is for Wordsly admins. If you were just given access, sign out and back in."
                     action={
                         <Button variant="play" asChild>
                             <Link href="/learn">Back to learning</Link>
