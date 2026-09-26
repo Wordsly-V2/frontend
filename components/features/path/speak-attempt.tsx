@@ -8,6 +8,7 @@ import {
 } from "@/hooks/useSpeechRecognition.hook";
 import { isCorrectAnswer } from "@/lib/answer-quality";
 import { stopSpeaking } from "@/lib/path/speech";
+import { speechFallbackCause } from "@/lib/speech-recognition";
 import { scoreSpeech, type SpeechScore } from "@/lib/speech-scoring";
 import { cn } from "@/lib/utils";
 import { CheckCircle2, Mic, Square } from "lucide-react";
@@ -19,11 +20,10 @@ const MAX_REQUIRED_ATTEMPTS = 2;
 /** Errors that won't go away by trying again: fall back to self-grading. */
 const BLOCKING_ERRORS = new Set<SpeechRecognitionErrorCode>(["not-allowed", "audio-capture", "network"]);
 
-const FALLBACK_REASON: Partial<Record<SpeechRecognitionErrorCode, string>> = {
-    "not-allowed": "The microphone is off, so check yourself this time.",
-    "audio-capture": "No microphone found, so check yourself this time.",
-    network: "Speech check needs a connection, so check yourself this time.",
-};
+function fallbackReason(error: SpeechRecognitionErrorCode | null): string | undefined {
+    const cause = speechFallbackCause(error, typeof navigator === "undefined" || navigator.onLine);
+    return cause ? `${cause} Check yourself this time.` : undefined;
+}
 
 /**
  * One "say this sentence" exercise. With speech recognition the learner taps
@@ -103,7 +103,7 @@ export function SpeakAttempt({
             ) : (
                 <SelfCheck
                     expected={expected}
-                    reason={recognition.error ? FALLBACK_REASON[recognition.error] : undefined}
+                    reason={fallbackReason(recognition.error)}
                     done={settled}
                     onDone={() => setSettled(true)}
                 />

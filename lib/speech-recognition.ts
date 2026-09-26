@@ -42,3 +42,31 @@ export function recognitionConstructor(): RecognitionConstructor | undefined {
 export function isSpeechRecognitionSupported(): boolean {
     return recognitionConstructor() !== undefined;
 }
+
+/** Why listening stopped, as far as the fallback message cares. */
+export type SpeechFallbackError = "not-allowed" | "audio-capture" | "network";
+
+/**
+ * One short sentence saying why the learner is checking themselves, or null
+ * when there is nothing worth saying. A "network" error while the device is
+ * online almost always means the browser has no speech service: Chromium
+ * browsers other than Google Chrome (Cốc Cốc, Brave, Arc…) expose the API but
+ * every attempt fails with "network". Blaming the connection then is wrong.
+ */
+export function speechFallbackCause(
+    error: string | null | undefined,
+    online: boolean,
+): string | null {
+    switch (error) {
+        case "not-allowed":
+            return "The microphone is off.";
+        case "audio-capture":
+            return "No microphone found.";
+        case "network":
+            return online
+                ? "This browser can't check speech. Google Chrome can."
+                : "Speech check needs a connection.";
+        default:
+            return null;
+    }
+}

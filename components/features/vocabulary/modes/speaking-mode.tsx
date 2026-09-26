@@ -10,6 +10,7 @@ import {
 import { isCorrectAnswer } from "@/lib/answer-quality";
 import { hasShortcutModifier, isEditableKeyboardTarget } from "@/lib/keyboard-utils";
 import { playAudioUrl } from "@/lib/practice-audio";
+import { speechFallbackCause } from "@/lib/speech-recognition";
 import { scoreSpeech, type SpeechScore } from "@/lib/speech-scoring";
 import type { IWord } from "@/types/courses/courses.type";
 import { Mic, Square, Volume2 } from "lucide-react";
@@ -145,10 +146,11 @@ function SelfCheck({
     onReveal: () => void;
     onSelfCheck: (saidItRight: boolean) => void;
 }>) {
+    const cause = speechFallbackCause(reason, typeof navigator === "undefined" || navigator.onLine);
     return (
         <div className="space-y-4">
             <p className="text-sm text-muted-foreground">
-                {reason === "not-allowed" ? "The microphone is off. " : ""}
+                {cause ? `${cause} ` : ""}
                 Say it out loud, then check.
             </p>
             {revealed ? (
