@@ -114,6 +114,15 @@ A public CEFR curriculum served by curriculum-service (tracker: `../../docs/word
 - `components/features/path/speak-attempt.tsx` is the one "say this sentence" widget: mic → score → marked words, retry; without recognition (unsupported, microphone refused, offline) a self-check. `onSettled` fires once (a pass, 2 tries, a self-check or Skip), so no learner is ever stuck. Key it by the sentence. SPEAK, PATTERN_DRILL (after the slots are checked) and DIALOGUE role-play turns (settling reveals and plays the line) use it; none of them grade FSRS, the score is feedback.
 - On mobile, Path took Manage's place in the bottom tab bar; Manage is still in the command palette (the header menu button).
 
+## Admin area
+
+Everything under `app/admin/` renders inside `AuthGuard` → `AdminGate` → `AdminShell` (`components/features/admin/admin-shell.tsx`): a sidebar on desktop, a menu sheet on mobile. The links live in `lib/admin/nav.ts` (`ADMIN_NAV`; add a link only when its page exists; `activeAdminHref` picks the most specific match, tested). Pages keep their own `<main>` padding. The avatar menu and the command palette link to `/admin` for admins only.
+
+- Each backend service owns its own admin prefix: `/admin/users` (auth-service), `/admin/learning`, `/admin/vocabulary`, `/admin/path` (curriculum-service). Admin data follows the same rules everywhere: its own `queryKeys.<area>.all` root, `staleTime: 0`, never on the persist allowlist; errors shown with `adminErrorMessages` (`lib/admin-path/errors.ts`).
+- `/admin`: dashboard (`admin-dashboard.tsx`): tiles from `GET /admin/users/stats` via `StatTiles` (the generic half of `StatsCards`) and links into each area.
+- `/admin/users` (`components/features/admin-users/`): table on desktop, cards on mobile; search, role and status filters and the page live in the URL (`lib/search-params/admin-users.ts`, `useAdminUsersParams`: typing replaces on a debounce, a page is pushed, a filter resets to page 1). `/admin/users/[id]`: account facts and the Access section (make/remove admin, sign out everywhere, suspend/reactivate) behind confirm dialogs. Your own account shows a note instead of actions (the server answers 409 anyway), and an `ADMIN_EMAILS` admin carries a "bootstrap" badge because removing their role is undone at their next sign-in. Helpers in `lib/admin/users.ts` (tested). Data: `apis/admin-users.api.ts`, `queries/admin-users.query.ts` (a write stores the returned detail and invalidates `adminUsers.all`).
+- UI primitives added for admin: `components/ui/table.tsx`, `components/ui/sheet.tsx` (shadcn, on the Radix dialog already installed; no new packages). Filters use `components/features/admin/filter-toggle.tsx`, not a select.
+
 ## Wordsly Path admin
 
 Content authoring for admins under `app/admin/` (API: curriculum-service `/admin/path`, types in `types/admin-path/admin-path.type.ts`, copied from the backend). `app/admin/layout.tsx` wraps everything in `AdminGate`, which only hides UI from non-admins (`isAdmin(profile)` in `lib/admin.ts`, reading `profile.roles`); the API is what refuses them. A role change reaches the profile on the next token refresh.
@@ -122,7 +131,7 @@ Content authoring for admins under `app/admin/` (API: curriculum-service `/admin
 - Records travel in seed shape. The item editor (`components/features/admin-path/item-editor.tsx`) converts with `lib/admin-path/item-form.ts` (tested: an unchanged item round-trips to the identical record, so saving it is a no-op on the server). Writes answer with the working copy's validation, shown as "fix before the next publish"; a 400 carries `errors`, which `adminErrorMessages` (`lib/admin-path/errors.ts`) turns into a list.
 - Editors: items have a form (`item-editor.tsx`, route `app/admin/path/item/[slug]`); lessons have a form with item links and steps whose payloads are JSON (`lesson-editor.tsx`, `lib/admin-path/lesson-form.ts`, tested round-trip; the server checks each payload against its step type); units, dialogues, unit tests and the placement test edit as the raw seed-shaped JSON (`record-json-editor.tsx`; the placement test is listed in its own card on `/admin/path`, and "New placement test" shows only while none is live). The generic route is `app/admin/path/[kind]/[slug]`, `new?unit=` creates. Shared pieces (fields, feedback, archive/restore with a per-kind warning, unsaved-edit guard) are in `admin-form-parts.tsx`. There is no lesson preview yet.
 - `/admin/path` shows totals, validation, seed-file clashes (also as a Clash badge on the row), the tree (units open to their lessons, items, dialogues and unit test, each linking to its editor), and releases; Publish warns that archived items get retired (learners lose those cards), and "Make live" on an older release retires nothing.
-- The command palette lists "Admin: Wordsly Path" for admins only.
+- The command palette lists the admin pages (Dashboard, Users, Wordsly Path) for admins only.
 
 ## Design system ("Aurora")
 

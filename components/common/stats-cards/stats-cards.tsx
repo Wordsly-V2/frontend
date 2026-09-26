@@ -1,6 +1,7 @@
 "use client";
 
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { cn } from "@/lib/utils";
 import { BookOpen, FileText, MessageSquare } from "lucide-react";
 import { type ReactNode } from "react";
 
@@ -57,16 +58,25 @@ export interface StatsCardsProps {
     className?: string;
 }
 
-export default function StatsCards({
-    items,
+export interface StatTilesProps {
+    items: StatsCardItem[];
+    isLoading?: boolean;
+    isError?: boolean;
+    /** Called when a card is clicked (e.g. to retry loading). Optional. */
+    onCardClick?: () => void;
+    className?: string;
+}
+
+/** A row of icon + number tiles. `StatsCards` is this with the course totals. */
+export function StatTiles({
+    items: statsItems,
     isLoading = false,
     isError = false,
     onCardClick,
     className = "",
-}: Readonly<StatsCardsProps>) {
-    const statsItems = getCourseTotalStatsItems(items);
+}: Readonly<StatTilesProps>) {
     return (
-        <div className={`grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 ${className}`.trim()}>
+        <div className={cn("grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6", className)}>
             {statsItems.map((item) => {
                 let valueContent: ReactNode;
                 if (isLoading) {
@@ -110,4 +120,8 @@ export default function StatsCards({
             })}
         </div>
     );
+}
+
+export default function StatsCards({ items, ...rest }: Readonly<StatsCardsProps>) {
+    return <StatTiles items={getCourseTotalStatsItems(items)} {...rest} />;
 }

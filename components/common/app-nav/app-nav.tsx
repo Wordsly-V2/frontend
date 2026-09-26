@@ -4,9 +4,10 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { motion, useReducedMotion } from "motion/react";
-import { BarChart3, BookOpen, Dumbbell, GraduationCap, Library, Route, Settings, User, LogOut, LogIn, Smartphone, Menu } from "lucide-react";
+import { BarChart3, BookOpen, Dumbbell, GraduationCap, Library, Route, Settings, ShieldCheck, User, LogOut, LogIn, Smartphone, Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { isAdmin } from "@/lib/admin";
 import { MyWordsSearch } from "@/components/common/my-words-search";
 import { StreakChip } from "@/components/common/app-nav/streak-chip";
 import {
@@ -113,6 +114,15 @@ export default function AppNav() {
                                 <User className="mr-2 h-4 w-4" />
                                 <span>Profile</span>
                             </DropdownMenuItem>
+                            {isAdmin(profile) && (
+                                <DropdownMenuItem
+                                    onClick={() => router.push('/admin')}
+                                    className="cursor-pointer rounded-lg"
+                                >
+                                    <ShieldCheck className="mr-2 h-4 w-4" />
+                                    <span>Admin</span>
+                                </DropdownMenuItem>
+                            )}
                             <DropdownMenuSeparator />
                             <DropdownMenuItem
                                 className="cursor-pointer rounded-lg"

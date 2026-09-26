@@ -81,6 +81,8 @@ const LEARN_ROUTES: PaletteRoute[] = [
 
 /** Shown only to admins (the API enforces it; this only hides the link). */
 const ADMIN_ROUTES: PaletteRoute[] = [
+    { href: "/admin", label: "Admin: Dashboard", icon: ShieldCheck, keywords: ["admin", "stats", "overview"] },
+    { href: "/admin/users", label: "Admin: Users", icon: ShieldCheck, keywords: ["accounts", "suspend", "role", "people"] },
     { href: "/admin/path", label: "Admin: Wordsly Path", icon: ShieldCheck, keywords: ["content", "publish", "release", "edit"] },
 ];
 

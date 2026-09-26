@@ -136,6 +136,13 @@ export const queryKeys = {
         /** How many Path items are due, for the Review buttons; not persisted. */
         dueCount: () => ["path", "due-count"] as const,
     },
+    /** Account administration. Never persisted (admin data stays off the device). */
+    adminUsers: {
+        all: ["admin-users"] as const,
+        list: (query: object) => ["admin-users", "list", query] as const,
+        detail: (userLoginId: string) => ["admin-users", "detail", userLoginId] as const,
+        stats: (from?: string, to?: string) => ["admin-users", "stats", from ?? "", to ?? ""] as const,
+    },
     /** Wordsly Path authoring. Never persisted (admin data stays off the device). */
     adminPath: {
         all: ["admin-path"] as const,
