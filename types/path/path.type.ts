@@ -271,3 +271,49 @@ export interface PathCheckpointResult {
     results: PathCheckpointQuestionResult[];
     me: PathMe;
 }
+
+// ─── Placement test ────────────────────────────────────────────────────────
+
+/** A placement question: no answer, and the unit it probes. */
+export type PathPlacementQuestion = PathCheckpointQuestion & { unitId: string };
+
+export interface PathPlacementView {
+    placementId: string;
+    /** Sent back on submit; the server answers 409 if a newer release is active. */
+    releaseId: string;
+    title: string;
+    /** In path order. */
+    questions: PathPlacementQuestion[];
+}
+
+/** null: not answered ("I don't know", or the learner stopped). */
+export type PathPlacementResponse = PathCheckpointResponse | null;
+
+export interface SubmitPathPlacementDto {
+    /** Minted once per attempt, so a retry returns the first grade. */
+    clientRequestId: string;
+    releaseId: string;
+    /** One per question; pad with null when the learner stops early. */
+    answers: PathPlacementResponse[];
+}
+
+export interface PathPlacementUnitResult {
+    unitId: string;
+    correct: number;
+    total: number;
+    /** Part of the known prefix; false from the first unit the learner missed. */
+    known: boolean;
+}
+
+export interface PathPlacementResult {
+    replayed: boolean;
+    scorePercent: number;
+    /** Where the test put the learner; null = the first unit. */
+    placedUnitId: string | null;
+    skippedUnitIds: string[];
+    /** Probed units in path order. */
+    units: PathPlacementUnitResult[];
+    /** The learner's start unit now: a retake never moves it back. */
+    startUnitId: string | null;
+    me: PathMe;
+}

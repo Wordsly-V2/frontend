@@ -12,7 +12,7 @@ import {
     useAdminSeedPlanQuery,
     useAdminValidateQuery,
 } from "@/queries/admin-path.query";
-import type { AdminUnitNode } from "@/types/admin-path/admin-path.type";
+import type { AdminPlacementNode, AdminUnitNode } from "@/types/admin-path/admin-path.type";
 import { AlertTriangle, CheckCircle2, Plus, RefreshCw, Rocket } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
@@ -38,7 +38,7 @@ export function AdminPathScreen() {
         return <ErrorState message="Couldn't load the content." onRetry={() => void overview.refetch()} />;
     }
 
-    const { stages, totals } = overview.data;
+    const { stages, placements, totals } = overview.data;
 
     return (
         <div className="space-y-6">
@@ -82,6 +82,8 @@ export function AdminPathScreen() {
                     </div>
                 ))}
             </section>
+
+            <PlacementCard placements={placements} clashes={clashes} />
 
             <ReleasesCard />
             <PublishDialog isOpen={publishing} onClose={() => setPublishing(false)} archivedCount={totals.ARCHIVED} />
@@ -161,6 +163,43 @@ function SeedPlanCard() {
                         ))}
                     </ul>
                 </>
+            )}
+        </section>
+    );
+}
+
+/** The placement test(s): questions tagged with the unit they probe, edited as JSON. */
+function PlacementCard({
+    placements,
+    clashes,
+}: Readonly<{ placements: AdminPlacementNode[]; clashes: Set<string> }>) {
+    const live = placements.some((p) => p.status !== "ARCHIVED");
+    return (
+        <section aria-label="Placement test" className="glass-surface space-y-2 rounded-2xl p-4">
+            <div className="flex items-center justify-between gap-2">
+                <h2 className="font-semibold">Placement test</h2>
+                {!live && <NewLink href="/admin/path/placement/new" label="New placement test" />}
+            </div>
+            {placements.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                    None: learners can only start from the beginning.
+                </p>
+            ) : (
+                <ul className="space-y-1 text-sm">
+                    {placements.map((p) => (
+                        <li key={p.id} className="flex flex-wrap items-center gap-2">
+                            <RecordLink kind="placement" slug={p.slug}>
+                                <span className="font-semibold">{p.title}</span>
+                            </RecordLink>
+                            <span className="text-muted-foreground">
+                                {p.slug} · {p.questionCount} questions
+                            </span>
+                            <StatusBadge status={p.status} />
+                            <OriginBadge origin={p.origin} />
+                            <ClashBadge kind="placement" slug={p.slug} clashes={clashes} />
+                        </li>
+                    ))}
+                </ul>
             )}
         </section>
     );

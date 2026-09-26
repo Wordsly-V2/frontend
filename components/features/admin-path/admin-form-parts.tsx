@@ -169,6 +169,7 @@ const ARCHIVE_NOTE: Record<AdminKind, string> = {
     dialogue: "Steps that play it will block publishing until they drop it.",
     checkpoint: "The unit will open the next one when its lessons are done, without a test, from the next publish.",
     unit: "Only an empty unit can be archived: archive its lessons, items, dialogues and test first.",
+    placement: "Learners lose the placement test from the next publish (their past results stay). Only one test can be live, so archive this one before creating another.",
 };
 
 /** Header of an editor page: back link, title, status. */

@@ -7,7 +7,7 @@ export type ContentStatus = "DRAFT" | "PUBLISHED" | "ARCHIVED";
 /** seed: as imported · edited: an admin changed a seeded row · admin: no seed behind it */
 export type RowOrigin = "seed" | "edited" | "admin";
 
-export const ADMIN_KINDS = ["unit", "item", "dialogue", "lesson", "checkpoint"] as const;
+export const ADMIN_KINDS = ["unit", "item", "dialogue", "lesson", "checkpoint", "placement"] as const;
 export type AdminKind = (typeof ADMIN_KINDS)[number];
 
 export interface AdminNode {
@@ -44,8 +44,14 @@ export interface AdminStageNode extends AdminNode {
     cefr: string;
     units: AdminUnitNode[];
 }
+export interface AdminPlacementNode extends AdminNode {
+    title: string;
+    questionCount: number;
+}
 export interface AdminTree {
     stages: AdminStageNode[];
+    /** Placement tests, archived included; at most one is live. */
+    placements: AdminPlacementNode[];
     totals: Record<ContentStatus | RowOrigin, number>;
 }
 

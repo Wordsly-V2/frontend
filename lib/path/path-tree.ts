@@ -22,6 +22,7 @@ export const pathLessonHref = (lessonId: string) => `/path/lesson/${lessonId}`;
 export const pathUnitHref = (unitId: string) => `/path/unit/${unitId}`;
 export const pathCheckpointHref = (unitId: string) => `/path/checkpoint/${unitId}`;
 export const PATH_REVIEW_HREF = "/path/review";
+export const PATH_PLACEMENT_HREF = "/path/placement";
 
 /** Items in one /path/review session (still capped by `dailyReviewLimit`). */
 export const PATH_REVIEW_SESSION_SIZE = 20;
@@ -59,6 +60,24 @@ export function findLesson(
             const lesson = unit.lessons.find((l) => l.id === lessonId);
             if (lesson) return { stage, unit, lesson };
         }
+    }
+    return null;
+}
+
+export interface LocatedUnit {
+    stage: PathTreeStage;
+    unit: PathTreeUnit;
+}
+
+/** Finds a unit and its stage. */
+export function findUnit(
+    tree: PathTree | null | undefined,
+    unitId: string | null | undefined,
+): LocatedUnit | null {
+    if (!tree || !unitId) return null;
+    for (const stage of tree.stages) {
+        const unit = stage.units.find((u) => u.id === unitId);
+        if (unit) return { stage, unit };
     }
     return null;
 }

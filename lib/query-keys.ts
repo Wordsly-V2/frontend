@@ -126,6 +126,8 @@ export const queryKeys = {
         lesson: (lessonId: string) => ["path", "lesson", lessonId] as const,
         /** Not persisted: a checkpoint is taken online, against the live release. */
         checkpoint: (unitId: string) => ["path", "checkpoint", unitId] as const,
+        /** The placement test; online only, not persisted. */
+        placement: () => ["path", "placement"] as const,
         /** Due Path items for a lesson's warm-up; not persisted (changes by the minute). */
         warmup: (lessonId: string, limit: number) =>
             ["path", "warmup", lessonId, limit] as const,

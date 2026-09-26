@@ -117,6 +117,8 @@ export const apiPaths = {
         checkpoint: (unitId: string) => user(`path/units/${unitId}/checkpoint`),
         submitCheckpoint: (unitId: string) =>
             user(`path/units/${unitId}/checkpoint/submit`),
+        placement: () => user('path/placement'),
+        submitPlacement: () => user('path/placement/submit'),
         hydrateItems: () => '/path/items/hydrate',
     },
 

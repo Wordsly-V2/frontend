@@ -6,9 +6,11 @@ import {
     getPathCheckpoint,
     getPathLesson,
     getPathMe,
+    getPathPlacement,
     getPathTree,
     getPathUnit,
     submitPathCheckpoint,
+    submitPathPlacement,
 } from "@/apis/path.api";
 import { PATH_REVIEW_SESSION_SIZE } from "@/lib/path/path-tree";
 import { queryKeys } from "@/lib/query-keys";
@@ -18,9 +20,11 @@ import type {
     PathCheckpointView,
     PathLessonView,
     PathMe,
+    PathPlacementView,
     PathTree,
     PathUnitView,
     SubmitPathCheckpointDto,
+    SubmitPathPlacementDto,
 } from "@/types/path/path.type";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
@@ -63,6 +67,16 @@ export const usePathCheckpointQuery = (unitId: string) =>
         queryKey: queryKeys.path.checkpoint(unitId),
         queryFn: () => getPathCheckpoint(unitId),
         enabled: !!unitId,
+        staleTime: 0,
+        gcTime: 0,
+        refetchOnWindowFocus: false,
+    });
+
+/** Like the checkpoint: fetched fresh, never refetched under the learner. null = no test. */
+export const usePathPlacementQuery = () =>
+    useQuery<PathPlacementView | null>({
+        queryKey: queryKeys.path.placement(),
+        queryFn: getPathPlacement,
         staleTime: 0,
         gcTime: 0,
         refetchOnWindowFocus: false,
@@ -185,6 +199,24 @@ export const useSubmitPathCheckpointMutation = () => {
             return queryClient.invalidateQueries({
                 queryKey: queryKeys.path.all,
                 predicate: (query) => query.queryKey[1] !== "me" && query.queryKey[1] !== "checkpoint",
+            });
+        },
+    });
+};
+
+/**
+ * Placement enrolls and can open many units at once: write `me`, drop the rest
+ * of `path` except the test being shown (its results screen needs the questions).
+ */
+export const useSubmitPathPlacementMutation = () => {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (body: SubmitPathPlacementDto) => submitPathPlacement(body),
+        onSuccess: ({ me }) => {
+            queryClient.setQueryData(queryKeys.path.me(), me);
+            return queryClient.invalidateQueries({
+                queryKey: queryKeys.path.all,
+                predicate: (query) => query.queryKey[1] !== "me" && query.queryKey[1] !== "placement",
             });
         },
     });

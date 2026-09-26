@@ -1,16 +1,20 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { CEFR_LABELS, findLesson, pathLessonHref } from "@/lib/path/path-tree";
+import { CEFR_LABELS, findLesson, PATH_PLACEMENT_HREF, pathLessonHref } from "@/lib/path/path-tree";
 import { useEnrollPathMutation } from "@/queries/path.query";
 import type { PathMe, PathTree } from "@/types/path/path.type";
-import { Play, Rocket, Trophy } from "lucide-react";
+import { Compass, Play, Rocket, Trophy } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
 
 /** White pill button that sits on the gradient hero. */
 const HERO_BUTTON =
     "glow-primary bg-white text-primary border-black/10 hover:bg-white hover:brightness-[1.02] dark:bg-white/90 dark:text-[oklch(from_var(--brand-primary)_0.42_0.16_h)] dark:hover:bg-white/90 focus-visible:ring-white/60 focus-visible:border-white";
+
+/** Its quieter sibling: outlined, see-through. */
+const HERO_BUTTON_OUTLINE =
+    "border-2 border-white/50 bg-white/10 text-white shadow-none hover:bg-white/20 hover:text-white focus-visible:ring-white/60 focus-visible:border-white";
 
 /**
  * Top of /path: the call to start the path, or where the learner is and a
@@ -47,16 +51,24 @@ function EnrollContent() {
                     conversations. About 10 minutes a day.
                 </p>
             </div>
-            <Button
-                variant="play"
-                size="xl"
-                onClick={start}
-                disabled={enroll.isPending}
-                className={`w-fit gap-2 ${HERO_BUTTON}`}
-            >
-                <Rocket className="h-5 w-5" aria-hidden />
-                {enroll.isPending ? "Starting…" : "Start the path"}
-            </Button>
+            <div className="flex flex-wrap items-center gap-3">
+                <Button
+                    variant="play"
+                    size="xl"
+                    onClick={start}
+                    disabled={enroll.isPending}
+                    className={`w-fit gap-2 ${HERO_BUTTON}`}
+                >
+                    <Rocket className="h-5 w-5" aria-hidden />
+                    {enroll.isPending ? "Starting…" : "Start from the beginning"}
+                </Button>
+                <Button variant="outline" size="xl" asChild className={`w-fit ${HERO_BUTTON_OUTLINE}`}>
+                    <Link href={PATH_PLACEMENT_HREF} className="gap-2">
+                        <Compass className="h-5 w-5" aria-hidden />
+                        Find my level
+                    </Link>
+                </Button>
+            </div>
         </div>
     );
 }
@@ -120,6 +132,15 @@ function ContinueContent({ tree, me }: Readonly<{ tree: PathTree; me: PathMe }>)
                         <Trophy className="h-4 w-4" aria-hidden />
                         Great work so far!
                     </p>
+                )}
+                {/* Enrolled straight in and not started yet: offer to skip ahead. */}
+                {done === 0 && !me.startUnitId && (
+                    <Link
+                        href={PATH_PLACEMENT_HREF}
+                        className="text-sm font-bold text-white/85 underline underline-offset-4 hover:text-white"
+                    >
+                        Know some already? Find your level
+                    </Link>
                 )}
             </div>
         </div>

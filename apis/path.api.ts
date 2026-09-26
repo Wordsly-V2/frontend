@@ -8,9 +8,12 @@ import type {
     PathCheckpointView,
     PathLessonView,
     PathMe,
+    PathPlacementResult,
+    PathPlacementView,
     PathTree,
     PathUnitView,
     SubmitPathCheckpointDto,
+    SubmitPathPlacementDto,
 } from "@/types/path/path.type";
 
 /** The path map, or null while nothing has been published yet (404). */
@@ -48,6 +51,16 @@ export const submitPathCheckpoint = (
     body: SubmitPathCheckpointDto,
 ): Promise<PathCheckpointResult> =>
     request((i) => i.post(apiPaths.path.submitCheckpoint(unitId), body));
+
+/** The placement test without its answers, or null when none is published (404). */
+export const getPathPlacement = (): Promise<PathPlacementView | null> =>
+    request((i) => i.get(apiPaths.path.placement()), { notFoundAsNull: true });
+
+/** Graded on the server; enrolls and moves the start unit forward. 409 on a newer release. */
+export const submitPathPlacement = (
+    body: SubmitPathPlacementDto,
+): Promise<PathPlacementResult> =>
+    request((i) => i.post(apiPaths.path.submitPlacement(), body));
 
 /** Published items by id (unknown or retired ids are left out). */
 export const hydratePathItems = (itemIds: string[]): Promise<PathItem[]> =>
