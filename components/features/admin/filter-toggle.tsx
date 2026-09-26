@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 
-interface FilterToggleProps<T extends string> {
+interface FilterToggleProps<T extends string | number> {
     label: string;
     /** `null` is the "All" option. */
     value: T | null;
@@ -11,7 +11,7 @@ interface FilterToggleProps<T extends string> {
 }
 
 /** A small segmented control for list filters, styled like the report period toggle. */
-export function FilterToggle<T extends string>({ label, value, options, onChange }: Readonly<FilterToggleProps<T>>) {
+export function FilterToggle<T extends string | number>({ label, value, options, onChange }: Readonly<FilterToggleProps<T>>) {
     return (
         <div
             role="radiogroup"

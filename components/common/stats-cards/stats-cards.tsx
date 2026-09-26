@@ -84,7 +84,7 @@ export function StatTiles({
                 } else if (isError) {
                     valueContent = <p className="text-2xl sm:text-3xl font-bold">--</p>;
                 } else {
-                    valueContent = <p className="text-2xl sm:text-3xl font-bold">{item.value}</p>;
+                    valueContent = <p className="text-2xl sm:text-3xl font-bold">{item.value.toLocaleString()}</p>;
                 }
                 const cardContent = (
                     <div className="flex items-center gap-3 sm:gap-4">

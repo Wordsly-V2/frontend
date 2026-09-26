@@ -143,6 +143,14 @@ export const queryKeys = {
         detail: (userLoginId: string) => ["admin-users", "detail", userLoginId] as const,
         stats: (from?: string, to?: string) => ["admin-users", "stats", from ?? "", to ?? ""] as const,
     },
+    /** Dashboard and report numbers. Never persisted (admin data stays off the device). */
+    adminStats: {
+        all: ["admin-stats"] as const,
+        learning: (from: string, to: string) => ["admin-stats", "learning", from, to] as const,
+        path: (from: string, to: string) => ["admin-stats", "path", from, to] as const,
+        hardestPathItems: (limit: number, minLearners: number) =>
+            ["admin-stats", "hardest-path-items", limit, minLearners] as const,
+    },
     /** Wordsly Path authoring. Never persisted (admin data stays off the device). */
     adminPath: {
         all: ["admin-path"] as const,

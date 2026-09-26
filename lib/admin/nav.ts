@@ -16,6 +16,7 @@ export const ADMIN_NAV: AdminNavGroup[] = [
         links: [
             { href: "/admin", label: "Dashboard" },
             { href: "/admin/users", label: "Users" },
+            { href: "/admin/reports", label: "Reports" },
         ],
     },
     {

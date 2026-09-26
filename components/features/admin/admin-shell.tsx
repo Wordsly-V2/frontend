@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { activeAdminHref, ADMIN_NAV } from "@/lib/admin/nav";
 import { cn } from "@/lib/utils";
-import { LayoutDashboard, type LucideIcon, Menu, Route, ShieldCheck, Users } from "lucide-react";
+import { BarChart3, LayoutDashboard, type LucideIcon, Menu, Route, ShieldCheck, Users } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
@@ -12,6 +12,7 @@ import { useState } from "react";
 const ICONS: Record<string, LucideIcon> = {
     "/admin": LayoutDashboard,
     "/admin/users": Users,
+    "/admin/reports": BarChart3,
     "/admin/path": Route,
 };
 

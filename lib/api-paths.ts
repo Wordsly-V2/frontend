@@ -132,8 +132,16 @@ export const apiPaths = {
         revokeSessions: (userLoginId: string) => `/admin/users/${userLoginId}/sessions/revoke`,
     },
 
+    /** Platform learning stats and learner support (admins only; learning-service). */
+    adminLearning: {
+        stats: () => '/admin/learning/stats',
+        hardestPathItems: () => '/admin/learning/path-items/hardest',
+    },
+
     /** Wordsly Path authoring (admins only; curriculum-service). */
     adminPath: {
+        stats: () => '/admin/path/stats',
+        itemsLookup: () => '/admin/path/items/lookup',
         overview: () => '/admin/path/overview',
         validate: () => '/admin/path/validate',
         seedPlan: () => '/admin/path/seed-plan',
