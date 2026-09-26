@@ -20,7 +20,11 @@ import { useState } from "react";
 /** /admin/path: the working copy, its health, and releases. */
 export function AdminPathScreen() {
     const overview = useAdminPathOverviewQuery();
+    const seedPlan = useAdminSeedPlanQuery();
     const [publishing, setPublishing] = useState(false);
+    const clashes = new Set(
+        seedPlan.data?.changes.filter((c) => c.action === "conflict").map((c) => `${c.kind}:${c.slug}`),
+    );
 
     if (!overview.data && overview.isFetching) {
         return (
@@ -63,14 +67,17 @@ export function AdminPathScreen() {
             <section aria-label="Content" className="space-y-6">
                 {stages.map((stage) => (
                     <div key={stage.id} className="space-y-2">
-                        <h2 className="flex items-center gap-2 font-display text-lg font-bold">
-                            {stage.title}
-                            <Badge variant="muted">{stage.cefr}</Badge>
-                        </h2>
+                        <div className="flex items-center justify-between gap-2">
+                            <h2 className="flex items-center gap-2 font-display text-lg font-bold">
+                                {stage.title}
+                                <Badge variant="muted">{stage.cefr}</Badge>
+                            </h2>
+                            <NewLink href="/admin/path/unit/new" label="New unit" />
+                        </div>
                         {stage.units.length === 0 ? (
                             <p className="text-sm text-muted-foreground">No units yet.</p>
                         ) : (
-                            stage.units.map((unit) => <UnitRow key={unit.id} unit={unit} />)
+                            stage.units.map((unit) => <UnitRow key={unit.id} unit={unit} clashes={clashes} />)
                         )}
                     </div>
                 ))}
@@ -159,7 +166,37 @@ function SeedPlanCard() {
     );
 }
 
-function UnitRow({ unit }: Readonly<{ unit: AdminUnitNode }>) {
+function NewLink({ href, label }: Readonly<{ href: string; label: string }>) {
+    return (
+        <Button size="sm" variant="outline" asChild className="gap-1">
+            <Link href={href}>
+                <Plus className="h-3.5 w-3.5" aria-hidden /> {label}
+            </Link>
+        </Button>
+    );
+}
+
+/** Both an admin and the seed changed this row; `seed-plan` lists it. */
+function ClashBadge({ kind, slug, clashes }: Readonly<{ kind: string; slug: string; clashes: Set<string> }>) {
+    if (!clashes.has(`${kind}:${slug}`)) return null;
+    return (
+        <Badge variant="destructive" title="The seed file changed too; the admin version is kept">
+            Clash
+        </Badge>
+    );
+}
+
+/** A record's name, linking to its editor. */
+function RecordLink({ kind, slug, children }: Readonly<{ kind: string; slug: string; children: React.ReactNode }>) {
+    return (
+        <Link href={`/admin/path/${kind}/${slug}`} className="hover:text-primary hover:underline">
+            {children}
+        </Link>
+    );
+}
+
+function UnitRow({ unit, clashes }: Readonly<{ unit: AdminUnitNode; clashes: Set<string> }>) {
+    const newFor = (kind: string) => `/admin/path/${kind}/new?unit=${unit.slug}`;
     return (
         <details className="glass-surface group rounded-2xl">
             <summary className="flex cursor-pointer list-none flex-wrap items-center gap-2 p-4">
@@ -168,6 +205,7 @@ function UnitRow({ unit }: Readonly<{ unit: AdminUnitNode }>) {
                 </span>
                 <StatusBadge status={unit.status} />
                 <OriginBadge origin={unit.origin} />
+                <ClashBadge kind="unit" slug={unit.slug} clashes={clashes} />
                 <span className="ml-auto text-xs text-muted-foreground">
                     {unit.lessons.length} lessons · {unit.items.total} items
                     {unit.items.draft > 0 && ` (${unit.items.draft} draft)`} · {unit.dialogueCount} dialogues
@@ -175,16 +213,26 @@ function UnitRow({ unit }: Readonly<{ unit: AdminUnitNode }>) {
             </summary>
 
             <div className="space-y-4 border-t border-border p-4">
+                <p className="text-sm">
+                    <RecordLink kind="unit" slug={unit.slug}>
+                        Edit the unit itself
+                    </RecordLink>{" "}
+                    <span className="font-mono text-xs text-muted-foreground">{unit.slug}</span>
+                </p>
                 <div>
-                    <h3 className="mb-1 text-sm font-semibold">Lessons</h3>
+                    <div className="mb-1 flex items-center justify-between">
+                        <h3 className="text-sm font-semibold">Lessons</h3>
+                        <NewLink href={newFor("lesson")} label="New lesson" />
+                    </div>
                     <ul className="space-y-1 text-sm">
                         {unit.lessons.map((lesson) => (
                             <li key={lesson.id} className="flex flex-wrap items-center gap-2">
-                                <span>
+                                <RecordLink kind="lesson" slug={lesson.slug}>
                                     {lesson.order}. {lesson.title}
-                                </span>
+                                </RecordLink>
                                 <StatusBadge status={lesson.status} />
                                 <OriginBadge origin={lesson.origin} />
+                                <ClashBadge kind="lesson" slug={lesson.slug} clashes={clashes} />
                             </li>
                         ))}
                     </ul>
@@ -193,11 +241,7 @@ function UnitRow({ unit }: Readonly<{ unit: AdminUnitNode }>) {
                 <div>
                     <div className="mb-1 flex items-center justify-between">
                         <h3 className="text-sm font-semibold">Items</h3>
-                        <Button size="sm" variant="outline" asChild className="gap-1">
-                            <Link href={`/admin/path/item/new?unit=${unit.slug}`}>
-                                <Plus className="h-3.5 w-3.5" aria-hidden /> New item
-                            </Link>
-                        </Button>
+                        <NewLink href={newFor("item")} label="New item" />
                     </div>
                     <ul className="divide-y divide-border text-sm">
                         {unit.itemList.map((item) => (
@@ -213,18 +257,47 @@ function UnitRow({ unit }: Readonly<{ unit: AdminUnitNode }>) {
                                     <Badge variant="muted">{item.type}</Badge>
                                     {item.status !== "PUBLISHED" && <StatusBadge status={item.status} />}
                                     <OriginBadge origin={item.origin} />
+                                    <ClashBadge kind="item" slug={item.slug} clashes={clashes} />
                                 </Link>
                             </li>
                         ))}
                     </ul>
                 </div>
 
-                {(unit.dialogues.length > 0 || unit.checkpoint) && (
-                    <p className="text-sm text-muted-foreground">
-                        Dialogues: {unit.dialogues.map((d) => d.title).join(", ") || "none"}
-                        {unit.checkpoint && ` · Unit test: ${unit.checkpoint.slug}`}
-                    </p>
-                )}
+                <div>
+                    <div className="mb-1 flex items-center justify-between">
+                        <h3 className="text-sm font-semibold">Dialogues</h3>
+                        <NewLink href={newFor("dialogue")} label="New dialogue" />
+                    </div>
+                    <ul className="space-y-1 text-sm">
+                        {unit.dialogues.map((d) => (
+                            <li key={d.id} className="flex flex-wrap items-center gap-2">
+                                <RecordLink kind="dialogue" slug={d.slug}>
+                                    {d.title}
+                                </RecordLink>
+                                {d.status !== "PUBLISHED" && <StatusBadge status={d.status} />}
+                                <OriginBadge origin={d.origin} />
+                                <ClashBadge kind="dialogue" slug={d.slug} clashes={clashes} />
+                            </li>
+                        ))}
+                    </ul>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2 text-sm">
+                    <h3 className="font-semibold">Unit test</h3>
+                    {unit.checkpoint ? (
+                        <>
+                            <RecordLink kind="checkpoint" slug={unit.checkpoint.slug}>
+                                {unit.checkpoint.slug}
+                            </RecordLink>
+                            {unit.checkpoint.status !== "PUBLISHED" && <StatusBadge status={unit.checkpoint.status} />}
+                            <OriginBadge origin={unit.checkpoint.origin} />
+                            <ClashBadge kind="checkpoint" slug={unit.checkpoint.slug} clashes={clashes} />
+                        </>
+                    ) : (
+                        <NewLink href={newFor("checkpoint")} label="New unit test" />
+                    )}
+                </div>
             </div>
         </details>
     );

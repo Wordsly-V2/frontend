@@ -1,11 +1,20 @@
 "use client";
 
-import ConfirmDialog from "@/components/common/confirm-dialog/confirm-dialog";
 import { ErrorState, Skeleton } from "@/components/common/states";
-import { OriginBadge, StatusBadge } from "@/components/features/admin-path/admin-badges";
+import {
+    AddButton,
+    ArchiveRestoreButtons,
+    EditorHeader,
+    FIELD,
+    Feedback,
+    Field,
+    FieldError,
+    Row,
+    Section,
+    useUnsavedWarning,
+} from "@/components/features/admin-path/admin-form-parts";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { adminErrorMessages } from "@/lib/admin-path/errors";
 import {
     emptyItemForm,
@@ -15,25 +24,18 @@ import {
     recordToItemForm,
     type ItemFormValues,
 } from "@/lib/admin-path/item-form";
-import { cn } from "@/lib/utils";
 import {
     useAdminPathOverviewQuery,
     useAdminRecordQuery,
-    useArchiveAdminRecordMutation,
-    useRestoreAdminRecordMutation,
     useSaveAdminRecordMutation,
 } from "@/queries/admin-path.query";
 import type { AdminValidation } from "@/types/admin-path/admin-path.type";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ArrowLeft, Plus, Trash2 } from "lucide-react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
-import { type FieldErrors, useFieldArray, useForm, useWatch } from "react-hook-form";
+import { useState } from "react";
+import { useFieldArray, useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
 
-const FIELD =
-    "w-full rounded-xl border-2 border-border bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none";
 
 /**
  * /admin/path/item/[slug] (or `new?unit=`): one learn item in seed shape.
@@ -73,11 +75,8 @@ function ItemForm({
     const router = useRouter();
     const overview = useAdminPathOverviewQuery();
     const save = useSaveAdminRecordMutation();
-    const archive = useArchiveAdminRecordMutation();
-    const restore = useRestoreAdminRecordMutation();
     const [serverErrors, setServerErrors] = useState<string[]>([]);
     const [validation, setValidation] = useState<AdminValidation | null>(null);
-    const [confirmArchive, setConfirmArchive] = useState(false);
     const archived = status === "ARCHIVED";
 
     const form = useForm<ItemFormValues>({ resolver: zodResolver(itemFormSchema), defaultValues: initial });
@@ -88,13 +87,8 @@ function ItemForm({
     const slots = useFieldArray({ control, name: "pattern.slots" });
     const forms = useFieldArray({ control, name: "grammar.forms" });
 
-    // Leaving with unsaved edits loses them; say so.
-    useEffect(() => {
-        if (!formState.isDirty) return;
-        const warn = (e: BeforeUnloadEvent) => e.preventDefault();
-        globalThis.addEventListener("beforeunload", warn);
-        return () => globalThis.removeEventListener("beforeunload", warn);
-    }, [formState.isDirty]);
+
+    useUnsavedWarning(formState.isDirty);
 
     const submit = handleSubmit((values) => {
         setServerErrors([]);
@@ -112,49 +106,13 @@ function ItemForm({
         );
     });
 
-    const doArchive = () =>
-        slug &&
-        archive.mutate(
-            { kind: "item", slug },
-            {
-                onSuccess: (result) => {
-                    setConfirmArchive(false);
-                    setValidation(result.validation);
-                    toast.success("Archived");
-                },
-                onError: (error) => toast.error(adminErrorMessages(error)[0]),
-            },
-        );
-
-    const doRestore = () =>
-        slug &&
-        restore.mutate(
-            { kind: "item", slug },
-            {
-                onSuccess: (result) => {
-                    setValidation(result.validation);
-                    toast.success("Restored as a draft");
-                },
-                onError: (error) => toast.error(adminErrorMessages(error)[0]),
-            },
-        );
-
     const units = overview.data?.stages.flatMap((stage) =>
         stage.units.map((u) => ({ slug: u.slug, label: `${stage.title} · ${u.order}. ${u.title}` })),
     );
 
     return (
         <form onSubmit={submit} className="space-y-6" noValidate>
-            <header className="space-y-2">
-                <Link href="/admin/path" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
-                    <ArrowLeft className="h-4 w-4" aria-hidden /> All content
-                </Link>
-                <div className="flex flex-wrap items-center gap-2">
-                    <h1 className="font-display text-2xl font-bold">{slug ? `Item ${slug}` : "New item"}</h1>
-                    {status && <StatusBadge status={status} />}
-                    {origin && <OriginBadge origin={origin} />}
-                </div>
-            </header>
+            <EditorHeader title={slug ? `Item ${slug}` : "New item"} status={status} origin={origin} />
 
             {archived && (
                 <p className="rounded-xl bg-muted p-3 text-sm">
@@ -281,7 +239,7 @@ function ItemForm({
                 )}
             </fieldset>
 
-            <Feedback serverErrors={serverErrors} validation={validation} clientErrors={errors} />
+            <Feedback serverErrors={serverErrors} validation={validation} hasClientErrors={Object.keys(errors).length > 0} />
 
             <div className="flex flex-wrap items-center gap-3">
                 {!archived && (
@@ -289,106 +247,10 @@ function ItemForm({
                         {save.isPending ? "Saving…" : slug ? "Save draft" : "Create item"}
                     </Button>
                 )}
-                {slug && !archived && (
-                    <Button type="button" variant="outline" onClick={() => setConfirmArchive(true)}>
-                        Archive
-                    </Button>
-                )}
-                {slug && archived && (
-                    <Button type="button" variant="play" onClick={doRestore} disabled={restore.isPending}>
-                        Restore
-                    </Button>
+                {slug && (
+                    <ArchiveRestoreButtons kind="item" slug={slug} archived={archived} onValidation={setValidation} />
                 )}
             </div>
-
-            <ConfirmDialog
-                isOpen={confirmArchive}
-                onClose={() => setConfirmArchive(false)}
-                onConfirm={() => void doArchive()}
-                title="Archive this item?"
-                description="Lessons that still link it will block publishing until they drop it. After the next publish, learners lose their review cards for it."
-                confirmText="Archive"
-                variant="destructive"
-                isLoading={archive.isPending}
-            />
         </form>
-    );
-}
-
-function Feedback({
-    serverErrors,
-    validation,
-    clientErrors,
-}: Readonly<{ serverErrors: string[]; validation: AdminValidation | null; clientErrors: FieldErrors<ItemFormValues> }>) {
-    const clientCount = Object.keys(clientErrors).length;
-    return (
-        <div aria-live="polite" className="space-y-3">
-            {clientCount > 0 && <FieldError message="Some fields need fixing (marked above)." />}
-            {serverErrors.length > 0 && (
-                <div role="alert" className="space-y-1 rounded-xl bg-destructive/10 p-3 text-sm">
-                    <p className="font-semibold text-destructive">{serverErrors[0]}</p>
-                    <ul className="list-disc pl-5">
-                        {serverErrors.slice(1).map((e) => (
-                            <li key={e}>{e}</li>
-                        ))}
-                    </ul>
-                </div>
-            )}
-            {validation && !validation.ok && (
-                <div className="space-y-1 rounded-xl bg-[var(--brand-warning)]/15 p-3 text-sm">
-                    <p className="font-semibold">Saved. Before the next publish, fix:</p>
-                    <ul className="max-h-40 list-disc overflow-y-auto pl-5">
-                        {validation.errors.map((e) => (
-                            <li key={e}>{e}</li>
-                        ))}
-                    </ul>
-                </div>
-            )}
-        </div>
-    );
-}
-
-function Section({ title, action, children }: Readonly<{ title: string; action?: React.ReactNode; children: React.ReactNode }>) {
-    return (
-        <section className="glass-surface space-y-4 rounded-2xl p-4 sm:p-5">
-            <div className="flex items-center justify-between gap-2">
-                <h2 className="font-semibold">{title}</h2>
-                {action}
-            </div>
-            {children}
-        </section>
-    );
-}
-
-function Field({ label, error, children }: Readonly<{ label: string; error?: string; children: React.ReactNode }>) {
-    return (
-        <div className="space-y-1.5">
-            <Label className="text-sm">{label}</Label>
-            {children}
-            {error && <FieldError message={error} />}
-        </div>
-    );
-}
-
-function FieldError({ message }: Readonly<{ message: string }>) {
-    return <p className="text-xs text-destructive">{message}</p>;
-}
-
-function Row({ onRemove, children }: Readonly<{ onRemove: () => void; children: React.ReactNode }>) {
-    return (
-        <div className={cn("grid items-end gap-3 rounded-xl border-2 border-border p-3 sm:grid-cols-[1fr_1fr_1fr_auto]")}>
-            {children}
-            <Button type="button" variant="ghost" size="icon" onClick={onRemove} aria-label="Remove">
-                <Trash2 className="h-4 w-4" aria-hidden />
-            </Button>
-        </div>
-    );
-}
-
-function AddButton({ onClick, label }: Readonly<{ onClick: () => void; label: string }>) {
-    return (
-        <Button type="button" size="sm" variant="outline" onClick={onClick} className="gap-1">
-            <Plus className="h-3.5 w-3.5" aria-hidden /> {label}
-        </Button>
     );
 }
