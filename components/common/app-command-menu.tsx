@@ -23,8 +23,10 @@ import {
     LogIn,
     Sparkles,
     Route,
+    ShieldCheck,
     User,
 } from "lucide-react";
+import { isAdmin } from "@/lib/admin";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
@@ -75,6 +77,11 @@ const LEARN_ROUTES: PaletteRoute[] = [
         icon: Sparkles,
         keywords: ["goal", "level", "wizard", "get started"],
     },
+];
+
+/** Shown only to admins (the API enforces it; this only hides the link). */
+const ADMIN_ROUTES: PaletteRoute[] = [
+    { href: "/admin/path", label: "Admin: Wordsly Path", icon: ShieldCheck, keywords: ["content", "publish", "release", "edit"] },
 ];
 
 const ACCOUNT_ROUTES: PaletteRoute[] = [
@@ -155,6 +162,12 @@ export function AppCommandMenu() {
                             )}
                             {LEARN_ROUTES.map(renderRoute)}
                         </CommandGroup>
+                        {isAdmin(profile) && (
+                            <>
+                                <CommandSeparator />
+                                <CommandGroup heading="Admin">{ADMIN_ROUTES.map(renderRoute)}</CommandGroup>
+                            </>
+                        )}
                         <CommandSeparator />
                         <CommandGroup heading="Account">{ACCOUNT_ROUTES.map(renderRoute)}</CommandGroup>
                     </>
