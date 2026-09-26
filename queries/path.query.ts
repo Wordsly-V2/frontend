@@ -176,6 +176,9 @@ export const useCompletePathLessonMutation = () => {
             completePathLesson(lessonId, body),
         onSuccess: ({ me }) => {
             queryClient.setQueryData(queryKeys.path.me(), me);
+            // Path counts and badges on /progress change too (the badges
+            // arrive over Kafka, so they may lag a refetch by a moment).
+            void queryClient.invalidateQueries({ queryKey: queryKeys.learningReport.all });
             return queryClient.invalidateQueries({
                 queryKey: queryKeys.path.all,
                 predicate: (query) => query.queryKey[1] !== "me",
@@ -196,6 +199,7 @@ export const useSubmitPathCheckpointMutation = () => {
             submitPathCheckpoint(unitId, body),
         onSuccess: ({ me }) => {
             queryClient.setQueryData(queryKeys.path.me(), me);
+            void queryClient.invalidateQueries({ queryKey: queryKeys.learningReport.all });
             return queryClient.invalidateQueries({
                 queryKey: queryKeys.path.all,
                 predicate: (query) => query.queryKey[1] !== "me" && query.queryKey[1] !== "checkpoint",
@@ -214,6 +218,7 @@ export const useSubmitPathPlacementMutation = () => {
         mutationFn: (body: SubmitPathPlacementDto) => submitPathPlacement(body),
         onSuccess: ({ me }) => {
             queryClient.setQueryData(queryKeys.path.me(), me);
+            void queryClient.invalidateQueries({ queryKey: queryKeys.learningReport.all });
             return queryClient.invalidateQueries({
                 queryKey: queryKeys.path.all,
                 predicate: (query) => query.queryKey[1] !== "me" && query.queryKey[1] !== "placement",

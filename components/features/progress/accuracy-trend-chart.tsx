@@ -3,6 +3,7 @@
 import { useMemo } from "react";
 import {
     CartesianGrid,
+    Legend,
     Line,
     LineChart,
     ResponsiveContainer,
@@ -34,6 +35,12 @@ export function AccuracyTrendChart({
     );
     const hasData = useMemo(
         () => buckets.some((bucket) => bucket.reviews > 0),
+        [buckets],
+    );
+    // Path reviews are a subset of all reviews; draw them as a second line
+    // only once there are some, so the chart stays single-series otherwise.
+    const hasPath = useMemo(
+        () => buckets.some((bucket) => bucket.pathReviews > 0),
         [buckets],
     );
 
@@ -78,12 +85,24 @@ export function AccuracyTrendChart({
                             />
                             <Tooltip
                                 {...chartTooltipProps}
-                                formatter={(value) => [
+                                formatter={(value, name) => [
                                     value == null ? "—" : `${value}%`,
-                                    "Accuracy",
+                                    name,
                                 ]}
                             />
+                            {hasPath && (
+                                <Legend
+                                    wrapperStyle={{ fontSize: "11px" }}
+                                    iconType="circle"
+                                    formatter={(value) => (
+                                        <span className="text-muted-foreground">
+                                            {value}
+                                        </span>
+                                    )}
+                                />
+                            )}
                             <Line
+                                name={hasPath ? "All reviews" : "Accuracy"}
                                 type="monotone"
                                 dataKey="accuracy"
                                 stroke="var(--chart-2)"
@@ -92,6 +111,19 @@ export function AccuracyTrendChart({
                                 activeDot={{ r: 5 }}
                                 connectNulls
                             />
+                            {hasPath && (
+                                <Line
+                                    name="Wordsly Path"
+                                    type="monotone"
+                                    dataKey="pathAccuracy"
+                                    stroke="var(--chart-4)"
+                                    strokeWidth={2}
+                                    strokeDasharray="5 4"
+                                    dot={{ r: 2.5 }}
+                                    activeDot={{ r: 4 }}
+                                    connectNulls
+                                />
+                            )}
                         </LineChart>
                     </ResponsiveContainer>
                 </div>

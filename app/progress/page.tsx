@@ -13,6 +13,10 @@ import {
 import { useGetLearningReportQuery } from "@/queries/learning-report.query";
 import { AchievementsGrid } from "@/components/features/progress/achievements-grid";
 import { ActivityHeatmap } from "@/components/features/progress/activity-heatmap";
+import {
+    hasPathActivity,
+    PathProgressCard,
+} from "@/components/features/progress/path-progress-card";
 import { ReportPeriodToggle } from "@/components/features/progress/report-period-toggle";
 import { ReportRangeNav } from "@/components/features/progress/report-range-nav";
 import { ReportSummaryCards } from "@/components/features/progress/report-summary-cards";
@@ -147,6 +151,9 @@ export default function ProgressPage() {
                             summary={report.summary}
                             hasAccuracy={hasAccuracy}
                         />
+                        {hasPathActivity(report.path) && (
+                            <PathProgressCard path={report.path} />
+                        )}
                         <div className="grid gap-4 lg:grid-cols-2">
                             <WordsOverTimeChart
                                 buckets={report.buckets}
