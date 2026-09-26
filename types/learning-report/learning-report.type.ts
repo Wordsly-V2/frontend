@@ -21,6 +21,13 @@ export interface IReportBucket {
     daysActive: number;
     goalMetDays: number;
     newWords: number;
+    /** Wordsly Path share of `reviews` (recorded from P4-2 onward). */
+    pathReviews: number;
+    pathCorrectReviews: number;
+    /** Path correct-answer percentage, or null when no Path reviews that bucket. */
+    pathAccuracy: number | null;
+    /** Path share of `newWords`. */
+    pathNewWords: number;
 }
 
 export interface IReportSummary {
@@ -59,7 +66,14 @@ export interface IReportLevel {
     progress: number;
 }
 
-export type AchievementCategory = "streak" | "words" | "days";
+export type AchievementCategory =
+    | "streak"
+    | "words"
+    | "days"
+    // Wordsly Path milestones, unlocked from curriculum-service totals.
+    | "lessons"
+    | "units"
+    | "stages";
 
 export interface IReportAchievement {
     key: string;
@@ -68,6 +82,21 @@ export interface IReportAchievement {
     achieved: boolean;
     value: number;
     target: number;
+}
+
+/** Wordsly Path numbers. The completion counts arrive over Kafka, so they stay 0 without it. */
+export interface IReportPath {
+    itemsStarted: number;
+    dueNow: number;
+    masteredItems: number;
+    lifetimeReviews: number;
+    lifetimeAccuracy: number | null;
+    periodReviews: number;
+    periodAccuracy: number | null;
+    periodNewItems: number;
+    lessonsCompleted: number;
+    unitsCompleted: number;
+    stagesCompleted: number;
 }
 
 export interface ILearningReport {
@@ -82,6 +111,7 @@ export interface ILearningReport {
     streaks: IReportStreaks;
     level: IReportLevel;
     achievements: IReportAchievement[];
+    path: IReportPath;
 }
 
 export const REPORT_PERIOD_LABELS: Record<ReportPeriod, string> = {

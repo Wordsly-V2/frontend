@@ -13,7 +13,14 @@ interface AchievementsGridProps {
     achievements: IReportAchievement[];
 }
 
-const CATEGORY_ORDER: AchievementCategory[] = ["streak", "words", "days"];
+const CATEGORY_ORDER: AchievementCategory[] = [
+    "streak",
+    "words",
+    "days",
+    "lessons",
+    "units",
+    "stages",
+];
 
 /**
  * Show every unlocked badge plus the next locked target per category, so the
