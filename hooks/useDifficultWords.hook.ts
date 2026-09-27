@@ -8,12 +8,19 @@ import {
     useUnsuspendWordMutation,
 } from "@/queries/word-progress.query";
 import { useAppSelector } from "@/store/hooks";
+import type { AnswerSource } from "@/types/word-progress/word-progress.type";
 
 export type DifficultWordsFilter = "all" | "saved" | "detected";
 
 /** One word that needs extra attention, from either direction. */
 export interface DifficultWordRowData {
     wordId: string;
+    /**
+     * `path` for a saved Wordsly Path item: its text comes from
+     * curriculum-service and it is practised on /path/review/saved. Only the
+     * unscoped list has them; the scheduler's leeches here are vocab only.
+     */
+    source: AnswerSource;
     /** The learner flagged it themselves. */
     isSaved: boolean;
     /** The scheduler flagged it after enough lapses. */
@@ -67,6 +74,7 @@ export function useDifficultWords(
                 const leech = leechByWordId.get(word.wordId);
                 return {
                     wordId: word.wordId,
+                    source: word.source ?? "vocab",
                     isSaved: true,
                     isDetected: word.isLeech || leech != null,
                     successRate: word.successRate,
@@ -81,6 +89,7 @@ export function useDifficultWords(
                 .filter((leech) => !savedIds.has(leech.wordId))
                 .map((leech) => ({
                     wordId: leech.wordId,
+                    source: "vocab" as const,
                     isSaved: false,
                     isDetected: true,
                     successRate: leech.successRate,

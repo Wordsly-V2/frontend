@@ -39,7 +39,11 @@ import type { IDailyHabit } from "@/types/daily-habit/daily-habit.type";
 import { playAudioUrl, preloadAudioUrl, stopAudio } from "@/lib/practice-audio";
 import { pickMilestoneMessage } from "@/lib/practice-feedback";
 import type { PracticeSessionKind } from "@/lib/practice-session";
-import { AnswerQuality, type ILevelEvent } from "@/types/word-progress/word-progress.type";
+import {
+    type AnswerSource,
+    AnswerQuality,
+    type ILevelEvent,
+} from "@/types/word-progress/word-progress.type";
 import {
     playPracticeErrorSound,
     playPracticeSuccessSound,
@@ -169,10 +173,11 @@ interface VocabularyPracticeProps {
     isSaveFailed?: boolean;
     /**
      * Practice as one step of something larger (a Wordsly Path lesson): no
-     * summary screen (`onFinished` fires instead) and no difficult-word flag
-     * (it belongs to the learner's own words).
+     * summary screen (`onFinished` fires instead).
      */
     embedded?: boolean;
+    /** Where the words live, for the difficult-word flag. Defaults to `vocab`. */
+    itemSource?: AnswerSource;
     /** Called once when the last exercise is done, after `onSubmitResults`. */
     onFinished?: (payload: SessionCompletePayload) => void;
     /** Exercise methods for this session, overriding the learner's settings. */
@@ -212,6 +217,7 @@ export default function VocabularyPractice({
     isSavedOffline,
     isSaveFailed,
     embedded = false,
+    itemSource = "vocab",
     onFinished,
     modes,
     introSeenWordIds,
@@ -1153,9 +1159,11 @@ export default function VocabularyPractice({
                         {/* Flagging is most useful in the moment the word is
                             hard, so it sits with the session controls rather
                             than behind the words list. */}
-                        {!embedded && (
-                            <SaveWordToggle wordId={currentWord.id} iconOnly />
-                        )}
+                        <SaveWordToggle
+                            wordId={currentWord.id}
+                            source={itemSource}
+                            iconOnly
+                        />
                         <PracticeToolbar
                             showSettings={showSettings}
                             showWordsList={showWordsList}

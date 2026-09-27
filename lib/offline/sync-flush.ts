@@ -67,12 +67,12 @@ async function sendRecord(record: SyncRecord): Promise<void> {
 	}
 
 	if (record.op.kind === "saved-word") {
-		const { wordId, note, saved } = record.op.body;
+		const { wordId, note, saved, source } = record.op.body;
 		// A queued flag whose word was deleted meanwhile 404s, which is not
 		// retryable and lands in failed-permanent for the learner to discard —
 		// the same path every other permanently-rejected record takes.
 		if (saved) {
-			await saveWord({ wordId, note });
+			await saveWord({ wordId, note, source });
 		} else {
 			await unsaveWord(wordId);
 		}

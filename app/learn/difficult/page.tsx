@@ -9,10 +9,13 @@ import {
     useDifficultWords,
     type DifficultWordsFilter,
 } from "@/hooks/useDifficultWords.hook";
+import { itemToWord } from "@/lib/path/item-to-word";
+import { PATH_REVIEW_SESSION_SIZE } from "@/lib/path/path-tree";
 import { buildPracticeUrl } from "@/lib/practice-session";
+import { usePathItemsQuery } from "@/queries/path.query";
 import { useGetWordsByIdsQuery } from "@/queries/words.query";
 import type { IWord } from "@/types/courses/courses.type";
-import { AlertTriangle, ArrowLeft, Search, Sparkles, Zap } from "lucide-react";
+import { AlertTriangle, ArrowLeft, Route, Search, Sparkles, Zap } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -43,11 +46,16 @@ export default function DifficultWordsPage() {
         filter,
     );
 
-    // The lists only carry word ids, so the text comes from a cross-course
-    // hydrate. Keyed on ALL rows rather than the filtered view, so switching
-    // filter or typing in the box does not refetch.
+    // The lists only carry ids, so the text comes from a hydrate: vocabulary
+    // words across every course, and saved Wordsly Path items from
+    // curriculum-service. Keyed on ALL rows rather than the filtered view, so
+    // switching filter or typing in the box does not refetch.
     const allWordIds = useMemo(
-        () => allRows.map((row) => row.wordId),
+        () => allRows.filter((row) => row.source === "vocab").map((row) => row.wordId),
+        [allRows],
+    );
+    const allPathIds = useMemo(
+        () => allRows.filter((row) => row.source === "path").map((row) => row.wordId),
         [allRows],
     );
     const { data: words, isFetching: wordsFetching } = useGetWordsByIdsQuery(
@@ -55,14 +63,16 @@ export default function DifficultWordsPage() {
         allWordIds,
         allWordIds.length > 0,
     );
+    const { data: pathItems } = usePathItemsQuery(allPathIds);
 
     const wordsById = useMemo(() => {
         const map: Record<string, IWord> = {};
         for (const word of words ?? []) map[word.id] = word;
+        for (const item of pathItems ?? []) map[item.id] = itemToWord(item);
         return map;
-    }, [words]);
+    }, [words, pathItems]);
 
-    const visibleRows = useMemo(() => {
+    const searchedRows = useMemo(() => {
         const query = search.trim().toLowerCase();
         if (!query) return rows;
         return rows.filter((row) => {
@@ -73,6 +83,12 @@ export default function DifficultWordsPage() {
             );
         });
     }, [rows, search, wordsById]);
+    // Path items are practised on their own page (the engine needs them
+    // hydrated from curriculum-service), so they get their own section.
+    const visibleRows = searchedRows.filter((row) => row.source === "vocab");
+    const visiblePathRows = searchedRows.filter((row) => row.source === "path");
+    const vocabRows = rows.filter((row) => row.source === "vocab");
+    const pathRowCount = rows.length - vocabRows.length;
 
     const handlePractice = () => {
         // The filtered set, not everything: narrowing to "Saved by me" and
@@ -81,7 +97,7 @@ export default function DifficultWordsPage() {
         // building a session.
         router.push(
             buildPracticeUrl({
-                wordIds: rows.map((row) => row.wordId),
+                wordIds: vocabRows.map((row) => row.wordId),
                 kind: "saved",
             }),
         );
@@ -142,11 +158,11 @@ export default function DifficultWordsPage() {
                 <Button
                     type="button"
                     onClick={handlePractice}
-                    disabled={rows.length === 0}
+                    disabled={vocabRows.length === 0}
                     className="shrink-0 gap-2 rounded-xl bg-amber-600 text-white hover:bg-amber-700"
                 >
                     <Zap className="h-4 w-4" aria-hidden />
-                    Practice {rows.length > 0 ? rows.length : ""}
+                    Practice {vocabRows.length > 0 ? vocabRows.length : ""}
                 </Button>
             </header>
 
@@ -194,11 +210,11 @@ export default function DifficultWordsPage() {
                         </div>
                     </div>
 
-                    {visibleRows.length === 0 ? (
+                    {visibleRows.length === 0 && visiblePathRows.length === 0 ? (
                         <p className="rounded-2xl border border-dashed p-6 text-center text-sm text-muted-foreground">
                             No words match that.
                         </p>
-                    ) : (
+                    ) : visibleRows.length === 0 ? null : (
                         <ul className="flex flex-col gap-1.5 rounded-2xl border border-amber-200/80 bg-amber-50/90 p-3 dark:border-amber-800/50 dark:bg-amber-950/30">
                             {visibleRows.map((row) => (
                                 <DifficultWordRow
@@ -212,6 +228,43 @@ export default function DifficultWordsPage() {
                                 />
                             ))}
                         </ul>
+                    )}
+
+                    {visiblePathRows.length > 0 && (
+                        <section className="mt-5" aria-labelledby="path-saved-heading">
+                            <div className="mb-2 flex items-center justify-between gap-3">
+                                <h2
+                                    id="path-saved-heading"
+                                    className="flex items-center gap-1.5 text-sm font-semibold"
+                                >
+                                    <Route className="h-4 w-4 text-primary" aria-hidden />
+                                    From Wordsly Path
+                                </h2>
+                                <Button
+                                    type="button"
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => router.push("/path/review/saved")}
+                                    className="h-8 gap-1.5 rounded-lg"
+                                >
+                                    <Zap className="h-3.5 w-3.5" aria-hidden />
+                                    Practice {Math.min(pathRowCount, PATH_REVIEW_SESSION_SIZE)}
+                                </Button>
+                            </div>
+                            <ul className="flex flex-col gap-1.5 rounded-2xl border border-amber-200/80 bg-amber-50/90 p-3 dark:border-amber-800/50 dark:bg-amber-950/30">
+                                {visiblePathRows.map((row) => (
+                                    <DifficultWordRow
+                                        key={row.wordId}
+                                        row={row}
+                                        word={wordsById[row.wordId]}
+                                        unsuspendPending={unsuspend.isPending}
+                                        unsavePending={unsave.isPending}
+                                        onUnsuspend={handleUnsuspend}
+                                        onUnsave={handleUnsave}
+                                    />
+                                ))}
+                            </ul>
+                        </section>
                     )}
 
                     {wordsFetching && !words && (

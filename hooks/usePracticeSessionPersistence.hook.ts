@@ -89,6 +89,8 @@ export function usePracticeSessionPersistence({
         await queryClient.invalidateQueries({ queryKey: queryKeys.dueWords.all });
         await queryClient.invalidateQueries({ queryKey: queryKeys.dueWordIds.all });
         await queryClient.invalidateQueries({ queryKey: queryKeys.path.dueCount() });
+        // The difficult-words list carries each flag's success rate and settled state.
+        await queryClient.invalidateQueries({ queryKey: queryKeys.savedWords.all });
     }, [queryClient]);
 
     // Flushing the offline queue is owned by OfflineBootstrap, which listens for

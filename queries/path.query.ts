@@ -1,3 +1,4 @@
+import { listSavedWords } from "@/apis/saved-words.api";
 import { getDueWordIds } from "@/apis/word-progress.api";
 import {
     completePathLesson,
@@ -115,6 +116,40 @@ export const usePathWarmupQuery = (lessonId: string, limit: number) =>
         queryFn: async () => (await fetchDuePathItems(limit)).items,
         staleTime: 0,
         gcTime: 0,
+    });
+
+/**
+ * Published Path items by id, for the saved ones on the difficult-words page.
+ * Retired items are left out by the server.
+ */
+export const usePathItemsQuery = (itemIds: string[], enabled: boolean = true) =>
+    useQuery<PathItem[]>({
+        queryKey: queryKeys.path.items(itemIds),
+        queryFn: () => hydratePathItems(itemIds),
+        enabled: enabled && itemIds.length > 0,
+        staleTime: 5 * 60 * 1000,
+    });
+
+/**
+ * One /path/review/saved session: the newest saved Path items, hydrated (up to
+ * a review session's size). Like the review, fetched fresh on every visit and
+ * never refetched under the engine.
+ */
+export const usePathSavedPracticeQuery = () =>
+    useQuery<PathItem[]>({
+        queryKey: queryKeys.path.savedPractice(),
+        queryFn: async () => {
+            const { savedWords } = await listSavedWords();
+            const itemIds = savedWords
+                .filter((word) => word.source === "path")
+                .slice(0, PATH_REVIEW_SESSION_SIZE)
+                .map((word) => word.wordId);
+            return itemIds.length > 0 ? hydratePathItems(itemIds) : [];
+        },
+        staleTime: Infinity,
+        gcTime: 0,
+        refetchOnWindowFocus: false,
+        refetchOnReconnect: false,
     });
 
 /**

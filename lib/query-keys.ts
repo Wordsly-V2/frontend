@@ -135,6 +135,10 @@ export const queryKeys = {
         review: (limit: number) => ["path", "review", limit] as const,
         /** How many Path items are due, for the Review buttons; not persisted. */
         dueCount: () => ["path", "due-count"] as const,
+        /** Items by id (saved hard words); not persisted, the ids come from `saved-words`. */
+        items: (itemIds: readonly string[]) => ["path", "items", ...itemIds] as const,
+        /** One /path/review/saved session; not persisted, fetched fresh per visit. */
+        savedPractice: () => ["path", "saved-practice"] as const,
     },
     /** Account administration. Never persisted (admin data stays off the device). */
     adminUsers: {

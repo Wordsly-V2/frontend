@@ -7,11 +7,14 @@ import {
     useToggleSavedWordMutation,
 } from "@/queries/saved-words.query";
 import { useAppSelector } from "@/store/hooks";
+import type { AnswerSource } from "@/types/word-progress/word-progress.type";
 import { Bookmark, BookmarkCheck } from "lucide-react";
 import { toast } from "sonner";
 
 interface SaveWordToggleProps {
     wordId: string;
+    /** `path` for a Wordsly Path item. Defaults to `vocab`. */
+    source?: AnswerSource;
     /** Compact icon-only form, for a crowded practice header. */
     iconOnly?: boolean;
     className?: string;
@@ -26,10 +29,11 @@ interface SaveWordToggleProps {
  * Both feed the same "Difficult words" screen.
  *
  * The list is fetched unscoped so the flag reads the same whichever course the
- * word is being practised from.
+ * word is being practised from, and so it includes Wordsly Path items.
  */
 export function SaveWordToggle({
     wordId,
+    source = "vocab",
     iconOnly,
     className,
 }: Readonly<SaveWordToggleProps>) {
@@ -44,7 +48,7 @@ export function SaveWordToggle({
 
     const handleClick = () => {
         toggle.mutate(
-            { wordId, saved: !isSaved },
+            { wordId, saved: !isSaved, source },
             {
                 onSuccess: () => {
                     toast.success(

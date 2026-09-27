@@ -10,6 +10,7 @@ import type {
     ISavedWordsResponse,
     SavedWordsScope,
 } from "@/types/saved-words/saved-words.type";
+import type { AnswerSource } from "@/types/word-progress/word-progress.type";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 export const useGetSavedWordsQuery = (
@@ -27,6 +28,8 @@ export interface ToggleSavedWordVars {
     /** The state to move TO. */
     saved: boolean;
     note?: string;
+    /** Where the item lives; only read when flagging. Defaults to vocab. */
+    source?: AnswerSource;
 }
 
 /**
@@ -46,10 +49,10 @@ export const useToggleSavedWordMutation = (
     const queryKey = queryKeys.savedWords.list(scope.courseId, scope.lessonId);
 
     return useMutation<void, Error, ToggleSavedWordVars, { previous?: ISavedWordsResponse }>({
-        mutationFn: async ({ wordId, saved, note }) => {
+        mutationFn: async ({ wordId, saved, note, source }) => {
             try {
                 if (saved) {
-                    await saveWord({ wordId, note });
+                    await saveWord({ wordId, note, source });
                 } else {
                     await unsaveWord(wordId);
                 }
@@ -58,11 +61,14 @@ export const useToggleSavedWordMutation = (
                 await enqueueSyncRecord({
                     userLoginId,
                     clientRequestId: newClientRequestId(),
-                    op: { kind: "saved-word", body: { wordId, note, saved } },
+                    op: {
+                        kind: "saved-word",
+                        body: { wordId, note, saved, source },
+                    },
                 });
             }
         },
-        onMutate: async ({ wordId, saved, note }) => {
+        onMutate: async ({ wordId, saved, note, source }) => {
             await queryClient.cancelQueries({ queryKey });
             const previous =
                 queryClient.getQueryData<ISavedWordsResponse>(queryKey);
@@ -87,6 +93,7 @@ export const useToggleSavedWordMutation = (
                 // refetch below. Newest-first, matching the server's order.
                 const placeholder: ISavedWord = {
                     wordId,
+                    source: source ?? "vocab",
                     note,
                     savedAt: new Date().toISOString(),
                     nextReviewAt: null,

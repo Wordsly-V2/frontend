@@ -1,4 +1,7 @@
-import type { IBulkRecordAnswersDto } from "@/types/word-progress/word-progress.type";
+import type {
+	AnswerSource,
+	IBulkRecordAnswersDto,
+} from "@/types/word-progress/word-progress.type";
 import {
 	getOfflineDb,
 	isIdbAvailable,
@@ -49,7 +52,8 @@ export interface DailyHabitOp {
  */
 export interface SavedWordOp {
 	kind: "saved-word";
-	body: { wordId: string; note?: string; saved: boolean };
+	/** `source` is absent on records queued before Path flags existed: vocab. */
+	body: { wordId: string; note?: string; saved: boolean; source?: AnswerSource };
 }
 
 export type SyncOp = PracticeAnswersOp | DailyHabitOp | SavedWordOp;
