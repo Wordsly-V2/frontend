@@ -49,6 +49,7 @@ export function PracticeStep({
     return (
         <VocabularyPractice
             embedded
+            itemSource="path"
             words={plan.words}
             practiceQueue={plan.queue}
             stagesByWordId={plan.stagesByWordId}

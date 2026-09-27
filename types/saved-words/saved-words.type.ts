@@ -1,3 +1,5 @@
+import type { AnswerSource } from "@/types/word-progress/word-progress.type";
+
 /**
  * A word the learner flagged as hard on purpose.
  *
@@ -7,6 +9,11 @@
  */
 export interface ISavedWord {
     wordId: string;
+    /**
+     * Where the item lives: a vocabulary word, or a Wordsly Path item (its text
+     * comes from curriculum-service). Missing from rows cached before P4-3.
+     */
+    source?: AnswerSource;
     /** The learner's own note on why it is hard. */
     note?: string;
     savedAt: string;
@@ -38,4 +45,6 @@ export interface SavedWordsScope {
 export interface ISaveWordDto {
     wordId: string;
     note?: string;
+    /** Only read when the flag is created. Defaults to `vocab` server-side. */
+    source?: AnswerSource;
 }
