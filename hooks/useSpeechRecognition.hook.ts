@@ -57,6 +57,23 @@ const RESTART_DELAY_MS = 150;
 
 const subscribeNever = () => () => {};
 
+/**
+ * Detaches and aborts a recogniser. WebKit (Safari, every iOS browser) can keep
+ * the microphone capturing after a session ended by itself, so the iPhone's
+ * mic indicator stays on until Safari is closed; an explicit abort releases it.
+ * Aborting one that already ended is a no-op elsewhere.
+ */
+function release(recognition: Recognition): void {
+    recognition.onresult = null;
+    recognition.onerror = null;
+    recognition.onend = null;
+    try {
+        recognition.abort();
+    } catch {
+        // already gone
+    }
+}
+
 export interface SpeechRecognitionState {
     /** The browser can recognise speech at all (false during SSR). */
     supported: boolean;
@@ -147,6 +164,9 @@ export function useSpeechRecognition({
                     if (result.isFinal) {
                         heard = Array.from({ length: result.length }, (_, k) => result[k].transcript.trim())
                             .filter(Boolean);
+                        // Have the answer: don't wait for the recogniser's own
+                        // end of speech with the microphone still open.
+                        recognition.stop();
                     } else {
                         live += result[0].transcript;
                     }
@@ -160,6 +180,7 @@ export function useSpeechRecognition({
             };
             recognition.onend = () => {
                 recognitionRef.current = null;
+                release(recognition);
                 if (heard && heard.length > 0) return finish(heard, null);
                 if (lastInterim) return finish([lastInterim], null);
                 // Chrome on Android gives up a second or two after its beep (or
@@ -182,6 +203,7 @@ export function useSpeechRecognition({
             } catch {
                 // Throws if a previous session is still closing; treat as a miss.
                 recognitionRef.current = null;
+                release(recognition);
                 finish(null, "other");
             }
         };
@@ -195,9 +217,10 @@ export function useSpeechRecognition({
         run();
     }, [lang, maxAlternatives, reset]);
 
-    // Never keep the microphone open after the step is gone.
-    useEffect(
-        () => () => {
+    // Never keep the microphone open after the step is gone, or while the page
+    // is in the background (iOS would keep it on until Safari is closed).
+    useEffect(() => {
+        const abortAll = () => {
             const session = sessionRef.current;
             if (session) {
                 session.closed = true;
@@ -205,15 +228,22 @@ export function useSpeechRecognition({
                 sessionRef.current = null;
             }
             const recognition = recognitionRef.current;
-            if (!recognition) return;
-            recognition.onresult = null;
-            recognition.onerror = null;
-            recognition.onend = null;
-            recognition.abort();
             recognitionRef.current = null;
-        },
-        [],
-    );
+            if (recognition) release(recognition);
+            setListening(false);
+            setInterim("");
+        };
+        const onHidden = () => {
+            if (document.visibilityState === "hidden") abortAll();
+        };
+        globalThis.addEventListener("pagehide", abortAll);
+        document.addEventListener("visibilitychange", onHidden);
+        return () => {
+            globalThis.removeEventListener("pagehide", abortAll);
+            document.removeEventListener("visibilitychange", onHidden);
+            abortAll();
+        };
+    }, []);
 
     return { supported, listening, interim, transcripts, error, start, stop, reset };
 }
