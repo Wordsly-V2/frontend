@@ -91,6 +91,19 @@ export interface ClozePrompt {
      * its own audio — instead of only the blanked version.
      */
     example: IWordExample;
+    /**
+     * What else the learner sees so the blank has one answer (Wordsly Path
+     * only): the sentence's translation, and for a dialogue turn the situation
+     * and the lines around it. Regular practice prompts have none.
+     */
+    context?: ClozeContext;
+}
+
+export interface ClozeContext {
+    translationVi?: string;
+    situationVi?: string;
+    /** A dialogue excerpt; the `target` line is the blanked `sentence`. */
+    lines?: { speaker: string; en: string; target?: boolean }[];
 }
 
 /** Build a fill-in-the-blank sentence from a random matching example. */
@@ -159,6 +172,32 @@ export function generateWordChoiceOptions(
 ): string[] {
     const poolTexts = pool.filter((w) => w.id !== correctWord.id).map((w) => w.word);
     return pickChoiceOptions(correctWord.word, poolTexts, optionCount, recentlyUsed);
+}
+
+/**
+ * Cloze options for a Wordsly Path item: `answer` (which may be the form the
+ * sentence uses, like "rose" for "rise") plus distractors of the same kind, so a
+ * phrase never competes with single words. Falls back to the whole pool when
+ * fewer than two of the same kind are there. `toText` renders an item as an
+ * option (Path strips the "…" off frames).
+ */
+export function generatePathClozeOptions(
+    correctWord: IWord,
+    answer: string,
+    pool: IWord[],
+    toText: (text: string) => string,
+    optionCount = 4,
+    recentlyUsed?: Set<string>,
+): string[] {
+    const others = pool.filter((w) => w.id !== correctWord.id);
+    const sameKind = others.filter((w) => w.partOfSpeech === correctWord.partOfSpeech);
+    const source = sameKind.length >= 2 ? sameKind : others;
+    return pickChoiceOptions(
+        answer,
+        source.map((w) => toText(w.word)),
+        optionCount,
+        recentlyUsed,
+    );
 }
 
 export function normalizeAnswer(value: string): string {

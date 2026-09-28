@@ -12,7 +12,13 @@ import { WarmupStep } from "@/components/features/path/lesson-player/warmup-step
 import { PracticeSessionHeader } from "@/components/features/vocabulary/practice-session-header";
 import { stopSpeaking } from "@/lib/path/speech";
 import { pathUnitHref } from "@/lib/path/path-tree";
-import type { PathItem, PathItemRole, PathLesson, PathStep } from "@/types/path/path.type";
+import type {
+    PathDialogue,
+    PathItem,
+    PathItemRole,
+    PathLesson,
+    PathStep,
+} from "@/types/path/path.type";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
@@ -79,6 +85,11 @@ function playableSteps(lesson: PathLesson): PlayableStep[] {
     return steps;
 }
 
+/** The dialogues the lesson plays, for fill-ins set in one of their turns. */
+function lessonDialogues(lesson: PathLesson): PathDialogue[] {
+    return lesson.steps.flatMap((step) => (step.type === "DIALOGUE" ? [step.payload.dialogue] : []));
+}
+
 /** Steps that run the practice engine, which brings its own session header. */
 const ENGINE_STEPS = new Set<PlayableStep["type"]>(["WARMUP", "PRACTICE"]);
 
@@ -86,6 +97,7 @@ const ENGINE_STEPS = new Set<PlayableStep["type"]>(["WARMUP", "PRACTICE"]);
 export function LessonPlayer({ lesson }: Readonly<{ lesson: PathLesson }>) {
     const router = useRouter();
     const steps = useMemo(() => playableSteps(lesson), [lesson]);
+    const dialogues = useMemo(() => lessonDialogues(lesson), [lesson]);
     const [index, setIndex] = useState(0);
     const [quiz, setQuiz] = useState<QuizResult>({ correct: 0, total: 0 });
 
@@ -141,6 +153,7 @@ export function LessonPlayer({ lesson }: Readonly<{ lesson: PathLesson }>) {
                         <PracticeStep
                             items={step.items}
                             modes={step.modes}
+                            dialogues={dialogues}
                             lessonTitle={lesson.title}
                             subtitle={`Practice · step ${index + 1} of ${steps.length}`}
                             onExit={exit}

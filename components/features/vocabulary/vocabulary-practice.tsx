@@ -64,6 +64,7 @@ import {
 } from "@/lib/practice-settings";
 import { usePracticeSettings } from "@/hooks/usePracticeSettings.hook";
 import {
+    generatePathClozeOptions,
     generateWordChoiceOptions,
     getAnswerMatch,
     getClozePrompt,
@@ -73,7 +74,10 @@ import {
     normalizeAnswer,
     normalizeForHintPrefix,
     shuffleArray,
+    type ClozePrompt,
 } from "@/lib/practice-utils";
+import { pathAnswerText } from "@/lib/path/item-context";
+import { ClozeContextView } from "@/components/features/vocabulary/modes/cloze-context";
 import { useNewWordIntro } from "@/hooks/useNewWordIntro.hook";
 import {
     hasShortcutModifier,
@@ -184,6 +188,11 @@ interface VocabularyPracticeProps {
     modes?: ActivePracticeMode[];
     /** New words already introduced elsewhere: skip their Learn card. */
     introSeenWordIds?: ReadonlySet<string>;
+    /**
+     * Ready-made fill-in prompts per word id, used instead of blanking the
+     * word's own example (Wordsly Path: dialogue turns, translated examples).
+     */
+    clozePromptsByWordId?: Record<string, ClozePrompt[]>;
 }
 
 /** The learner's mode settings, or the session's own methods when it has them. */
@@ -221,6 +230,7 @@ export default function VocabularyPractice({
     onFinished,
     modes,
     introSeenWordIds,
+    clozePromptsByWordId,
 }: Readonly<VocabularyPracticeProps>) {
     const [queue, setQueue] = useState(() => practiceQueue ?? shuffleArray(words));
     const [currentIndex, setCurrentIndex] = useState(0);
@@ -280,10 +290,14 @@ export default function VocabularyPractice({
         ? wordOccurrenceAtIndex(queue, currentIndex)
         : 0;
 
-    const clozePrompt = useMemo(
-        () => (currentWord ? getClozePrompt(currentWord) : null),
-        [currentWord],
-    );
+    const clozePrompt = useMemo(() => {
+        if (!currentWord) return null;
+        const given = clozePromptsByWordId?.[currentWord.id];
+        if (given) {
+            return given.length > 0 ? given[Math.floor(Math.random() * given.length)] : null;
+        }
+        return getClozePrompt(currentWord);
+    }, [currentWord, clozePromptsByWordId]);
     const sentenceBuildPrompt = useMemo(
         () => (currentWord ? getSentenceBuildPrompt(currentWord) : null),
         [currentWord],
@@ -330,6 +344,11 @@ export default function VocabularyPractice({
         () => (currentWord ? getWordExampleObjects(currentWord) : []),
         [currentWord],
     );
+
+    // What a typed answer is graded against: the fill-in's own answer (a Path
+    // prompt may blank another form, "rose" for "rise"), else the word.
+    const typedAnswer =
+        activeMode === "context" && clozePrompt ? clozePrompt.answer : (currentWord?.word ?? "");
 
     const isLeech = currentWord != null && leechWordIds?.has(currentWord.id);
 
@@ -575,7 +594,7 @@ export default function VocabularyPractice({
 
     const getNextHint = useCallback((): string => {
         if (!currentWord) return "";
-        const correctWord = normalizeForHintPrefix(currentWord.word.trim());
+        const correctWord = normalizeForHintPrefix(typedAnswer.trim());
         const currentInput = normalizeForHintPrefix(userAnswer);
         let correctPrefixLength = 0;
         for (let i = 0; i < Math.min(currentInput.length, correctWord.length); i++) {
@@ -586,7 +605,7 @@ export default function VocabularyPractice({
             return correctWord.substring(0, correctPrefixLength + 1);
         }
         return correctWord;
-    }, [currentWord, userAnswer]);
+    }, [currentWord, typedAnswer, userAnswer]);
 
     const handleUseTextFallback = useCallback(() => {
         stopAudio();
@@ -659,7 +678,7 @@ export default function VocabularyPractice({
     };
 
     // Context and listening modes grade the same way (typed answer vs. the word).
-    const handleCheckTypingAnswer = () => checkTypedAnswer(currentWord?.word ?? "");
+    const handleCheckTypingAnswer = () => checkTypedAnswer(typedAnswer);
 
     const handleChoiceInteraction = (
         option: string,
@@ -847,11 +866,21 @@ export default function VocabularyPractice({
 
     const clozeWordOptions = useMemo(() => {
         if (activeMode === "cloze" && currentWord) {
+            if (itemSource === "path" && clozePrompt) {
+                return generatePathClozeOptions(
+                    currentWord,
+                    clozePrompt.answer,
+                    queue,
+                    pathAnswerText,
+                    4,
+                    usedWordDistractorsRef.current,
+                );
+            }
             return generateWordChoiceOptions(currentWord, queue, 4, usedWordDistractorsRef.current);
         }
         return [];
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [currentIndex, activeMode, currentWord, queue]);
+    }, [currentIndex, activeMode, currentWord, queue, clozePrompt, itemSource]);
 
     const wordBankOptions = useMemo(() => {
         if (activeMode === "word-bank" && currentWord) {
@@ -1211,7 +1240,7 @@ export default function VocabularyPractice({
                                     ? sentenceBuildPrompt.reference
                                     : activeMode === "cloze"
                                       ? (clozePrompt?.answer ?? currentWord.word)
-                                      : currentWord.word
+                                      : typedAnswer
                             }
                             meaning={currentWord.meaning}
                             pronunciation={currentWord.pronunciation}
@@ -1253,6 +1282,7 @@ export default function VocabularyPractice({
                                         <ContextMode
                                             word={currentWord}
                                             sentence={clozePrompt.sentence}
+                                            context={clozePrompt.context}
                                             inputRef={inputRef}
                                             inputClassName={inputClassName}
                                             userAnswer={userAnswer}
@@ -1278,11 +1308,9 @@ export default function VocabularyPractice({
                                     <ChoiceMode
                                         prompt={
                                             <>
-                                                <AdaptiveText
-                                                    text={clozePrompt.sentence}
-                                                    role="sentence"
-                                                    align="center"
-                                                    className="px-2 text-foreground/90"
+                                                <ClozeContextView
+                                                    sentence={clozePrompt.sentence}
+                                                    context={clozePrompt.context}
                                                 />
                                                 <div className="mt-3 text-center">
                                                     <WordRevealHint

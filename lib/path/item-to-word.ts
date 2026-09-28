@@ -1,7 +1,13 @@
 import { buildInterleavedNewWordRepetitions, type WordLearningStage } from "@/lib/word-progress-stage";
-import { shuffleArray } from "@/lib/practice-utils";
+import { buildPathClozePrompts } from "@/lib/path/item-context";
+import { shuffleArray, type ClozePrompt } from "@/lib/practice-utils";
 import type { IWord } from "@/types/courses/courses.type";
-import type { PathItem, PathItemRole, PathItemType } from "@/types/path/path.type";
+import type {
+    PathDialogue,
+    PathItem,
+    PathItemRole,
+    PathItemType,
+} from "@/types/path/path.type";
 
 /**
  * Wordsly Path items in the vocabulary practice engine.
@@ -55,25 +61,31 @@ export interface PathPracticePlan {
     stagesByWordId: Record<string, WordLearningStage>;
     /** Items the lesson introduced: no Learn card before their first exercise. */
     introSeenWordIds: Set<string>;
+    /** Fill-in prompts with context, per item (see `buildPathClozePrompts`). */
+    clozePromptsByWordId: Record<string, ClozePrompt[]>;
 }
 
 /**
  * The practice queue for a lesson step: recycled items first (one round each,
  * as reviews), then the lesson's new items, interleaved over a few rounds.
+ * `dialogues` are the lesson's own, for fill-ins set in a dialogue turn.
  */
 export function buildPathPracticePlan(
     items: (PathItem & { role?: PathItemRole })[],
+    dialogues: PathDialogue[] = [],
 ): PathPracticePlan {
     const practiceable = items.filter(isPracticeable);
     const words = practiceable.map(itemToWord);
     const stagesByWordId: Record<string, WordLearningStage> = {};
     const fresh: IWord[] = [];
     const recycled: IWord[] = [];
+    const clozePromptsByWordId: Record<string, ClozePrompt[]> = {};
 
     practiceable.forEach((item, i) => {
         const isNew = item.role === "INTRODUCE";
         stagesByWordId[item.id] = isNew ? "new" : "review";
         (isNew ? fresh : recycled).push(words[i]);
+        clozePromptsByWordId[item.id] = buildPathClozePrompts(item, dialogues);
     });
 
     return {
@@ -84,5 +96,6 @@ export function buildPathPracticePlan(
         ],
         stagesByWordId,
         introSeenWordIds: new Set(fresh.map((w) => w.id)),
+        clozePromptsByWordId,
     };
 }
