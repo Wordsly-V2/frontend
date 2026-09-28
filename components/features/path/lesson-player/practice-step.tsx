@@ -4,7 +4,7 @@ import VocabularyPractice from "@/components/features/vocabulary/vocabulary-prac
 import { usePracticeSessionPersistence } from "@/hooks/usePracticeSessionPersistence.hook";
 import { buildPathPracticePlan } from "@/lib/path/item-to-word";
 import type { ActivePracticeMode } from "@/lib/practice-settings";
-import type { PathItem, PathItemRole } from "@/types/path/path.type";
+import type { PathDialogue, PathItem, PathItemRole } from "@/types/path/path.type";
 import type { SessionCompletePayload } from "@/types/practice/practice.type";
 import { useEffect, useState } from "react";
 
@@ -16,6 +16,7 @@ import { useEffect, useState } from "react";
 export function PracticeStep({
     items,
     modes,
+    dialogues,
     lessonTitle,
     subtitle,
     onExit,
@@ -23,6 +24,8 @@ export function PracticeStep({
 }: Readonly<{
     items: (PathItem & { role?: PathItemRole })[];
     modes?: string[];
+    /** The lesson's dialogues: fill-ins can be set in one of their turns. */
+    dialogues?: PathDialogue[];
     lessonTitle: string;
     subtitle: string;
     onExit: () => void;
@@ -30,7 +33,7 @@ export function PracticeStep({
     onDone: (payload?: SessionCompletePayload) => void;
 }>) {
     // Built once: the queue must not reshuffle under the learner.
-    const [plan] = useState(() => buildPathPracticePlan(items));
+    const [plan] = useState(() => buildPathPracticePlan(items, dialogues));
     const { saveSession } = usePracticeSessionPersistence({
         courseId: "",
         wordIdList: plan.words.map((w) => w.id),
@@ -54,6 +57,7 @@ export function PracticeStep({
             practiceQueue={plan.queue}
             stagesByWordId={plan.stagesByWordId}
             introSeenWordIds={plan.introSeenWordIds}
+            clozePromptsByWordId={plan.clozePromptsByWordId}
             modes={modes as ActivePracticeMode[] | undefined}
             courseName={lessonTitle}
             sessionSubtitle={subtitle}

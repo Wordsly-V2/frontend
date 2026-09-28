@@ -2,7 +2,9 @@
 
 import { AdaptiveText } from "@/components/common/adaptive-text";
 import { WordPill } from "@/components/common/word-pill";
+import { ClozeContextView } from "@/components/features/vocabulary/modes/cloze-context";
 import { Button } from "@/components/ui/button";
+import type { ClozeContext } from "@/lib/practice-utils";
 import { IWord } from "@/types/courses/courses.type";
 import { Lightbulb } from "lucide-react";
 import { memo, type KeyboardEvent, type RefObject } from "react";
@@ -11,6 +13,8 @@ import { memo, type KeyboardEvent, type RefObject } from "react";
 export interface ContextModeProps {
     word: IWord;
     sentence: string;
+    /** Dialogue turn / translation around the sentence (Wordsly Path). */
+    context?: ClozeContext;
     inputRef: RefObject<HTMLInputElement | null>;
     inputClassName: string;
     userAnswer: string;
@@ -25,6 +29,7 @@ export interface ContextModeProps {
 export const ContextMode = memo(function ContextMode({
     word,
     sentence,
+    context,
     inputRef,
     inputClassName,
     userAnswer,
@@ -38,12 +43,16 @@ export const ContextMode = memo(function ContextMode({
     return (
         <div className="space-y-5 text-center">
             <div>
-                <AdaptiveText
-                    text={sentence}
-                    role="sentence"
-                    align="center"
-                    className="px-2 mb-2 text-foreground/90"
-                />
+                {context ? (
+                    <ClozeContextView sentence={sentence} context={context} className="mb-3" />
+                ) : (
+                    <AdaptiveText
+                        text={sentence}
+                        role="sentence"
+                        align="center"
+                        className="px-2 mb-2 text-foreground/90"
+                    />
+                )}
                 <AdaptiveText
                     text={word.meaning}
                     role="meaning"
