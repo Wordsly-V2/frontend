@@ -44,7 +44,7 @@ export function isSpeechRecognitionSupported(): boolean {
 }
 
 /** Why listening stopped, as far as the fallback message cares. */
-export type SpeechFallbackError = "not-allowed" | "audio-capture" | "network";
+export type SpeechFallbackError = "not-allowed" | "service-not-allowed" | "audio-capture" | "network";
 
 /**
  * One short sentence saying why the learner is checking themselves, or null
@@ -60,6 +60,8 @@ export function speechFallbackCause(
     switch (error) {
         case "not-allowed":
             return "The microphone is off.";
+        case "service-not-allowed":
+            return "Speech check is off on this device. On iPhone, turn on Dictation.";
         case "audio-capture":
             return "No microphone found.";
         case "network":

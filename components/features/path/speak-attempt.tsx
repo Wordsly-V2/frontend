@@ -18,7 +18,7 @@ import { useEffect, useState } from "react";
 const MAX_REQUIRED_ATTEMPTS = 2;
 
 /** Errors that won't go away by trying again: fall back to self-grading. */
-const BLOCKING_ERRORS = new Set<SpeechRecognitionErrorCode>(["not-allowed", "audio-capture", "network"]);
+const BLOCKING_ERRORS = new Set<SpeechRecognitionErrorCode>(["not-allowed", "service-not-allowed", "audio-capture", "network"]);
 
 function fallbackReason(error: SpeechRecognitionErrorCode | null): string | undefined {
     const cause = speechFallbackCause(error, typeof navigator === "undefined" || navigator.onLine);

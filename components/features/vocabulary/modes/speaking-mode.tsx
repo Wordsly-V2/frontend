@@ -20,7 +20,7 @@ import { useEffect, useRef, useState } from "react";
 export const SPEAKING_MAX_ATTEMPTS = 2;
 
 /** Errors that trying again won't fix: the learner checks themselves instead. */
-const BLOCKING_ERRORS = new Set<SpeechRecognitionErrorCode>(["not-allowed", "audio-capture", "network"]);
+const BLOCKING_ERRORS = new Set<SpeechRecognitionErrorCode>(["not-allowed", "service-not-allowed", "audio-capture", "network"]);
 
 export interface SpeakingModeProps {
     word: IWord;

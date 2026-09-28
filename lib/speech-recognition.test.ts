@@ -12,6 +12,9 @@ describe("speechFallbackCause", () => {
     it("names the microphone problems whatever the connection", () => {
         expect(speechFallbackCause("not-allowed", true)).toBe("The microphone is off.");
         expect(speechFallbackCause("audio-capture", false)).toBe("No microphone found.");
+        expect(speechFallbackCause("service-not-allowed", true)).toBe(
+            "Speech check is off on this device. On iPhone, turn on Dictation.",
+        );
     });
 
     it("says nothing for other errors or none", () => {

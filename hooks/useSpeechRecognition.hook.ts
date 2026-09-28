@@ -10,6 +10,8 @@ import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "
 /**
  * Speech to text through the browser's Web Speech API (Chrome, Edge, Safari;
  * not Firefox). Chrome sends the audio to Google, so it needs a connection.
+ * On iOS every browser is WebKit underneath and uses Apple's dictation, which
+ * must be switched on in Settings.
  *
  * One `start()` listens for one utterance. The result is the recogniser's
  * alternatives, best guess first, for `scoreSpeech` to pick from. Callers must
@@ -20,6 +22,7 @@ import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "
 /** Why listening stopped without a result. */
 export type SpeechRecognitionErrorCode =
     | "not-allowed" // microphone refused, or the page isn't allowed to use it
+    | "service-not-allowed" // the browser's speech service is off (iOS: Dictation disabled)
     | "no-speech" // nothing heard before the recogniser gave up
     | "audio-capture" // no microphone
     | "network" // recognition needs a connection
@@ -30,7 +33,6 @@ function toErrorCode(error: string): SpeechRecognitionErrorCode {
     switch (error) {
         case "not-allowed":
         case "service-not-allowed":
-            return "not-allowed";
         case "no-speech":
         case "audio-capture":
         case "network":
@@ -92,6 +94,9 @@ export function useSpeechRecognition({
         recognition.maxAlternatives = maxAlternatives;
 
         let heard: string[] | null = null;
+        // WebKit (Safari, every iOS browser) and some Android builds can end
+        // without ever marking a result final; the last interim is the answer.
+        let lastInterim = "";
         let failed = false;
 
         recognition.onresult = (event) => {
@@ -105,7 +110,9 @@ export function useSpeechRecognition({
                     live += result[0].transcript;
                 }
             }
-            setInterim(live.trim());
+            live = live.trim();
+            if (live) lastInterim = live;
+            setInterim(live);
         };
         recognition.onerror = (event) => {
             failed = true;
@@ -116,6 +123,7 @@ export function useSpeechRecognition({
             setListening(false);
             setInterim("");
             if (heard && heard.length > 0) setTranscripts(heard);
+            else if (lastInterim) setTranscripts([lastInterim]);
             else if (!failed) setError("no-speech");
         };
 
