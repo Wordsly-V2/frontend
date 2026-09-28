@@ -109,7 +109,7 @@ export function SpeakingMode({ word, onResult, onSelfCheck }: Readonly<SpeakingM
                     </Button>
                     <div role="status" aria-live="polite" className="min-h-6 text-sm">
                         {listening && <p className="italic text-muted-foreground">{recognition.interim || "Listening…"}</p>}
-                        {!listening && recognition.error === "no-speech" && (
+                        {!listening && recognition.error !== null && !blocked && (
                             <p className="text-muted-foreground">We didn&apos;t hear anything. Tap the mic and try again.</p>
                         )}
                         {!listening && best && !toGrade && (

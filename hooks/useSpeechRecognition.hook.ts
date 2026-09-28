@@ -5,6 +5,8 @@ import {
     type Recognition,
     recognitionConstructor,
 } from "@/lib/speech-recognition";
+import { stopSpeaking } from "@/lib/path/speech";
+import { stopAudio } from "@/lib/practice-audio";
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 
 /**
@@ -13,7 +15,8 @@ import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "
  * On iOS every browser is WebKit underneath and uses Apple's dictation, which
  * must be switched on in Settings.
  *
- * One `start()` listens for one utterance. The result is the recogniser's
+ * One `start()` listens for one utterance, for up to {@link LISTEN_WINDOW_MS}
+ * while nothing has been heard (restarting a recogniser that gave up early). The result is the recogniser's
  * alternatives, best guess first, for `scoreSpeech` to pick from. Callers must
  * offer a way through without it: `supported` is false on some browsers, and a
  * learner may refuse the microphone (`error === "not-allowed"`).
@@ -31,6 +34,8 @@ export type SpeechRecognitionErrorCode =
 
 function toErrorCode(error: string): SpeechRecognitionErrorCode {
     switch (error) {
+        case "no-match": // Android: the recogniser ended having heard nothing usable
+            return "no-speech";
         case "not-allowed":
         case "service-not-allowed":
         case "no-speech":
@@ -42,6 +47,13 @@ function toErrorCode(error: string): SpeechRecognitionErrorCode {
             return "other";
     }
 }
+
+/** Errors after which listening again, within the window, may still work. */
+const RETRYABLE_ERRORS = new Set<SpeechRecognitionErrorCode>(["no-speech", "aborted", "other"]);
+/** How long one tap keeps listening while nothing has been heard. */
+const LISTEN_WINDOW_MS = 8000;
+const MAX_RESTARTS = 4;
+const RESTART_DELAY_MS = 150;
 
 const subscribeNever = () => () => {};
 
@@ -74,8 +86,22 @@ export function useSpeechRecognition({
     const [transcripts, setTranscripts] = useState<string[] | null>(null);
     const [error, setError] = useState<SpeechRecognitionErrorCode | null>(null);
     const recognitionRef = useRef<Recognition | null>(null);
+    /** The current listening window; `stop()` and unmount close it. */
+    const sessionRef = useRef<{ closed: boolean; timer?: ReturnType<typeof setTimeout> } | null>(null);
 
-    const stop = useCallback(() => recognitionRef.current?.stop(), []);
+    const stop = useCallback(() => {
+        const session = sessionRef.current;
+        if (!session) return;
+        session.closed = true;
+        clearTimeout(session.timer);
+        if (recognitionRef.current) recognitionRef.current.stop();
+        else {
+            // Between two restarts: nothing is running, so end the window here.
+            sessionRef.current = null;
+            setListening(false);
+            setInterim("");
+        }
+    }, []);
 
     const reset = useCallback(() => {
         setInterim("");
@@ -85,64 +111,99 @@ export function useSpeechRecognition({
 
     const start = useCallback(() => {
         const Ctor = recognitionConstructor();
-        if (!Ctor || recognitionRef.current) return;
+        if (!Ctor || sessionRef.current) return;
 
-        const recognition = new Ctor();
-        recognition.lang = lang;
-        recognition.interimResults = true;
-        recognition.continuous = false;
-        recognition.maxAlternatives = maxAlternatives;
+        const session: { closed: boolean; timer?: ReturnType<typeof setTimeout> } = { closed: false };
+        sessionRef.current = session;
+        const deadline = Date.now() + LISTEN_WINDOW_MS;
+        let restarts = 0;
 
-        let heard: string[] | null = null;
-        // WebKit (Safari, every iOS browser) and some Android builds can end
-        // without ever marking a result final; the last interim is the answer.
-        let lastInterim = "";
-        let failed = false;
-
-        recognition.onresult = (event) => {
-            let live = "";
-            for (let i = 0; i < event.results.length; i++) {
-                const result = event.results[i];
-                if (result.isFinal) {
-                    heard = Array.from({ length: result.length }, (_, k) => result[k].transcript.trim())
-                        .filter(Boolean);
-                } else {
-                    live += result[0].transcript;
-                }
-            }
-            live = live.trim();
-            if (live) lastInterim = live;
-            setInterim(live);
-        };
-        recognition.onerror = (event) => {
-            failed = true;
-            setError(toErrorCode(event.error));
-        };
-        recognition.onend = () => {
+        const finish = (result: string[] | null, code: SpeechRecognitionErrorCode | null) => {
+            if (sessionRef.current === session) sessionRef.current = null;
             recognitionRef.current = null;
             setListening(false);
             setInterim("");
-            if (heard && heard.length > 0) setTranscripts(heard);
-            else if (lastInterim) setTranscripts([lastInterim]);
-            else if (!failed) setError("no-speech");
+            if (result) setTranscripts(result);
+            else setError(code ?? "no-speech");
         };
 
+        const run = () => {
+            const recognition = new Ctor();
+            recognition.lang = lang;
+            recognition.interimResults = true;
+            recognition.continuous = false;
+            recognition.maxAlternatives = maxAlternatives;
+
+            let heard: string[] | null = null;
+            // WebKit (Safari, every iOS browser) and some Android builds can end
+            // without ever marking a result final; the last interim is the answer.
+            let lastInterim = "";
+            let failure: SpeechRecognitionErrorCode | null = null;
+
+            recognition.onresult = (event) => {
+                let live = "";
+                for (let i = 0; i < event.results.length; i++) {
+                    const result = event.results[i];
+                    if (result.isFinal) {
+                        heard = Array.from({ length: result.length }, (_, k) => result[k].transcript.trim())
+                            .filter(Boolean);
+                    } else {
+                        live += result[0].transcript;
+                    }
+                }
+                live = live.trim();
+                if (live) lastInterim = live;
+                setInterim(live);
+            };
+            recognition.onerror = (event) => {
+                failure = toErrorCode(event.error);
+            };
+            recognition.onend = () => {
+                recognitionRef.current = null;
+                if (heard && heard.length > 0) return finish(heard, null);
+                if (lastInterim) return finish([lastInterim], null);
+                // Chrome on Android gives up a second or two after its beep (or
+                // aborts at once) when nothing was said yet; keep the window
+                // open by listening again rather than ending the learner's try.
+                const retry = failure === null || RETRYABLE_ERRORS.has(failure);
+                if (!session.closed && retry && restarts < MAX_RESTARTS && Date.now() < deadline) {
+                    restarts++;
+                    session.timer = setTimeout(() => {
+                        if (!session.closed) run();
+                    }, RESTART_DELAY_MS);
+                    return;
+                }
+                finish(null, failure);
+            };
+
+            recognitionRef.current = recognition;
+            try {
+                recognition.start();
+            } catch {
+                // Throws if a previous session is still closing; treat as a miss.
+                recognitionRef.current = null;
+                finish(null, "other");
+            }
+        };
+
+        // The recogniser would hear the app's own voice, and on Android playing
+        // media can take the audio focus away from it.
+        stopAudio();
+        stopSpeaking();
         reset();
-        recognitionRef.current = recognition;
         setListening(true);
-        try {
-            recognition.start();
-        } catch {
-            // Throws if a previous session is still closing; treat as a miss.
-            recognitionRef.current = null;
-            setListening(false);
-            setError("other");
-        }
+        run();
     }, [lang, maxAlternatives, reset]);
 
     // Never keep the microphone open after the step is gone.
     useEffect(
         () => () => {
+            const session = sessionRef.current;
+            if (session) {
+                session.closed = true;
+                clearTimeout(session.timer);
+                sessionRef.current = null;
+            }
             const recognition = recognitionRef.current;
             if (!recognition) return;
             recognition.onresult = null;

@@ -7,7 +7,6 @@ import {
     useSpeechRecognition,
 } from "@/hooks/useSpeechRecognition.hook";
 import { isCorrectAnswer } from "@/lib/answer-quality";
-import { stopSpeaking } from "@/lib/path/speech";
 import { speechFallbackCause } from "@/lib/speech-recognition";
 import { scoreSpeech, type SpeechScore } from "@/lib/speech-scoring";
 import { cn } from "@/lib/utils";
@@ -62,12 +61,6 @@ export function SpeakAttempt({
     const blocked = recognition.error !== null && BLOCKING_ERRORS.has(recognition.error);
     const canRecognise = recognition.supported && !blocked;
 
-    const listen = () => {
-        // The recogniser would hear the sentence being read out.
-        stopSpeaking();
-        recognition.start();
-    };
-
     return (
         <div className="flex flex-col items-center gap-4">
             {canRecognise ? (
@@ -76,7 +69,7 @@ export function SpeakAttempt({
                         type="button"
                         variant={recognition.listening ? "playSecondary" : "play"}
                         size="xl"
-                        onClick={recognition.listening ? recognition.stop : listen}
+                        onClick={recognition.listening ? recognition.stop : recognition.start}
                         aria-pressed={recognition.listening}
                         className="gap-2"
                     >
@@ -92,7 +85,7 @@ export function SpeakAttempt({
                         {recognition.listening && (
                             <p className="text-muted-foreground italic">{recognition.interim || "Listening…"}</p>
                         )}
-                        {!recognition.listening && recognition.error === "no-speech" && (
+                        {!recognition.listening && recognition.error !== null && !blocked && (
                             <p className="text-sm text-muted-foreground">
                                 We didn&apos;t hear anything. Try again, a little closer to the mic.
                             </p>
