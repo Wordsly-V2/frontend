@@ -1,17 +1,7 @@
+import { normalizeAnswer } from "@/lib/practice-utils";
 import type { PathQuestion } from "@/types/path/path.type";
 
-/**
- * Loose comparison for typed answers: case, surrounding spaces, repeated
- * spaces, curly apostrophes and final punctuation don't count.
- */
-export function normalizeAnswer(value: string): string {
-    return value
-        .replace(/[’‘]/g, "'")
-        .replace(/\s+/g, " ")
-        .trim()
-        .replace(/[.!?,;:]+$/, "")
-        .toLowerCase();
-}
+export { normalizeAnswer };
 
 export function isGapCorrect(question: Extract<PathQuestion, { kind: "gap" }>, typed: string): boolean {
     const answer = normalizeAnswer(typed);

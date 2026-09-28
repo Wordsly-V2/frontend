@@ -200,8 +200,18 @@ export function generatePathClozeOptions(
     );
 }
 
+/**
+ * Loose comparison for answers: case, surrounding and repeated spaces, curly
+ * apostrophes and final punctuation ("How are you?" vs "how are you") don't count.
+ */
 export function normalizeAnswer(value: string): string {
-    return value.trim().toLowerCase().replaceAll(/\s+/g, " ");
+    return value
+        .replaceAll(/[’‘]/g, "'")
+        .replaceAll(/\s+/g, " ")
+        .trim()
+        .replace(/[.!?,;:…]+$/, "")
+        .trimEnd()
+        .toLowerCase();
 }
 
 /** Strip accents/diacritics so "café" and "cafe" compare equal. */
