@@ -14,6 +14,7 @@ import {
 } from "@/components/features/admin-path/admin-form-parts";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { StepListEditor, type LinkedItem } from "@/components/features/admin-path/step-editor";
 import { adminErrorMessages } from "@/lib/admin-path/errors";
 import {
     emptyLessonForm,
@@ -21,8 +22,6 @@ import {
     lessonFormSchema,
     lessonFormToRecord,
     recordToLessonForm,
-    STEP_TEMPLATES,
-    STEP_TYPES,
     type LessonFormValues,
 } from "@/lib/admin-path/lesson-form";
 import {
@@ -31,16 +30,16 @@ import {
 } from "@/queries/admin-path.query";
 import type { AdminValidation, ContentStatus, RowOrigin } from "@/types/admin-path/admin-path.type";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ArrowDown, ArrowUp, Trash2 } from "lucide-react";
+import { Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { useFieldArray, useForm } from "react-hook-form";
+import { useFieldArray, useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
 
 /**
  * /admin/path/lesson/[slug] (or `new?unit=`): a lesson as a whole, the way it
  * is hashed and published: its fields, the items it links, and its steps.
- * Step payloads are JSON; the server checks each against its step type.
+ * Each step type has its own form; the server checks what crosses records.
  */
 export function AdminLessonEditor({ slug, unit }: Readonly<{ slug: string; unit?: string }>) {
     const load = useEditorLoad("lesson", slug);
@@ -70,10 +69,11 @@ function LessonForm({
     const archived = status === "ARCHIVED";
 
     const form = useForm<LessonFormValues>({ resolver: zodResolver(lessonFormSchema), defaultValues: initial });
-    const { register, control, handleSubmit, formState, getValues, setValue } = form;
+    const { register, control, handleSubmit, formState } = form;
     const errors = formState.errors;
     const links = useFieldArray({ control, name: "items" });
-    const steps = useFieldArray({ control, name: "steps" });
+    const linkedItems = useWatch({ control, name: "items" });
+    const lessonUnit = useWatch({ control, name: "unit" });
     useUnsavedWarning(formState.isDirty);
 
     const submit = handleSubmit((values) => {
@@ -98,6 +98,17 @@ function LessonForm({
     );
     // Any item can be recycled, so the picker lists them all.
     const allItems = stages.flatMap((stage) => stage.units.flatMap((u) => u.itemList));
+    const itemBySlug = new Map(allItems.map((item) => [item.slug, item]));
+    // What the steps may use: the items linked above, and the unit's dialogues.
+    const linked: LinkedItem[] = (linkedItems ?? [])
+        .filter((link) => link.item.trim())
+        .map((link) => {
+            const item = itemBySlug.get(link.item.trim());
+            return { slug: link.item.trim(), text: item?.text ?? "(unknown item)", type: item?.type ?? "", introduced: link.role === "INTRODUCE" };
+        });
+    const dialogues = (stages.flatMap((stage) => stage.units).find((u) => u.slug === lessonUnit)?.dialogues ?? [])
+        .filter((d) => d.status !== "ARCHIVED")
+        .map((d) => ({ value: d.slug, label: `${d.slug} · ${d.title}` }));
 
     return (
         <form onSubmit={submit} className="space-y-6" noValidate>
@@ -182,70 +193,8 @@ function LessonForm({
                     </ul>
                 </Section>
 
-                <Section
-                    title="Steps"
-                    action={
-                        <AddButton
-                            onClick={() => steps.append({ type: "EXPLAIN", payload: JSON.stringify(STEP_TEMPLATES.EXPLAIN, null, 2) })}
-                            label="Add step"
-                        />
-                    }
-                >
-                    {errors.steps?.message && <FieldError message={errors.steps.message} />}
-                    <ol className="space-y-3">
-                        {steps.fields.map((field, i) => (
-                            <li key={field.id} className="space-y-2 rounded-xl border-2 border-border p-3">
-                                <div className="flex flex-wrap items-center gap-2">
-                                    <span className="text-sm font-semibold tabular-nums">{i + 1}.</span>
-                                    <select
-                                        {...register(`steps.${i}.type`, {
-                                            // A new type starts from its template, unless the payload was edited.
-                                            onChange: (e: React.ChangeEvent<HTMLSelectElement>) => {
-                                                const type = e.target.value as keyof typeof STEP_TEMPLATES;
-                                                if (!formState.dirtyFields.steps?.[i]?.payload) {
-                                                    setValue(`steps.${i}.payload`, JSON.stringify(STEP_TEMPLATES[type], null, 2));
-                                                }
-                                            },
-                                        })}
-                                        aria-label={`Type of step ${i + 1}`}
-                                        className={`${FIELD} w-auto`}
-                                    >
-                                        {STEP_TYPES.map((t) => (
-                                            <option key={t} value={t}>
-                                                {t}
-                                            </option>
-                                        ))}
-                                    </select>
-                                    <div className="ml-auto flex gap-1">
-                                        <Button type="button" variant="ghost" size="icon" disabled={i === 0} onClick={() => steps.move(i, i - 1)} aria-label="Move up">
-                                            <ArrowUp className="h-4 w-4" aria-hidden />
-                                        </Button>
-                                        <Button
-                                            type="button"
-                                            variant="ghost"
-                                            size="icon"
-                                            disabled={i === steps.fields.length - 1}
-                                            onClick={() => steps.move(i, i + 1)}
-                                            aria-label="Move down"
-                                        >
-                                            <ArrowDown className="h-4 w-4" aria-hidden />
-                                        </Button>
-                                        <Button type="button" variant="ghost" size="icon" onClick={() => steps.remove(i)} aria-label="Remove step">
-                                            <Trash2 className="h-4 w-4" aria-hidden />
-                                        </Button>
-                                    </div>
-                                </div>
-                                <textarea
-                                    {...register(`steps.${i}.payload`)}
-                                    rows={Math.min(16, Math.max(3, getValues(`steps.${i}.payload`).split("\n").length))}
-                                    spellCheck={false}
-                                    aria-label={`Payload of step ${i + 1}`}
-                                    className={`${FIELD} font-mono text-xs`}
-                                />
-                                {errors.steps?.[i]?.payload && <FieldError message={errors.steps[i].payload.message ?? ""} />}
-                            </li>
-                        ))}
-                    </ol>
+                <Section title="Steps">
+                    <StepListEditor form={form} linked={linked} dialogues={dialogues} />
                 </Section>
             </fieldset>
 
