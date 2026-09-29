@@ -136,12 +136,19 @@ export const apiPaths = {
     adminLearning: {
         stats: () => '/admin/learning/stats',
         hardestPathItems: () => '/admin/learning/path-items/hardest',
+        usersSummary: () => '/admin/learning/users/summary',
+        user: (userLoginId: string) => `/admin/learning/users/${userLoginId}`,
+        userReport: (userLoginId: string) => `/admin/learning/users/${userLoginId}/report`,
+        userActivityCalendar: (userLoginId: string) => `/admin/learning/users/${userLoginId}/activity-calendar`,
+        userReset: (userLoginId: string) => `/admin/learning/users/${userLoginId}/reset`,
     },
 
     /** Wordsly Path authoring (admins only; curriculum-service). */
     adminPath: {
         stats: () => '/admin/path/stats',
         itemsLookup: () => '/admin/path/items/lookup',
+        user: (userLoginId: string) => `/admin/path/users/${userLoginId}`,
+        userReset: (userLoginId: string) => `/admin/path/users/${userLoginId}/reset`,
         overview: () => '/admin/path/overview',
         validate: () => '/admin/path/validate',
         seedPlan: () => '/admin/path/seed-plan',

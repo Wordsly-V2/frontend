@@ -8,7 +8,8 @@ import { type ReactNode } from "react";
 export interface StatsCardItem {
     id: string;
     label: string;
-    value: number;
+    /** A number is formatted for the locale; a string is shown as is. */
+    value: number | string;
     icon: ReactNode;
     /** Tailwind classes for the icon container (e.g. gradient-brand, gradient-accent, bg-gradient-to-br from-green-500 to-emerald-600) */
     iconClassName: string;
@@ -84,7 +85,7 @@ export function StatTiles({
                 } else if (isError) {
                     valueContent = <p className="text-2xl sm:text-3xl font-bold">--</p>;
                 } else {
-                    valueContent = <p className="text-2xl sm:text-3xl font-bold">{item.value.toLocaleString()}</p>;
+                    valueContent = <p className="text-2xl sm:text-3xl font-bold">{typeof item.value === "number" ? item.value.toLocaleString() : item.value}</p>;
                 }
                 const cardContent = (
                     <div className="flex items-center gap-3 sm:gap-4">

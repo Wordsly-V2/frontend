@@ -14,15 +14,28 @@ import {
 } from "@/queries/admin-users.query";
 import { useAppSelector } from "@/store/hooks";
 import type { AdminUserDetail as AdminUser } from "@/types/admin-users/admin-users.type";
+import { FilterToggle } from "@/components/features/admin/filter-toggle";
+import { adminUserSearchParams, type AdminUserTab } from "@/lib/search-params/admin-user";
 import { ArrowLeft, Ban, Copy, LogOut, ShieldCheck, ShieldOff, UserCheck, UserX } from "lucide-react";
 import Link from "next/link";
+import { useQueryStates } from "nuqs";
 import { useState } from "react";
 import { toast } from "sonner";
+import { ActionRow, Fact } from "./detail-parts";
+import { LearnerLearningTab } from "./learner-learning-tab";
+import { LearnerPathTab } from "./learner-path-tab";
 import { UserIdentity, UserRoleBadges, UserStatusBadge } from "./user-badges";
 
-/** /admin/users/[id]: one account, and what an admin may change about it. */
+const TAB_OPTIONS = [
+    { value: "account", label: "Account" },
+    { value: "learning", label: "Learning" },
+    { value: "path", label: "Wordsly Path" },
+] as const satisfies readonly { value: AdminUserTab; label: string }[];
+
+/** /admin/users/[id]: one account, their learning and Path, and what an admin may change. */
 export function AdminUserDetail({ userLoginId }: Readonly<{ userLoginId: string }>) {
     const { data, isFetching, error, refetch } = useAdminUserQuery(userLoginId);
+    const [{ tab }, setParams] = useQueryStates(adminUserSearchParams, { history: "push" });
 
     let body: React.ReactNode;
     if (!data && isFetching) {
@@ -37,7 +50,30 @@ export function AdminUserDetail({ userLoginId }: Readonly<{ userLoginId: string 
     } else if (!data) {
         body = <ErrorState message="Couldn't load this user." onRetry={() => void refetch()} />;
     } else {
-        body = <AccountView user={data} />;
+        body = (
+            <div className="space-y-6">
+                <header className="flex flex-wrap items-center justify-between gap-4">
+                    <UserIdentity user={data} size="lg" />
+                    <span className="flex flex-wrap items-center gap-2">
+                        <UserStatusBadge status={data.status} />
+                        <UserRoleBadges user={data} />
+                    </span>
+                </header>
+                <div className="overflow-x-auto">
+                    <div className="w-max">
+                        <FilterToggle
+                            label="Section"
+                            value={tab}
+                            options={TAB_OPTIONS}
+                            onChange={(value) => void setParams({ tab: value ?? "account" })}
+                        />
+                    </div>
+                </div>
+                {tab === "account" && <AccountView user={data} />}
+                {tab === "learning" && <LearnerLearningTab userLoginId={userLoginId} name={userLabel(data)} />}
+                {tab === "path" && <LearnerPathTab userLoginId={userLoginId} name={userLabel(data)} />}
+            </div>
+        );
     }
 
     return (
@@ -108,14 +144,6 @@ function AccountView({ user }: Readonly<{ user: AdminUser }>) {
 
     return (
         <div className="space-y-6">
-            <header className="flex flex-wrap items-center justify-between gap-4">
-                <UserIdentity user={user} size="lg" />
-                <span className="flex flex-wrap items-center gap-2">
-                    <UserStatusBadge status={user.status} />
-                    <UserRoleBadges user={user} />
-                </span>
-            </header>
-
             <section className="rounded-2xl border border-border/80 bg-card p-5">
                 <h2 className="mb-4 font-semibold">Account</h2>
                 <dl className="grid gap-x-6 gap-y-4 text-sm sm:grid-cols-2 lg:grid-cols-3">
@@ -269,28 +297,3 @@ const DIALOGS: Record<
         confirm: "Sign out",
     }),
 };
-
-function Fact({ label, children }: Readonly<{ label: string; children: React.ReactNode }>) {
-    return (
-        <div className="min-w-0">
-            <dt className="text-xs text-muted-foreground">{label}</dt>
-            <dd className="mt-0.5 font-medium">{children}</dd>
-        </div>
-    );
-}
-
-function ActionRow({
-    title,
-    description,
-    children,
-}: Readonly<{ title: string; description: string; children: React.ReactNode }>) {
-    return (
-        <div className="flex flex-col gap-3 border-t border-border/60 pt-4 first:border-t-0 first:pt-0 sm:flex-row sm:items-center sm:justify-between">
-            <div className="min-w-0">
-                <p className="text-sm font-medium">{title}</p>
-                <p className="text-sm text-muted-foreground">{description}</p>
-            </div>
-            <div className="shrink-0">{children}</div>
-        </div>
-    );
-}

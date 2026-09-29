@@ -6,13 +6,18 @@ import { Input } from "@/components/ui/input";
 import { Pagination } from "@/components/ui/pagination";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useAdminUsersParams } from "@/hooks/useAdminUsersParams.hook";
+import { daysAgo, summariesById } from "@/lib/admin/learners";
 import { formatDate, totalPages } from "@/lib/admin/users";
+import { localDateString } from "@/lib/daily-habit";
 import { cn } from "@/lib/utils";
+import { useLearnerSummariesQuery } from "@/queries/admin-learners.query";
 import { useAdminUsersQuery } from "@/queries/admin-users.query";
+import type { LearnerSummary } from "@/types/admin-learners/admin-learners.type";
 import type { AssignableRole, UserStatus } from "@/types/admin-users/admin-users.type";
 import { Search, Users } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useMemo } from "react";
 import { UserIdentity, UserRoleBadges, UserStatusBadge } from "./user-badges";
 
 const PAGE_SIZE = 20;
@@ -40,6 +45,11 @@ export function AdminUsersScreen() {
         pageSize: PAGE_SIZE,
     });
     const filtered = !!(params.q || params.role || params.status);
+    // One learning-service request per page for the learning columns.
+    const ids = useMemo(() => data?.items.map((user) => user.userLoginId) ?? [], [data]);
+    const summaries = useLearnerSummariesQuery(ids);
+    const byId = useMemo(() => summariesById(summaries.data), [summaries.data]);
+    const today = localDateString();
 
     return (
         <div className="space-y-5">
@@ -99,6 +109,9 @@ export function AdminUsersScreen() {
                                     <TableHead className="pl-4">User</TableHead>
                                     <TableHead>Status</TableHead>
                                     <TableHead>Role</TableHead>
+                                    <TableHead>Last active</TableHead>
+                                    <TableHead className="text-right">Streak</TableHead>
+                                    <TableHead className="text-right">Level</TableHead>
                                     <TableHead className="text-right">Devices</TableHead>
                                     <TableHead className="pr-4 text-right">Joined</TableHead>
                                 </TableRow>
@@ -125,6 +138,7 @@ export function AdminUsersScreen() {
                                         <TableCell>
                                             <UserRoleBadges user={user} />
                                         </TableCell>
+                                        <LearningCells summary={byId.get(user.userLoginId)} today={today} />
                                         <TableCell className="text-right tabular-nums">{user.activeSessions}</TableCell>
                                         <TableCell className="pr-4 text-right text-muted-foreground">
                                             {formatDate(user.createdAt)}
@@ -147,7 +161,8 @@ export function AdminUsersScreen() {
                                         <UserStatusBadge status={user.status} />
                                         <UserRoleBadges user={user} />
                                         <span className="ml-auto text-muted-foreground">
-                                            Joined {formatDate(user.createdAt)}
+                                            {lastActiveLine(byId.get(user.userLoginId), today) ??
+                                                `Joined ${formatDate(user.createdAt)}`}
                                         </span>
                                     </span>
                                 </Link>
@@ -165,4 +180,35 @@ export function AdminUsersScreen() {
             )}
         </div>
     );
+}
+
+/** Last active, streak and level; blank while the summaries load or if they fail. */
+function LearningCells({ summary, today }: Readonly<{ summary: LearnerSummary | undefined; today: string }>) {
+    if (!summary) {
+        return (
+            <>
+                <TableCell className="text-muted-foreground">·</TableCell>
+                <TableCell />
+                <TableCell />
+            </>
+        );
+    }
+    return (
+        <>
+            <TableCell className={cn(!summary.lastActiveDate && "text-muted-foreground")}>
+                {daysAgo(summary.lastActiveDate, today)}
+            </TableCell>
+            <TableCell className="text-right tabular-nums">{summary.streak || "–"}</TableCell>
+            <TableCell className="text-right tabular-nums">{summary.level}</TableCell>
+        </>
+    );
+}
+
+/** The mobile card's corner: "Active today · 5-day streak", or nothing without data. */
+function lastActiveLine(summary: LearnerSummary | undefined, today: string): string | null {
+    if (!summary?.lastActiveDate) return null;
+    const when = daysAgo(summary.lastActiveDate, today);
+    // "today", "5 days ago", or a date ("2 Jan 2026") left as is.
+    const active = `Active ${when.charAt(0).toLowerCase()}${when.slice(1)}`;
+    return summary.streak > 0 ? `${active} · ${summary.streak}-day streak` : active;
 }
