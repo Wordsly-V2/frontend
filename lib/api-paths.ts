@@ -150,6 +150,7 @@ export const apiPaths = {
         content: (kind: string) => `/admin/path/content/${kind}`,
         record: (kind: string, slug: string) => `/admin/path/content/${kind}/${slug}`,
         restore: (kind: string, slug: string) => `/admin/path/content/${kind}/${slug}/restore`,
+        importUnit: () => '/admin/path/import',
     },
 
     learningSettings: () => user('learning-settings'),

@@ -11,6 +11,7 @@ import {
     useUnsavedWarning,
 } from "@/components/features/admin-path/admin-form-parts";
 import { QuestionListEditor, type QuestionListForm } from "@/components/features/admin-path/question-editor";
+import { jsonBridge, JsonToolsButton } from "@/components/features/admin-path/json-tools";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { adminErrorMessages } from "@/lib/admin-path/errors";
@@ -139,6 +140,11 @@ function PlacementForm({
                         {save.isPending ? "Saving…" : slug ? "Save draft" : "Create placement test"}
                     </Button>
                 )}
+                <JsonToolsButton
+                    bridge={jsonBridge(form, placementFormSchema, placementFormToRecord, recordToPlacementForm)}
+                    slug={slug}
+                    disabled={archived}
+                />
                 {slug && <ArchiveRestoreButtons kind="placement" slug={slug} archived={archived} onValidation={setValidation} />}
             </div>
         </form>

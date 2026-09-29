@@ -13,6 +13,7 @@ import {
     useEditorLoad,
     useUnsavedWarning,
 } from "@/components/features/admin-path/admin-form-parts";
+import { jsonBridge, JsonToolsButton } from "@/components/features/admin-path/json-tools";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { adminErrorMessages } from "@/lib/admin-path/errors";
@@ -158,6 +159,11 @@ function UnitForm({
                         {save.isPending ? "Saving…" : slug ? "Save draft" : "Create unit"}
                     </Button>
                 )}
+                <JsonToolsButton
+                    bridge={jsonBridge(form, unitFormSchema, unitFormToRecord, recordToUnitForm)}
+                    slug={slug}
+                    disabled={archived}
+                />
                 {slug && <ArchiveRestoreButtons kind="unit" slug={slug} archived={archived} onValidation={setValidation} />}
             </div>
         </form>

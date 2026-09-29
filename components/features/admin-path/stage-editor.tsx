@@ -12,6 +12,7 @@ import {
     useEditorLoad,
     useUnsavedWarning,
 } from "@/components/features/admin-path/admin-form-parts";
+import { jsonBridge, JsonToolsButton } from "@/components/features/admin-path/json-tools";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { adminErrorMessages } from "@/lib/admin-path/errors";
@@ -121,6 +122,11 @@ function StageForm({
                         {save.isPending ? "Saving…" : slug ? "Save draft" : "Create stage"}
                     </Button>
                 )}
+                <JsonToolsButton
+                    bridge={jsonBridge(form, stageFormSchema, stageFormToRecord, recordToStageForm)}
+                    slug={slug}
+                    disabled={archived}
+                />
                 {slug && <ArchiveRestoreButtons kind="stage" slug={slug} archived={archived} onValidation={setValidation} />}
             </div>
         </form>

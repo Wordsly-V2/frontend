@@ -1,6 +1,7 @@
 import { apiPaths } from "@/lib/api-paths";
 import { request } from "@/lib/axios";
 import type {
+    AdminImportResult,
     AdminKind,
     AdminPublishResult,
     AdminRecord,
@@ -45,3 +46,7 @@ export const archiveAdminRecord = (kind: AdminKind, slug: string): Promise<Admin
 
 export const restoreAdminRecord = (kind: AdminKind, slug: string): Promise<AdminWriteResult> =>
     request((i) => i.post(apiPaths.adminPath.restore(kind, slug)));
+
+/** Dry run unless `apply`; an apply with `errors` writes nothing and answers `dryRun: true`. */
+export const importAdminUnit = (body: AdminRecordBody, apply: boolean): Promise<AdminImportResult> =>
+    request((i) => i.post(apiPaths.adminPath.importUnit(), body, { params: { dryRun: String(!apply) } }));

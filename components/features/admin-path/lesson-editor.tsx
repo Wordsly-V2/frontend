@@ -12,6 +12,7 @@ import {
     useEditorLoad,
     useUnsavedWarning,
 } from "@/components/features/admin-path/admin-form-parts";
+import { jsonBridge, JsonToolsButton } from "@/components/features/admin-path/json-tools";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { StepListEditor, type LinkedItem } from "@/components/features/admin-path/step-editor";
@@ -206,6 +207,11 @@ function LessonForm({
                         {save.isPending ? "Saving…" : slug ? "Save draft" : "Create lesson"}
                     </Button>
                 )}
+                <JsonToolsButton
+                    bridge={jsonBridge(form, lessonFormSchema, lessonFormToRecord, recordToLessonForm)}
+                    slug={slug}
+                    disabled={archived}
+                />
                 {slug && <ArchiveRestoreButtons kind="lesson" slug={slug} archived={archived} onValidation={setValidation} />}
             </div>
         </form>
