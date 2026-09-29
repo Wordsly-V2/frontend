@@ -1,6 +1,5 @@
 "use client";
 
-import { ErrorState, Skeleton } from "@/components/common/states";
 import {
     ArchiveRestoreButtons,
     EditorHeader,
@@ -10,6 +9,7 @@ import {
     Section,
     SelectField,
     SlugField,
+    useEditorLoad,
     useUnsavedWarning,
 } from "@/components/features/admin-path/admin-form-parts";
 import { Button } from "@/components/ui/button";
@@ -22,11 +22,7 @@ import {
     stageFormToRecord,
     type StageFormValues,
 } from "@/lib/admin-path/stage-form";
-import {
-    useAdminPathOverviewQuery,
-    useAdminRecordQuery,
-    useSaveAdminRecordMutation,
-} from "@/queries/admin-path.query";
+import { useSaveAdminRecordMutation } from "@/queries/admin-path.query";
 import { CEFR_LEVELS, type AdminValidation, type ContentStatus, type RowOrigin } from "@/types/admin-path/admin-path.type";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
@@ -38,25 +34,17 @@ const CEFR_OPTIONS = CEFR_LEVELS.map((level) => ({ value: level, label: level.re
 
 /** /admin/path/stage/[slug] (or `new`): a stage's own fields; its units have their own editors. */
 export function AdminStageEditor({ slug }: Readonly<{ slug: string }>) {
-    const isNew = slug === "new";
-    const record = useAdminRecordQuery("stage", isNew ? null : slug);
-    const overview = useAdminPathOverviewQuery();
-
-    const loading = isNew ? overview.data : record.data;
-    if (!loading) {
-        if (isNew ? overview.isFetching : record.isFetching) return <Skeleton aria-busy className="h-96 w-full rounded-2xl" />;
-        return <ErrorState message={`Couldn't load stage ${slug}.`} onRetry={() => void (isNew ? overview : record).refetch()} />;
-    }
-
+    const load = useEditorLoad("stage", slug);
+    if (load.gate) return load.gate;
     // A new stage goes after the last one.
-    const nextOrder = Math.max(0, ...(overview.data?.stages ?? []).map((s) => s.order)) + 1;
+    const nextOrder = Math.max(0, ...load.tree.stages.map((s) => s.order)) + 1;
     return (
         <StageForm
             key={slug}
-            slug={isNew ? null : slug}
-            initial={record.data ? recordToStageForm(record.data.record) : emptyStageForm(nextOrder)}
-            status={record.data?.status}
-            origin={record.data?.origin}
+            slug={load.record ? slug : null}
+            initial={load.record ? recordToStageForm(load.record.record) : emptyStageForm(nextOrder)}
+            status={load.record?.status}
+            origin={load.record?.origin}
         />
     );
 }

@@ -1,6 +1,5 @@
 "use client";
 
-import { ErrorState, Skeleton } from "@/components/common/states";
 import {
     AddButton,
     ArchiveRestoreButtons,
@@ -10,6 +9,7 @@ import {
     Field,
     FieldError,
     Section,
+    useEditorLoad,
     useUnsavedWarning,
 } from "@/components/features/admin-path/admin-form-parts";
 import { Button } from "@/components/ui/button";
@@ -27,7 +27,6 @@ import {
 } from "@/lib/admin-path/lesson-form";
 import {
     useAdminPathOverviewQuery,
-    useAdminRecordQuery,
     useSaveAdminRecordMutation,
 } from "@/queries/admin-path.query";
 import type { AdminValidation, ContentStatus, RowOrigin } from "@/types/admin-path/admin-path.type";
@@ -44,21 +43,15 @@ import { toast } from "sonner";
  * Step payloads are JSON; the server checks each against its step type.
  */
 export function AdminLessonEditor({ slug, unit }: Readonly<{ slug: string; unit?: string }>) {
-    const isNew = slug === "new";
-    const record = useAdminRecordQuery("lesson", isNew ? null : slug);
-
-    if (!isNew && !record.data) {
-        if (record.isFetching) return <Skeleton aria-busy className="h-96 w-full rounded-2xl" />;
-        return <ErrorState message={`Couldn't load lesson ${slug}.`} onRetry={() => void record.refetch()} />;
-    }
-
+    const load = useEditorLoad("lesson", slug);
+    if (load.gate) return load.gate;
     return (
         <LessonForm
             key={slug}
-            slug={isNew ? null : slug}
-            initial={record.data ? recordToLessonForm(record.data.record) : emptyLessonForm(unit)}
-            status={record.data?.status}
-            origin={record.data?.origin}
+            slug={load.record ? slug : null}
+            initial={load.record ? recordToLessonForm(load.record.record) : emptyLessonForm(unit)}
+            status={load.record?.status}
+            origin={load.record?.origin}
         />
     );
 }
