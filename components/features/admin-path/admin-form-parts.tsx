@@ -3,6 +3,7 @@
 import ConfirmDialog from "@/components/common/confirm-dialog/confirm-dialog";
 import { OriginBadge, StatusBadge } from "@/components/features/admin-path/admin-badges";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { adminErrorMessages } from "@/lib/admin-path/errors";
 import { useArchiveAdminRecordMutation, useRestoreAdminRecordMutation } from "@/queries/admin-path.query";
@@ -10,9 +11,10 @@ import type { AdminKind, AdminValidation, ContentStatus, RowOrigin } from "@/typ
 import { ArrowLeft, Plus, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import type { UseFormRegisterReturn } from "react-hook-form";
 import { toast } from "sonner";
 
-/** Pieces shared by the admin editors (item, lesson, raw record). */
+/** Pieces shared by the admin editors (stage, unit, item, lesson, raw record). */
 
 export const FIELD =
     "w-full rounded-xl border-2 border-border bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none";
@@ -66,6 +68,96 @@ export function Field({ label, error, children }: Readonly<{ label: string; erro
         <div className="space-y-1.5">
             <Label className="text-sm">{label}</Label>
             {children}
+            {error && <FieldError message={error} />}
+        </div>
+    );
+}
+
+/** The record's slug: its content id, so it is fixed once the record exists. */
+export function SlugField({
+    what,
+    locked,
+    error,
+    registration,
+}: Readonly<{ what: string; locked: boolean; error?: string; registration: UseFormRegisterReturn }>) {
+    return (
+        <Field label={`Slug (the ${what}'s id, can't change later)`} error={error}>
+            <Input {...registration} disabled={locked} className="font-mono" autoComplete="off" />
+        </Field>
+    );
+}
+
+/** A native select (components/ui has none) with an optional empty first choice. */
+export function SelectField({
+    label,
+    error,
+    options,
+    placeholder,
+    registration,
+}: Readonly<{
+    label: string;
+    error?: string;
+    options: readonly { value: string; label: string }[];
+    placeholder?: string;
+    registration: UseFormRegisterReturn;
+}>) {
+    return (
+        <Field label={label} error={error}>
+            <select {...registration} className={FIELD}>
+                {placeholder !== undefined && <option value="">{placeholder}</option>}
+                {options.map((o) => (
+                    <option key={o.value} value={o.value}>
+                        {o.label}
+                    </option>
+                ))}
+            </select>
+        </Field>
+    );
+}
+
+/**
+ * A list of one-line texts (a `useFieldArray` of `{ text }`): one input per
+ * entry, each removable, plus an add button.
+ */
+export function ListField({
+    label,
+    addLabel,
+    fields,
+    registration,
+    errors,
+    error,
+    onAdd,
+    onRemove,
+}: Readonly<{
+    label: string;
+    addLabel: string;
+    fields: readonly { id: string }[];
+    registration: (index: number) => UseFormRegisterReturn;
+    errors?: readonly (string | undefined)[];
+    /** About the list as a whole, like "add at least one". */
+    error?: string;
+    onAdd: () => void;
+    onRemove: (index: number) => void;
+}>) {
+    return (
+        <div className="space-y-2">
+            <div className="flex items-center justify-between gap-2">
+                <Label className="text-sm">{label}</Label>
+                <AddButton onClick={onAdd} label={addLabel} />
+            </div>
+            <ul className="space-y-2">
+                {fields.map((field, i) => (
+                    <li key={field.id} className="flex items-start gap-2">
+                        <div className="flex-1">
+                            <Input {...registration(i)} aria-label={`${label} ${i + 1}`} />
+                            {errors?.[i] && <FieldError message={errors[i]} />}
+                        </div>
+                        <Button type="button" variant="ghost" size="icon" onClick={() => onRemove(i)} aria-label="Remove">
+                            <Trash2 className="h-4 w-4" aria-hidden />
+                        </Button>
+                    </li>
+                ))}
+            </ul>
             {error && <FieldError message={error} />}
         </div>
     );
@@ -164,6 +256,7 @@ export function ArchiveRestoreButtons({
 }
 
 const ARCHIVE_NOTE: Record<AdminKind, string> = {
+    stage: "Only an empty stage can be archived: archive its units first. It leaves the path at the next publish.",
     item: "Lessons that still link it will block publishing until they drop it. After the next publish, learners lose their review cards for it.",
     lesson: "It leaves the path at the next publish. Items it introduces then need another lesson to introduce them, or publishing is blocked.",
     dialogue: "Steps that play it will block publishing until they drop it.",
