@@ -8,6 +8,8 @@ import { ChartCard } from "./chart-card";
 
 interface PathProgressCardProps {
     path: IReportPath;
+    /** Off when someone else's report is shown (admin): the links go to your own Path. */
+    showActions?: boolean;
 }
 
 /** Whether the learner has done anything on the Path worth reporting. */
@@ -43,9 +45,8 @@ function Stat({
  * Wordsly Path numbers: the items in review (all-time), this period's Path
  * reviews, and lessons, units and stages completed.
  */
-export function PathProgressCard({ path }: Readonly<PathProgressCardProps>) {
-    const action =
-        path.dueNow > 0 ? (
+export function PathProgressCard({ path, showActions = true }: Readonly<PathProgressCardProps>) {
+    const action = !showActions ? undefined : path.dueNow > 0 ? (
             <Button asChild size="sm" variant="outline">
                 <Link href="/path/review">
                     Review {path.dueNow.toLocaleString()} due

@@ -147,6 +147,23 @@ export const queryKeys = {
         detail: (userLoginId: string) => ["admin-users", "detail", userLoginId] as const,
         stats: (from?: string, to?: string) => ["admin-users", "stats", from ?? "", to ?? ""] as const,
     },
+    /**
+     * One learner's learning and Path data, as admins see it. Everything about
+     * one learner sits under `user(id)`, so a reset invalidates that and
+     * `summaries()`. Never persisted (admin data stays off the device).
+     */
+    adminLearners: {
+        all: ["admin-learners"] as const,
+        summaries: () => ["admin-learners", "summary"] as const,
+        summary: (ids: string[]) => ["admin-learners", "summary", sortedIds(ids)] as const,
+        user: (userLoginId: string) => ["admin-learners", "user", userLoginId] as const,
+        overview: (userLoginId: string) => ["admin-learners", "user", userLoginId, "overview"] as const,
+        report: (userLoginId: string, period: string, clientDate: string, offset: number) =>
+            ["admin-learners", "user", userLoginId, "report", period, clientDate, offset] as const,
+        activityCalendar: (userLoginId: string, clientDate: string) =>
+            ["admin-learners", "user", userLoginId, "activity-calendar", clientDate] as const,
+        path: (userLoginId: string) => ["admin-learners", "user", userLoginId, "path"] as const,
+    },
     /** Dashboard and report numbers. Never persisted (admin data stays off the device). */
     adminStats: {
         all: ["admin-stats"] as const,

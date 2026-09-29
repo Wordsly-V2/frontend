@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { useGetActivityCalendarQuery } from "@/queries/learning-report.query";
-import type { IActivityDay } from "@/types/learning-report/learning-report.type";
+import type { IActivityCalendar, IActivityDay } from "@/types/learning-report/learning-report.type";
 import { ChartCard } from "./chart-card";
 
 const MONTH = new Intl.DateTimeFormat(undefined, { month: "short" });
@@ -36,10 +36,21 @@ function intensityLevel(words: number, max: number): number {
 
 const LEVEL_PERCENT = [0, 25, 50, 75, 100] as const;
 
-/** GitHub-style contribution heatmap — pure CSS grid, no charting library. */
+/** GitHub-style contribution heatmap of the signed-in learner's practice. */
 export function ActivityHeatmap() {
     const { data, isLoading } = useGetActivityCalendarQuery();
+    return <ActivityHeatmapView data={data} isLoading={isLoading} />;
+}
 
+interface ActivityHeatmapViewProps {
+    data: IActivityCalendar | undefined;
+    isLoading: boolean;
+    /** Whose goal the ring marks: "you" on /progress, "they" for an admin. */
+    subject?: "you" | "they";
+}
+
+/** The heatmap for any calendar — pure CSS grid, no charting library. */
+export function ActivityHeatmapView({ data, isLoading, subject = "you" }: Readonly<ActivityHeatmapViewProps>) {
     const { weeks, monthLabels, maxWords, activeDays } = useMemo(() => {
         const days = data?.days ?? [];
         if (days.length === 0) {
@@ -81,7 +92,7 @@ export function ActivityHeatmap() {
 
     const subtitle = isLoading
         ? "Loading…"
-        : `${activeDays} active day${activeDays === 1 ? "" : "s"} · a ring marks days you hit your goal`;
+        : `${activeDays} active day${activeDays === 1 ? "" : "s"} · a ring marks days ${subject} hit ${subject === "you" ? "your" : "their"} goal`;
 
     return (
         <ChartCard title="Practice activity" subtitle={subtitle}>
