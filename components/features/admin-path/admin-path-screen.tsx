@@ -13,7 +13,7 @@ import {
     useAdminValidateQuery,
 } from "@/queries/admin-path.query";
 import type { AdminPlacementNode, AdminUnitNode } from "@/types/admin-path/admin-path.type";
-import { AlertTriangle, CheckCircle2, Plus, RefreshCw, Rocket } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Plus, RefreshCw, Rocket, Upload } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 
@@ -67,7 +67,14 @@ export function AdminPathScreen() {
             <section aria-label="Content" className="space-y-6">
                 <div className="flex items-center justify-between gap-2">
                     <h2 className="font-semibold">Stages</h2>
-                    <NewLink href="/admin/path/stage/new" label="New stage" />
+                    <div className="flex flex-wrap gap-2">
+                        <Button size="sm" variant="outline" asChild className="gap-1">
+                            <Link href="/admin/path/import">
+                                <Upload className="h-3.5 w-3.5" aria-hidden /> Import unit file
+                            </Link>
+                        </Button>
+                        <NewLink href="/admin/path/stage/new" label="New stage" />
+                    </div>
                 </div>
                 {stages.map((stage) => (
                     <div key={stage.id} className="space-y-2">

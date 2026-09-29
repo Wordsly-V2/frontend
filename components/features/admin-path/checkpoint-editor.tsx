@@ -12,6 +12,7 @@ import {
     useUnsavedWarning,
 } from "@/components/features/admin-path/admin-form-parts";
 import { QuestionListEditor, type QuestionListForm } from "@/components/features/admin-path/question-editor";
+import { jsonBridge, JsonToolsButton } from "@/components/features/admin-path/json-tools";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { adminErrorMessages } from "@/lib/admin-path/errors";
@@ -130,6 +131,11 @@ function CheckpointForm({
                         {save.isPending ? "Saving…" : slug ? "Save draft" : "Create unit test"}
                     </Button>
                 )}
+                <JsonToolsButton
+                    bridge={jsonBridge(form, checkpointFormSchema, checkpointFormToRecord, recordToCheckpointForm)}
+                    slug={slug}
+                    disabled={archived}
+                />
                 {slug && <ArchiveRestoreButtons kind="checkpoint" slug={slug} archived={archived} onValidation={setValidation} />}
             </div>
         </form>

@@ -13,6 +13,7 @@ import {
     useEditorLoad,
     useUnsavedWarning,
 } from "@/components/features/admin-path/admin-form-parts";
+import { jsonBridge, JsonToolsButton } from "@/components/features/admin-path/json-tools";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -208,6 +209,11 @@ function DialogueForm({
                         {save.isPending ? "Saving…" : slug ? "Save draft" : "Create dialogue"}
                     </Button>
                 )}
+                <JsonToolsButton
+                    bridge={jsonBridge(form, dialogueFormSchema, dialogueFormToRecord, recordToDialogueForm)}
+                    slug={slug}
+                    disabled={archived}
+                />
                 {slug && <ArchiveRestoreButtons kind="dialogue" slug={slug} archived={archived} onValidation={setValidation} />}
             </div>
         </form>

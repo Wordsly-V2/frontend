@@ -103,3 +103,25 @@ export interface AdminRecord {
 export interface AdminWriteResult extends AdminRecord {
     validation: AdminValidation;
 }
+
+/** `POST /admin/path/import`: one unit file (seed shape) as admin edits. */
+export type AdminImportAction = "insert" | "update" | "skip" | "conflict";
+/**
+ * new · changed (no admin edit on the row) · replaces-edit (the file
+ * overwrites an admin edit) · unchanged · archived (restore it first) ·
+ * other-unit (the slug is another unit's; slugs are global).
+ */
+export type AdminImportReason = "new" | "changed" | "replaces-edit" | "unchanged" | "archived" | "other-unit";
+
+export interface AdminImportResult {
+    /** True when nothing was written: a dry run, or an apply refused for `errors`. */
+    dryRun: boolean;
+    unit: string;
+    summary: Record<AdminImportAction, number>;
+    /** Every record of the file, in write order. */
+    changes: { kind: AdminKind; slug: string; action: AdminImportAction; reason: AdminImportReason; record: AdminRecordBody }[];
+    /** What blocks applying; nothing is written while there are any. */
+    errors: string[];
+    /** The publish checks with the file applied. */
+    validation: AdminValidation;
+}

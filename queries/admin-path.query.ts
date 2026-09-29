@@ -6,6 +6,7 @@ import {
     getAdminRecord,
     getAdminReleases,
     getAdminSeedPlan,
+    importAdminUnit,
     publishAdminRelease,
     restoreAdminRecord,
     updateAdminRecord,
@@ -81,3 +82,14 @@ function useReleaseWrite<V, R>(write: (vars: V) => Promise<R>) {
 export const usePublishAdminReleaseMutation = () => useReleaseWrite((note?: string) => publishAdminRelease(note));
 
 export const useActivateAdminReleaseMutation = () => useReleaseWrite((releaseId: string) => activateAdminRelease(releaseId));
+
+/** A unit file import: a dry run writes nothing, an apply changes the whole working copy. */
+export const useImportAdminUnitMutation = () => {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: ({ body, apply }: { body: AdminRecordBody; apply: boolean }) => importAdminUnit(body, apply),
+        onSuccess: async (result) => {
+            if (!result.dryRun) await queryClient.invalidateQueries({ queryKey: queryKeys.adminPath.all });
+        },
+    });
+};
