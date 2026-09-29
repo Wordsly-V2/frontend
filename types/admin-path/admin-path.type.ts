@@ -104,6 +104,22 @@ export interface AdminWriteResult extends AdminRecord {
     validation: AdminValidation;
 }
 
+/** `POST /admin/path/reorder`: a stage's units or a unit's lessons, every live one, in the new order. */
+export interface AdminReorderBody {
+    kind: "unit" | "lesson";
+    /** The stage (units) or unit (lessons) slug. */
+    parent: string;
+    slugs: string[];
+}
+
+export interface AdminReorderResult {
+    kind: AdminReorderBody["kind"];
+    parent: string;
+    /** The rows that moved, with their new `order`. */
+    changes: { slug: string; order: number }[];
+    validation: AdminValidation;
+}
+
 /** `POST /admin/path/import`: one unit file (seed shape) as admin edits. */
 export type AdminImportAction = "insert" | "update" | "skip" | "conflict";
 /**

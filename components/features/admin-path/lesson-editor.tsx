@@ -13,6 +13,7 @@ import {
     useUnsavedWarning,
 } from "@/components/features/admin-path/admin-form-parts";
 import { jsonBridge, JsonToolsButton } from "@/components/features/admin-path/json-tools";
+import { LessonPreviewDialog } from "@/components/features/admin-path/lesson-preview-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { StepListEditor, type LinkedItem } from "@/components/features/admin-path/step-editor";
@@ -29,9 +30,9 @@ import {
     useAdminPathOverviewQuery,
     useSaveAdminRecordMutation,
 } from "@/queries/admin-path.query";
-import type { AdminValidation, ContentStatus, RowOrigin } from "@/types/admin-path/admin-path.type";
+import type { AdminRecordBody, AdminValidation, ContentStatus, RowOrigin } from "@/types/admin-path/admin-path.type";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Trash2 } from "lucide-react";
+import { Eye, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useFieldArray, useForm, useWatch } from "react-hook-form";
@@ -67,6 +68,7 @@ function LessonForm({
     const save = useSaveAdminRecordMutation();
     const [serverErrors, setServerErrors] = useState<string[]>([]);
     const [validation, setValidation] = useState<AdminValidation | null>(null);
+    const [preview, setPreview] = useState<AdminRecordBody | null>(null);
     const archived = status === "ARCHIVED";
 
     const form = useForm<LessonFormValues>({ resolver: zodResolver(lessonFormSchema), defaultValues: initial });
@@ -92,6 +94,17 @@ function LessonForm({
             },
         );
     });
+
+    // The current values, saved or not; the form must parse like a save would.
+    const openPreview = () => {
+        const parsed = lessonFormSchema.safeParse(form.getValues());
+        if (parsed.success) {
+            setPreview(lessonFormToRecord(parsed.data));
+        } else {
+            void form.trigger();
+            toast.error("Fix the marked fields to preview the lesson.");
+        }
+    };
 
     const stages = overview.data?.stages ?? [];
     const units = stages.flatMap((stage) =>
@@ -207,6 +220,9 @@ function LessonForm({
                         {save.isPending ? "Saving…" : slug ? "Save draft" : "Create lesson"}
                     </Button>
                 )}
+                <Button type="button" variant="outline" onClick={openPreview} className="gap-2">
+                    <Eye className="h-4 w-4" aria-hidden /> Preview
+                </Button>
                 <JsonToolsButton
                     bridge={jsonBridge(form, lessonFormSchema, lessonFormToRecord, recordToLessonForm)}
                     slug={slug}
@@ -214,6 +230,7 @@ function LessonForm({
                 />
                 {slug && <ArchiveRestoreButtons kind="lesson" slug={slug} archived={archived} onValidation={setValidation} />}
             </div>
+            <LessonPreviewDialog record={preview} onClose={() => setPreview(null)} />
         </form>
     );
 }

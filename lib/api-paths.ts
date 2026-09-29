@@ -151,6 +151,7 @@ export const apiPaths = {
         record: (kind: string, slug: string) => `/admin/path/content/${kind}/${slug}`,
         restore: (kind: string, slug: string) => `/admin/path/content/${kind}/${slug}/restore`,
         importUnit: () => '/admin/path/import',
+        reorder: () => '/admin/path/reorder',
     },
 
     learningSettings: () => user('learning-settings'),

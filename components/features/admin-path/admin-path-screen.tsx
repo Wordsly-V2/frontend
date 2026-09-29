@@ -6,22 +6,44 @@ import { PublishDialog } from "@/components/features/admin-path/publish-dialog";
 import { ReleasesCard } from "@/components/features/admin-path/releases-card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { adminErrorMessages } from "@/lib/admin-path/errors";
+import { liveSlugs, moveSlug } from "@/lib/admin-path/reorder";
 import { cn } from "@/lib/utils";
 import {
     useAdminPathOverviewQuery,
     useAdminSeedPlanQuery,
     useAdminValidateQuery,
+    useReorderAdminPathMutation,
 } from "@/queries/admin-path.query";
-import type { AdminPlacementNode, AdminUnitNode } from "@/types/admin-path/admin-path.type";
-import { AlertTriangle, CheckCircle2, Plus, RefreshCw, Rocket, Upload } from "lucide-react";
+import type { AdminPlacementNode, AdminReorderBody, AdminUnitNode } from "@/types/admin-path/admin-path.type";
+import { AlertTriangle, ArrowDown, ArrowUp, CheckCircle2, Plus, RefreshCw, Rocket, Upload } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
+import { toast } from "sonner";
+
+/** Moves one row among its live siblings; one move at a time for the whole screen. */
+interface Mover {
+    move: (kind: AdminReorderBody["kind"], parent: string, siblings: string[], slug: string, by: -1 | 1) => void;
+    busy: boolean;
+}
 
 /** /admin/path: the working copy, its health, and releases. */
 export function AdminPathScreen() {
     const overview = useAdminPathOverviewQuery();
     const seedPlan = useAdminSeedPlanQuery();
     const [publishing, setPublishing] = useState(false);
+    const reorder = useReorderAdminPathMutation();
+    const mover: Mover = {
+        busy: reorder.isPending,
+        move: (kind, parent, siblings, slug, by) => {
+            const slugs = moveSlug(siblings, slug, by);
+            if (!slugs || reorder.isPending) return;
+            reorder.mutate(
+                { kind, parent, slugs },
+                { onError: (error) => toast.error(adminErrorMessages(error).join(" ")) },
+            );
+        },
+    };
     const clashes = new Set(
         seedPlan.data?.changes.filter((c) => c.action === "conflict").map((c) => `${c.kind}:${c.slug}`),
     );
@@ -93,7 +115,16 @@ export function AdminPathScreen() {
                         {stage.units.length === 0 ? (
                             <p className="text-sm text-muted-foreground">No units yet.</p>
                         ) : (
-                            stage.units.map((unit) => <UnitRow key={unit.id} unit={unit} clashes={clashes} />)
+                            stage.units.map((unit) => (
+                                <UnitRow
+                                    key={unit.id}
+                                    unit={unit}
+                                    stage={stage.slug}
+                                    siblings={liveSlugs(stage.units)}
+                                    mover={mover}
+                                    clashes={clashes}
+                                />
+                            ))
                         )}
                     </div>
                 ))}
@@ -250,11 +281,63 @@ function RecordLink({ kind, slug, children }: Readonly<{ kind: string; slug: str
     );
 }
 
-function UnitRow({ unit, clashes }: Readonly<{ unit: AdminUnitNode; clashes: Set<string> }>) {
+/** Up and down buttons for a live row; archived rows keep their place and don't move. */
+function MoveButtons({
+    kind,
+    parent,
+    siblings,
+    slug,
+    title,
+    mover,
+}: Readonly<{
+    kind: AdminReorderBody["kind"];
+    parent: string;
+    siblings: string[];
+    slug: string;
+    title: string;
+    mover: Mover;
+}>) {
+    const at = siblings.indexOf(slug);
+    if (at < 0 || siblings.length < 2) return null;
+    const button = (by: -1 | 1, Icon: typeof ArrowUp, label: string, disabled: boolean) => (
+        <Button
+            type="button"
+            size="icon"
+            variant="ghost"
+            className="h-7 w-7"
+            aria-label={`${label}: ${title}`}
+            title={label}
+            disabled={disabled || mover.busy}
+            onClick={(e) => {
+                // Inside a <summary> a click would also fold the unit.
+                e.preventDefault();
+                mover.move(kind, parent, siblings, slug, by);
+            }}
+        >
+            <Icon className="h-3.5 w-3.5" aria-hidden />
+        </Button>
+    );
+    return (
+        <span className="inline-flex">
+            {button(-1, ArrowUp, "Move up", at === 0)}
+            {button(1, ArrowDown, "Move down", at === siblings.length - 1)}
+        </span>
+    );
+}
+
+function UnitRow({
+    unit,
+    stage,
+    siblings,
+    mover,
+    clashes,
+}: Readonly<{ unit: AdminUnitNode; stage: string; siblings: string[]; mover: Mover; clashes: Set<string> }>) {
     const newFor = (kind: string) => `/admin/path/${kind}/new?unit=${unit.slug}`;
+    const lessons = liveSlugs(unit.lessons);
     return (
         <details className="glass-surface group rounded-2xl">
             <summary className="flex cursor-pointer list-none flex-wrap items-center gap-2 p-4">
+                <MoveButtons kind="unit" parent={stage} siblings={siblings} slug={unit.slug} title={unit.title} mover={mover} />
                 <span className="font-semibold">
                     {unit.order}. {unit.title}
                 </span>
@@ -282,6 +365,14 @@ function UnitRow({ unit, clashes }: Readonly<{ unit: AdminUnitNode; clashes: Set
                     <ul className="space-y-1 text-sm">
                         {unit.lessons.map((lesson) => (
                             <li key={lesson.id} className="flex flex-wrap items-center gap-2">
+                                <MoveButtons
+                                    kind="lesson"
+                                    parent={unit.slug}
+                                    siblings={lessons}
+                                    slug={lesson.slug}
+                                    title={lesson.title}
+                                    mover={mover}
+                                />
                                 <RecordLink kind="lesson" slug={lesson.slug}>
                                     {lesson.order}. {lesson.title}
                                 </RecordLink>
