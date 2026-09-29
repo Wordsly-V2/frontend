@@ -7,6 +7,8 @@ import type {
     AdminRecord,
     AdminRecordBody,
     AdminRelease,
+    AdminReorderBody,
+    AdminReorderResult,
     AdminSeedPlan,
     AdminTree,
     AdminValidation,
@@ -50,3 +52,7 @@ export const restoreAdminRecord = (kind: AdminKind, slug: string): Promise<Admin
 /** Dry run unless `apply`; an apply with `errors` writes nothing and answers `dryRun: true`. */
 export const importAdminUnit = (body: AdminRecordBody, apply: boolean): Promise<AdminImportResult> =>
     request((i) => i.post(apiPaths.adminPath.importUnit(), body, { params: { dryRun: String(!apply) } }));
+
+/** 409 when `slugs` is not exactly the parent's live children (someone else changed them). */
+export const reorderAdminPath = (body: AdminReorderBody): Promise<AdminReorderResult> =>
+    request((i) => i.post(apiPaths.adminPath.reorder(), body));

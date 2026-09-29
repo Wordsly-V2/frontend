@@ -6,6 +6,7 @@ import { IntroStep } from "@/components/features/path/lesson-player/intro-step";
 import { LessonSummary } from "@/components/features/path/lesson-player/lesson-summary";
 import { PatternDrillStep } from "@/components/features/path/lesson-player/pattern-drill-step";
 import { PracticeStep } from "@/components/features/path/lesson-player/practice-step";
+import { PreviewEnd, PreviewSkippedStep } from "@/components/features/path/lesson-player/preview-steps";
 import { QuizStep, type QuizResult } from "@/components/features/path/lesson-player/quiz-step";
 import { SpeakStep } from "@/components/features/path/lesson-player/speak-step";
 import { WarmupStep } from "@/components/features/path/lesson-player/warmup-step";
@@ -93,8 +94,15 @@ function lessonDialogues(lesson: PathLesson): PathDialogue[] {
 /** Steps that run the practice engine, which brings its own session header. */
 const ENGINE_STEPS = new Set<PlayableStep["type"]>(["WARMUP", "PRACTICE"]);
 
-/** Runs a lesson's steps in order, then shows the summary. */
-export function LessonPlayer({ lesson }: Readonly<{ lesson: PathLesson }>) {
+/**
+ * Runs a lesson's steps in order, then shows the summary. With `preview` (the
+ * admin lesson editor) nothing is saved: WARMUP and PRACTICE, which run the
+ * practice engine, are shown instead of played, and the end records nothing.
+ */
+export function LessonPlayer({
+    lesson,
+    preview,
+}: Readonly<{ lesson: PathLesson; preview?: { onExit: () => void } }>) {
     const router = useRouter();
     const steps = useMemo(() => playableSteps(lesson), [lesson]);
     const dialogues = useMemo(() => lessonDialogues(lesson), [lesson]);
@@ -106,7 +114,7 @@ export function LessonPlayer({ lesson }: Readonly<{ lesson: PathLesson }>) {
 
     const finished = index >= steps.length;
     const step = steps[index];
-    const exit = () => router.push(pathUnitHref(lesson.unitId));
+    const exit = preview?.onExit ?? (() => router.push(pathUnitHref(lesson.unitId)));
     // Moves on from `from` only: a step that reports done twice (StrictMode's
     // double effect on a step that skips itself) must not skip the next one.
     const advanceFrom = (from: number) => {
@@ -115,7 +123,8 @@ export function LessonPlayer({ lesson }: Readonly<{ lesson: PathLesson }>) {
         globalThis.scrollTo?.({ top: 0, behavior: "smooth" });
     };
     const next = () => advanceFrom(index);
-    const engineStep = !finished && ENGINE_STEPS.has(step.type);
+    const engineStep = !preview && !finished && ENGINE_STEPS.has(step.type);
+    const scorePercent = quiz.total > 0 ? Math.round((quiz.correct / quiz.total) * 100) : undefined;
 
     return (
         <div className="space-y-5">
@@ -129,14 +138,26 @@ export function LessonPlayer({ lesson }: Readonly<{ lesson: PathLesson }>) {
                 />
             )}
 
-            {finished ? (
-                <LessonSummary
-                    lesson={lesson}
-                    scorePercent={
-                        quiz.total > 0 ? Math.round((quiz.correct / quiz.total) * 100) : undefined
-                    }
+            {finished && preview && <PreviewEnd scorePercent={scorePercent} onExit={exit} />}
+            {finished && !preview && <LessonSummary lesson={lesson} scorePercent={scorePercent} />}
+            {!finished && preview && step.type === "WARMUP" && (
+                <PreviewSkippedStep
+                    key={step.id}
+                    title="Warm-up"
+                    detail={`Learners review up to ${step.payload.maxItems} Path items that are due. Skipped here: it would grade their cards.`}
+                    onDone={next}
                 />
-            ) : (
+            )}
+            {!finished && preview && step.type === "PRACTICE" && (
+                <PreviewSkippedStep
+                    key={step.id}
+                    title="Practice"
+                    detail={`Learners drill these items (${step.modes.join(", ") || "the default mix"}). Not run here: it would save answers.`}
+                    items={step.items}
+                    onDone={next}
+                />
+            )}
+            {!finished && !(preview && ENGINE_STEPS.has(step.type)) && (
                 // Keyed so every step starts with fresh local state.
                 <div key={step.id}>
                     {step.type === "WARMUP" && (

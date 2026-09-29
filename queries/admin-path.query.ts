@@ -8,13 +8,14 @@ import {
     getAdminSeedPlan,
     importAdminUnit,
     publishAdminRelease,
+    reorderAdminPath,
     restoreAdminRecord,
     updateAdminRecord,
     validateAdminPath,
 } from "@/apis/admin-path.api";
 import { queryKeys } from "@/lib/query-keys";
-import type { AdminKind, AdminRecordBody, AdminWriteResult } from "@/types/admin-path/admin-path.type";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import type { AdminKind, AdminRecordBody, AdminReorderBody, AdminWriteResult } from "@/types/admin-path/admin-path.type";
+import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 
 // Admin data changes under other admins' hands; always refetch on visit.
 const FRESH = { staleTime: 0 } as const;
@@ -37,6 +38,17 @@ export const useAdminRecordQuery = (kind: AdminKind, slug: string | null) =>
         queryFn: () => getAdminRecord(kind, slug!),
         enabled: !!slug,
         ...FRESH,
+    });
+
+/** Several records of one kind (a lesson preview's items and dialogues); a missing one errors. */
+export const useAdminRecordsQueries = (kind: AdminKind, slugs: string[]) =>
+    useQueries({
+        queries: slugs.map((slug) => ({
+            queryKey: queryKeys.adminPath.record(kind, slug),
+            queryFn: () => getAdminRecord(kind, slug),
+            retry: false,
+            ...FRESH,
+        })),
     });
 
 /**
@@ -91,5 +103,14 @@ export const useImportAdminUnitMutation = () => {
         onSuccess: async (result) => {
             if (!result.dryRun) await queryClient.invalidateQueries({ queryKey: queryKeys.adminPath.all });
         },
+    });
+};
+
+/** Moved rows change the tree, the validation and the seed plan, and each moved record. */
+export const useReorderAdminPathMutation = () => {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (body: AdminReorderBody) => reorderAdminPath(body),
+        onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.adminPath.all }),
     });
 };
