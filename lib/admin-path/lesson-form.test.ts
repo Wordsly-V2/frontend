@@ -44,12 +44,12 @@ describe("lesson form", () => {
         expect(form.steps).toHaveLength(1);
     });
 
-    it("refuses a payload that isn't a JSON object, and a lesson without steps", () => {
+    it("refuses a step that isn't filled in, and a lesson without steps", () => {
         const form = recordToLessonForm(lesson);
-        form.steps[0].payload = "{ not json";
-        form.steps[1].payload = "[1, 2]";
+        form.steps[0].maxItems = "0";
+        form.steps[1].prompts[0].answer = " ";
         const bad = lessonFormSchema.safeParse(form);
-        expect(bad.error?.issues.map((i) => i.path.join("."))).toEqual(["steps.0.payload", "steps.1.payload"]);
+        expect(bad.error?.issues.map((i) => i.path.join("."))).toEqual(["steps.0.maxItems", "steps.1.prompts.0.answer"]);
         expect(lessonFormSchema.safeParse({ ...form, steps: [] }).success).toBe(false);
     });
 

@@ -13,12 +13,13 @@ import {
 } from "@/lib/admin-path/question-form";
 import { ArrowDown, ArrowUp, Copy, Trash2 } from "lucide-react";
 import { useEffect, useRef } from "react";
-import { useFieldArray, useWatch, type UseFormReturn } from "react-hook-form";
+import { get, useFieldArray, useWatch, type FieldError as RhfFieldError, type FieldErrors, type UseFormReturn } from "react-hook-form";
 
 /**
  * The part of a form this editor owns. A unit test or placement form passes
  * its own `useForm` cast to this shape (`form as unknown as QuestionListForm`):
- * react-hook-form types can't say "any form with a `questions` array".
+ * react-hook-form types can't say "any form with a `questions` array". A form
+ * whose array lives deeper (a lesson's quiz step) passes its path as `name`.
  */
 export type QuestionListForm = UseFormReturn<{
     questions: QuestionFormValues[];
@@ -41,26 +42,32 @@ const KIND_OPTIONS = QUESTION_KINDS.map((k) => ({
  */
 export function QuestionListEditor({
     form,
+    name: path = "questions",
     items,
     units,
 }: Readonly<{
     form: QuestionListForm;
+    /** Where the questions array is in the form, like `steps.3.questions`. */
+    name?: string;
     /** Item slugs offered for "item tested", with their text. */
     items: readonly PickOption[];
     /** Units in path order; given only for placement questions. */
     units?: readonly PickOption[];
 }>) {
     const { control, formState } = form;
-    const list = useFieldArray({ control, name: "questions" });
-    const watched = useWatch({ control, name: "questions" });
+    // Typed as the default path; at runtime it can be any path to such an array.
+    const name = path as "questions";
+    const list = useFieldArray({ control, name });
+    const watched = useWatch({ control, name });
+    const listError = get(formState.errors, name) as RhfFieldError | undefined;
     const unitLabel = new Map(units?.map((u) => [u.value, u.label]));
 
     const insert = (index: number, question: QuestionFormValues) => list.insert(index, question);
 
     return (
         <div className="space-y-3">
-            {formState.errors.questions?.message && <FieldError message={formState.errors.questions.message} />}
-            <datalist id="admin-question-items">
+            {listError?.message && <FieldError message={listError.message} />}
+            <datalist id={`${name}-items`}>
                 {items.map((item) => (
                     <option key={item.value} value={item.value}>
                         {item.label}
@@ -89,6 +96,7 @@ export function QuestionListEditor({
                             )}
                             <QuestionCard
                                 form={form}
+                                name={name}
                                 index={i}
                                 count={list.fields.length}
                                 units={units}
@@ -116,6 +124,7 @@ function summary(q: QuestionFormValues | undefined): string {
 
 function QuestionCard({
     form,
+    name,
     index: i,
     count,
     units,
@@ -124,6 +133,7 @@ function QuestionCard({
     onRemove,
 }: Readonly<{
     form: QuestionListForm;
+    name: "questions";
     index: number;
     count: number;
     units?: readonly PickOption[];
@@ -132,10 +142,10 @@ function QuestionCard({
     onRemove: () => void;
 }>) {
     const { register, control, formState, getValues, setValue } = form;
-    const q = useWatch({ control, name: `questions.${i}` });
-    const errors = formState.errors.questions?.[i];
-    const options = useFieldArray({ control, name: `questions.${i}.options` });
-    const answers = useFieldArray({ control, name: `questions.${i}.answers` });
+    const q = useWatch({ control, name: `${name}.${i}` });
+    const errors = get(formState.errors, `${name}.${i}`) as FieldErrors<QuestionFormValues> | undefined;
+    const options = useFieldArray({ control, name: `${name}.${i}.options` });
+    const answers = useFieldArray({ control, name: `${name}.${i}.answers` });
 
     // Folded by default; a new (blank) question opens, and so does one with errors.
     // Opened through the element, so fixing the errors doesn't fold it mid-edit.
@@ -152,12 +162,12 @@ function QuestionCard({
 
     // Keep the right answer on the same option when one above it goes.
     const removeOption = (j: number) => {
-        const answer = getValues(`questions.${i}.answer`);
+        const answer = getValues(`${name}.${i}.answer`);
         if (answer !== "") {
             const picked = Number(answer);
-            if (picked === j) setValue(`questions.${i}.answer`, "", { shouldDirty: true });
+            if (picked === j) setValue(`${name}.${i}.answer`, "", { shouldDirty: true });
             else if (picked > j)
-                setValue(`questions.${i}.answer`, String(picked - 1), {
+                setValue(`${name}.${i}.answer`, String(picked - 1), {
                     shouldDirty: true,
                 });
         }
@@ -176,7 +186,7 @@ function QuestionCard({
             <div className="space-y-4 border-t border-border p-3">
                 <div className="flex flex-wrap items-end gap-3">
                     <div className="min-w-48 flex-1">
-                        <SelectField label="Kind" options={KIND_OPTIONS} registration={register(`questions.${i}.kind`)} />
+                        <SelectField label="Kind" options={KIND_OPTIONS} registration={register(`${name}.${i}.kind`)} />
                     </div>
                     {units && (
                         <div className="min-w-48 flex-1">
@@ -185,7 +195,7 @@ function QuestionCard({
                                 error={errors?.unit?.message}
                                 options={units}
                                 placeholder="Choose a unit…"
-                                registration={register(`questions.${i}.unit`)}
+                                registration={register(`${name}.${i}.unit`)}
                             />
                         </div>
                     )}
@@ -222,10 +232,10 @@ function QuestionCard({
                 {q?.kind === "choice" && (
                     <>
                         <Field label="Prompt (what the learner reads)" error={errors?.prompt?.message}>
-                            <Input {...register(`questions.${i}.prompt`)} />
+                            <Input {...register(`${name}.${i}.prompt`)} />
                         </Field>
                         <Field label="Audio text (optional: played aloud before the options)" error={errors?.audioText?.message}>
-                            <Input {...register(`questions.${i}.audioText`)} />
+                            <Input {...register(`${name}.${i}.audioText`)} />
                         </Field>
                         <fieldset className="space-y-2">
                             <div className="flex items-center justify-between gap-2">
@@ -238,12 +248,12 @@ function QuestionCard({
                                         <input
                                             type="radio"
                                             value={String(j)}
-                                            {...register(`questions.${i}.answer`)}
+                                            {...register(`${name}.${i}.answer`)}
                                             aria-label={`Option ${j + 1} is right`}
                                             className="mt-3 h-4 w-4 accent-primary"
                                         />
                                         <div className="flex-1">
-                                            <Input {...register(`questions.${i}.options.${j}.text`)} aria-label={`Option ${j + 1}`} />
+                                            <Input {...register(`${name}.${i}.options.${j}.text`)} aria-label={`Option ${j + 1}`} />
                                             {errors?.options?.[j]?.text && <FieldError message={errors.options[j].text.message ?? ""} />}
                                         </div>
                                         <Button
@@ -267,16 +277,16 @@ function QuestionCard({
                 {q?.kind === "gap" && (
                     <>
                         <Field label="Sentence, with the gap written as ___" error={errors?.sentence?.message}>
-                            <Input {...register(`questions.${i}.sentence`)} placeholder="Can I ___ some water, please?" />
+                            <Input {...register(`${name}.${i}.sentence`)} placeholder="Can I ___ some water, please?" />
                         </Field>
                         <Field label="Hint (Vietnamese, optional)" error={errors?.hintVi?.message}>
-                            <Input {...register(`questions.${i}.hintVi`)} />
+                            <Input {...register(`${name}.${i}.hintVi`)} />
                         </Field>
                         <ListField
                             label="Accepted answer"
                             addLabel="Add answer"
                             fields={answers.fields}
-                            registration={(j) => register(`questions.${i}.answers.${j}.text`)}
+                            registration={(j) => register(`${name}.${i}.answers.${j}.text`)}
                             errors={answers.fields.map((_, j) => errors?.answers?.[j]?.text?.message)}
                             error={errors?.answers?.message}
                             onAdd={() => answers.append({ text: "" })}
@@ -288,10 +298,10 @@ function QuestionCard({
                 {q?.kind === "order" && (
                     <>
                         <Field label="Meaning (Vietnamese)" error={errors?.vi?.message}>
-                            <Input {...register(`questions.${i}.vi`)} />
+                            <Input {...register(`${name}.${i}.vi`)} />
                         </Field>
                         <Field label="Answer (the English sentence; its words get shuffled)" error={errors?.orderAnswer?.message}>
-                            <Input {...register(`questions.${i}.orderAnswer`)} />
+                            <Input {...register(`${name}.${i}.orderAnswer`)} />
                         </Field>
                         {orderTiles(q.orderAnswer).length > 0 && (
                             <p className="flex flex-wrap gap-1.5" aria-label="Word tiles">
@@ -307,10 +317,10 @@ function QuestionCard({
 
                 <div className="grid gap-4 sm:grid-cols-2">
                     <Field label="Item tested (optional, for per-item scoring)" error={errors?.item?.message}>
-                        <Input {...register(`questions.${i}.item`)} list="admin-question-items" className="font-mono" autoComplete="off" />
+                        <Input {...register(`${name}.${i}.item`)} list={`${name}-items`} className="font-mono" autoComplete="off" />
                     </Field>
                     <Field label="Explanation (Vietnamese, optional)" error={errors?.explanationVi?.message}>
-                        <textarea {...register(`questions.${i}.explanationVi`)} rows={1} className={FIELD} />
+                        <textarea {...register(`${name}.${i}.explanationVi`)} rows={1} className={FIELD} />
                     </Field>
                 </div>
             </div>

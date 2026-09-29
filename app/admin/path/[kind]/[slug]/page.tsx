@@ -2,6 +2,7 @@
 
 import { EmptyState, Skeleton } from "@/components/common/states";
 import { AdminCheckpointEditor } from "@/components/features/admin-path/checkpoint-editor";
+import { AdminDialogueEditor } from "@/components/features/admin-path/dialogue-editor";
 import { AdminLessonEditor } from "@/components/features/admin-path/lesson-editor";
 import { AdminPlacementEditor } from "@/components/features/admin-path/placement-editor";
 import { AdminRecordJsonEditor } from "@/components/features/admin-path/record-json-editor";
@@ -11,7 +12,7 @@ import { ADMIN_KINDS, type AdminKind } from "@/types/admin-path/admin-path.type"
 import { useSearchParams } from "next/navigation";
 import { Suspense, use } from "react";
 
-/** /admin/path/[kind]/[slug]: dialogues edit as JSON, every other kind has a form (items have their own route). */
+/** /admin/path/[kind]/[slug]: every kind has a form (items have their own route). */
 export default function AdminRecordPage({ params }: Readonly<{ params: Promise<{ kind: string; slug: string }> }>) {
     const { kind, slug } = use(params);
     const known = (ADMIN_KINDS as readonly string[]).includes(kind);
@@ -40,5 +41,6 @@ function Editor({ kind, slug }: Readonly<{ kind: AdminKind; slug: string }>) {
     if (kind === "checkpoint") return <AdminCheckpointEditor slug={slug} unit={unit} />;
     if (kind === "placement") return <AdminPlacementEditor slug={slug} />;
     if (kind === "lesson") return <AdminLessonEditor slug={slug} unit={unit} />;
-    return <AdminRecordJsonEditor kind={kind} slug={slug} unit={unit} />;
+    if (kind === "dialogue") return <AdminDialogueEditor slug={slug} unit={unit} />;
+    return <AdminRecordJsonEditor kind={kind} slug={slug} />;
 }

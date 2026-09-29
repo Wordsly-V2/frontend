@@ -18,20 +18,6 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
 
-/** Starting points for a new record (the server checks the full shape). */
-const TEMPLATES: Partial<Record<AdminKind, (unit: string) => object>> = {
-    dialogue: (unit) => ({
-        slug: "",
-        unit,
-        title: "",
-        situationVi: "",
-        lines: [
-            { speaker: "", en: "", vi: "" },
-            { speaker: "You", en: "", vi: "", learnerTurn: true },
-        ],
-    }),
-};
-
 const LABEL: Record<AdminKind, string> = {
     stage: "stage",
     unit: "unit",
@@ -43,10 +29,12 @@ const LABEL: Record<AdminKind, string> = {
 };
 
 /**
- * The record as JSON, for the kinds without a form of their own (dialogues). The server validates it with the seed's schema and
- * answers with every problem, so this stays a thin text editor.
+ * A record as raw seed-shaped JSON. Every kind has a form now; this stays as
+ * the fallback of the generic route (and the base of "Edit as JSON", P5-4).
+ * The server validates it with the seed's schema and answers with every
+ * problem, so this stays a thin text editor.
  */
-export function AdminRecordJsonEditor({ kind, slug, unit }: Readonly<{ kind: AdminKind; slug: string; unit?: string }>) {
+export function AdminRecordJsonEditor({ kind, slug }: Readonly<{ kind: AdminKind; slug: string }>) {
     const isNew = slug === "new";
     const record = useAdminRecordQuery(kind, isNew ? null : slug);
 
@@ -55,7 +43,7 @@ export function AdminRecordJsonEditor({ kind, slug, unit }: Readonly<{ kind: Adm
         return <ErrorState message={`Couldn't load ${LABEL[kind]} ${slug}.`} onRetry={() => void record.refetch()} />;
     }
 
-    const initial = record.data?.record ?? TEMPLATES[kind]?.(unit ?? "") ?? { slug: "" };
+    const initial = record.data?.record ?? { slug: "" };
     return <JsonForm key={slug} kind={kind} slug={isNew ? null : slug} initial={initial} meta={record.data} />;
 }
 
