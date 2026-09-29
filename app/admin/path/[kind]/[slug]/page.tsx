@@ -3,11 +3,13 @@
 import { EmptyState, Skeleton } from "@/components/common/states";
 import { AdminLessonEditor } from "@/components/features/admin-path/lesson-editor";
 import { AdminRecordJsonEditor } from "@/components/features/admin-path/record-json-editor";
+import { AdminStageEditor } from "@/components/features/admin-path/stage-editor";
+import { AdminUnitEditor } from "@/components/features/admin-path/unit-editor";
 import { ADMIN_KINDS, type AdminKind } from "@/types/admin-path/admin-path.type";
 import { useSearchParams } from "next/navigation";
 import { Suspense, use } from "react";
 
-/** /admin/path/[kind]/[slug]: lessons get a form, other kinds edit as JSON (items have their own route). */
+/** /admin/path/[kind]/[slug]: stages, units and lessons get a form, other kinds edit as JSON (items have their own route). */
 export default function AdminRecordPage({ params }: Readonly<{ params: Promise<{ kind: string; slug: string }> }>) {
     const { kind, slug } = use(params);
     const known = (ADMIN_KINDS as readonly string[]).includes(kind);
@@ -27,9 +29,12 @@ export default function AdminRecordPage({ params }: Readonly<{ params: Promise<{
     );
 }
 
-/** `?unit=` preselects the unit of a new record. */
+/** `?unit=` preselects the unit of a new record, `?stage=` the stage of a new unit. */
 function Editor({ kind, slug }: Readonly<{ kind: AdminKind; slug: string }>) {
-    const unit = useSearchParams().get("unit") ?? undefined;
+    const params = useSearchParams();
+    const unit = params.get("unit") ?? undefined;
+    if (kind === "stage") return <AdminStageEditor slug={slug} />;
+    if (kind === "unit") return <AdminUnitEditor slug={slug} stage={params.get("stage") ?? undefined} />;
     if (kind === "lesson") return <AdminLessonEditor slug={slug} unit={unit} />;
     return <AdminRecordJsonEditor kind={kind} slug={slug} unit={unit} />;
 }

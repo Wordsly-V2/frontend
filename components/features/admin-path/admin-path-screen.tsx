@@ -65,14 +65,23 @@ export function AdminPathScreen() {
             </div>
 
             <section aria-label="Content" className="space-y-6">
+                <div className="flex items-center justify-between gap-2">
+                    <h2 className="font-semibold">Stages</h2>
+                    <NewLink href="/admin/path/stage/new" label="New stage" />
+                </div>
                 {stages.map((stage) => (
                     <div key={stage.id} className="space-y-2">
-                        <div className="flex items-center justify-between gap-2">
-                            <h2 className="flex items-center gap-2 font-display text-lg font-bold">
-                                {stage.title}
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                            <h2 className="flex flex-wrap items-center gap-2 font-display text-lg font-bold">
+                                <RecordLink kind="stage" slug={stage.slug}>
+                                    <span className={cn(stage.status === "ARCHIVED" && "line-through")}>{stage.title}</span>
+                                </RecordLink>
                                 <Badge variant="muted">{stage.cefr}</Badge>
+                                {stage.status !== "PUBLISHED" && <StatusBadge status={stage.status} />}
+                                <OriginBadge origin={stage.origin} />
+                                <ClashBadge kind="stage" slug={stage.slug} clashes={clashes} />
                             </h2>
-                            <NewLink href="/admin/path/unit/new" label="New unit" />
+                            {stage.status !== "ARCHIVED" && <NewLink href={`/admin/path/unit/new?stage=${stage.slug}`} label="New unit" />}
                         </div>
                         {stage.units.length === 0 ? (
                             <p className="text-sm text-muted-foreground">No units yet.</p>

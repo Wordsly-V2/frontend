@@ -7,8 +7,11 @@ export type ContentStatus = "DRAFT" | "PUBLISHED" | "ARCHIVED";
 /** seed: as imported · edited: an admin changed a seeded row · admin: no seed behind it */
 export type RowOrigin = "seed" | "edited" | "admin";
 
-export const ADMIN_KINDS = ["unit", "item", "dialogue", "lesson", "checkpoint", "placement"] as const;
+export const ADMIN_KINDS = ["stage", "unit", "item", "dialogue", "lesson", "checkpoint", "placement"] as const;
 export type AdminKind = (typeof ADMIN_KINDS)[number];
+
+export const CEFR_LEVELS = ["PRE_A1", "A1", "A2", "B1", "B2", "C1"] as const;
+export type CefrLevel = (typeof CEFR_LEVELS)[number];
 
 export interface AdminNode {
     id: string;
@@ -65,7 +68,7 @@ export interface AdminSeedPlan {
     available: boolean;
     errors: string[];
     summary: Record<SeedPlanAction, number> | null;
-    changes: { kind: AdminKind | "stage"; slug: string; action: SeedPlanAction; reason: string }[];
+    changes: { kind: AdminKind; slug: string; action: SeedPlanAction; reason: string }[];
 }
 
 export interface AdminRelease {
