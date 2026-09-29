@@ -1,13 +1,19 @@
 "use client";
 
 import ConfirmDialog from "@/components/common/confirm-dialog/confirm-dialog";
+import { ErrorState, Skeleton } from "@/components/common/states";
 import { OriginBadge, StatusBadge } from "@/components/features/admin-path/admin-badges";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { adminErrorMessages } from "@/lib/admin-path/errors";
-import { useArchiveAdminRecordMutation, useRestoreAdminRecordMutation } from "@/queries/admin-path.query";
-import type { AdminKind, AdminValidation, ContentStatus, RowOrigin } from "@/types/admin-path/admin-path.type";
+import {
+    useAdminPathOverviewQuery,
+    useAdminRecordQuery,
+    useArchiveAdminRecordMutation,
+    useRestoreAdminRecordMutation,
+} from "@/queries/admin-path.query";
+import type { AdminKind, AdminRecord, AdminTree, AdminValidation, ContentStatus, RowOrigin } from "@/types/admin-path/admin-path.type";
 import { ArrowLeft, Plus, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -283,6 +289,32 @@ export function EditorHeader({
             </div>
         </header>
     );
+}
+
+export type EditorLoad = { gate: React.ReactElement } | { gate: null; record: AdminRecord | undefined; tree: AdminTree };
+
+/**
+ * What an editor mounts its form with: the record (none for `new`) and the
+ * overview its pickers list. A select mounted before its options drops its
+ * value, and form defaults are read once, so the form waits for both; until
+ * then `gate` is the skeleton or the error to render instead.
+ */
+export function useEditorLoad(kind: AdminKind, slug: string, what: string = kind): EditorLoad {
+    const isNew = slug === "new";
+    const record = useAdminRecordQuery(kind, isNew ? null : slug);
+    const overview = useAdminPathOverviewQuery();
+    const waiting = [overview, ...(isNew ? [] : [record])].filter((q) => !q.data);
+
+    if (overview.data && waiting.length === 0) return { gate: null, record: record.data, tree: overview.data };
+    if (waiting.some((q) => q.isFetching)) return { gate: <Skeleton aria-busy className="h-96 w-full rounded-2xl" /> };
+    return {
+        gate: (
+            <ErrorState
+                message={isNew ? "Couldn't load the content." : `Couldn't load ${what} ${slug}.`}
+                onRetry={() => waiting.forEach((q) => void q.refetch())}
+            />
+        ),
+    };
 }
 
 /** Warns before leaving the page with unsaved edits. */

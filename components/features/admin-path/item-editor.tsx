@@ -1,6 +1,5 @@
 "use client";
 
-import { ErrorState, Skeleton } from "@/components/common/states";
 import {
     AddButton,
     ArchiveRestoreButtons,
@@ -11,6 +10,7 @@ import {
     FieldError,
     Row,
     Section,
+    useEditorLoad,
     useUnsavedWarning,
 } from "@/components/features/admin-path/admin-form-parts";
 import { Button } from "@/components/ui/button";
@@ -26,7 +26,6 @@ import {
 } from "@/lib/admin-path/item-form";
 import {
     useAdminPathOverviewQuery,
-    useAdminRecordQuery,
     useSaveAdminRecordMutation,
 } from "@/queries/admin-path.query";
 import type { AdminValidation } from "@/types/admin-path/admin-path.type";
@@ -42,21 +41,15 @@ import { toast } from "sonner";
  * Saving makes it a draft; learners see it after the next publish.
  */
 export function AdminItemEditor({ slug, unit }: Readonly<{ slug: string; unit?: string }>) {
-    const isNew = slug === "new";
-    const record = useAdminRecordQuery("item", isNew ? null : slug);
-
-    if (!isNew && !record.data) {
-        if (record.isFetching) return <Skeleton aria-busy className="h-96 w-full rounded-2xl" />;
-        return <ErrorState message={`Couldn't load item ${slug}.`} onRetry={() => void record.refetch()} />;
-    }
-
+    const load = useEditorLoad("item", slug);
+    if (load.gate) return load.gate;
     return (
         <ItemForm
             key={slug}
-            slug={isNew ? null : slug}
-            initial={record.data ? recordToItemForm(record.data.record) : emptyItemForm(unit)}
-            status={record.data?.status}
-            origin={record.data?.origin}
+            slug={load.record ? slug : null}
+            initial={load.record ? recordToItemForm(load.record.record) : emptyItemForm(unit)}
+            status={load.record?.status}
+            origin={load.record?.origin}
         />
     );
 }

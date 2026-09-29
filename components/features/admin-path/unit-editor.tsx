@@ -1,6 +1,5 @@
 "use client";
 
-import { ErrorState, Skeleton } from "@/components/common/states";
 import {
     ArchiveRestoreButtons,
     EditorHeader,
@@ -11,6 +10,7 @@ import {
     Section,
     SelectField,
     SlugField,
+    useEditorLoad,
     useUnsavedWarning,
 } from "@/components/features/admin-path/admin-form-parts";
 import { Button } from "@/components/ui/button";
@@ -23,11 +23,7 @@ import {
     unitFormToRecord,
     type UnitFormValues,
 } from "@/lib/admin-path/stage-form";
-import {
-    useAdminPathOverviewQuery,
-    useAdminRecordQuery,
-    useSaveAdminRecordMutation,
-} from "@/queries/admin-path.query";
+import { useSaveAdminRecordMutation } from "@/queries/admin-path.query";
 import type { AdminStageNode, AdminValidation, ContentStatus, RowOrigin } from "@/types/admin-path/admin-path.type";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
@@ -40,27 +36,19 @@ import { toast } from "sonner";
  * items, dialogues and test have their own editors.
  */
 export function AdminUnitEditor({ slug, stage }: Readonly<{ slug: string; stage?: string }>) {
-    const isNew = slug === "new";
-    const record = useAdminRecordQuery("unit", isNew ? null : slug);
-    const overview = useAdminPathOverviewQuery();
-
-    const loading = isNew ? overview.data : record.data;
-    if (!loading) {
-        if (isNew ? overview.isFetching : record.isFetching) return <Skeleton aria-busy className="h-96 w-full rounded-2xl" />;
-        return <ErrorState message={`Couldn't load unit ${slug}.`} onRetry={() => void (isNew ? overview : record).refetch()} />;
-    }
-
+    const load = useEditorLoad("unit", slug);
+    if (load.gate) return load.gate;
     // A new unit goes after the last one of its stage.
-    const inStage = overview.data?.stages.find((s) => s.slug === stage)?.units ?? [];
+    const inStage = load.tree.stages.find((s) => s.slug === stage)?.units ?? [];
     const nextOrder = Math.max(0, ...inStage.map((u) => u.order)) + 1;
     return (
         <UnitForm
             key={slug}
-            slug={isNew ? null : slug}
-            initial={record.data ? recordToUnitForm(record.data.record) : emptyUnitForm(stage, nextOrder)}
-            status={record.data?.status}
-            origin={record.data?.origin}
-            stages={overview.data?.stages ?? []}
+            slug={load.record ? slug : null}
+            initial={load.record ? recordToUnitForm(load.record.record) : emptyUnitForm(stage, nextOrder)}
+            status={load.record?.status}
+            origin={load.record?.origin}
+            stages={load.tree.stages}
         />
     );
 }

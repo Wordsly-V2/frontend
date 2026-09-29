@@ -30,12 +30,6 @@ const TEMPLATES: Partial<Record<AdminKind, (unit: string) => object>> = {
             { speaker: "You", en: "", vi: "", learnerTurn: true },
         ],
     }),
-    checkpoint: (unit) => ({ slug: "", unit, passPercent: 70, questions: [] }),
-    placement: () => ({
-        slug: "",
-        title: "Placement test",
-        questions: [{ unit: "", kind: "choice", prompt: "", options: ["", "", ""], answer: 0 }],
-    }),
 };
 
 const LABEL: Record<AdminKind, string> = {
@@ -49,8 +43,7 @@ const LABEL: Record<AdminKind, string> = {
 };
 
 /**
- * The record as JSON, for the kinds without a form of their own (dialogues,
- * unit tests, the placement test). The server validates it with the seed's schema and
+ * The record as JSON, for the kinds without a form of their own (dialogues). The server validates it with the seed's schema and
  * answers with every problem, so this stays a thin text editor.
  */
 export function AdminRecordJsonEditor({ kind, slug, unit }: Readonly<{ kind: AdminKind; slug: string; unit?: string }>) {
