@@ -1,4 +1,5 @@
 import {
+    deleteAdminUser,
     getAdminUser,
     getAdminUsers,
     getAdminUserStats,
@@ -57,5 +58,21 @@ export const useRevokeAdminUserSessionsMutation = () => {
     return useMutation({
         mutationFn: revokeAdminUserSessions,
         onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.adminUsers.all }),
+    });
+};
+
+/** After a delete the account is gone from every list, count and learner summary. */
+export const useDeleteAdminUserMutation = () => {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: deleteAdminUser,
+        onSuccess: async ({ userLoginId }) => {
+            queryClient.removeQueries({ queryKey: queryKeys.adminUsers.detail(userLoginId) });
+            await Promise.all(
+                [queryKeys.adminUsers.all, queryKeys.adminLearners.all, queryKeys.adminStats.all].map((queryKey) =>
+                    queryClient.invalidateQueries({ queryKey }),
+                ),
+            );
+        },
     });
 };

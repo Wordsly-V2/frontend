@@ -1,6 +1,7 @@
 import { apiPaths } from "@/lib/api-paths";
 import { request } from "@/lib/axios";
 import type {
+    AdminUserDeleted,
     AdminUserDetail,
     AdminUserList,
     AdminUsersQuery,
@@ -38,3 +39,11 @@ export const setAdminUserStatus = ({
 
 export const revokeAdminUserSessions = (userLoginId: string): Promise<{ sessionsEnded: number }> =>
     request((i) => i.post(apiPaths.adminUsers.revokeSessions(userLoginId)));
+
+/**
+ * Delete the account for good. Their learning data in the other services goes
+ * when auth's `user_deleted` event reaches them. 409 for your own account or
+ * the last active admin.
+ */
+export const deleteAdminUser = (userLoginId: string): Promise<AdminUserDeleted> =>
+    request((i) => i.delete(apiPaths.adminUsers.detail(userLoginId)));
