@@ -8,6 +8,7 @@ import { accountActions, formatDate, formatRelative, userLabel } from "@/lib/adm
 import { adminErrorMessages } from "@/lib/admin-path/errors";
 import {
     useAdminUserQuery,
+    useDeleteAdminUserMutation,
     useRevokeAdminUserSessionsMutation,
     useSetAdminUserRolesMutation,
     useSetAdminUserStatusMutation,
@@ -16,11 +17,13 @@ import { useAppSelector } from "@/store/hooks";
 import type { AdminUserDetail as AdminUser } from "@/types/admin-users/admin-users.type";
 import { FilterToggle } from "@/components/features/admin/filter-toggle";
 import { adminUserSearchParams, type AdminUserTab } from "@/lib/search-params/admin-user";
-import { ArrowLeft, Ban, Copy, LogOut, ShieldCheck, ShieldOff, UserCheck, UserX } from "lucide-react";
+import { ArrowLeft, Ban, Copy, LogOut, ShieldCheck, ShieldOff, Trash2, UserCheck, UserX } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useQueryStates } from "nuqs";
 import { useState } from "react";
 import { toast } from "sonner";
+import { DeleteAccountDialog } from "./delete-account-dialog";
 import { ActionRow, Fact } from "./detail-parts";
 import { LearnerLearningTab } from "./learner-learning-tab";
 import { LearnerPathTab } from "./learner-path-tab";
@@ -90,7 +93,7 @@ export function AdminUserDetail({ userLoginId }: Readonly<{ userLoginId: string 
     );
 }
 
-type Pending = "grant" | "revoke" | "suspend" | "reactivate" | "signout" | null;
+type Pending = "grant" | "revoke" | "suspend" | "reactivate" | "signout" | "delete" | null;
 
 function AccountView({ user }: Readonly<{ user: AdminUser }>) {
     const selfId = useAppSelector((state) => state.user.profile?.userLoginId);
@@ -99,6 +102,8 @@ function AccountView({ user }: Readonly<{ user: AdminUser }>) {
     const roles = useSetAdminUserRolesMutation();
     const status = useSetAdminUserStatusMutation();
     const signOut = useRevokeAdminUserSessionsMutation();
+    const remove = useDeleteAdminUserMutation();
+    const router = useRouter();
     const name = userLabel(user);
 
     const onError = (error: unknown) => toast.error(adminErrorMessages(error)[0]);
@@ -137,10 +142,31 @@ function AccountView({ user }: Readonly<{ user: AdminUser }>) {
                     onSettled: close,
                 });
                 break;
+            case "delete":
+                remove.mutate(user.userLoginId, {
+                    onSuccess: ({ eventPublished }) => {
+                        if (eventPublished) {
+                            toast.success(`${name} was deleted`, {
+                                description: "Their courses, progress and Path data are being removed.",
+                            });
+                        } else {
+                            toast.warning(`${name} was deleted`, {
+                                description:
+                                    "Their learning data will be removed once the message queue is reachable again. Nothing is lost.",
+                            });
+                        }
+                        router.push("/admin/users");
+                    },
+                    onError: (error) => {
+                        onError(error);
+                        close();
+                    },
+                });
+                break;
         }
     };
 
-    const dialog = pending ? DIALOGS[pending](name, actions.adminComesBack) : null;
+    const dialog = pending && pending !== "delete" ? DIALOGS[pending](name, actions.adminComesBack) : null;
 
     return (
         <div className="space-y-6">
@@ -244,6 +270,33 @@ function AccountView({ user }: Readonly<{ user: AdminUser }>) {
                 )}
             </section>
 
+            {actions.isSelf ? null : (
+                <section className="rounded-2xl border border-destructive/40 bg-card p-5">
+                    <h2 className="font-semibold text-destructive">Danger zone</h2>
+                    <div className="mt-4">
+                        <ActionRow
+                            title="Delete account"
+                            description="Deletes the account and all their learning data in every part of Wordsly. This can't be undone."
+                        >
+                            <Button variant="destructive" onClick={() => setPending("delete")}>
+                                <Trash2 className="h-4 w-4" />
+                                Delete account
+                            </Button>
+                        </ActionRow>
+                    </div>
+                </section>
+            )}
+
+            {pending === "delete" ? (
+                <DeleteAccountDialog
+                    user={user}
+                    name={name}
+                    onClose={close}
+                    onConfirm={confirm}
+                    isLoading={remove.isPending}
+                />
+            ) : null}
+
             {dialog ? (
                 <ConfirmDialog
                     isOpen
@@ -263,7 +316,7 @@ function AccountView({ user }: Readonly<{ user: AdminUser }>) {
 }
 
 const DIALOGS: Record<
-    Exclude<Pending, null>,
+    Exclude<Pending, null | "delete">,
     (name: string, adminComesBack: boolean) => { title: string; description: string; confirm: string; destructive?: boolean }
 > = {
     grant: (name) => ({

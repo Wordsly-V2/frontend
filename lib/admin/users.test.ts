@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { accountActions, formatRelative, totalPages, userLabel } from "@/lib/admin/users";
+import { accountActions, confirmsDelete, deleteConfirmation, formatRelative, totalPages, userLabel } from "@/lib/admin/users";
 
 const user = {
     userLoginId: "u-1",
@@ -54,5 +54,22 @@ describe("totalPages", () => {
     it("never returns less than one page", () => {
         expect(totalPages(0, 20)).toBe(1);
         expect(totalPages(41, 20)).toBe(3);
+    });
+});
+
+describe("delete confirmation", () => {
+    const account = { userLoginId: "0190a000-aaaa", email: "Learner@Example.com" };
+
+    it("asks for the email, ignoring case and spaces", () => {
+        expect(deleteConfirmation(account)).toBe("Learner@Example.com");
+        expect(confirmsDelete("  learner@example.com ", account)).toBe(true);
+        expect(confirmsDelete("learner@example", account)).toBe(false);
+        expect(confirmsDelete("", account)).toBe(false);
+    });
+
+    it("asks for the user id when there is no email", () => {
+        const noEmail = { ...account, email: null };
+        expect(deleteConfirmation(noEmail)).toBe("0190a000-aaaa");
+        expect(confirmsDelete("0190a000-aaaa", noEmail)).toBe(true);
     });
 });

@@ -23,6 +23,26 @@ export function accountActions(
     };
 }
 
+/**
+ * What the admin types to confirm a delete: the email, or the user id for an
+ * account without one. Case and surrounding spaces don't matter.
+ */
+export function deleteConfirmation(user: Pick<AdminUserSummary, "email" | "userLoginId">): string {
+    return user.email ?? user.userLoginId;
+}
+
+export function confirmsDelete(typed: string, user: Pick<AdminUserSummary, "email" | "userLoginId">): boolean {
+    return typed.trim().toLowerCase() === deleteConfirmation(user).toLowerCase();
+}
+
+/** What a delete removes, for the confirm dialog. */
+export const DELETE_ACCOUNT_REMOVES = [
+    "The account, its profile and every signed-in device",
+    "Their courses, lessons and words",
+    "Every review card, streak, XP, level, achievement and report",
+    "Their Wordsly Path enrollment, lessons, unit tests and placements",
+] as const;
+
 /** The name to show for an account, falling back to its email, then its id. */
 export function userLabel(user: Pick<AdminUserSummary, "displayName" | "email" | "userLoginId">): string {
     return user.displayName?.trim() || user.email || user.userLoginId.slice(0, 8);

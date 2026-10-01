@@ -52,3 +52,15 @@ export interface AdminUserStats {
     newUsers: number;
     signups: { date: string; count: number }[];
 }
+
+/** `DELETE /admin/users/:id`. */
+export interface AdminUserDeleted {
+    userLoginId: string;
+    deletedAt: string;
+    sessionsEnded: number;
+    /**
+     * The other services were told within the request. False when Kafka is
+     * down: auth keeps the event and sends it once Kafka is back.
+     */
+    eventPublished: boolean;
+}
