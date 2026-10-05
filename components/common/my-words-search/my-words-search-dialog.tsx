@@ -17,7 +17,7 @@ export interface MyWordsSearchDialogProps {
     onSelect?: (item: IUserWordSearchResult) => void;
 }
 
-/** Full-width search surface for small screens. */
+/** The "search your words" surface, opened from the sidebar, the mobile top bar or a highlighted word. */
 export function MyWordsSearchDialog({
     open,
     onOpenChange,

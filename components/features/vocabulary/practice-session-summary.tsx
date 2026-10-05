@@ -1,6 +1,7 @@
 "use client";
 
 import { CountUp, Mascot } from "@/components/common/motion";
+import { PracticeFooterBar, PracticeFooterSpacer } from "@/components/features/vocabulary/practice-footer-bar";
 import { Button } from "@/components/ui/button";
 import { dailyGoalProgress } from "@/lib/daily-habit";
 import { fireCelebrationConfetti } from "@/lib/confetti";
@@ -245,32 +246,21 @@ export function PracticeSessionSummary({
                 </div>
             </motion.div>
 
-            <motion.div
-                {...reveal(0.4)}
-                className="flex flex-col sm:flex-row gap-3 justify-center"
-            >
-                <Button
-                    variant="play"
-                    size="lg"
-                    onClick={onKeepGoing}
-                    className="gap-2"
-                >
-                    Keep going
-                    <ArrowRight className="h-4 w-4" aria-hidden />
-                    <span className="ml-0.5 text-xs opacity-70 font-normal">
-                        Enter
-                    </span>
-                </Button>
-                <Button
-                    variant="playOutline"
-                    size="lg"
-                    onClick={onBackToDashboard}
-                    className="gap-2"
-                >
-                    <Home className="h-4 w-4" aria-hidden />
-                    Back to home
-                </Button>
-            </motion.div>
+            <PracticeFooterSpacer />
+            <PracticeFooterBar
+                action={
+                    <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                        <Button variant="playOutline" size="lg" onClick={onBackToDashboard} className="gap-2">
+                            <Home className="h-4 w-4" aria-hidden />
+                            Back to home
+                        </Button>
+                        <Button variant="play" size="lg" onClick={onKeepGoing} className="gap-2 sm:min-w-56">
+                            Keep going
+                            <ArrowRight className="h-4 w-4" aria-hidden />
+                        </Button>
+                    </div>
+                }
+            />
         </div>
     );
 }

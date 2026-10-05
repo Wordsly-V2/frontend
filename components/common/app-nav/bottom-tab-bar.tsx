@@ -1,94 +1,59 @@
 "use client";
 
+import { APP_NAV_ICONS } from "@/components/common/app-nav/nav-icons";
 import { useNextPracticeAction } from "@/hooks/useNextPracticeAction.hook";
-import { useUser } from "@/hooks/useUser.hook";
+import { activeAppNavKey, APP_NAV, type AppNavItem } from "@/lib/app-nav";
 import { cn } from "@/lib/utils";
-import { BarChart3, BookOpen, Dumbbell, Library, Route } from "lucide-react";
-import { motion, useReducedMotion } from "motion/react";
+import { Dumbbell } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-type Tab = {
-    href: string;
-    label: string;
-    icon: typeof BookOpen;
-    match: (path: string) => boolean;
-};
+const TABS = APP_NAV.filter((item) => item.inTabBar);
 
-const TABS: Tab[] = [
-    {
-        href: "/learn",
-        label: "Learn",
-        icon: BookOpen,
-        match: (p) => p === "/learn",
-    },
-    {
-        href: "/path",
-        label: "Path",
-        icon: Route,
-        match: (p) => p.startsWith("/path"),
-    },
-    {
-        href: "/learn/courses",
-        label: "Courses",
-        icon: Library,
-        match: (p) => p.startsWith("/learn/courses"),
-    },
-    {
-        href: "/progress",
-        label: "Progress",
-        icon: BarChart3,
-        match: (p) => p.startsWith("/progress"),
-    },
-];
-
+/**
+ * The mobile section bar (below lg), docked to the bottom edge: two sections,
+ * the Practice button, two sections. Only rendered inside the app frame, so it
+ * is already absent from sessions, lessons and tests.
+ */
 export function BottomTabBar() {
     const pathname = usePathname() ?? "";
-    const { profile } = useUser();
+    const active = activeAppNavKey(pathname);
     const next = useNextPracticeAction();
-
-    // Hidden when logged out, on auth, and during the immersive practice flow.
-    const hidden =
-        !profile ||
-        pathname.startsWith("/auth") ||
-        pathname.startsWith("/learn/practice") ||
-        pathname.startsWith("/path/lesson");
-
-    if (hidden) return null;
-
     const practiceHref = next.primary?.href ?? "/learn";
+    const waiting = next.dueCount + next.newCount;
     const [left, right] = [TABS.slice(0, 2), TABS.slice(2)];
 
     return (
         <>
-            {/* In-flow spacer so page content isn't hidden behind the floating bar.
-                Renders only when the bar is visible (mobile, logged in). */}
-            <div
-                aria-hidden
-                className="h-[calc(5.25rem+env(safe-area-inset-bottom,0px))] lg:hidden"
-            />
+            {/* In-flow spacer so the end of the page clears the docked bar. */}
+            <div aria-hidden className="h-[calc(4rem+env(safe-area-inset-bottom,0px))] lg:hidden" />
             <nav
                 aria-label="Primary"
-                className="fixed inset-x-3 bottom-keyboard-safe z-40 lg:hidden"
+                className="fixed inset-x-0 bottom-0 z-40 border-t border-border/70 bg-background/90 pb-safe backdrop-blur-xl lg:hidden"
             >
-                <div className="glass-surface mx-auto grid max-w-md grid-cols-5 items-end rounded-3xl px-2 py-1.5 shadow-[0_16px_48px_-12px_rgba(15,23,42,0.3)] dark:shadow-[0_16px_48px_-12px_rgba(0,0,0,0.6)]">
+                <div className="mx-auto grid h-16 max-w-lg grid-cols-5 items-center px-1">
                     {left.map((tab) => (
-                        <TabButton key={tab.href} tab={tab} pathname={pathname} />
+                        <TabLink key={tab.key} tab={tab} active={tab.key === active} />
                     ))}
 
-                    {/* Raised center Practice CTA */}
-                    <div className="flex justify-center">
-                        <Link
-                            href={practiceHref}
-                            aria-label="Start practice"
-                            className="-mt-6 flex h-14 w-14 flex-col items-center justify-center rounded-full gradient-brand glow-primary text-primary-foreground ring-2 ring-white/25 transition-transform active:scale-95 motion-reduce:transition-none motion-reduce:active:scale-100 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ring"
-                        >
-                            <Dumbbell className="h-6 w-6" />
-                        </Link>
-                    </div>
+                    <Link
+                        href={practiceHref}
+                        aria-label={waiting > 0 ? `Practice, ${waiting} words waiting` : "Practice"}
+                        className="group flex flex-col items-center justify-center gap-0.5 focus-visible:outline-none"
+                    >
+                        <span className="relative flex h-10 w-14 items-center justify-center rounded-2xl border-b-[3px] border-[var(--primary-shadow)] bg-primary text-primary-foreground transition-transform group-active:translate-y-[2px] group-active:border-b group-focus-visible:ring-[3px] group-focus-visible:ring-ring/50 motion-reduce:group-active:translate-y-0">
+                            <Dumbbell className="h-5 w-5" aria-hidden />
+                            {waiting > 0 && (
+                                <span className="absolute -right-1.5 -top-1.5 min-w-5 rounded-full border-2 border-background bg-[var(--brand-orange)] px-1 text-center text-[10px] font-extrabold leading-4 text-white tabular-nums">
+                                    {waiting > 99 ? "99+" : waiting}
+                                </span>
+                            )}
+                        </span>
+                        <span className="text-[10px] font-bold text-primary">Practice</span>
+                    </Link>
 
                     {right.map((tab) => (
-                        <TabButton key={tab.href} tab={tab} pathname={pathname} />
+                        <TabLink key={tab.key} tab={tab} active={tab.key === active} />
                     ))}
                 </div>
             </nav>
@@ -96,35 +61,26 @@ export function BottomTabBar() {
     );
 }
 
-function TabButton({ tab, pathname }: { tab: Tab; pathname: string }) {
-    const active = tab.match(pathname);
-    const Icon = tab.icon;
-    const reduceMotion = useReducedMotion();
+function TabLink({ tab, active }: Readonly<{ tab: AppNavItem; active: boolean }>) {
+    const Icon = APP_NAV_ICONS[tab.key];
     return (
         <Link
             href={tab.href}
             aria-current={active ? "page" : undefined}
             className={cn(
-                "relative flex min-h-11 flex-col items-center justify-center gap-0.5 rounded-2xl py-1.5 text-[10px] font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                "flex min-h-12 flex-col items-center justify-center gap-0.5 rounded-xl text-[10px] font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                 active ? "text-primary" : "text-muted-foreground",
             )}
         >
-            {active && (
-                <motion.span
-                    layoutId="bottom-tab-active"
-                    aria-hidden
-                    transition={
-                        reduceMotion
-                            ? { duration: 0 }
-                            : { type: "spring", stiffness: 400, damping: 32 }
-                    }
-                    className="absolute inset-x-1 inset-y-0.5 rounded-2xl bg-primary/12 dark:bg-primary/20"
-                />
-            )}
-            <span className="relative z-10 flex flex-col items-center gap-0.5">
-                <Icon className="h-5 w-5" />
-                <span>{tab.label}</span>
+            <span
+                className={cn(
+                    "flex h-7 w-12 items-center justify-center rounded-full transition-colors",
+                    active && "bg-primary/12 dark:bg-primary/20",
+                )}
+            >
+                <Icon className="h-5 w-5" aria-hidden />
             </span>
+            {tab.label}
         </Link>
     );
 }

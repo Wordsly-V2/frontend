@@ -1,5 +1,6 @@
 "use client";
 
+import { PracticeFooterBar, PracticeFooterSpacer } from "@/components/features/vocabulary/practice-footer-bar";
 import { Button } from "@/components/ui/button";
 import { useEnterKeyAction } from "@/lib/keyboard-utils";
 import { PEDAGOGY } from "@/lib/learning-pedagogy";
@@ -94,7 +95,7 @@ export function PracticeSessionOverview({
 
     return (
         <section className="flex flex-col flex-1 min-h-0 animate-in fade-in duration-300 max-w-2xl mx-auto w-full">
-            <div className="rounded-2xl border border-border bg-card p-5 sm:p-7 mb-6 shadow-sm">
+            <div className="rounded-3xl border border-border/70 bg-card p-5 shadow-sm sm:p-7">
                 <div className="flex flex-wrap items-start justify-between gap-3 mb-5">
                     <div>
                         <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary mb-2">
@@ -137,7 +138,7 @@ export function PracticeSessionOverview({
                                 <div
                                     key={stage}
                                     className={cn(
-                                        "flex items-center gap-3 rounded-xl border border-border/70 bg-muted/25 px-3 py-3",
+                                        "flex items-center gap-3 rounded-2xl border border-border/70 bg-muted/25 px-3 py-3",
                                         "dark:bg-muted/10",
                                     )}
                                 >
@@ -179,17 +180,17 @@ export function PracticeSessionOverview({
                 )}
             </div>
 
-            <div className="flex-shrink-0 flex flex-col items-center gap-2">
-                <Button
-                    size="lg"
-                    onClick={handleStart}
-                    className="min-w-[220px] rounded-xl gap-2 gradient-brand text-white shadow-md shadow-primary/20"
-                >
-                    Begin session
-                    <ArrowRight className="h-4 w-4" aria-hidden />
-                </Button>
-                <p className="text-xs text-muted-foreground">Press Enter to start</p>
-            </div>
+            <PracticeFooterSpacer withVerdict />
+            <PracticeFooterBar
+                title={`${exerciseCount} exercise${exerciseCount === 1 ? "" : "s"} · ${timeEstimate}`}
+                detail="Press Enter to start"
+                action={
+                    <Button variant="play" size="lg" onClick={handleStart} className="w-full gap-2">
+                        Begin session
+                        <ArrowRight className="h-4 w-4" aria-hidden />
+                    </Button>
+                }
+            />
         </section>
     );
 }

@@ -6,6 +6,7 @@ import { NewWordIntroPanel } from "@/components/features/vocabulary/new-word-int
 import { PracticeCardShell } from "@/components/features/vocabulary/practice-card-shell";
 import { PracticeExerciseBody } from "@/components/features/vocabulary/practice-exercise-body";
 import { PracticeExerciseHeader } from "@/components/features/vocabulary/practice-exercise-header";
+import { PracticeFooterSpacer } from "@/components/features/vocabulary/practice-footer-bar";
 import { PracticeResultPanel } from "@/components/features/vocabulary/practice-result-panel";
 import { PracticeSessionHeader } from "@/components/features/vocabulary/practice-session-header";
 import { PracticeShortcutsHint } from "@/components/features/vocabulary/practice-shortcuts-hint";
@@ -1182,7 +1183,7 @@ export default function VocabularyPractice({
                 subtitle={sessionSubtitle}
                 onExit={onExit}
                 exitDisabled={exitDisabled}
-                className="mb-4"
+                className="mb-2"
                 actions={
                     <>
                         {/* Flagging is most useful in the moment the word is
@@ -1220,15 +1221,9 @@ export default function VocabularyPractice({
             ) : (
                 <PracticeCardShell
                     variant={showResultDialog ? "result" : "default"}
-                    className={cn(
-                        // Elevated glass treatment over the ambient mesh backdrop.
-                        "bg-card/80 backdrop-blur-xl shadow-xl shadow-primary/10",
-                        // Unmistakable answer feedback: tinted border + glow on result.
-                        showResultDialog &&
-                            (typingResult === "correct"
-                                ? "border-[var(--brand-success)]/50 ring-2 ring-[var(--brand-success)]/25 shadow-[color:var(--brand-success)]/20"
-                                : "animate-wiggle border-destructive/50 ring-2 ring-destructive/25 shadow-destructive/20"),
-                    )}
+                    // The verdict itself is the footer bar; the card only
+                    // shakes on a miss so the eye catches it too.
+                    className={cn(showResultDialog && typingResult !== "correct" && "animate-wiggle")}
                 >
                     {showResultDialog && activeMode !== "flashcard" ? (
                         <PracticeResultPanel
@@ -1441,6 +1436,9 @@ export default function VocabularyPractice({
             {!showIntro && !showResultDialog && (
                 <PracticeShortcutsHint mode={activeMode} className="mt-4" />
             )}
+            {/* Room for the footer bar the intro and the answer feedback pin to
+                the bottom, so their last lines can scroll clear of it. */}
+            {(showIntro || showResultDialog) && <PracticeFooterSpacer withVerdict />}
         </div>
     );
 }

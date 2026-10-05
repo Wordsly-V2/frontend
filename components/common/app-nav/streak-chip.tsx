@@ -26,38 +26,90 @@ import {
 } from "@/types/daily-habit/daily-habit.type";
 import { Snowflake } from "lucide-react";
 
-/** Always-visible streak + daily-goal chip in the top nav. */
-export function StreakChip({ className }: { className?: string }) {
+interface StreakChipProps {
+    /**
+     * `chip`: flame and day count (mobile top bar, folded sidebar).
+     * `panel`: also today's words and a goal bar (the open sidebar).
+     */
+    variant?: "chip" | "panel";
+    /** Where the details open relative to the trigger. */
+    side?: "bottom" | "right";
+    className?: string;
+}
+
+/** Always-visible streak + daily-goal control; opens the day's details. */
+export function StreakChip({ variant = "chip", side = "bottom", className }: Readonly<StreakChipProps>) {
     const clientDate = localDateString();
     const { habit: serverHabit } = useDailyHabitDisplay();
     const habit = serverHabit ?? getLocalDailyHabit();
     const goal = dailyGoalProgress(habit.wordsToday, habit.goal);
     const updateGoal = useUpdateDailyGoalMutation();
     const atRisk = habit.streakAtRisk && !habit.goalMetToday;
+    const label = atRisk
+        ? `Streak ${habit.streak} days at risk — practice today to keep it`
+        : `Streak ${habit.streak} days, ${habit.wordsToday} of ${goal.goal} words today`;
 
     return (
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
-                <button
-                    type="button"
-                    aria-label={
-                        atRisk
-                            ? `Streak ${habit.streak} days at risk — practice today to keep it`
-                            : `Streak ${habit.streak} days, ${habit.wordsToday} of ${goal.goal} words today`
-                    }
-                    className={cn(
-                        "flex items-center gap-1.5 rounded-full border-2 bg-card px-2.5 py-1 text-sm font-extrabold tabular-nums transition-colors focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/40",
-                        atRisk
-                            ? "border-[var(--brand-orange)]/60 animate-pulse"
-                            : "border-border hover:border-[var(--brand-orange)]/40",
-                        className,
-                    )}
-                >
-                    <StreakFlame className="h-4 w-4" lit={habit.streak > 0} />
-                    <span>{habit.streak}</span>
-                </button>
+                {variant === "panel" ? (
+                    <button
+                        type="button"
+                        aria-label={label}
+                        className={cn(
+                            "w-full rounded-2xl border bg-card/70 p-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/40",
+                            atRisk
+                                ? "border-[var(--brand-orange)]/60"
+                                : "border-border/70 hover:border-[var(--brand-orange)]/40",
+                            className,
+                        )}
+                    >
+                        <span className="flex items-center gap-2">
+                            <StreakFlame className="h-5 w-5" lit={habit.streak > 0} />
+                            <span className="text-sm font-extrabold tabular-nums">
+                                {habit.streak}-day streak
+                            </span>
+                            <span className="ml-auto text-xs font-bold tabular-nums text-muted-foreground">
+                                {habit.wordsToday}/{goal.goal}
+                            </span>
+                        </span>
+                        <span className="mt-2 block h-1.5 overflow-hidden rounded-full bg-muted">
+                            <span
+                                className="block h-full rounded-full bg-gradient-to-r from-[var(--brand-warning)] to-[var(--brand-orange)] transition-all duration-500 motion-reduce:transition-none"
+                                style={{ width: `${goal.percent}%` }}
+                            />
+                        </span>
+                        <span className={cn("mt-1.5 block text-[11px] font-semibold", atRisk ? "text-orange-700 dark:text-orange-300" : "text-muted-foreground")}>
+                            {atRisk
+                                ? "Practice today to keep it"
+                                : goal.met
+                                  ? "Today's goal is done"
+                                  : `${goal.remaining} words to today's goal`}
+                        </span>
+                    </button>
+                ) : (
+                    <button
+                        type="button"
+                        aria-label={label}
+                        className={cn(
+                            "flex items-center gap-1.5 rounded-full border-2 bg-card px-2.5 py-1 text-sm font-extrabold tabular-nums transition-colors focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/40",
+                            atRisk
+                                ? "border-[var(--brand-orange)]/60 animate-pulse"
+                                : "border-border hover:border-[var(--brand-orange)]/40",
+                            className,
+                        )}
+                    >
+                        <StreakFlame className="h-4 w-4" lit={habit.streak > 0} />
+                        <span>{habit.streak}</span>
+                    </button>
+                )}
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-72 rounded-2xl p-3">
+            <DropdownMenuContent
+                side={side}
+                align="end"
+                sideOffset={8}
+                className="w-72 rounded-2xl p-3"
+            >
                 <DropdownMenuLabel className="px-1 pb-2">
                     <div className="flex items-center justify-between">
                         <span className="font-display text-base font-bold">

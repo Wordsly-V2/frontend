@@ -176,12 +176,12 @@ export default function PracticePage() {
         : `${sessionPlan.practiceQueue.length} exercises`;
 
     if (phase === "practice") {
-        // Immersive "focus mode": ambient mesh backdrop, floating glass
-        // session header (rendered inside VocabularyPractice) — no app chrome.
+        // Focus mode: the app frame leaves this route alone (`appChromeFor`),
+        // and the session header inside VocabularyPractice is the only chrome.
         return (
-            <main className="mesh-page-bg flex min-h-dvh flex-col">
+            <main className="flex min-h-dvh flex-col">
                 <SavingOverlay open={isPersisting} />
-                <div className="container mx-auto flex w-full max-w-3xl flex-1 flex-col px-3 pt-2 pb-6 pb-safe sm:px-4 sm:pt-3">
+                <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col px-4 pb-6 pb-safe sm:px-6">
                     <VocabularyPractice
                         words={words}
                         practiceQueue={sessionPlan.practiceQueue}
@@ -207,10 +207,8 @@ export default function PracticePage() {
 
     return (
         <PracticeSessionLayout
-            variant="overview"
             title="Session plan"
             subtitle={overviewSubtitle}
-            courseName={courseName ?? ""}
             onBack={handleBackToCourse}
             backDisabled={isPersisting}
             isPersisting={isPersisting}

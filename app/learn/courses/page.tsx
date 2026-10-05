@@ -55,17 +55,11 @@ export default function CoursesLibraryPage() {
     return (
         <main className="min-h-dvh">
             <div className="container mx-auto max-w-7xl px-3 pb-24 pt-5 sm:px-4 sm:pb-12 sm:pt-6 md:py-8">
-                <div className="mb-6 sm:mb-8">
-                    <p className="mb-1 text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-                        Your library
-                    </p>
-                    <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
-                        Courses
-                    </h1>
-                </div>
-
                 <section id="course-library" className="scroll-mt-24">
                     <CoursesHeader
+                        headingAs="h1"
+                        sectionLabel="Your library"
+                        title="Courses"
                         searchQuery={searchInput}
                         totalCourses={paginatedData?.totalItems || 0}
                         onSearch={setSearchInput}

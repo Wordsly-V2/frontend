@@ -48,12 +48,10 @@ export function CoursePath() {
     if (!isLoading && courses.length === 0) return null;
 
     return (
-        <section aria-label="Continue learning" className="mb-8">
+        <section aria-label="Continue learning">
             <div className="mb-3 flex items-center justify-between">
-                <h2 className="font-display text-lg font-bold sm:text-xl">
-                    <span className="text-gradient-brand">Jump back in</span>
-                </h2>
-                <Button variant="ghost" size="sm" asChild className="gap-1">
+                <h2 className="font-display text-lg font-bold">Jump back in</h2>
+                <Button variant="ghost" size="sm" asChild className="-mr-2 gap-1 text-primary">
                     <Link href="/learn/courses">
                         All courses
                         <ArrowRight className="h-4 w-4" />
@@ -61,7 +59,7 @@ export function CoursePath() {
                 </Button>
             </div>
 
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
                 {isLoading
                     ? Array.from({ length: 3 }).map((_, i) => (
                           <SkeletonCard key={i} />

@@ -33,7 +33,7 @@ export const ChoiceMode = memo(function ChoiceMode({
     checkDisabled,
 }: Readonly<ChoiceModeProps>) {
     return (
-        <div className="space-y-5">
+        <div className="space-y-6">
             <div className="text-center">{prompt}</div>
             <PracticeWordChoiceGrid
                 options={options}
@@ -43,7 +43,7 @@ export const ChoiceMode = memo(function ChoiceMode({
             />
             {!autoCheck && (
                 <div className="flex justify-center">
-                    <Button onClick={onCheck} disabled={checkDisabled} className="rounded-xl">
+                    <Button variant="play" size="lg" onClick={onCheck} disabled={checkDisabled} className="w-full sm:w-56">
                         Check
                     </Button>
                 </div>

@@ -3,7 +3,8 @@
 import { AdaptiveText } from "@/components/common/adaptive-text";
 import { WordExampleList } from "@/components/common/word-example-list";
 import { Button } from "@/components/ui/button";
-import { LONG_TEXT_WRAP, SCROLLABLE_BODY } from "@/lib/long-text";
+import { PracticeFooterBar } from "@/components/features/vocabulary/practice-footer-bar";
+import { LONG_TEXT_WRAP } from "@/lib/long-text";
 import { getPlayPhraseSearchUrl } from "@/lib/playphrase";
 import { splitAroundWord, splitHighlightMarkers } from "@/lib/practice-utils";
 import { pickCorrectMessage, pickIncorrectMessage } from "@/lib/practice-feedback";
@@ -11,9 +12,9 @@ import { playAudioSequence, playAudioUrl } from "@/lib/practice-audio";
 import { hasShortcutModifier } from "@/lib/keyboard-utils";
 import { cn } from "@/lib/utils";
 import type { IWordExample } from "@/types/courses/courses.type";
-import { CheckCircle2, Film, Timer, Volume2, XCircle } from "lucide-react";
+import { Film, Volume2 } from "lucide-react";
 import Image from "next/image";
-import { Fragment, useEffect, useRef } from "react";
+import { Fragment, type ReactNode, useEffect, useRef } from "react";
 
 export interface PracticeResultPanelProps {
     isCorrect: boolean;
@@ -46,7 +47,11 @@ export interface PracticeResultPanelProps {
     className?: string;
 }
 
-/** Inline answer feedback — keeps the learner in the exercise card instead of a modal. */
+/**
+ * Answer feedback. The verdict and Continue sit in the footer bar pinned to the
+ * bottom of the screen; the card shows what to learn from the answer: the
+ * sentence just practiced, the word with its meaning, and its examples.
+ */
 export function PracticeResultPanel({
     isCorrect,
     isNear = false,
@@ -126,68 +131,40 @@ export function PracticeResultPanel({
         : "text-red-700 dark:text-red-300";
     const toneBorder = isCorrect ? "border-green-200/60" : "border-red-200/60";
 
-    return (
-        <div
-            role="status"
-            aria-live="polite"
-            className={cn(
-                "animate-in fade-in slide-in-from-bottom-2 duration-300 text-center",
-                "flex flex-1 flex-col min-h-0",
-                className,
-            )}
-        >
-            <div className="mb-4 shrink-0">
-                {isCorrect && isNear ? (
-                    <div className="space-y-2">
-                        <div className="animate-pop inline-flex items-center justify-center w-14 h-14 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 ring-4 ring-amber-400/20">
-                            <CheckCircle2 className="h-7 w-7 text-white" />
-                        </div>
-                        <h3 className="text-xl font-bold text-amber-600 dark:text-amber-400">
-                            Almost — close enough! ✓
-                        </h3>
-                        {userAnswer && (
-                            <p className="text-sm text-muted-foreground">
-                                You wrote <span className="font-medium">{userAnswer}</span> — mind the spelling.
-                            </p>
-                        )}
-                    </div>
-                ) : isCorrect ? (
-                    <div className="space-y-2">
-                        <div className="animate-pop inline-flex items-center justify-center w-14 h-14 rounded-full bg-gradient-to-br from-green-400 to-emerald-500 ring-4 ring-[var(--brand-success)]/20">
-                            <CheckCircle2 className="h-7 w-7 text-white" />
-                        </div>
-                        <h3 className="text-xl font-bold text-green-600 dark:text-green-400">
-                            {pickCorrectMessage(feedbackSeed)}
-                        </h3>
-                    </div>
-                ) : (
-                    <div className="space-y-2">
-                        <div className="animate-pop inline-flex items-center justify-center w-14 h-14 rounded-full bg-gradient-to-br from-red-400 to-rose-500 ring-4 ring-destructive/20">
-                            <XCircle className="h-7 w-7 text-white" />
-                        </div>
-                        <h3 className="text-xl font-bold text-red-600 dark:text-red-400">
-                            {pickIncorrectMessage(feedbackSeed)}
-                        </h3>
-                        {userAnswer && (
-                            <p className={`text-sm text-muted-foreground line-through ${LONG_TEXT_WRAP}`}>
-                                You wrote: {userAnswer}
-                            </p>
-                        )}
-                        <p className="text-xs text-muted-foreground">
-                            You&apos;ll see this word again before the session ends.
-                        </p>
-                    </div>
+    let title: string;
+    let detail: ReactNode = speedLabel ? `Answered in ${speedLabel}` : null;
+    if (isCorrect && isNear) {
+        title = "Almost — close enough!";
+        if (userAnswer) {
+            detail = (
+                <>
+                    You wrote <span className="font-bold">{userAnswer}</span> — mind the spelling.
+                </>
+            );
+        }
+    } else if (isCorrect) {
+        title = pickCorrectMessage(feedbackSeed);
+    } else {
+        title = pickIncorrectMessage(feedbackSeed);
+        detail = (
+            <>
+                {userAnswer && (
+                    <span className={cn("line-through decoration-2", LONG_TEXT_WRAP)}>{userAnswer}</span>
                 )}
-                {speedLabel && (
-                    <p className="inline-flex items-center gap-1 text-xs text-muted-foreground mt-2">
-                        <Timer className="h-3.5 w-3.5" aria-hidden />
-                        {speedLabel}
-                    </p>
-                )}
-            </div>
+                {userAnswer && " · "}
+                You&apos;ll see this word again soon.
+            </>
+        );
+    }
+    let tone: "correct" | "near" | "incorrect" = "incorrect";
+    if (isCorrect) tone = isNear ? "near" : "correct";
 
-            {/* Everything below scrolls, so "Continue" always stays reachable. */}
-            <div className={cn("text-left space-y-3", SCROLLABLE_BODY)}>
+    return (
+        <div className={cn("animate-in fade-in slide-in-from-bottom-2 duration-300 flex flex-col", className)}>
+            <p className="mb-2 px-1 text-xs font-bold uppercase tracking-wide text-muted-foreground">
+                {isCorrect ? "Remember it" : "The right answer"}
+            </p>
+            <div className="space-y-3 text-left">
                 {practicedExample && (
                     <PracticedSentence
                         example={practicedExample}
@@ -201,7 +178,7 @@ export function PracticeResultPanel({
 
                 <div
                     className={cn(
-                        "rounded-xl border-2 px-3 py-3 sm:px-4",
+                        "rounded-2xl border-2 px-3 py-3 sm:px-4",
                         isCorrect
                             ? "bg-green-50/80 border-green-200 dark:bg-green-950/20 dark:border-green-800/50"
                             : "bg-red-50/80 border-red-200 dark:bg-red-950/20 dark:border-red-800/50",
@@ -210,7 +187,7 @@ export function PracticeResultPanel({
                     <div className="space-y-2.5">
                         <div className="flex items-start gap-3">
                             {imageUrl && (
-                                <div className="shrink-0 w-14 h-14 sm:w-20 sm:h-20 rounded-lg overflow-hidden bg-muted border border-border">
+                                <div className="shrink-0 w-14 h-14 sm:w-20 sm:h-20 rounded-xl overflow-hidden bg-muted border border-border">
                                     <Image
                                         src={imageUrl}
                                         alt=""
@@ -308,19 +285,26 @@ export function PracticeResultPanel({
                 </div>
             </div>
 
-            <div className="flex gap-2 pt-4 shrink-0">
-                <Button
-                    ref={nextButtonRef}
-                    type="button"
-                    variant="play"
-                    size="lg"
-                    onClick={onNext}
-                    className="flex-1"
-                >
-                    {continueLabel}
-                    <span className="ml-1.5 text-xs opacity-70 font-normal">Enter</span>
-                </Button>
-            </div>
+            <PracticeFooterBar
+                tone={tone}
+                title={title}
+                detail={detail}
+                action={
+                    <Button
+                        ref={nextButtonRef}
+                        type="button"
+                        variant="play"
+                        size="lg"
+                        onClick={onNext}
+                        className="w-full"
+                    >
+                        {continueLabel}
+                        <kbd className="ml-1 hidden rounded border border-white/30 px-1 text-[10px] font-semibold normal-case opacity-80 sm:inline">
+                            Enter
+                        </kbd>
+                    </Button>
+                }
+            />
         </div>
     );
 }

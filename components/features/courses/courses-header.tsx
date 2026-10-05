@@ -12,6 +12,8 @@ interface CoursesHeaderProps {
     sectionLabel?: string;
     title?: string;
     searchPlaceholder?: string;
+    /** `h1` when this header is the page's own title. */
+    headingAs?: "h1" | "h2";
 }
 
 export default function CoursesHeader({
@@ -22,6 +24,7 @@ export default function CoursesHeader({
     sectionLabel = "Library",
     title = "My courses",
     searchPlaceholder = "Search by course name…",
+    headingAs: Heading = "h2",
 }: Readonly<CoursesHeaderProps>) {
     return (
         <div className="space-y-5 sm:space-y-6">
@@ -30,7 +33,7 @@ export default function CoursesHeader({
                     <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
                         {sectionLabel}
                     </p>
-                    <h2 className="mt-1 text-2xl font-bold tracking-tight sm:text-3xl">{title}</h2>
+                    <Heading className="mt-1 text-2xl font-bold tracking-tight sm:text-3xl">{title}</Heading>
                     <p className="mt-1 text-sm text-muted-foreground sm:text-base">
                         {totalCourses} course{totalCourses === 1 ? "" : "s"}
                         {searchQuery.length > 0 ? ` matching “${searchQuery}”` : ""}

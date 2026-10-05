@@ -1,7 +1,6 @@
 "use client";
 
 import { StreakFlame } from "@/components/common/motion";
-import { Button } from "@/components/ui/button";
 import { PRACTICE_MODE_META } from "@/lib/practice-mode-meta";
 import type { ActivePracticeMode } from "@/lib/practice-settings";
 import { cn } from "@/lib/utils";
@@ -30,10 +29,10 @@ interface PracticeSessionHeaderProps {
 }
 
 /**
- * Floating glass top bar for the immersive practice "focus mode":
- * exit control, course context, streak flame, XP, and an animated
- * session progress bar. Sticks to the top of the viewport while
- * the learner scrolls long exercise cards.
+ * The top of every full-screen session (practice, Path lessons, tests): exit,
+ * a thick progress bar and the count on the first line; where you are, the
+ * exercise type, streak, XP and tools on the second. Sticks to the top while
+ * a long card scrolls.
  */
 export function PracticeSessionHeader({
     currentIndex,
@@ -53,94 +52,79 @@ export function PracticeSessionHeader({
     const progress = total > 0 ? (displayIndex / total) * 100 : 100;
     const modeMeta = mode ? PRACTICE_MODE_META[mode] : null;
     const ModeIcon = modeMeta?.icon;
+    const context = [courseName, subtitle].filter(Boolean).join(" · ");
 
     return (
-        <header className={cn("sticky top-2 z-30", className)}>
-            <div className="glass-surface rounded-2xl px-3 py-2.5 shadow-lg shadow-primary/10 sm:px-4">
-                <div className="flex items-center gap-2">
-                    {onExit && (
-                        <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            onClick={onExit}
-                            disabled={exitDisabled}
-                            className="h-8 w-8 shrink-0 rounded-xl text-muted-foreground hover:text-foreground"
-                            aria-label="Exit practice session"
-                        >
-                            <X className="h-4 w-4" />
-                        </Button>
-                    )}
-
-                    <div className="min-w-0 flex-1">
-                        {courseName && (
-                            <p className="truncate text-sm font-semibold leading-tight">
-                                {courseName}
-                            </p>
-                        )}
-                        {subtitle && (
-                            <p className="truncate text-[11px] text-muted-foreground">
-                                {subtitle}
-                            </p>
-                        )}
-                    </div>
-
-                    {modeMeta && ModeIcon && (
-                        <span className="hidden shrink-0 items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-xs font-bold text-primary sm:inline-flex">
-                            <ModeIcon className="h-3 w-3" aria-hidden />
-                            {modeMeta.shortLabel}
-                        </span>
-                    )}
-
-                    {sessionStreak >= 3 && (
-                        <span
-                            key={sessionStreak}
-                            className="animate-pop inline-flex shrink-0 items-center gap-1 rounded-full bg-[var(--brand-warning)]/20 px-2 py-0.5 text-xs font-bold tabular-nums text-[var(--brand-orange)]"
-                            aria-label={`${sessionStreak} correct in a row`}
-                        >
-                            <StreakFlame className="h-3.5 w-3.5" />
-                            {sessionStreak}
-                        </span>
-                    )}
-
-                    {xp > 0 && (
-                        <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-xs font-bold tabular-nums text-primary">
-                            <Sparkles className="h-3 w-3" aria-hidden />
-                            {xp} XP
-                        </span>
-                    )}
-
-                    {actions && (
-                        <div className="flex shrink-0 items-center [&>div]:mb-0">
-                            {actions}
-                        </div>
-                    )}
-                </div>
-
-                <div className="mt-2 flex items-center gap-2.5">
-                    <div
-                        role="progressbar"
-                        aria-label="Session progress"
-                        aria-valuemin={0}
-                        aria-valuemax={total}
-                        aria-valuenow={displayIndex}
-                        className="h-2 flex-1 overflow-hidden rounded-full bg-muted/70"
+        <header className={cn("sticky top-0 z-30 bg-background/85 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))] backdrop-blur-xl", className)}>
+            <div className="flex items-center gap-3">
+                {onExit && (
+                    <button
+                        type="button"
+                        onClick={onExit}
+                        disabled={exitDisabled}
+                        className="-ml-1.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
+                        aria-label="Exit session"
                     >
-                        <motion.div
-                            className="h-full rounded-full bg-gradient-to-r from-primary via-[var(--brand-accent)] to-[var(--brand-secondary)]"
-                            initial={false}
-                            animate={{ width: `${progress}%` }}
-                            transition={
-                                reduce
-                                    ? { duration: 0 }
-                                    : { type: "spring", stiffness: 120, damping: 20 }
-                            }
-                        />
-                    </div>
-                    <span className="shrink-0 text-xs font-bold tabular-nums text-primary">
-                        {displayIndex}/{total}
-                    </span>
+                        <X className="h-6 w-6" strokeWidth={2.5} />
+                    </button>
+                )}
+
+                <div
+                    role="progressbar"
+                    aria-label="Session progress"
+                    aria-valuemin={0}
+                    aria-valuemax={total}
+                    aria-valuenow={displayIndex}
+                    className="relative h-4 flex-1 overflow-hidden rounded-full bg-muted"
+                >
+                    <motion.div
+                        className="relative h-full rounded-full bg-gradient-to-r from-primary to-[var(--brand-pink)]"
+                        initial={false}
+                        animate={{ width: `${Math.max(progress, 4)}%` }}
+                        transition={reduce ? { duration: 0 } : { type: "spring", stiffness: 120, damping: 20 }}
+                    >
+                        {/* Glossy highlight along the top of the fill. */}
+                        <span aria-hidden className="absolute inset-x-2 top-1 h-1 rounded-full bg-white/35" />
+                    </motion.div>
                 </div>
+
+                <span className="shrink-0 text-sm font-extrabold tabular-nums text-muted-foreground">
+                    {displayIndex}
+                    <span className="font-semibold opacity-60">/{total}</span>
+                </span>
+            </div>
+
+            <div className="mt-2 flex min-h-8 items-center gap-2">
+                <p className="min-w-0 flex-1 truncate text-xs font-semibold text-muted-foreground" title={context || undefined}>
+                    {context}
+                </p>
+
+                {modeMeta && ModeIcon && (
+                    <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-xs font-bold text-primary">
+                        <ModeIcon className="h-3 w-3" aria-hidden />
+                        {modeMeta.shortLabel}
+                    </span>
+                )}
+
+                {sessionStreak >= 3 && (
+                    <span
+                        key={sessionStreak}
+                        className="animate-pop inline-flex shrink-0 items-center gap-1 rounded-full bg-[var(--brand-warning)]/20 px-2 py-0.5 text-xs font-bold tabular-nums text-[var(--brand-orange)]"
+                        aria-label={`${sessionStreak} correct in a row`}
+                    >
+                        <StreakFlame className="h-3.5 w-3.5" />
+                        {sessionStreak}
+                    </span>
+                )}
+
+                {xp > 0 && (
+                    <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-xs font-bold tabular-nums text-primary">
+                        <Sparkles className="h-3 w-3" aria-hidden />
+                        {xp} XP
+                    </span>
+                )}
+
+                {actions && <div className="-mr-1.5 flex shrink-0 items-center [&>div]:mb-0">{actions}</div>}
             </div>
         </header>
     );
