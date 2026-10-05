@@ -143,6 +143,19 @@ export const apiPaths = {
         userReset: (userLoginId: string) => `/admin/learning/users/${userLoginId}/reset`,
     },
 
+    /** Any learner's courses and content health (admins only; vocabulary-service). */
+    adminVocabulary: {
+        health: () => '/admin/vocabulary/health',
+        courses: (userLoginId: string) => `/admin/vocabulary/users/${userLoginId}/courses`,
+        course: (userLoginId: string, courseId: string) => `/admin/vocabulary/users/${userLoginId}/courses/${courseId}`,
+        lesson: (userLoginId: string, courseId: string, lessonId: string) =>
+            `/admin/vocabulary/users/${userLoginId}/courses/${courseId}/lessons/${lessonId}`,
+        word: (userLoginId: string, courseId: string, lessonId: string, wordId: string) =>
+            `/admin/vocabulary/users/${userLoginId}/courses/${courseId}/lessons/${lessonId}/words/${wordId}`,
+        deleteWords: (userLoginId: string, courseId: string) =>
+            `/admin/vocabulary/users/${userLoginId}/courses/${courseId}/words/delete`,
+    },
+
     /** Wordsly Path authoring (admins only; curriculum-service). */
     adminPath: {
         stats: () => '/admin/path/stats',

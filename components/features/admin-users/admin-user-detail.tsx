@@ -27,12 +27,14 @@ import { DeleteAccountDialog } from "./delete-account-dialog";
 import { ActionRow, Fact } from "./detail-parts";
 import { LearnerLearningTab } from "./learner-learning-tab";
 import { LearnerPathTab } from "./learner-path-tab";
+import { LearnerVocabularyTab } from "./learner-vocabulary-tab";
 import { UserIdentity, UserRoleBadges, UserStatusBadge } from "./user-badges";
 
 const TAB_OPTIONS = [
     { value: "account", label: "Account" },
     { value: "learning", label: "Learning" },
     { value: "path", label: "Wordsly Path" },
+    { value: "vocabulary", label: "Vocabulary" },
 ] as const satisfies readonly { value: AdminUserTab; label: string }[];
 
 /** /admin/users/[id]: one account, their learning and Path, and what an admin may change. */
@@ -68,13 +70,14 @@ export function AdminUserDetail({ userLoginId }: Readonly<{ userLoginId: string 
                             label="Section"
                             value={tab}
                             options={TAB_OPTIONS}
-                            onChange={(value) => void setParams({ tab: value ?? "account" })}
+                            onChange={(value) => void setParams({ tab: value ?? "account", course: null })}
                         />
                     </div>
                 </div>
                 {tab === "account" && <AccountView user={data} />}
                 {tab === "learning" && <LearnerLearningTab userLoginId={userLoginId} name={userLabel(data)} />}
                 {tab === "path" && <LearnerPathTab userLoginId={userLoginId} name={userLabel(data)} />}
+                {tab === "vocabulary" && <LearnerVocabularyTab userLoginId={userLoginId} name={userLabel(data)} />}
             </div>
         );
     }

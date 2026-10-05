@@ -7,6 +7,10 @@ import { Badge } from "@/components/ui/badge";
 import { dailyAccuracy, formatPercent, ratio, retentionShade, shortDay } from "@/lib/admin/stats";
 import { useAdminLearningStatsQuery, useAdminPathStatsQuery, useHardestPathItemsQuery } from "@/queries/admin-stats.query";
 import { useAdminUserStatsQuery } from "@/queries/admin-users.query";
+import { useContentHealthQuery } from "@/queries/admin-vocabulary.query";
+import { countOf, GAP_LABELS, shareOf } from "@/lib/admin/vocabulary";
+import type { MissingCounts } from "@/types/admin-vocabulary/admin-vocabulary.type";
+import Link from "next/link";
 import type { DateRange, RetentionCohort } from "@/types/admin-stats/admin-stats.type";
 import {
     Activity,
@@ -272,8 +276,80 @@ export function PathReport({ range }: Readonly<{ range: DateRange }>) {
     );
 }
 
-/** What learners find hardest. Vocabulary content health joins this later. */
+/** Learners' own vocabulary content, and what learners find hardest on the Path. */
 export function ContentReport() {
+    return (
+        <div className="space-y-4">
+            <VocabularyHealth />
+            <HardestPathItems />
+        </div>
+    );
+}
+
+const MISSING_KINDS: (keyof MissingCounts)[] = ["ipa", "audio", "meaning", "example", "image"];
+
+/** How complete the words in learners' own courses are; all time, every course. */
+function VocabularyHealth() {
+    const health = useContentHealthQuery(10);
+
+    return (
+        <SectionGate data={health.data} isFetching={health.isFetching} onRetry={() => void health.refetch()}>
+            {(data) => (
+                <>
+                    <ChartCard
+                        title="Vocabulary health"
+                        subtitle={`${countOf(data.totals.words, "word")} in ${countOf(data.totals.courses, "course")} by ${countOf(data.totals.owners, "learner")}; ${shareOf(data.incompleteWords, data.totals.words)} miss IPA, audio, a meaning or an example`}
+                    >
+                        <MiniTable
+                            head={[{ label: "Missing" }, { label: "Words", numeric: true }]}
+                            rows={MISSING_KINDS.map((kind) => [
+                                kind === "image" ? `${GAP_LABELS[kind]} (optional)` : GAP_LABELS[kind],
+                                shareOf(data.missing[kind], data.totals.words),
+                            ])}
+                            empty="No words yet."
+                        />
+                    </ChartCard>
+                    <ChartCard
+                        title="Courses with the most gaps"
+                        subtitle="Words missing IPA, audio, a meaning or an example; open one to fix it"
+                    >
+                        <MiniTable
+                            head={[
+                                { label: "Course" },
+                                { label: "Incomplete", numeric: true },
+                                { label: "IPA", numeric: true },
+                                { label: "Audio", numeric: true },
+                                { label: "Example", numeric: true },
+                            ]}
+                            rows={data.worstCourses.map((course) => [
+                                course.userLoginId ? (
+                                    <Link
+                                        key="course"
+                                        href={`/admin/users/${course.userLoginId}?tab=vocabulary&course=${course.courseId}`}
+                                        className="block min-w-40 font-medium hover:text-primary"
+                                    >
+                                        {course.name}
+                                    </Link>
+                                ) : (
+                                    <span key="course" className="block min-w-40 font-medium">
+                                        {course.name}
+                                    </span>
+                                ),
+                                `${course.incompleteWords} of ${course.words}`,
+                                course.missing.ipa,
+                                course.missing.audio,
+                                course.missing.example,
+                            ])}
+                            empty="Every word has IPA, audio, a meaning and an example."
+                        />
+                    </ChartCard>
+                </>
+            )}
+        </SectionGate>
+    );
+}
+
+function HardestPathItems() {
     const hardest = useHardestPathItemsQuery({ limit: 20, minLearners: 3 });
 
     return (
