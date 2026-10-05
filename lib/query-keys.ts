@@ -164,6 +164,15 @@ export const queryKeys = {
             ["admin-learners", "user", userLoginId, "activity-calendar", clientDate] as const,
         path: (userLoginId: string) => ["admin-learners", "user", userLoginId, "path"] as const,
     },
+    /** Any learner's courses, and content health. Never persisted (admin data stays off the device). */
+    adminVocabulary: {
+        all: ["admin-vocabulary"] as const,
+        health: (limit: number) => ["admin-vocabulary", "health", limit] as const,
+        user: (userLoginId: string) => ["admin-vocabulary", "user", userLoginId] as const,
+        courses: (userLoginId: string, query: object) => ["admin-vocabulary", "user", userLoginId, "courses", query] as const,
+        course: (userLoginId: string, courseId: string) =>
+            ["admin-vocabulary", "user", userLoginId, "course", courseId] as const,
+    },
     /** Dashboard and report numbers. Never persisted (admin data stays off the device). */
     adminStats: {
         all: ["admin-stats"] as const,
