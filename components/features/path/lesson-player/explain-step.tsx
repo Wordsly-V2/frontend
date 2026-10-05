@@ -15,7 +15,7 @@ export function ExplainStep({
 }: Readonly<{ titleVi: string; bodyVi: string; examples?: PathExample[]; onDone: () => void }>) {
     return (
         <div>
-            <article className="glass-surface space-y-4 rounded-3xl p-5 sm:p-7">
+            <article className="surface-card space-y-4 p-5 sm:p-7">
                 <header className="flex items-center gap-3">
                     <div className="flex h-10 w-10 items-center justify-center rounded-2xl gradient-brand text-primary-foreground">
                         <BookOpenText className="h-5 w-5" aria-hidden />

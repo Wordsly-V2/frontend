@@ -102,9 +102,8 @@ export function DailyHero({ onOpenSettings }: Readonly<{ onOpenSettings?: () => 
 
     return (
         <section aria-label="Today's practice" className="gradient-hero relative overflow-hidden rounded-3xl p-5 text-white shadow-chunky sm:p-7">
-            {/* Soft light blobs for depth; decorative only. */}
-            <div aria-hidden className="pointer-events-none absolute -right-16 -top-20 h-64 w-64 rounded-full bg-white/10 blur-2xl" />
-            <div aria-hidden className="pointer-events-none absolute -bottom-24 right-24 h-48 w-48 rounded-full bg-white/10 blur-2xl" />
+            {/* A soft light in the corner for depth; decorative only. */}
+            <div aria-hidden className="pointer-events-none absolute -right-24 -top-28 h-72 w-72 rounded-full bg-white/10 blur-3xl" />
 
             <div className="relative flex items-start justify-between gap-3">
                 <p className="text-sm font-semibold text-white/85">

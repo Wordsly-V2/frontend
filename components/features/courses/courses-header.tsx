@@ -30,10 +30,20 @@ export default function CoursesHeader({
         <div className="space-y-5 sm:space-y-6">
             <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
                 <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-                        {sectionLabel}
-                    </p>
-                    <Heading className="mt-1 text-2xl font-bold tracking-tight sm:text-3xl">{title}</Heading>
+                    {sectionLabel && (
+                        <p className="mb-1 text-xs font-bold uppercase tracking-[0.18em] text-muted-foreground">
+                            {sectionLabel}
+                        </p>
+                    )}
+                    <Heading
+                        className={
+                            Heading === "h1"
+                                ? "font-display text-2xl font-bold tracking-tight sm:text-3xl"
+                                : "font-display text-xl font-bold tracking-tight"
+                        }
+                    >
+                        {title}
+                    </Heading>
                     <p className="mt-1 text-sm text-muted-foreground sm:text-base">
                         {totalCourses} course{totalCourses === 1 ? "" : "s"}
                         {searchQuery.length > 0 ? ` matching “${searchQuery}”` : ""}

@@ -106,7 +106,7 @@ function UnitContent({
 
             <section
                 aria-labelledby="can-do"
-                className="glass-surface rounded-3xl p-5"
+                className="surface-card p-5"
             >
                 <h2 id="can-do" className="mb-3 font-display text-base font-bold">
                     By the end of this unit

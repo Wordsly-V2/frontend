@@ -140,9 +140,8 @@ export default function ManageCourses({ onRegisterCreateCourse }: Readonly<Manag
                     searchQuery={searchInput}
                     totalCourses={paginatedData?.totalItems ?? 0}
                     onSearch={setSearchInput}
-                    onCreateCourse={openCreateDialog}
-                    sectionLabel="Content"
-                    title="Course library"
+                    sectionLabel=""
+                    title="Your courses"
                     searchPlaceholder="Search courses to edit…"
                 />
 

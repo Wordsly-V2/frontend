@@ -77,7 +77,7 @@ function DrillPrompt({
     return (
         <>
             <form
-                className="glass-surface space-y-5 rounded-3xl p-5 sm:p-7"
+                className="surface-card space-y-5 p-5 sm:p-7"
                 onSubmit={(event) => {
                     event.preventDefault();
                     check();

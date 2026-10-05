@@ -20,7 +20,7 @@ export function ChartCard({
     return (
         <section
             className={cn(
-                "rounded-2xl border border-border bg-card p-4 sm:p-5",
+                "surface-card p-4 sm:p-5",
                 className,
             )}
         >

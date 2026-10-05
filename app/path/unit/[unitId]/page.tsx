@@ -1,5 +1,6 @@
 "use client";
 
+import { PageShell } from "@/components/common/page";
 import { PathUnitDetail } from "@/components/features/path/path-unit-detail";
 import { use } from "react";
 
@@ -9,10 +10,10 @@ export default function PathUnitPage({
     const { unitId } = use(params);
 
     return (
-        <main className="min-h-dvh px-4 pb-24 pt-6 md:px-8 md:pb-12 md:pt-10">
-            <div className="mx-auto max-w-3xl">
+        <PageShell width="narrow">
+            <div>
                 <PathUnitDetail unitId={unitId} />
             </div>
-        </main>
+        </PageShell>
     );
 }

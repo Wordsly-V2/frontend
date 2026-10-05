@@ -13,6 +13,7 @@ import { use, useEffect, useRef, useState } from "react";
 import ConfirmDialog from "@/components/common/confirm-dialog/confirm-dialog";
 import { FloatingActionMenu } from "@/components/common/floating-action-menu";
 import LoadingSection from "@/components/common/loading-section/loading-section";
+import { PageShell } from "@/components/common/page";
 import { LearningProgressSection, WordProgressBadge, WordProgressStatsInline } from "@/components/common/word-progress-stats";
 import CourseFormDialog from "@/components/features/manage/course-form-dialog";
 import ExportWordsDialog from "@/components/features/manage/export-words-dialog";
@@ -137,7 +138,7 @@ function SortableLesson({
     const allWordsSelected = words.length > 0 && lessonSelectedWords.length === words.length;
 
     return (
-        <div ref={setNodeRef} id={`lesson-${lesson.id}`} style={style} className="bg-card border-2 border-border rounded-xl sm:rounded-2xl overflow-hidden scroll-mt-24">
+        <div ref={setNodeRef} id={`lesson-${lesson.id}`} style={style} className="surface-card overflow-hidden scroll-mt-24">
             {/* Lesson Header */}
             <div className="p-3 sm:p-4 bg-muted/30 flex items-center gap-2 sm:gap-3">
                 {!dragDisabled ? (
@@ -821,8 +822,8 @@ export default function ManageCourseDetailPage({ params }: { params: Promise<{ i
     const totalSelected = Array.from(selectedByLesson.values()).reduce((sum, words) => sum + words.length, 0);
 
     return (
-        <main className="min-h-dvh bg-background">
-            <div className={`container mx-auto max-w-5xl px-3 py-4 sm:px-4 sm:py-6 md:py-8 ${selectedWords.size > 0 ? "pb-fab-safe" : ""}`}>
+        <PageShell width="medium" className={selectedWords.size > 0 ? "pb-fab-safe" : undefined}>
+            <div>
                 <nav aria-label="Breadcrumb" className="mb-4 flex flex-wrap items-center gap-1.5 text-sm text-muted-foreground sm:mb-6">
                     <Link
                         href={backToManage.href}
@@ -837,7 +838,7 @@ export default function ManageCourseDetailPage({ params }: { params: Promise<{ i
                 </nav>
 
                 {/* Course Header */}
-                <div className="mb-6 overflow-hidden rounded-2xl border-2 border-border bg-card sm:mb-8">
+                <div className="surface-card mb-6 overflow-hidden sm:mb-8">
                     {course.coverImageUrl && (
                         <div className="relative h-36 w-full bg-muted sm:h-44">
                             <Image
@@ -860,7 +861,7 @@ export default function ManageCourseDetailPage({ params }: { params: Promise<{ i
                                 <p className="mb-1 text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
                                     Course content
                                 </p>
-                                <h1 className="mb-1 break-words text-2xl font-bold sm:text-3xl">{course.name}</h1>
+                                <h1 className="mb-1 break-words font-display text-2xl font-bold tracking-tight sm:text-3xl">{course.name}</h1>
                                 <p className="text-sm text-muted-foreground sm:text-base">
                                     {course?.lessons?.length || 0} lessons ·{" "}
                                     {course?.lessons?.reduce((sum, l) => sum + (l.words?.length || 0), 0) || 0} words
@@ -872,29 +873,28 @@ export default function ManageCourseDetailPage({ params }: { params: Promise<{ i
                                         setEditingLesson(undefined);
                                         setLessonFormOpen(true);
                                     }}
-                                    size="sm"
-                                    className="w-full rounded-xl text-xs sm:w-auto sm:text-sm"
+                                    variant="play"
+                                    className="h-10 w-full gap-2 sm:w-auto"
                                 >
-                                    <Plus className="h-3.5 w-3.5 sm:h-4 sm:w-4 sm:mr-2" />
+                                    <Plus className="h-4 w-4" aria-hidden />
                                     Add lesson
                                 </Button>
                                 <Button
-                                    variant="outline"
-                                    size="sm"
-                                    className="w-full rounded-xl text-xs sm:w-auto sm:text-sm"
+                                    variant="playOutline"
+                                    className="h-10 w-full gap-2 sm:w-auto"
                                     asChild
                                 >
                                     <Link href={`/learn/courses/${course.id}`}>
-                                        <BookOpen className="h-3.5 w-3.5 sm:h-4 sm:w-4 sm:mr-2" />
+                                        <BookOpen className="h-4 w-4" aria-hidden />
                                         Study course
                                     </Link>
                                 </Button>
                                 <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
                                         <Button
-                                            variant="outline"
-                                            size="sm"
-                                            className="rounded-xl"
+                                            variant="playOutline"
+                                            size="icon"
+                                            className="h-10 w-10"
                                             aria-label="More course actions"
                                         >
                                             <MoreHorizontal className="h-4 w-4" />
@@ -1202,6 +1202,6 @@ export default function ManageCourseDetailPage({ params }: { params: Promise<{ i
             {viewingWord && (
                 <WordDetailDialog word={viewingWord} isOpen={!!viewingWord} onClose={() => setViewingWord(null)} />
             )}
-        </main>
+        </PageShell>
     );
 }

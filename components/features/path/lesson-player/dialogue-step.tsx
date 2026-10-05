@@ -42,7 +42,7 @@ export function DialogueStep({
 
     return (
         <div>
-            <article className="glass-surface space-y-4 rounded-3xl p-5 sm:p-7">
+            <article className="surface-card space-y-4 p-5 sm:p-7">
                 <header className="space-y-1">
                     <p className="inline-flex items-center gap-2 text-sm font-semibold text-muted-foreground">
                         <MessageCircle className="h-4 w-4" aria-hidden />
@@ -89,7 +89,7 @@ export function DialogueStep({
             </article>
 
             {isLearnerTurn && line && (
-                <div className="glass-surface mt-4 rounded-3xl p-5">
+                <div className="surface-card mt-4 p-5">
                     <SpeakAttempt key={current} expected={line.en} onSettled={reveal} />
                 </div>
             )}
