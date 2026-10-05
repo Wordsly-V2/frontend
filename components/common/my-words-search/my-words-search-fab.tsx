@@ -4,6 +4,7 @@ import { MyWordsSearchDialog } from "@/components/common/my-words-search/my-word
 import { Button } from "@/components/ui/button";
 import { useTextSelection } from "@/hooks/useTextSelection.hook";
 import { useUser } from "@/hooks/useUser.hook";
+import { appChromeFor } from "@/lib/app-nav";
 import { cn } from "@/lib/utils";
 import { Search } from "lucide-react";
 import { usePathname } from "next/navigation";
@@ -27,13 +28,9 @@ function usePageFabPresent() {
 }
 
 /**
- * Floating search button, bottom-right.
- *
- * - Below `sm` it replaces the nav's inline search box (too narrow there for a
- *   useful dropdown) and opens the results in a dialog instead. Like that nav
- *   search box, it stays available on every screen (practice included).
- * - At any size, highlighting a word turns it into a "Search <word>" pill that
- *   opens the dialog already searching for that word.
+ * Highlighting a word anywhere turns into a floating "Search <word>" pill,
+ * bottom-right, that opens the search dialog already searching for it. The
+ * plain search button lives in the app frame (sidebar, mobile top bar).
  */
 export function MyWordsSearchFab() {
     const pathname = usePathname() ?? "";
@@ -44,12 +41,17 @@ export function MyWordsSearchFab() {
     const [query, setQuery] = useState("");
     /** Selection captured at press time — it may be gone by the click. */
     const pendingQueryRef = useRef("");
+    /**
+     * The same text, as state: on touch the press itself collapses the
+     * selection, and the pill must stay mounted until the click lands.
+     */
+    const [heldText, setHeldText] = useState("");
+    const shownText = selectedText || heldText;
 
     if (!profile || pathname.startsWith("/auth")) return null;
 
-    /** The bottom tab bar hides itself during the immersive practice flow. */
-    const tabBarPresent =
-        !pathname.startsWith("/learn/practice") && !pathname.startsWith("/path/lesson");
+    /** The mobile tab bar is only part of the app frame, never of a session. */
+    const tabBarPresent = appChromeFor(pathname) === "app";
 
     const openWith = (nextQuery: string) => {
         setQuery(nextQuery);
@@ -60,10 +62,10 @@ export function MyWordsSearchFab() {
     return (
         <>
             <div
+                hidden={!shownText}
                 className={cn(
-                    // Above the bottom tab bar's own z-40: the bar is full-width
-                    // (only its card looks narrow) and renders later in the DOM,
-                    // so at equal z-index it would swallow taps on this button.
+                    // Above the bottom tab bar's own z-40, which is full-width and
+                    // would otherwise swallow taps on this button.
                     "fixed right-4 z-50",
                     /* Two offsets to clear: the bottom tab bar (visible until `lg`,
                        and absent entirely during practice) and the page's own FAB,
@@ -77,32 +79,26 @@ export function MyWordsSearchFab() {
                           : "bottom-[max(1rem,env(safe-area-inset-bottom))]",
                 )}
             >
-                {/* One button in both states, never two: on touch, tapping the pill
-                    collapses the selection, and swapping in a different element
-                    between pointerdown and click would eat the tap. */}
                 <Button
                     type="button"
                     onPointerDown={(e) => {
                         // Read the selection while it still exists…
                         pendingQueryRef.current = selectedText;
+                        setHeldText(selectedText);
                         // …and on desktop keep it, so the highlight survives the press.
                         if (e.pointerType === "mouse") e.preventDefault();
                     }}
                     onClick={() => {
                         openWith(pendingQueryRef.current || selectedText);
                         pendingQueryRef.current = "";
+                        setHeldText("");
                     }}
-                    aria-label={selectedText ? `Search ${selectedText}` : "Search words"}
-                    className={cn(
-                        "rounded-full shadow-2xl shadow-primary/25 gradient-brand text-white hover:opacity-95",
-                        selectedText
-                            ? "h-12 max-w-[min(18rem,calc(100vw-2rem))] gap-2 px-4"
-                            : // Without a selection the nav's inline search covers sm+.
-                              "h-14 w-14 sm:hidden",
-                    )}
+                    onPointerCancel={() => setHeldText("")}
+                    aria-label={`Search ${shownText}`}
+                    className="h-12 max-w-[min(18rem,calc(100vw-2rem))] gap-2 rounded-full px-4 text-white shadow-2xl shadow-primary/25 gradient-brand hover:opacity-95"
                 >
-                    <Search className={selectedText ? "h-4 w-4 shrink-0" : "h-5 w-5"} />
-                    {selectedText && <span className="truncate font-semibold">{selectedText}</span>}
+                    <Search className="h-4 w-4 shrink-0" />
+                    <span className="truncate font-semibold">{shownText}</span>
                 </Button>
             </div>
 

@@ -4,18 +4,18 @@ import { cn } from "@/lib/utils";
 import { useGetUserLevelQuery } from "@/queries/user-level.query";
 
 /**
- * Compact learning-level glass tile: numeric level + rank, with a progress
- * bar toward the next level. Self-contained — fetches its own data and
- * renders nothing until a level is available. Sized to sit in the stat strip.
+ * Compact learning-level card: numeric level + rank, with a progress bar
+ * toward the next level. Self-contained — fetches its own data and renders
+ * nothing until a level is available. Sits under the daily goal on /learn.
  */
 export function LevelBadge({ className }: Readonly<{ className?: string }>) {
     const { data: level } = useGetUserLevelQuery();
     if (!level) return null;
 
     return (
-        <div className={cn("glass-surface rounded-2xl px-3 py-2", className)}>
+        <div className={cn("rounded-3xl border border-border/70 bg-card px-4 py-3 shadow-sm", className)}>
             <div className="flex items-center gap-2">
-                <span className="gradient-brand flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white tabular-nums">
+                <span className="gradient-brand flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl font-display text-base font-bold text-white tabular-nums">
                     {level.level}
                 </span>
                 <div className="min-w-0 flex-1">
@@ -32,7 +32,7 @@ export function LevelBadge({ className }: Readonly<{ className?: string }>) {
                 </div>
             </div>
             <div
-                className="mt-1.5 h-1 overflow-hidden rounded-full bg-muted"
+                className="mt-2.5 h-1.5 overflow-hidden rounded-full bg-muted"
                 role="progressbar"
                 aria-valuenow={level.progress}
                 aria-valuemin={0}

@@ -62,8 +62,8 @@ export type NextPracticeAction = {
 
 /**
  * Single source of truth for "what should the learner practise next".
- * Shared by the dashboard hero, the mobile bottom-bar Practice CTA, and the
- * session-summary loop-back.
+ * Shared by the dashboard hero, the Practice button in the sidebar and the
+ * mobile tab bar, and the session-summary loop-back.
  */
 export function useNextPracticeAction(): NextPracticeAction {
     const pathname = usePathname();

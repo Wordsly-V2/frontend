@@ -38,7 +38,7 @@ export function PathSavedPracticeScreen() {
     if (finished) {
         const practised = result ? new Set(result.wordResults.map((r) => r.wordId)).size : 0;
         return (
-            <section className="glass-surface flex flex-col items-center gap-5 rounded-3xl p-6 text-center sm:p-10">
+            <section className="surface-card flex flex-col items-center gap-5 p-6 text-center sm:p-10">
                 <Mascot mood="celebrate" />
                 <div className="space-y-1">
                     <h1 className="font-display text-3xl font-bold">Nice work!</h1>

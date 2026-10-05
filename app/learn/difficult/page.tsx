@@ -1,6 +1,7 @@
 "use client";
 
 import LoadingSection from "@/components/common/loading-section/loading-section";
+import { PageHeader, PageShell } from "@/components/common/page";
 import { DifficultWordRow } from "@/components/features/learn/difficult-word-row";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,7 +16,7 @@ import { buildPracticeUrl } from "@/lib/practice-session";
 import { usePathItemsQuery } from "@/queries/path.query";
 import { useGetWordsByIdsQuery } from "@/queries/words.query";
 import type { IWord } from "@/types/courses/courses.type";
-import { AlertTriangle, ArrowLeft, Route, Search, Sparkles, Zap } from "lucide-react";
+import { ArrowLeft, Route, Search, Sparkles, Zap } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -127,47 +128,33 @@ export default function DifficultWordsPage() {
     }
 
     return (
-        <main className="container mx-auto w-full max-w-3xl px-3 py-4 pb-safe sm:px-4 sm:py-6">
-            <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleBack}
-                className="mb-3 gap-1.5 rounded-lg"
-            >
-                <ArrowLeft className="h-4 w-4" aria-hidden />
-                Back
-            </Button>
-
-            <header className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <div className="flex min-w-0 items-start gap-2">
-                    <AlertTriangle
-                        className="mt-1 h-5 w-5 shrink-0 text-amber-600 dark:text-amber-400"
-                        aria-hidden
-                    />
-                    <div className="min-w-0">
-                        <h1 className="text-xl font-bold sm:text-2xl">
-                            Difficult words
-                        </h1>
-                        <p className="mt-0.5 text-sm text-muted-foreground">
-                            Words you saved, and words you keep slipping on.
-                            Practising them early won&apos;t push back your
-                            scheduled reviews.
-                        </p>
-                    </div>
-                </div>
-                <Button
-                    type="button"
-                    onClick={handlePractice}
-                    disabled={vocabRows.length === 0}
-                    className="shrink-0 gap-2 rounded-xl bg-amber-600 text-white hover:bg-amber-700"
-                >
-                    <Zap className="h-4 w-4" aria-hidden />
-                    Practice {vocabRows.length > 0 ? vocabRows.length : ""}
-                </Button>
-            </header>
+        <PageShell width="narrow">
+            <PageHeader
+                back={
+                    <Button variant="ghost" size="sm" onClick={handleBack} className="gap-1.5">
+                        <ArrowLeft className="h-4 w-4" aria-hidden />
+                        Back
+                    </Button>
+                }
+                eyebrow="Learn"
+                title="Difficult words"
+                description="Words you saved, and words you keep slipping on. Practising them early won't push back your scheduled reviews."
+                actions={
+                    <Button
+                        type="button"
+                        variant="play"
+                        onClick={handlePractice}
+                        disabled={vocabRows.length === 0}
+                        className="h-10 gap-2"
+                    >
+                        <Zap className="h-4 w-4" aria-hidden />
+                        Practice {vocabRows.length > 0 ? vocabRows.length : ""}
+                    </Button>
+                }
+            />
 
             {allRows.length === 0 ? (
-                <div className="rounded-2xl border border-dashed p-8 text-center">
+                <div className="rounded-3xl border-2 border-dashed border-border/80 p-8 text-center">
                     <Sparkles
                         className="mx-auto mb-2 h-6 w-6 text-muted-foreground"
                         aria-hidden
@@ -274,6 +261,6 @@ export default function DifficultWordsPage() {
                     )}
                 </>
             )}
-        </main>
+        </PageShell>
     );
 }

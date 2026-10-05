@@ -17,7 +17,7 @@ export function PreviewSkippedStep({
 }: Readonly<{ title: string; detail: string; items?: PathItem[]; onDone: () => void }>) {
     return (
         <div>
-            <article className="glass-surface space-y-3 rounded-3xl p-5 sm:p-7">
+            <article className="surface-card space-y-3 p-5 sm:p-7">
                 <header className="flex items-center gap-3">
                     <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-muted text-muted-foreground">
                         <Eye className="h-5 w-5" aria-hidden />
@@ -43,7 +43,7 @@ export function PreviewSkippedStep({
 /** The end of a preview: nothing was saved, so no progress and no next lesson. */
 export function PreviewEnd({ scorePercent, onExit }: Readonly<{ scorePercent: number | undefined; onExit: () => void }>) {
     return (
-        <section className="glass-surface flex flex-col items-center gap-4 rounded-3xl p-6 text-center">
+        <section className="surface-card flex flex-col items-center gap-4 p-6 text-center">
             <h2 className="font-display text-2xl font-bold">End of the lesson</h2>
             <p className="text-sm text-muted-foreground">
                 {scorePercent === undefined ? "No quiz in this lesson." : `Quiz: ${scorePercent}%.`} Nothing was saved.

@@ -4,6 +4,7 @@ import { FloatingActionMenu } from "@/components/common/floating-action-menu";
 import LoadingSection from "@/components/common/loading-section/loading-section";
 import { LearningProgressSection, WordProgressBadge, WordProgressStatsInline } from "@/components/common/word-progress-stats";
 import { BackLink } from "@/components/common/back-link/back-link";
+import { PageShell } from "@/components/common/page";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -13,7 +14,7 @@ import { useGetDueWordIdsByWordIdsWithOfflineFallbackQuery } from "@/queries/wor
 import { useOnlineStatus } from "@/hooks/useOnlineStatus.hook";
 import { ILesson, IWord } from "@/types/courses/courses.type";
 import WordDetailDialog from "@/components/features/manage/word-detail-dialog";
-import { BookOpen, Brain, ChevronDown, ChevronRight, Eye, GraduationCap, List, Play, Search, Shuffle, Sparkles, Volume2 } from "lucide-react";
+import { BookOpen, Brain, ChevronDown, ChevronRight, Eye, GraduationCap, Library, List, Play, Search, Shuffle, Sparkles, Volume2 } from "lucide-react";
 import { shuffleArray } from "@/lib/practice-utils";
 import { playAudioUrl } from "@/lib/practice-audio";
 import Image from "next/image";
@@ -369,128 +370,92 @@ export default function LearnCourseDetailPage({ params }: { params: Promise<{ id
     };
 
     return (
-        <main className="min-h-dvh">
-            <div className={`container mx-auto max-w-5xl px-3 py-4 pb-24 sm:px-4 sm:py-6 sm:pb-12 md:py-8 ${totalWords > 0 ? "pb-fab-safe" : ""}`}>
-                {/* Back Button */}
-                <BackLink
-                    href="/learn/courses"
-                    className="mb-4 text-sm sm:mb-6 sm:text-base"
-                >
-                    All Courses
+        <PageShell width="medium" className={totalWords > 0 ? "pb-fab-safe" : undefined}>
+            <div>
+                <BackLink href="/learn/courses" className="-ml-3 mb-3">
+                    All courses
                 </BackLink>
 
-                {/* Course Header */}
-                <div className="bg-card rounded-xl sm:rounded-2xl shadow-sm overflow-hidden border border-border mb-6 sm:mb-8">
-                    {course.coverImageUrl ? (
-                        <div className="relative h-48 sm:h-64 w-full">
-                            <Image
-                                src={course.coverImageUrl}
-                                alt={course.name}
-                                fill
-                                className="object-cover"
-                            />
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
-                            <div className="absolute bottom-4 sm:bottom-6 left-4 sm:left-6 right-4 sm:right-6">
-                                <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white mb-2 break-words">
-                                    {course.name}
-                                </h1>
-                                <div className="flex flex-wrap items-center gap-3 sm:gap-4 text-white/90 text-sm sm:text-base">
-                                    <span className="flex items-center gap-1.5">
-                                        <BookOpen className="h-4 w-4 sm:h-5 sm:w-5" />
-                                        {course.lessons?.length || 0}{" "}
-                                        {(course.lessons?.length || 0) === 1 ? "lesson" : "lessons"}
-                                    </span>
-                                    <span className="flex items-center gap-1.5">
-                                        <svg className="h-4 w-4 sm:h-5 sm:w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
-                                        </svg>
-                                        {totalWords} words
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-                    ) : (
-                        <div className="p-4 sm:p-6">
-                            <div className="flex items-start gap-4">
-                                <div className="flex h-14 w-14 sm:h-16 sm:w-16 shrink-0 items-center justify-center rounded-xl gradient-brand">
-                                    <GraduationCap className="h-7 w-7 sm:h-8 sm:w-8 text-white/90" />
-                                </div>
-                                <div className="min-w-0 flex-1">
-                                    <h1 className="text-2xl sm:text-3xl font-bold mb-1 sm:mb-2 break-words">
-                                        {course.name}
-                                    </h1>
-                                    <div className="flex flex-wrap items-center gap-3 sm:gap-4 text-sm sm:text-base text-muted-foreground">
-                                        <span className="flex items-center gap-1.5">
-                                            <BookOpen className="h-4 w-4 sm:h-5 sm:w-5" />
-                                            {course.lessons?.length || 0}{" "}
-                                            {(course.lessons?.length || 0) === 1 ? "lesson" : "lessons"}
-                                        </span>
-                                        <span className="flex items-center gap-1.5">
-                                            <svg className="h-4 w-4 sm:h-5 sm:w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
-                                            </svg>
-                                            {totalWords} words
-                                        </span>
-                                    </div>
-                                </div>
-                            </div>
+                {/* Course hero: what it is, and the one or two ways to practice it. */}
+                <section className="surface-card mb-6 overflow-hidden sm:mb-8">
+                    {course.coverImageUrl && (
+                        <div className="relative h-40 w-full sm:h-56">
+                            <Image src={course.coverImageUrl} alt="" fill className="object-cover" />
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
                         </div>
                     )}
-                </div>
+                    <div className="p-5 sm:p-6">
+                        <div className="flex items-start gap-4">
+                            {!course.coverImageUrl && (
+                                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl gradient-brand shadow-md shadow-primary/20 sm:h-16 sm:w-16">
+                                    <GraduationCap className="h-7 w-7 text-white sm:h-8 sm:w-8" aria-hidden />
+                                </div>
+                            )}
+                            <div className="min-w-0 flex-1">
+                                <p className="text-xs font-bold uppercase tracking-[0.18em] text-muted-foreground">Course</p>
+                                <h1 className="break-words font-display text-2xl font-bold tracking-tight sm:text-3xl">{course.name}</h1>
+                                <p className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
+                                    <span className="inline-flex items-center gap-1.5">
+                                        <BookOpen className="h-4 w-4" aria-hidden />
+                                        {course.lessons?.length || 0} {(course.lessons?.length || 0) === 1 ? "lesson" : "lessons"}
+                                    </span>
+                                    <span className="inline-flex items-center gap-1.5">
+                                        <Library className="h-4 w-4" aria-hidden />
+                                        {totalWords} words
+                                    </span>
+                                </p>
+                            </div>
+                        </div>
 
-                {/* Practice banner — review due and/or learn new */}
-                {practiceBanner && (
-                    <div className="mb-6 flex flex-col gap-3 rounded-2xl border border-primary/30 bg-primary/5 p-4 sm:flex-row sm:items-center sm:justify-between">
-                        <div className="min-w-0">
-                            <p className="text-sm font-semibold text-foreground">
-                                {practiceBanner.title}
-                            </p>
-                            <p className="text-xs text-muted-foreground mt-0.5">
-                                {practiceBanner.subtitle}
-                            </p>
-                            {sessionCapNotice && (
-                                // The buttons start a session smaller than the
-                                // counts above it. Saying why turns what reads
-                                // as a wrong number into a deliberate limit.
-                                <p className="text-xs text-muted-foreground mt-1">
-                                    {sessionCapNotice}
-                                </p>
-                            )}
-                            {isOfflineSelection && (
-                                // These counts were worked out on the device, so
-                                // say so rather than presenting a guess as fact.
-                                <p className="text-xs text-muted-foreground mt-1">
-                                    Offline copy — counts update when you&apos;re back online.
-                                </p>
-                            )}
-                        </div>
-                        <div className="flex shrink-0 flex-col gap-2 sm:flex-row">
-                            {dueWordCount > 0 && (
-                                <Button
-                                    type="button"
-                                    onClick={handlePracticeDueWords}
-                                    disabled={practiceWordsLoading}
-                                    className="rounded-xl gap-2"
-                                >
-                                    <Brain className="h-4 w-4" aria-hidden />
-                                    {getReviewDueButtonLabel(practiceWordsLoading, dueWordCount, "No due words", dueWordTotal)}
-                                </Button>
-                            )}
-                            {newWordCount > 0 && (
-                                <Button
-                                    type="button"
-                                    variant={dueWordCount > 0 ? "outline" : "default"}
-                                    onClick={handleLearnNewWords}
-                                    disabled={practiceWordsLoading}
-                                    className="rounded-xl gap-2"
-                                >
-                                    <Sparkles className="h-4 w-4" aria-hidden />
-                                    {getLearnNewButtonLabel(practiceWordsLoading, newWordCount, newWordTotal)}
-                                </Button>
-                            )}
-                        </div>
+                        {practiceBanner && (
+                            <div className="mt-5 flex flex-col gap-3 rounded-2xl bg-primary/8 p-4 dark:bg-primary/12 sm:flex-row sm:items-center sm:justify-between">
+                                <div className="min-w-0">
+                                    <p className="text-sm font-bold text-foreground">{practiceBanner.title}</p>
+                                    <p className="mt-0.5 text-xs text-muted-foreground">{practiceBanner.subtitle}</p>
+                                    {sessionCapNotice && (
+                                        // The buttons start a session smaller than the
+                                        // counts above it. Saying why turns what reads
+                                        // as a wrong number into a deliberate limit.
+                                        <p className="mt-1 text-xs text-muted-foreground">{sessionCapNotice}</p>
+                                    )}
+                                    {isOfflineSelection && (
+                                        // These counts were worked out on the device, so
+                                        // say so rather than presenting a guess as fact.
+                                        <p className="mt-1 text-xs text-muted-foreground">
+                                            Offline copy — counts update when you&apos;re back online.
+                                        </p>
+                                    )}
+                                </div>
+                                <div className="flex shrink-0 flex-col gap-2 sm:flex-row">
+                                    {dueWordCount > 0 && (
+                                        <Button
+                                            type="button"
+                                            variant="play"
+                                            onClick={handlePracticeDueWords}
+                                            disabled={practiceWordsLoading}
+                                            className="h-11 gap-2"
+                                        >
+                                            <Brain className="h-4 w-4" aria-hidden />
+                                            {getReviewDueButtonLabel(practiceWordsLoading, dueWordCount, "No due words", dueWordTotal)}
+                                        </Button>
+                                    )}
+                                    {newWordCount > 0 && (
+                                        <Button
+                                            type="button"
+                                            variant={dueWordCount > 0 ? "playOutline" : "play"}
+                                            onClick={handleLearnNewWords}
+                                            disabled={practiceWordsLoading}
+                                            className="h-11 gap-2"
+                                        >
+                                            <Sparkles className="h-4 w-4" aria-hidden />
+                                            {getLearnNewButtonLabel(practiceWordsLoading, newWordCount, newWordTotal)}
+                                        </Button>
+                                    )}
+                                </div>
+                            </div>
+                        )}
                     </div>
-                )}
+                </section>
 
                 {/* Daily pacing banner — shown once a daily limit is reached */}
                 {pacingBanner && (
@@ -513,6 +478,7 @@ export default function LearnCourseDetailPage({ params }: { params: Promise<{ id
 
                 {/* Word Progress Stats */}
                 <LearningProgressSection
+                    title="Words in this course"
                     stats={courseStats}
                     className="mb-6 sm:mb-8"
                 />
@@ -583,7 +549,7 @@ export default function LearnCourseDetailPage({ params }: { params: Promise<{ id
                                 <div
                                     key={lesson.id}
                                     id={`lesson-${lesson.id}`}
-                                    className="bg-card border-2 border-border rounded-xl overflow-hidden transition-all hover:border-primary/50 scroll-mt-24"
+                                    className="surface-card overflow-hidden scroll-mt-24 transition-[border-color,box-shadow] hover:border-primary/40"
                                 >
                                     {/* Lesson Header */}
                                     <div
@@ -908,6 +874,6 @@ export default function LearnCourseDetailPage({ params }: { params: Promise<{ id
                     </div>
                 </FloatingActionMenu>
             )}
-        </main>
+        </PageShell>
     );
 }

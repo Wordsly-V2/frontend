@@ -80,7 +80,7 @@ export function CheckpointPlayer({
             />
 
             {question ? (
-                <article className="glass-surface space-y-2 rounded-3xl p-5 sm:p-7">
+                <article className="surface-card space-y-2 p-5 sm:p-7">
                     <p className="text-sm font-semibold text-muted-foreground">
                         Question {index + 1} of {questions.length}
                     </p>
@@ -103,7 +103,7 @@ export function CheckpointPlayer({
             ) : (
                 <section
                     role="status"
-                    className="glass-surface flex flex-col items-center gap-4 rounded-3xl p-8 text-center"
+                    className="surface-card flex flex-col items-center gap-4 p-8 text-center"
                 >
                     {submit.isError ? (
                         <>
@@ -190,7 +190,7 @@ function CheckpointResults({
 
     return (
         <section className="space-y-5">
-            <div className="glass-surface flex flex-col items-center gap-4 rounded-3xl p-6 text-center sm:p-10">
+            <div className="surface-card flex flex-col items-center gap-4 p-6 text-center sm:p-10">
                 <Mascot mood={passed ? "celebrate" : "idle"} />
                 <div className="space-y-1">
                     <h1 className="font-display text-3xl font-bold">

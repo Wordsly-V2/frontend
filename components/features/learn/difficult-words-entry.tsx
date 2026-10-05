@@ -23,7 +23,7 @@ export function DifficultWordsEntry({ className }: Readonly<{ className?: string
         <Link
             href="/learn/difficult"
             className={cn(
-                "mb-8 flex items-center gap-3 rounded-3xl border border-amber-200/80 bg-amber-50/90 px-5 py-4 transition-colors hover:bg-amber-100/80 dark:border-amber-800/50 dark:bg-amber-950/30 dark:hover:bg-amber-950/50",
+                "flex items-center gap-3 rounded-3xl border border-amber-200/80 bg-amber-50/90 px-5 py-4 transition-colors hover:bg-amber-100/80 dark:border-amber-800/50 dark:bg-amber-950/30 dark:hover:bg-amber-950/50",
                 className,
             )}
         >

@@ -30,13 +30,13 @@ export function PathEntryCard() {
     }
 
     return (
-        <section aria-label="Wordsly Path" className="mb-8">
+        <section aria-label="Wordsly Path">
             <Bounce>
                 <Link
                     href="/path"
-                    className="glass-surface flex items-center gap-4 rounded-3xl p-5 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                    className="group flex items-center gap-4 rounded-3xl border border-border/70 bg-card p-5 shadow-sm transition-[border-color,box-shadow] hover:border-primary/30 hover:shadow-md focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
                 >
-                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl gradient-brand text-primary-foreground shadow-md">
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl gradient-brand text-white shadow-md">
                         <Route className="h-6 w-6" aria-hidden />
                     </div>
                     <div className="min-w-0 flex-1">
@@ -45,7 +45,7 @@ export function PathEntryCard() {
                         </h2>
                         <p className="truncate text-sm text-muted-foreground">{subtitle}</p>
                     </div>
-                    <ArrowRight className="h-5 w-5 shrink-0 text-muted-foreground" aria-hidden />
+                    <ArrowRight className="h-5 w-5 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 motion-reduce:transition-none" aria-hidden />
                 </Link>
             </Bounce>
         </section>

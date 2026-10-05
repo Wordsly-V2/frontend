@@ -18,7 +18,7 @@ const TYPE_LABELS: Record<PathItemType, string> = {
  */
 export function PathItemCard({ item }: Readonly<{ item: PathItem }>) {
     return (
-        <article className="glass-surface space-y-5 rounded-3xl p-5 sm:p-7">
+        <article className="surface-card space-y-5 p-5 sm:p-7">
             <header className="space-y-2">
                 <Badge variant="muted">{TYPE_LABELS[item.type]}</Badge>
                 <div className="flex items-center gap-3">

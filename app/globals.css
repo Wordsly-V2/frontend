@@ -421,6 +421,11 @@
       0 12px 26px -8px oklch(0 0 0 / 0.5);
   }
 
+  /* The standard content card of the app (pages, rails, panels). */
+  .surface-card {
+    @apply rounded-3xl border border-border/70 bg-card shadow-sm;
+  }
+
   /* Card hover — shadow only (no layout shift) */
   .card-hover {
     @apply transition-[box-shadow,border-color] duration-300 hover:shadow-lg hover:shadow-primary/12 hover:border-primary/30;

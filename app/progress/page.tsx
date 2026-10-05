@@ -2,6 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { useQueryStates } from "nuqs";
+import { PageHeader, PageShell } from "@/components/common/page";
 import { Button } from "@/components/ui/button";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { Skeleton } from "@/components/common/states/skeleton";
@@ -24,7 +25,7 @@ import { ReportSummaryCards } from "@/components/features/progress/report-summar
 /** Placeholder matching ChartCard's shell while a chart chunk loads. */
 function ChartSkeleton() {
     return (
-        <div className="rounded-2xl border border-border bg-card p-4 sm:p-5">
+        <div className="surface-card p-4 sm:p-5">
             <Skeleton className="mb-1 h-4 w-32" />
             <Skeleton className="mb-4 h-3 w-48" />
             <Skeleton className="h-[240px] w-full rounded-xl" />
@@ -91,43 +92,32 @@ export default function ProgressPage() {
     const hasAccuracy = !!report?.buckets.some((b) => b.reviews > 0);
 
     return (
-        <div className="min-h-dvh px-4 pb-24 pt-8 md:px-8 md:pb-12 md:pt-12">
-            <div className="mx-auto max-w-5xl space-y-6">
-                <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-                    <div className="space-y-1">
-                        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-                            Progress
-                        </p>
-                        <h1 className="text-3xl font-bold tracking-tight">
-                            Your learning report
-                        </h1>
-                        <p className="text-muted-foreground">
-                            See how much you&apos;ve learned and improved over time.
-                        </p>
-                    </div>
+        <PageShell>
+            <PageHeader
+                eyebrow="Progress"
+                title="Your learning report"
+                description="See how much you've learned and improved over time."
+                actions={
                     <div className="flex flex-col items-start gap-2 sm:items-end">
                         <ReportPeriodToggle
                             value={period}
                             // Windows are period-sized, so an offset from the
                             // old period means nothing in the new one: switching
                             // always lands on the current window.
-                            onChange={(next) =>
-                                setSearchParams({ period: next, offset: 0 })
-                            }
+                            onChange={(next) => setSearchParams({ period: next, offset: 0 })}
                         />
                         {report && (
                             <ReportRangeNav
                                 period={period}
                                 range={report.range}
                                 offset={offset}
-                                onChange={(next) =>
-                                    setSearchParams({ offset: next })
-                                }
+                                onChange={(next) => setSearchParams({ offset: next })}
                             />
                         )}
                     </div>
-                </header>
-
+                }
+            />
+            <div className="space-y-6">
                 {isLoading && !report && (
                     <div className="flex min-h-[50vh] items-center justify-center">
                         <LoadingSpinner size="lg" label="Building your report…" />
@@ -154,7 +144,7 @@ export default function ProgressPage() {
                         {hasPathActivity(report.path) && (
                             <PathProgressCard path={report.path} />
                         )}
-                        <div className="grid gap-4 lg:grid-cols-2">
+                        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
                             <WordsOverTimeChart
                                 buckets={report.buckets}
                                 granularity={report.granularity}
@@ -181,6 +171,6 @@ export default function ProgressPage() {
                     </div>
                 )}
             </div>
-        </div>
+        </PageShell>
     );
 }

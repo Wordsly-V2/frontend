@@ -104,7 +104,7 @@ export function PlacementPlayer({
             />
 
             {question ? (
-                <article className="glass-surface space-y-4 rounded-3xl p-5 sm:p-7">
+                <article className="surface-card space-y-4 p-5 sm:p-7">
                     <p className="text-sm font-semibold text-muted-foreground">
                         Question {index + 1} of {questions.length}
                     </p>
@@ -132,7 +132,7 @@ export function PlacementPlayer({
             ) : (
                 <section
                     role="status"
-                    className="glass-surface flex flex-col items-center gap-4 rounded-3xl p-8 text-center"
+                    className="surface-card flex flex-col items-center gap-4 p-8 text-center"
                 >
                     {submit.isError ? (
                         <>
@@ -173,7 +173,7 @@ function PlacementIntro({
     const minutes = Math.max(5, Math.round(placement.questions.length / 3));
 
     return (
-        <section className="glass-surface flex flex-col items-center gap-5 rounded-3xl p-6 text-center sm:p-10">
+        <section className="surface-card flex flex-col items-center gap-5 p-6 text-center sm:p-10">
             <Compass className="h-10 w-10 text-primary" aria-hidden />
             <div className="space-y-2">
                 <h1 className="font-display text-3xl font-bold">Find your level</h1>
@@ -237,7 +237,7 @@ function PlacementResults({
 
     return (
         <section className="space-y-5">
-            <div className="glass-surface flex flex-col items-center gap-4 rounded-3xl p-6 text-center sm:p-10">
+            <div className="surface-card flex flex-col items-center gap-4 p-6 text-center sm:p-10">
                 <Mascot mood={skippedUnitCount > 0 ? "celebrate" : "idle"} />
                 <div className="space-y-1">
                     <p className="text-sm font-semibold text-muted-foreground">

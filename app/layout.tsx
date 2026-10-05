@@ -1,10 +1,7 @@
-import AppNav from '@/components/common/app-nav/app-nav';
-import { BottomTabBar } from '@/components/common/app-nav/bottom-tab-bar';
+import { AppShell } from '@/components/common/app-nav/app-shell';
 import { MyWordsSearchFab } from '@/components/common/my-words-search';
 import { NavigationHistoryTracker } from '@/components/common/navigation-history-tracker';
-import OfflineBanner from '@/components/common/offline/offline-banner';
 import { ServiceWorkerRegistration } from '@/components/common/pwa/service-worker-registration';
-import WakingBanner from '@/components/common/service-health-monitor/waking-banner';
 import { Toaster } from '@/components/ui/sonner';
 import type { Metadata, Viewport } from 'next';
 import { Baloo_2, Geist_Mono, Nunito } from 'next/font/google';
@@ -55,12 +52,8 @@ export default function RootLayout({
                 <NuqsAdapter>
                     <Providers>
                         <NavigationHistoryTracker />
-                        <AppNav />
-                        <OfflineBanner />
-                        <WakingBanner />
-                        {children}
+                        <AppShell>{children}</AppShell>
                         <MyWordsSearchFab />
-                        <BottomTabBar />
                         <Toaster />
                         <ServiceWorkerRegistration />
                     </Providers>

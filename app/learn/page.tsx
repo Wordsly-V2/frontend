@@ -1,21 +1,15 @@
 "use client";
 
-import { LearningProgressChart } from "@/components/common/learning-progress-chart";
-import { StatsCards } from "@/components/common/stats-cards";
-import LearningProgressSection from "@/components/common/word-progress-stats/learning-progress-section";
 import { CoursePath } from "@/components/features/learn/course-path";
-import { DailyHabitCard } from "@/components/features/learn/daily-habit-card";
+import { DailyGoalCard } from "@/components/features/learn/daily-goal-card";
 import { DailyHero } from "@/components/features/learn/daily-hero";
 import { DifficultWordsEntry } from "@/components/features/learn/difficult-words-entry";
+import { LevelBadge } from "@/components/features/learn/level-badge";
+import { WordsSnapshotCard } from "@/components/features/learn/words-snapshot-card";
 import { PathEntryCard } from "@/components/features/path/path-entry-card";
 import PracticeSettingsDialog from "@/components/features/vocabulary/practice-settings-dialog";
-import { Button } from "@/components/ui/button";
 import { isOnboardingDone } from "@/lib/onboarding";
-import {
-    useGetMyCoursesTotalStatsQuery,
-} from "@/queries/courses.query";
-import { useGetProgressStatsQuery } from "@/queries/word-progress.query";
-import { Settings2 } from "lucide-react";
+import { useGetMyCoursesTotalStatsQuery } from "@/queries/courses.query";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
@@ -26,11 +20,7 @@ export default function LearnPage() {
         data: courseTotalStats,
         isLoading: isLoadingCourseTotalStats,
         isError: isErrorCourseTotalStats,
-        refetch: refetchCourseTotalStats,
     } = useGetMyCoursesTotalStatsQuery();
-    // Presence, not fetch outcome: offline a restored cache reports isError next
-    // to usable data, and folding the error in here left a permanent skeleton.
-    const isLoadingStats = !courseTotalStats;
 
     // First-run onboarding: once the stats resolve (never while loading/erroring),
     // a brand-new learner with no courses and no local "done" flag is sent to the
@@ -44,78 +34,31 @@ export default function LearnPage() {
         }
     }, [isLoadingCourseTotalStats, isErrorCourseTotalStats, courseTotalStats, router]);
 
-    const {
-        data: wordProgressStats,
-        isLoading: isLoadingProgressStats,
-        isError: isErrorProgressStats,
-        refetch: refetchProgressStats,
-    } = useGetProgressStatsQuery(undefined, undefined, true);
-
-    const progressStatsCards = (
-        <StatsCards
-            items={courseTotalStats}
-            isLoading={isLoadingStats}
-            isError={isErrorCourseTotalStats}
-            onCardClick={() => {
-                if (isErrorCourseTotalStats) refetchCourseTotalStats();
-            }}
-        />
-    );
-    const learningProgress = (
-        <LearningProgressSection
-            stats={wordProgressStats}
-            title="Learning Progress (All Courses)"
-            isLoading={isLoadingProgressStats}
-            isError={isErrorProgressStats}
-            onCardClick={() => {
-                if (isLoadingProgressStats || isErrorProgressStats)
-                    refetchProgressStats();
-            }}
-        />
-    );
-
     return (
-        <main className="min-h-dvh">
-            <div className="container mx-auto max-w-5xl px-3 pb-24 pt-5 sm:px-4 sm:pb-12 sm:pt-6 md:py-8">
-                <div className="mb-3 flex justify-end">
-                    <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        className="gap-2 rounded-xl"
-                        onClick={() => setSettingsOpen(true)}
-                    >
-                        <Settings2 className="h-4 w-4" aria-hidden />
-                        Practice settings
-                    </Button>
+        <main className="mx-auto w-full max-w-6xl px-4 pb-10 pt-4 sm:px-6 sm:pt-6 lg:px-8 lg:pt-8">
+            {/* Two columns from lg: the day's work on the left, the goal rail on
+                the right. On one column the goal card comes second, right under
+                the hero, so it is never pushed below the course list. */}
+            <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_20rem] lg:grid-rows-[auto_1fr] lg:gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
+                <div className="min-w-0 lg:col-start-1">
+                    <DailyHero onOpenSettings={() => setSettingsOpen(true)} />
                 </div>
 
-                <DailyHero />
+                <aside
+                    aria-label="Your day"
+                    className="space-y-4 lg:sticky lg:top-6 lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:self-start"
+                >
+                    <DailyGoalCard />
+                    <LevelBadge />
+                </aside>
 
-                <DailyHabitCard />
-
-                <PathEntryCard />
-
-                {/* Only rendered when there is something tricky to work on. */}
-                <DifficultWordsEntry />
-
-                {/* Progress — surfaced above the course list */}
-                <section className="glass-surface mb-8 rounded-3xl">
-                    <h2 className="px-5 py-4 font-display text-base font-bold">
-                        Your progress
-                    </h2>
-                    <div className="space-y-6 px-5 pb-5">
-                        {progressStatsCards}
-                        {learningProgress}
-                        <LearningProgressChart
-                            stats={wordProgressStats}
-                            isLoading={isLoadingProgressStats}
-                            isError={isErrorProgressStats}
-                        />
-                    </div>
-                </section>
-
-                <CoursePath />
+                <div className="min-w-0 space-y-5 lg:col-start-1 lg:space-y-6">
+                    <PathEntryCard />
+                    {/* Only rendered when there is something tricky to work on. */}
+                    <DifficultWordsEntry />
+                    <CoursePath />
+                    <WordsSnapshotCard />
+                </div>
             </div>
 
             <PracticeSettingsDialog

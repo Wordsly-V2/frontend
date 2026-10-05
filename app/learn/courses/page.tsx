@@ -2,6 +2,7 @@
 
 import { QueryBoundary, SkeletonGrid } from "@/components/common/states";
 import { EmptyState } from "@/components/common/states";
+import { PageShell } from "@/components/common/page";
 import CourseGrid from "@/components/features/courses/course-grid";
 import CoursesHeader from "@/components/features/courses/courses-header";
 import { Button } from "@/components/ui/button";
@@ -53,19 +54,13 @@ export default function CoursesLibraryPage() {
     const isEmpty = !!paginatedData && paginatedData.items.length === 0;
 
     return (
-        <main className="min-h-dvh">
-            <div className="container mx-auto max-w-7xl px-3 pb-24 pt-5 sm:px-4 sm:pb-12 sm:pt-6 md:py-8">
-                <div className="mb-6 sm:mb-8">
-                    <p className="mb-1 text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-                        Your library
-                    </p>
-                    <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
-                        Courses
-                    </h1>
-                </div>
-
+        <PageShell>
+            <div>
                 <section id="course-library" className="scroll-mt-24">
                     <CoursesHeader
+                        headingAs="h1"
+                        sectionLabel="Your library"
+                        title="Courses"
                         searchQuery={searchInput}
                         totalCourses={paginatedData?.totalItems || 0}
                         onSearch={setSearchInput}
@@ -134,6 +129,6 @@ export default function CoursesLibraryPage() {
                     </QueryBoundary>
                 </section>
             </div>
-        </main>
+        </PageShell>
     );
 }

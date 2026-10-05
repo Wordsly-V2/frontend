@@ -63,7 +63,7 @@ export function QuizStep({
 
     return (
         <div>
-            <article className="glass-surface space-y-2 rounded-3xl p-5 sm:p-7">
+            <article className="surface-card space-y-2 p-5 sm:p-7">
                 <p className="text-sm font-semibold text-muted-foreground">
                     Quiz · {index + 1} of {questions.length}
                 </p>

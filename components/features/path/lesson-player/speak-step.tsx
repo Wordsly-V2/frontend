@@ -39,7 +39,7 @@ export function SpeakStep({
 
     return (
         <div>
-            <article className="glass-surface space-y-6 rounded-3xl p-5 text-center sm:p-8">
+            <article className="surface-card space-y-6 p-5 text-center sm:p-8">
                 <p className="text-sm font-semibold text-muted-foreground">
                     Listen, then say it out loud · {index + 1} of {lines.length}
                 </p>

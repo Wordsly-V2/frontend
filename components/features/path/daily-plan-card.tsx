@@ -19,7 +19,7 @@ export function DailyPlanCard({ tree, me }: Readonly<{ tree: PathTree; me: PathM
     if (plan.length === 0) return null;
 
     return (
-        <section aria-labelledby="daily-plan-title" className="glass-surface mb-8 rounded-3xl p-5 sm:p-6">
+        <section aria-labelledby="daily-plan-title" className="surface-card p-5 sm:p-6">
             <h2 id="daily-plan-title" className="font-display text-lg font-bold">
                 Today
             </h2>

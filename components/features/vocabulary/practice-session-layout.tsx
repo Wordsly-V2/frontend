@@ -1,103 +1,53 @@
 "use client";
 
 import { SavingOverlay } from "@/components/common/saving-overlay";
-import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
-import { ArrowLeft } from "lucide-react";
+import { X } from "lucide-react";
 import type { ReactNode } from "react";
 
 interface PracticeSessionLayoutProps {
-    variant?: "overview" | "practice";
     title?: string;
     subtitle?: string;
-    courseName?: string;
     onBack: () => void;
     backDisabled?: boolean;
     isPersisting?: boolean;
-    /** Sticky slot below the top bar — e.g. progress during practice */
-    topSlot?: ReactNode;
     children: ReactNode;
 }
 
+/**
+ * The full-screen frame before a session starts (the session plan): the same
+ * exit control and column as the session itself, so starting feels like one
+ * continuous screen.
+ */
 export function PracticeSessionLayout({
-    variant = "overview",
     title,
     subtitle,
-    courseName,
     onBack,
     backDisabled = false,
     isPersisting = false,
-    topSlot,
     children,
 }: Readonly<PracticeSessionLayoutProps>) {
-    const isPractice = variant === "practice";
-
     return (
-        <main className="bg-background flex flex-col min-h-dvh">
+        <main className="flex min-h-dvh flex-col">
             <SavingOverlay open={isPersisting} />
-
-            {isPractice ? (
-                <div className="sticky top-0 z-20 border-b border-border/60 bg-background/90 backdrop-blur-md">
-                    <div className="container mx-auto max-w-3xl px-3 sm:px-4 py-2.5 flex items-center gap-3">
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={onBack}
-                            disabled={backDisabled}
-                            className="shrink-0 h-9 w-9 rounded-xl text-muted-foreground hover:text-foreground"
-                            aria-label="Back to course"
-                        >
-                            <ArrowLeft className="h-4 w-4" />
-                        </Button>
-                        <div className="min-w-0 flex-1">
-                            <p className="text-sm font-semibold truncate">{courseName ?? "Practice"}</p>
-                            {subtitle && (
-                                <p className="text-xs text-muted-foreground truncate">{subtitle}</p>
-                            )}
-                        </div>
-                    </div>
-                    {topSlot && (
-                        <div className="container mx-auto max-w-3xl px-3 sm:px-4 pb-3">
-                            {topSlot}
-                        </div>
-                    )}
-                </div>
-            ) : (
-                <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 max-w-3xl flex flex-col flex-1">
-                    <Button
-                        variant="ghost"
+            <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col px-4 sm:px-6">
+                <div className="flex h-16 shrink-0 items-center pt-safe">
+                    <button
+                        type="button"
                         onClick={onBack}
-                        className="mb-4 self-start flex-shrink-0 text-muted-foreground hover:text-foreground"
-                        size="sm"
                         disabled={backDisabled}
+                        className="-ml-1.5 flex h-10 w-10 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
+                        aria-label="Back to course"
                     >
-                        <ArrowLeft className="h-4 w-4 mr-2" />
-                        Back to Course
-                    </Button>
-                    {(title || subtitle) && (
-                        <header className="text-center mb-6 sm:mb-8 flex-shrink-0">
-                            {title && (
-                                <h1 className="text-2xl sm:text-3xl font-bold mb-2 tracking-tight">
-                                    {title}
-                                </h1>
-                            )}
-                            {subtitle && (
-                                <p className="text-sm sm:text-base text-muted-foreground">{subtitle}</p>
-                            )}
-                        </header>
-                    )}
+                        <X className="h-6 w-6" strokeWidth={2.5} />
+                    </button>
                 </div>
-            )}
-
-            <div
-                className={cn(
-                    "flex-1 flex flex-col min-h-0",
-                    isPractice
-                        ? "container mx-auto max-w-3xl px-3 sm:px-4 py-4 pb-safe w-full"
-                        : "container mx-auto max-w-3xl px-3 sm:px-4 pb-6 -mt-2",
+                {(title || subtitle) && (
+                    <header className="mb-6 text-center">
+                        {title && <h1 className="font-display text-2xl font-bold tracking-tight sm:text-3xl">{title}</h1>}
+                        {subtitle && <p className="mt-1 text-sm text-muted-foreground sm:text-base">{subtitle}</p>}
+                    </header>
                 )}
-            >
-                {children}
+                <div className="flex flex-1 flex-col pb-6">{children}</div>
             </div>
         </main>
     );

@@ -29,7 +29,7 @@ export function AdminShell({ children }: Readonly<{ children: React.ReactNode }>
     return (
         <div className="mx-auto flex w-full max-w-7xl md:gap-2 md:px-4">
             <aside className="hidden w-56 shrink-0 md:block">
-                <div className="sticky top-24 pt-10">
+                <div className="sticky top-6 pt-6">
                     <AdminNav active={active} />
                 </div>
             </aside>

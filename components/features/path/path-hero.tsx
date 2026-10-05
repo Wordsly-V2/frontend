@@ -24,7 +24,7 @@ export function PathHero({ tree, me }: Readonly<{ tree: PathTree; me: PathMe }>)
     return (
         <section
             aria-label="Your place on the path"
-            className="gradient-hero relative mb-8 overflow-hidden rounded-3xl p-5 text-white shadow-chunky sm:p-7"
+            className="gradient-hero relative overflow-hidden rounded-3xl p-5 text-white shadow-chunky sm:p-7"
         >
             {me.enrolled ? <ContinueContent tree={tree} me={me} /> : <EnrollContent />}
         </section>

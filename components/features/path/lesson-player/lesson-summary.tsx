@@ -45,7 +45,7 @@ export function LessonSummary({
     const nextLessonId = complete.data?.me.progress.currentLessonId;
 
     return (
-        <section className="glass-surface flex flex-col items-center gap-5 rounded-3xl p-6 text-center sm:p-10">
+        <section className="surface-card flex flex-col items-center gap-5 p-6 text-center sm:p-10">
             <Mascot mood="celebrate" />
             <div className="space-y-1">
                 <h1 className="font-display text-3xl font-bold">Lesson complete!</h1>
