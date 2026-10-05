@@ -7,7 +7,9 @@ import { WordslyMark } from "@/components/common/app-nav/wordsly-mark";
 import { SearchWordsButton } from "@/components/common/my-words-search";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useNextPracticeAction } from "@/hooks/useNextPracticeAction.hook";
-import { activeAppNavKey, APP_NAV } from "@/lib/app-nav";
+import { useUser } from "@/hooks/useUser.hook";
+import { isAdmin } from "@/lib/admin";
+import { activeAppNavKey, type AppNavItem, visibleAppNav } from "@/lib/app-nav";
 import { cn } from "@/lib/utils";
 import { Command, Dumbbell, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
@@ -24,7 +26,8 @@ interface AppSidebarProps {
 
 /**
  * The desktop frame (lg and up): brand, the one Practice button, the sections,
- * and the learner's streak and account at the bottom. Folds down to an icon
+ * the account pages (Profile, Admin for admins) under them, and the learner's
+ * streak and account menu at the bottom. Folds down to an icon
  * rail; widths come from `--app-sidebar-w`, set by `AppShell`.
  */
 export function AppSidebar({ collapsed, canToggle, onToggle }: Readonly<AppSidebarProps>) {
@@ -34,6 +37,11 @@ export function AppSidebar({ collapsed, canToggle, onToggle }: Readonly<AppSideb
     const next = useNextPracticeAction();
     const practiceHref = next.primary?.href ?? "/learn";
     const waiting = next.dueCount + next.newCount;
+    const { profile } = useUser();
+    const items = visibleAppNav(isAdmin(profile));
+    const mainItems = items.filter((item) => item.group === "main");
+    // Account pages wait for the profile, so Admin never flashes in or out.
+    const accountItems = profile ? items.filter((item) => item.group === "account") : [];
 
     return (
         <aside
@@ -86,37 +94,43 @@ export function AppSidebar({ collapsed, canToggle, onToggle }: Readonly<AppSideb
                 {!collapsed && <SearchWordsButton variant="row" />}
             </div>
 
-            <nav aria-label="Main" className={cn("mt-5 flex-1 space-y-1 overflow-y-auto", collapsed ? "px-3" : "px-3")}>
-                {APP_NAV.map((item) => {
-                    const Icon = APP_NAV_ICONS[item.key];
-                    const isActive = item.key === active;
-                    return (
-                        <RailTip key={item.key} label={item.label} show={collapsed}>
-                            <Link
-                                href={item.href}
-                                aria-current={isActive ? "page" : undefined}
-                                className={cn(
-                                    "relative flex h-11 items-center rounded-xl text-[15px] font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                                    collapsed ? "justify-center" : "gap-3 px-3",
-                                    isActive
-                                        ? "text-primary"
-                                        : "text-muted-foreground hover:bg-muted/70 hover:text-foreground",
-                                )}
+            <nav aria-label="Main" className="mt-5 flex-1 overflow-y-auto px-3">
+                <ul className="space-y-1">
+                    {mainItems.map((item) => (
+                        <SidebarLink
+                            key={item.key}
+                            item={item}
+                            active={item.key === active}
+                            collapsed={collapsed}
+                            reduceMotion={reduceMotion}
+                        />
+                    ))}
+                </ul>
+                {accountItems.length > 0 && (
+                    <section aria-labelledby={collapsed ? undefined : "app-sidebar-account"} className="mt-4">
+                        {collapsed ? (
+                            <div aria-hidden className="mx-2 mb-3 border-t border-sidebar-border/80" />
+                        ) : (
+                            <h3
+                                id="app-sidebar-account"
+                                className="px-3 pb-1 text-xs font-bold uppercase tracking-wide text-muted-foreground"
                             >
-                                {isActive && (
-                                    <motion.span
-                                        layoutId="app-sidebar-active"
-                                        aria-hidden
-                                        transition={reduceMotion ? { duration: 0 } : { type: "spring", stiffness: 500, damping: 38 }}
-                                        className="absolute inset-0 rounded-xl border border-primary/20 bg-primary/10"
-                                    />
-                                )}
-                                <Icon className="relative h-5 w-5 shrink-0" aria-hidden />
-                                {!collapsed && <span className="relative truncate">{item.label}</span>}
-                            </Link>
-                        </RailTip>
-                    );
-                })}
+                                Account
+                            </h3>
+                        )}
+                        <ul className="space-y-1">
+                            {accountItems.map((item) => (
+                                <SidebarLink
+                                    key={item.key}
+                                    item={item}
+                                    active={item.key === active}
+                                    collapsed={collapsed}
+                                    reduceMotion={reduceMotion}
+                                />
+                            ))}
+                        </ul>
+                    </section>
+                )}
             </nav>
 
             <div className={cn("shrink-0 space-y-2 pb-4 pt-3", collapsed ? "flex flex-col items-center px-2" : "px-3")}>
@@ -169,6 +183,41 @@ export function AppSidebar({ collapsed, canToggle, onToggle }: Readonly<AppSideb
                 )}
             </div>
         </aside>
+    );
+}
+
+function SidebarLink({
+    item,
+    active,
+    collapsed,
+    reduceMotion,
+}: Readonly<{ item: AppNavItem; active: boolean; collapsed: boolean; reduceMotion: boolean | null }>) {
+    const Icon = APP_NAV_ICONS[item.key];
+    return (
+        <li>
+            <RailTip label={item.label} show={collapsed}>
+                <Link
+                    href={item.href}
+                    aria-current={active ? "page" : undefined}
+                    className={cn(
+                        "relative flex h-11 items-center rounded-xl text-[15px] font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                        collapsed ? "justify-center" : "gap-3 px-3",
+                        active ? "text-primary" : "text-muted-foreground hover:bg-muted/70 hover:text-foreground",
+                    )}
+                >
+                    {active && (
+                        <motion.span
+                            layoutId="app-sidebar-active"
+                            aria-hidden
+                            transition={reduceMotion ? { duration: 0 } : { type: "spring", stiffness: 500, damping: 38 }}
+                            className="absolute inset-0 rounded-xl border border-primary/20 bg-primary/10"
+                        />
+                    )}
+                    <Icon className="relative h-5 w-5 shrink-0" aria-hidden />
+                    {!collapsed && <span className="relative truncate">{item.label}</span>}
+                </Link>
+            </RailTip>
+        </li>
     );
 }
 

@@ -4,28 +4,42 @@
  * mobile top bar and the bottom tab bar so the three can never disagree.
  */
 
-export type AppNavKey = "learn" | "path" | "courses" | "progress" | "manage";
+export type AppNavKey = "learn" | "path" | "courses" | "progress" | "manage" | "difficult" | "profile" | "admin";
+
+/** `main`: the learning sections. `account`: the learner's own pages, listed under them. */
+export type AppNavGroup = "main" | "account";
 
 export interface AppNavItem {
     key: AppNavKey;
     href: string;
     label: string;
-    /** Shown in the mobile bottom tab bar (Manage lives in the user menu there). */
+    group: AppNavGroup;
+    /** Shown in the mobile bottom tab bar (the rest live in the account sheet there). */
     inTabBar: boolean;
+    /** Only listed for admins (presentation only, see `isAdmin`). */
+    adminOnly?: boolean;
 }
 
 export const APP_NAV: readonly AppNavItem[] = [
-    { key: "learn", href: "/learn", label: "Learn", inTabBar: true },
-    { key: "path", href: "/path", label: "Path", inTabBar: true },
-    { key: "courses", href: "/learn/courses", label: "Courses", inTabBar: true },
-    { key: "progress", href: "/progress", label: "Progress", inTabBar: true },
-    { key: "manage", href: "/manage", label: "Manage", inTabBar: false },
+    { key: "learn", href: "/learn", label: "Learn", group: "main", inTabBar: true },
+    { key: "path", href: "/path", label: "Path", group: "main", inTabBar: true },
+    { key: "courses", href: "/learn/courses", label: "Courses", group: "main", inTabBar: true },
+    { key: "progress", href: "/progress", label: "Progress", group: "main", inTabBar: true },
+    { key: "manage", href: "/manage", label: "Manage", group: "main", inTabBar: false },
+    { key: "difficult", href: "/learn/difficult", label: "Difficult words", group: "main", inTabBar: false },
+    { key: "profile", href: "/profile", label: "Profile", group: "account", inTabBar: false },
+    { key: "admin", href: "/admin", label: "Admin", group: "account", inTabBar: false, adminOnly: true },
 ];
+
+/** The sections one learner may see, in order. */
+export function visibleAppNav(isAdmin: boolean, items: readonly AppNavItem[] = APP_NAV): AppNavItem[] {
+    return items.filter((item) => isAdmin || !item.adminOnly);
+}
 
 /**
  * The section a path belongs to: the longest href that is the path itself or a
  * parent of it, so `/learn/courses/1` lights up Courses rather than Learn.
- * `/learn/difficult` and `/learn/words-details` stay under Learn.
+ * `/learn/difficult` is its own section; `/learn/words-details` stays under Learn.
  */
 export function activeAppNavKey(
     pathname: string,

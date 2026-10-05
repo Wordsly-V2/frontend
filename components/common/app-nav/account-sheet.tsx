@@ -8,7 +8,7 @@ import { Sheet, SheetClose, SheetContent, SheetDescription, SheetTitle, SheetTri
 import { useUser } from "@/hooks/useUser.hook";
 import { isAdmin } from "@/lib/admin";
 import { cn } from "@/lib/utils";
-import { ChevronRight, LogOut, type LucideIcon, ShieldCheck, TriangleAlert, User } from "lucide-react";
+import { ChevronRight, LogOut, type LucideIcon, ShieldCheck, User } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { type ReactNode, useRef, useState } from "react";
@@ -32,7 +32,7 @@ const WORD_LINKS: readonly SheetLink[] = [
         href: "/learn/difficult",
         label: "Difficult words",
         detail: "Words you saved or keep missing",
-        icon: TriangleAlert,
+        icon: APP_NAV_ICONS.difficult,
     },
 ];
 
