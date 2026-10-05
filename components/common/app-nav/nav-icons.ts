@@ -1,5 +1,5 @@
 import type { AppNavKey } from "@/lib/app-nav";
-import { BarChart3, BookOpen, Library, type LucideIcon, Route, Settings } from "lucide-react";
+import { BarChart3, BookOpen, Library, type LucideIcon, Route, Settings, ShieldCheck, TriangleAlert, User } from "lucide-react";
 
 export const APP_NAV_ICONS: Record<AppNavKey, LucideIcon> = {
     learn: BookOpen,
@@ -7,6 +7,9 @@ export const APP_NAV_ICONS: Record<AppNavKey, LucideIcon> = {
     courses: Library,
     progress: BarChart3,
     manage: Settings,
+    difficult: TriangleAlert,
+    profile: User,
+    admin: ShieldCheck,
 };
 
 /** The command palette listens for this; the ⌘K shortcut is wired there. */

@@ -1,14 +1,23 @@
 import { describe, expect, it } from "vitest";
-import { activeAppNavKey, appChromeFor, prefersCollapsedSidebar } from "./app-nav";
+import { activeAppNavKey, APP_NAV, appChromeFor, prefersCollapsedSidebar, visibleAppNav } from "./app-nav";
 
 describe("activeAppNavKey", () => {
     it("picks the most specific section", () => {
         expect(activeAppNavKey("/learn")).toBe("learn");
         expect(activeAppNavKey("/learn/courses")).toBe("courses");
         expect(activeAppNavKey("/learn/courses/abc")).toBe("courses");
-        expect(activeAppNavKey("/learn/difficult")).toBe("learn");
+        expect(activeAppNavKey("/learn/difficult")).toBe("difficult");
+        expect(activeAppNavKey("/learn/words-details")).toBe("learn");
         expect(activeAppNavKey("/path/unit/1")).toBe("path");
         expect(activeAppNavKey("/manage/courses/1")).toBe("manage");
+        expect(activeAppNavKey("/profile")).toBe("profile");
+        expect(activeAppNavKey("/admin/users/1")).toBe("admin");
+    });
+
+    it("falls back to the parent among a subset of sections", () => {
+        const tabs = APP_NAV.filter((item) => item.inTabBar);
+        expect(activeAppNavKey("/learn/difficult", tabs)).toBe("learn");
+        expect(activeAppNavKey("/profile", tabs)).toBeNull();
     });
 
     it("does not match a prefix that is not a parent segment", () => {
@@ -16,10 +25,17 @@ describe("activeAppNavKey", () => {
         expect(activeAppNavKey("/progressive")).toBeNull();
     });
 
-    it("returns null outside the learner sections", () => {
+    it("returns null outside the sections", () => {
         expect(activeAppNavKey("/")).toBeNull();
-        expect(activeAppNavKey("/profile")).toBeNull();
-        expect(activeAppNavKey("/admin")).toBeNull();
+        expect(activeAppNavKey("/profiles")).toBeNull();
+    });
+});
+
+describe("visibleAppNav", () => {
+    it("lists Admin for admins only", () => {
+        expect(visibleAppNav(false).map((item) => item.key)).not.toContain("admin");
+        expect(visibleAppNav(true).map((item) => item.key)).toContain("admin");
+        expect(visibleAppNav(false).map((item) => item.key)).toContain("profile");
     });
 });
 

@@ -17,7 +17,8 @@ const TABS = APP_NAV.filter((item) => item.inTabBar);
  */
 export function BottomTabBar() {
     const pathname = usePathname() ?? "";
-    const active = activeAppNavKey(pathname);
+    // Matched among the tabs only, so a page with no tab (Difficult words) lights its parent.
+    const active = activeAppNavKey(pathname, TABS);
     const next = useNextPracticeAction();
     const practiceHref = next.primary?.href ?? "/learn";
     const waiting = next.dueCount + next.newCount;

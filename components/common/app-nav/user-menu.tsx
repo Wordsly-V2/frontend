@@ -12,11 +12,9 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useUser } from "@/hooks/useUser.hook";
-import { isAdmin } from "@/lib/admin";
 import { cn } from "@/lib/utils";
 import type { IUserProfile } from "@/types/users/users.type";
-import { ChevronsUpDown, LogOut, ShieldCheck, User } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { ChevronsUpDown, LogOut } from "lucide-react";
 import { useState } from "react";
 
 interface UserMenuProps {
@@ -30,13 +28,12 @@ interface UserMenuProps {
     className?: string;
 }
 
-/** The signed-in learner's menu: profile, admin, theme, sign out. */
+/** The signed-in learner's menu: theme and sign out (Profile and Admin are sidebar links). */
 export function UserMenu({
     variant = "avatar",
     side = "bottom",
     className,
 }: Readonly<UserMenuProps>) {
-    const router = useRouter();
     const { profile } = useUser();
     const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
 
@@ -90,17 +87,6 @@ export function UserMenu({
                         <p className="truncate text-sm font-bold leading-tight">{profile.displayName}</p>
                         <p className="truncate text-xs text-muted-foreground">{profile.gmail}</p>
                     </DropdownMenuLabel>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={() => router.push("/profile")} className="cursor-pointer rounded-lg">
-                        <User className="mr-2 h-4 w-4" />
-                        Profile
-                    </DropdownMenuItem>
-                    {isAdmin(profile) && (
-                        <DropdownMenuItem onClick={() => router.push("/admin")} className="cursor-pointer rounded-lg">
-                            <ShieldCheck className="mr-2 h-4 w-4" />
-                            Admin
-                        </DropdownMenuItem>
-                    )}
                     <DropdownMenuSeparator />
                     <DropdownMenuItem
                         className="cursor-pointer rounded-lg"
