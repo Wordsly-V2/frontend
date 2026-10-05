@@ -1,7 +1,7 @@
 "use client";
 
+import { AccountSheet } from "@/components/common/app-nav/account-sheet";
 import { StreakChip } from "@/components/common/app-nav/streak-chip";
-import { UserMenu } from "@/components/common/app-nav/user-menu";
 import { WordslyMark } from "@/components/common/app-nav/wordsly-mark";
 import { SearchWordsButton } from "@/components/common/my-words-search";
 import { activeAppNavKey, APP_NAV } from "@/lib/app-nav";
@@ -10,8 +10,8 @@ import { usePathname } from "next/navigation";
 
 /**
  * The mobile frame's top (below lg): where you are, search, streak and the
- * account menu. Sections live in the bottom tab bar; Manage and the command
- * palette live in the account menu.
+ * account sheet. Sections live in the bottom tab bar; Manage, Difficult words,
+ * Profile and Admin live in the account sheet.
  */
 export function MobileTopBar() {
     const pathname = usePathname() ?? "";
@@ -33,7 +33,7 @@ export function MobileTopBar() {
                 </p>
                 <SearchWordsButton />
                 <StreakChip />
-                <UserMenu withAppLinks className="ml-1" />
+                <AccountSheet className="ml-1" />
             </div>
         </header>
     );

@@ -1,18 +1,8 @@
 "use client";
 
-import { openCommandPalette } from "@/components/common/app-nav/nav-icons";
+import { LogoutDialog } from "@/components/common/app-nav/logout-dialog";
 import { ChangeThemeToggle } from "@/components/common/change-theme-toggle/change-theme-toggle";
-import {
-    AlertDialog,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -24,20 +14,19 @@ import {
 import { useUser } from "@/hooks/useUser.hook";
 import { isAdmin } from "@/lib/admin";
 import { cn } from "@/lib/utils";
-import { ChevronsUpDown, Command, LogOut, Settings, ShieldCheck, Smartphone, User } from "lucide-react";
+import type { IUserProfile } from "@/types/users/users.type";
+import { ChevronsUpDown, LogOut, ShieldCheck, User } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 interface UserMenuProps {
     /**
-     * `avatar`: just the picture (mobile top bar, folded sidebar).
+     * `avatar`: just the picture (the folded sidebar).
      * `row`: picture, name and email (the open sidebar's footer).
      */
     variant?: "avatar" | "row";
     /** Where the menu opens relative to the trigger. */
     side?: "top" | "bottom" | "right";
-    /** Adds Manage and Commands, which the mobile tab bar has no room for. */
-    withAppLinks?: boolean;
     className?: string;
 }
 
@@ -45,40 +34,15 @@ interface UserMenuProps {
 export function UserMenu({
     variant = "avatar",
     side = "bottom",
-    withAppLinks = false,
     className,
 }: Readonly<UserMenuProps>) {
     const router = useRouter();
-    const { profile, logout } = useUser();
+    const { profile } = useUser();
     const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
-    const [isLoggingOut, setIsLoggingOut] = useState(false);
 
     if (!profile) return null;
 
-    const handleLogoutChoice = async (fromAllDevices: boolean) => {
-        setIsLoggingOut(true);
-        try {
-            await logout({ allDevices: fromAllDevices, redirectTo: "/auth/login" });
-            setLogoutDialogOpen(false);
-        } finally {
-            setIsLoggingOut(false);
-        }
-    };
-
-    const avatar = (
-        <Avatar className="h-9 w-9 shrink-0">
-            <AvatarImage
-                src={profile.pictureUrl ?? ""}
-                alt=""
-                loading="lazy"
-                crossOrigin="anonymous"
-                referrerPolicy="no-referrer"
-            />
-            <AvatarFallback className="gradient-brand text-sm font-bold text-white">
-                {profile.displayName?.charAt(0).toUpperCase() ?? "U"}
-            </AvatarFallback>
-        </Avatar>
-    );
+    const avatar = <UserAvatar profile={profile} />;
 
     return (
         <>
@@ -131,18 +95,6 @@ export function UserMenu({
                         <User className="mr-2 h-4 w-4" />
                         Profile
                     </DropdownMenuItem>
-                    {withAppLinks && (
-                        <>
-                            <DropdownMenuItem onClick={() => router.push("/manage")} className="cursor-pointer rounded-lg">
-                                <Settings className="mr-2 h-4 w-4" />
-                                Manage words
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={openCommandPalette} className="cursor-pointer rounded-lg">
-                                <Command className="mr-2 h-4 w-4" />
-                                Go to…
-                            </DropdownMenuItem>
-                        </>
-                    )}
                     {isAdmin(profile) && (
                         <DropdownMenuItem onClick={() => router.push("/admin")} className="cursor-pointer rounded-lg">
                             <ShieldCheck className="mr-2 h-4 w-4" />
@@ -167,39 +119,28 @@ export function UserMenu({
                 </DropdownMenuContent>
             </DropdownMenu>
 
-            <AlertDialog open={logoutDialogOpen} onOpenChange={setLogoutDialogOpen}>
-                <AlertDialogContent className="sm:max-w-md">
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>Log out</AlertDialogTitle>
-                        <AlertDialogDescription>
-                            Do you want to log out on this device only or from all devices?
-                        </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter className="flex-col gap-2 sm:flex-row">
-                        <AlertDialogCancel disabled={isLoggingOut} className="w-full sm:w-auto">
-                            Cancel
-                        </AlertDialogCancel>
-                        <Button
-                            variant="outline"
-                            disabled={isLoggingOut}
-                            onClick={() => handleLogoutChoice(false)}
-                            className="w-full gap-2 sm:w-auto"
-                        >
-                            <Smartphone className="h-4 w-4" />
-                            This device only
-                        </Button>
-                        <Button
-                            variant="destructive"
-                            disabled={isLoggingOut}
-                            onClick={() => handleLogoutChoice(true)}
-                            className="w-full gap-2 sm:w-auto"
-                        >
-                            <LogOut className="h-4 w-4" />
-                            All devices
-                        </Button>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
+            <LogoutDialog open={logoutDialogOpen} onOpenChange={setLogoutDialogOpen} />
         </>
+    );
+}
+
+/** The learner's picture, or their initial on the brand gradient. */
+export function UserAvatar({
+    profile,
+    className,
+}: Readonly<{ profile: Pick<IUserProfile, "pictureUrl" | "displayName">; className?: string }>) {
+    return (
+        <Avatar className={cn("h-9 w-9 shrink-0", className)}>
+            <AvatarImage
+                src={profile.pictureUrl ?? ""}
+                alt=""
+                loading="lazy"
+                crossOrigin="anonymous"
+                referrerPolicy="no-referrer"
+            />
+            <AvatarFallback className="gradient-brand text-sm font-bold text-white">
+                {profile.displayName?.charAt(0).toUpperCase() ?? "U"}
+            </AvatarFallback>
+        </Avatar>
     );
 }
