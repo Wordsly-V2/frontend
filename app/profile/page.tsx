@@ -34,7 +34,7 @@ export default function ProfilePage() {
         <PageShell>
             <PageHeader eyebrow="Account" title="Profile" description="Your account, reminders and recent practice." />
 
-            <div className="grid gap-5 lg:grid-cols-[20rem_minmax(0,1fr)] lg:gap-6">
+            <div className="grid grid-cols-1 gap-5 lg:grid-cols-[20rem_minmax(0,1fr)] lg:gap-6">
                 <aside className="lg:sticky lg:top-6 lg:self-start">
                     <section aria-label="Your account" className="surface-card overflow-hidden">
                         <div className="gradient-hero h-20" aria-hidden />

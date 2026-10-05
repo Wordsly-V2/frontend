@@ -39,7 +39,7 @@ export default function LearnPage() {
             {/* Two columns from lg: the day's work on the left, the goal rail on
                 the right. On one column the goal card comes second, right under
                 the hero, so it is never pushed below the course list. */}
-            <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_20rem] lg:grid-rows-[auto_1fr] lg:gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
+            <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_20rem] lg:grid-rows-[auto_1fr] lg:gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
                 <div className="min-w-0 lg:col-start-1">
                     <DailyHero onOpenSettings={() => setSettingsOpen(true)} />
                 </div>

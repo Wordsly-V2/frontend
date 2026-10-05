@@ -50,8 +50,8 @@ export function PathOverview() {
             title="Wordsly Path"
             description="From your first words to real conversations, one short lesson at a time."
         />
-        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem] lg:gap-8">
-            <aside className="space-y-5 lg:sticky lg:top-6 lg:col-start-2 lg:row-start-1 lg:self-start">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_22rem] lg:gap-8">
+            <aside className="min-w-0 space-y-5 lg:sticky lg:top-6 lg:col-start-2 lg:row-start-1 lg:self-start">
                 <PathHero tree={tree.data} me={me.data} />
                 <DailyPlanCard tree={tree.data} me={me.data} />
             </aside>

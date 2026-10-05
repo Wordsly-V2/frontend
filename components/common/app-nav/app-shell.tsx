@@ -73,7 +73,7 @@ export function AppShell({ children }: Readonly<{ children: ReactNode }>) {
                 canToggle={!forcedCollapsed}
                 onToggle={() => setCollapsed(!userCollapsed)}
             />
-            <div className="min-h-dvh transition-[padding] duration-200 motion-reduce:transition-none lg:pl-[var(--app-sidebar-w)]">
+            <div className="min-h-dvh overflow-x-clip transition-[padding] duration-200 motion-reduce:transition-none lg:pl-[var(--app-sidebar-w)]">
                 {/* One sticky stack, so the banners slide under the top bar
                     instead of both pinning themselves to top: 0. */}
                 <div className="sticky top-0 z-40">
