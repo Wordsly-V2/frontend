@@ -10,6 +10,7 @@ describe("activeAdminHref", () => {
     it("prefers the most specific parent", () => {
         expect(activeAdminHref("/admin/users/01a0dc51")).toBe("/admin/users");
         expect(activeAdminHref("/admin/path/item/greetings")).toBe("/admin/path");
+        expect(activeAdminHref("/admin/vocabulary/courses/01a10a40")).toBe("/admin/vocabulary");
     });
 
     it("does not treat a shared prefix as a parent", () => {

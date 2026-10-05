@@ -85,6 +85,7 @@ const ADMIN_ROUTES: PaletteRoute[] = [
     { href: "/admin/reports", label: "Admin: Reports", icon: ShieldCheck, keywords: ["stats", "retention", "funnel", "analytics"] },
     { href: "/admin/users", label: "Admin: Users", icon: ShieldCheck, keywords: ["accounts", "suspend", "role", "people"] },
     { href: "/admin/path", label: "Admin: Wordsly Path", icon: ShieldCheck, keywords: ["content", "publish", "release", "edit"] },
+    { href: "/admin/vocabulary", label: "Admin: Official courses", icon: ShieldCheck, keywords: ["vocabulary", "course", "publish", "content"] },
 ];
 
 const ACCOUNT_ROUTES: PaletteRoute[] = [

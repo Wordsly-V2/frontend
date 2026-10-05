@@ -21,7 +21,10 @@ export const ADMIN_NAV: AdminNavGroup[] = [
     },
     {
         heading: "Content",
-        links: [{ href: "/admin/path", label: "Wordsly Path" }],
+        links: [
+            { href: "/admin/path", label: "Wordsly Path" },
+            { href: "/admin/vocabulary", label: "Official courses" },
+        ],
     },
 ];
 

@@ -3,6 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { Plus, Search, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import type { ReactNode } from "react";
 
 interface CoursesHeaderProps {
     onCreateCourse?: () => void;
@@ -14,6 +15,8 @@ interface CoursesHeaderProps {
     searchPlaceholder?: string;
     /** `h1` when this header is the page's own title. */
     headingAs?: "h1" | "h2";
+    /** Extra buttons beside the title (below it on small screens). */
+    actions?: ReactNode;
 }
 
 export default function CoursesHeader({
@@ -25,6 +28,7 @@ export default function CoursesHeader({
     title = "My courses",
     searchPlaceholder = "Search by course name…",
     headingAs: Heading = "h2",
+    actions,
 }: Readonly<CoursesHeaderProps>) {
     return (
         <div className="space-y-5 sm:space-y-6">
@@ -49,6 +53,7 @@ export default function CoursesHeader({
                         {searchQuery.length > 0 ? ` matching “${searchQuery}”` : ""}
                     </p>
                 </div>
+                {actions}
                 {onCreateCourse && (
                     <Button
                         onClick={onCreateCourse}

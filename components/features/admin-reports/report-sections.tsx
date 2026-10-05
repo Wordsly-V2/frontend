@@ -331,9 +331,14 @@ function VocabularyHealth() {
                                         {course.name}
                                     </Link>
                                 ) : (
-                                    <span key="course" className="block min-w-40 font-medium">
+                                    <Link
+                                        key="course"
+                                        href={`/admin/vocabulary/courses/${course.courseId}`}
+                                        className="block min-w-40 font-medium hover:text-primary"
+                                    >
                                         {course.name}
-                                    </span>
+                                        <span className="ml-1.5 text-xs font-normal text-muted-foreground">Official</span>
+                                    </Link>
                                 ),
                                 `${course.incompleteWords} of ${course.words}`,
                                 course.missing.ipa,

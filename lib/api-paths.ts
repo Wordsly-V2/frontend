@@ -19,6 +19,12 @@ const user = (segment: string) => `/${segment}`;
 export const apiPaths = {
     profile: () => user('profile'),
 
+    /** Published official courses, to browse and copy into your library. */
+    officialCourses: {
+        root: () => user('courses/official'),
+        byId: (courseId: string) => user(`courses/official/${courseId}`),
+        copy: (courseId: string) => user(`courses/official/${courseId}/copy`),
+    },
     courses: {
         root: () => user('courses'),
         totalStats: () => user('courses/total-stats'),
@@ -154,6 +160,20 @@ export const apiPaths = {
             `/admin/vocabulary/users/${userLoginId}/courses/${courseId}/lessons/${lessonId}/words/${wordId}`,
         deleteWords: (userLoginId: string, courseId: string) =>
             `/admin/vocabulary/users/${userLoginId}/courses/${courseId}/words/delete`,
+    },
+
+    /** Official courses: authoring (admins only; vocabulary-service). */
+    adminOfficialCourses: {
+        root: () => '/admin/vocabulary/courses',
+        course: (courseId: string) => `/admin/vocabulary/courses/${courseId}`,
+        publish: (courseId: string) => `/admin/vocabulary/courses/${courseId}/publish`,
+        unpublish: (courseId: string) => `/admin/vocabulary/courses/${courseId}/unpublish`,
+        lessons: (courseId: string) => `/admin/vocabulary/courses/${courseId}/lessons`,
+        lesson: (courseId: string, lessonId: string) => `/admin/vocabulary/courses/${courseId}/lessons/${lessonId}`,
+        words: (courseId: string, lessonId: string) => `/admin/vocabulary/courses/${courseId}/lessons/${lessonId}/words`,
+        word: (courseId: string, lessonId: string, wordId: string) =>
+            `/admin/vocabulary/courses/${courseId}/lessons/${lessonId}/words/${wordId}`,
+        deleteWords: (courseId: string) => `/admin/vocabulary/courses/${courseId}/words/delete`,
     },
 
     /** Wordsly Path authoring (admins only; curriculum-service). */

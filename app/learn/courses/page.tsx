@@ -12,7 +12,7 @@ import {
     useCoursesListParams,
 } from "@/hooks/useCoursesListParams.hook";
 import { useGetMyCoursesQuery } from "@/queries/courses.query";
-import { Library, SearchX } from "lucide-react";
+import { Library, SearchX, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { useCallback } from "react";
 
@@ -64,6 +64,14 @@ export default function CoursesLibraryPage() {
                         searchQuery={searchInput}
                         totalCourses={paginatedData?.totalItems || 0}
                         onSearch={setSearchInput}
+                        actions={
+                            <Button variant="playOutline" asChild className="h-10 w-full gap-2 sm:w-auto">
+                                <Link href="/learn/courses/official">
+                                    <Sparkles className="h-4 w-4" aria-hidden />
+                                    Browse Wordsly courses
+                                </Link>
+                            </Button>
+                        }
                     />
 
                     <QueryBoundary
@@ -96,11 +104,16 @@ export default function CoursesLibraryPage() {
                                     className="mt-8"
                                     icon={Library}
                                     title="No courses yet"
-                                    description="Add a course in Manage to start building your streak."
+                                    description="Add a ready-made Wordsly course, or make your own in Manage."
                                     action={
-                                        <Button variant="play" asChild>
-                                            <Link href="/manage">Go to Manage</Link>
-                                        </Button>
+                                        <div className="flex flex-wrap justify-center gap-2">
+                                            <Button variant="play" asChild>
+                                                <Link href="/learn/courses/official">Browse Wordsly courses</Link>
+                                            </Button>
+                                            <Button variant="playOutline" asChild>
+                                                <Link href="/manage">Go to Manage</Link>
+                                            </Button>
+                                        </div>
                                     }
                                 />
                             )

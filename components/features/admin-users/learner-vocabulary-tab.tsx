@@ -6,11 +6,10 @@ import { FilterToggle } from "@/components/features/admin/filter-toggle";
 import CourseFormDialog from "@/components/features/manage/course-form-dialog";
 import LessonFormDialog from "@/components/features/manage/lesson-form-dialog";
 import WordFormDialog from "@/components/features/manage/word-form-dialog";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useDebounce } from "@/hooks/useDebounce.hook";
-import { countOf, GAP_BADGES, wordGaps, wordIpa } from "@/lib/admin/vocabulary";
+import { countOf, wordGaps } from "@/lib/admin/vocabulary";
 import { adminErrorMessages } from "@/lib/admin-path/errors";
 import { adminUserSearchParams } from "@/lib/search-params/admin-user";
 import { ApiError } from "@/lib/api-error";
@@ -29,6 +28,7 @@ import { ArrowLeft, BookOpen, ChevronLeft, ChevronRight, Pencil, Search, Trash2 
 import { useQueryStates } from "nuqs";
 import { useState } from "react";
 import { toast } from "sonner";
+import { LessonSection, WORD_FILTERS, type WordFilter } from "@/components/features/admin-vocabulary/course-content";
 import { DetailSection, Fact, Facts } from "./detail-parts";
 
 const PAGE_SIZE = 10;
@@ -148,11 +148,6 @@ type Editing =
     | { kind: "deleteWord"; word: IWord }
     | null;
 
-const WORD_FILTERS = [
-    { value: "all", label: "All words" },
-    { value: "incomplete", label: "Missing something" },
-] as const;
-
 function CourseView({
     userLoginId,
     courseId,
@@ -160,7 +155,7 @@ function CourseView({
 }: Readonly<{ userLoginId: string; courseId: string; onBack: () => void }>) {
     const { data: course, isFetching, error, refetch } = useAdminUserCourseQuery(userLoginId, courseId);
     const [editing, setEditing] = useState<Editing>(null);
-    const [filter, setFilter] = useState<(typeof WORD_FILTERS)[number]["value"]>("all");
+    const [filter, setFilter] = useState<WordFilter>("all");
     const updateCourse = useUpdateAdminUserCourseMutation();
     const deleteCourse = useDeleteAdminUserCourseMutation();
     const updateLesson = useUpdateAdminUserLessonMutation();
@@ -356,107 +351,5 @@ function CourseView({
                 }
             />
         </div>
-    );
-}
-
-function LessonSection({
-    lesson,
-    onlyIncomplete,
-    onEdit,
-    onDelete,
-    onEditWord,
-    onDeleteWord,
-}: Readonly<{
-    lesson: ILesson;
-    onlyIncomplete: boolean;
-    onEdit: () => void;
-    onDelete: () => void;
-    onEditWord: (word: IWord) => void;
-    onDeleteWord: (word: IWord) => void;
-}>) {
-    const all = lesson.words ?? [];
-    const shown = onlyIncomplete ? all.filter((word) => wordGaps(word).length > 0) : all;
-
-    return (
-        <section className="rounded-2xl border border-border/80 bg-card p-5">
-            <div className="flex flex-wrap items-start justify-between gap-3">
-                <div className="min-w-0">
-                    <h3 className="truncate font-semibold">{lesson.name}</h3>
-                    <p className="text-sm text-muted-foreground">
-                        {countOf(all.length, "word")}
-                        {lesson.maxWords ? ` (max ${lesson.maxWords})` : ""}
-                    </p>
-                </div>
-                <span className="flex gap-1">
-                    <Button variant="ghost" size="sm" onClick={onEdit} aria-label={`Edit lesson ${lesson.name}`}>
-                        <Pencil className="h-4 w-4" />
-                        Edit
-                    </Button>
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={onDelete}
-                        className="text-destructive hover:text-destructive"
-                        aria-label={`Delete lesson ${lesson.name}`}
-                    >
-                        <Trash2 className="h-4 w-4" />
-                        Delete
-                    </Button>
-                </span>
-            </div>
-            {shown.length === 0 ? (
-                <p className="mt-3 text-sm text-muted-foreground">
-                    {all.length === 0 ? "No words in this lesson." : "Every word here is complete."}
-                </p>
-            ) : (
-                <ul className="mt-3 divide-y divide-border/50">
-                    {shown.map((word) => (
-                        <WordRow key={word.id} word={word} onEdit={() => onEditWord(word)} onDelete={() => onDeleteWord(word)} />
-                    ))}
-                </ul>
-            )}
-        </section>
-    );
-}
-
-function WordRow({ word, onEdit, onDelete }: Readonly<{ word: IWord; onEdit: () => void; onDelete: () => void }>) {
-    const gaps = wordGaps(word);
-    const ipa = wordIpa(word);
-    return (
-        <li className="flex flex-col gap-2 py-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="min-w-0 space-y-1">
-                <p className="flex flex-wrap items-baseline gap-x-2">
-                    <span className="font-medium">{word.word}</span>
-                    {word.partOfSpeech ? <span className="text-xs text-muted-foreground">{word.partOfSpeech}</span> : null}
-                    {ipa ? <span className="font-mono text-xs text-muted-foreground">{ipa}</span> : null}
-                </p>
-                <p className="text-sm text-muted-foreground">{word.meaning || "No meaning"}</p>
-                {gaps.length > 0 ? (
-                    <span className="flex flex-wrap gap-1">
-                        {gaps.map((gap) => (
-                            <Badge key={gap} variant="warning">
-                                {GAP_BADGES[gap]}
-                            </Badge>
-                        ))}
-                    </span>
-                ) : null}
-            </div>
-            <span className="flex shrink-0 gap-1">
-                <Button variant="ghost" size="sm" onClick={onEdit} aria-label={`Edit ${word.word}`}>
-                    <Pencil className="h-4 w-4" />
-                    Edit
-                </Button>
-                <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={onDelete}
-                    className="text-destructive hover:text-destructive"
-                    aria-label={`Delete ${word.word}`}
-                >
-                    <Trash2 className="h-4 w-4" />
-                    Delete
-                </Button>
-            </span>
-        </li>
     );
 }
