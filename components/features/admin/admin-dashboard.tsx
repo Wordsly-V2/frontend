@@ -12,6 +12,7 @@ import {
     ArrowRight,
     BarChart3,
     CalendarCheck,
+    Library,
     Repeat,
     Route,
     ShieldCheck,
@@ -104,6 +105,12 @@ export function AdminDashboard() {
                     icon={<Route className="h-5 w-5" />}
                     title="Wordsly Path"
                     description="Edit the curriculum, check it and publish a release."
+                />
+                <AreaLink
+                    href="/admin/vocabulary"
+                    icon={<Library className="h-5 w-5" />}
+                    title="Official courses"
+                    description="Make vocabulary courses every learner can add to their library."
                 />
             </section>
         </div>

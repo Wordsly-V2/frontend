@@ -164,6 +164,12 @@ export const queryKeys = {
             ["admin-learners", "user", userLoginId, "activity-calendar", clientDate] as const,
         path: (userLoginId: string) => ["admin-learners", "user", userLoginId, "path"] as const,
     },
+    /** The learners' catalogue of published official courses. Not persisted: browsing needs a connection. */
+    officialCourses: {
+        all: ["official-courses"] as const,
+        list: (query: object) => ["official-courses", "list", query] as const,
+        detail: (courseId: string) => ["official-courses", "detail", courseId] as const,
+    },
     /** Any learner's courses, and content health. Never persisted (admin data stays off the device). */
     adminVocabulary: {
         all: ["admin-vocabulary"] as const,
@@ -172,6 +178,12 @@ export const queryKeys = {
         courses: (userLoginId: string, query: object) => ["admin-vocabulary", "user", userLoginId, "courses", query] as const,
         course: (userLoginId: string, courseId: string) =>
             ["admin-vocabulary", "user", userLoginId, "course", courseId] as const,
+    },
+    /** Official courses as admins edit them, drafts included. Never persisted. */
+    adminOfficialCourses: {
+        all: ["admin-official-courses"] as const,
+        list: (query: object) => ["admin-official-courses", "list", query] as const,
+        course: (courseId: string) => ["admin-official-courses", "course", courseId] as const,
     },
     /** Dashboard and report numbers. Never persisted (admin data stays off the device). */
     adminStats: {
