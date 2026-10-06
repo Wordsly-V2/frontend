@@ -4,6 +4,7 @@ import { AppSidebar } from "@/components/common/app-nav/app-sidebar";
 import { BottomTabBar } from "@/components/common/app-nav/bottom-tab-bar";
 import { MobileTopBar } from "@/components/common/app-nav/mobile-top-bar";
 import { PublicHeader } from "@/components/common/app-nav/public-header";
+import { PullToRefresh } from "@/components/common/app-nav/pull-to-refresh";
 import OfflineBanner from "@/components/common/offline/offline-banner";
 import WakingBanner from "@/components/common/service-health-monitor/waking-banner";
 import { useSidebarCollapsed } from "@/hooks/useSidebarCollapsed.hook";
@@ -25,6 +26,7 @@ const getNoBootUser = (): string | null => null;
  * - sessions, lessons, tests, onboarding and sign-in get none;
  * - signed-out visitors get the public header;
  * - everyone else gets the sidebar (lg+) or the top bar + tab bar (below lg).
+ * Pages in the frame also get pull-to-refresh on touch screens.
  *
  * While the profile loads, the last confirmed identity on this device decides,
  * so a returning learner never sees the frame pop in after the first paint.
@@ -57,6 +59,7 @@ export function AppShell({ children }: Readonly<{ children: ReactNode }>) {
         return (
             <>
                 <PublicHeader />
+                <PullToRefresh />
                 {banners}
                 {children}
             </>
@@ -80,6 +83,7 @@ export function AppShell({ children }: Readonly<{ children: ReactNode }>) {
                     <MobileTopBar />
                     {banners}
                 </div>
+                <PullToRefresh />
                 {children}
                 {profile && <BottomTabBar />}
             </div>
