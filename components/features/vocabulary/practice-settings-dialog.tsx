@@ -5,6 +5,7 @@ import {
     useImperativeHandle,
     useRef,
     useState,
+    type ReactNode,
 } from "react";
 import { usePracticeSettings } from "@/hooks/usePracticeSettings.hook";
 import { useDueWordsLimit, setDueWordsLimit } from "@/hooks/useDueWordsLimit.hook";
@@ -36,12 +37,13 @@ import {
 import { getPracticeModeMeta } from "@/lib/practice-mode-meta";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import {
     Blocks,
+    CheckCheck,
     Mic,
     Sparkles,
     Volume2,
@@ -54,6 +56,7 @@ import {
     Target,
     Sunrise,
     RefreshCw,
+    type LucideIcon,
 } from "lucide-react";
 
 // Re-exported from lib/practice-settings (their canonical home) so existing
@@ -143,37 +146,53 @@ function PracticeSettingsForm({
 
     return (
         <>
-            <DialogHeader>
-                <DialogTitle>Practice Settings</DialogTitle>
+            <DialogHeader className="shrink-0 px-6 pb-4 pt-6">
+                <DialogTitle>Practice settings</DialogTitle>
+                <DialogDescription>Choose how your exercises work.</DialogDescription>
             </DialogHeader>
 
-            <div className="space-y-6 py-4">
-                <div>
-                    <Label className="text-sm font-medium mb-3 block">Practice Mode</Label>
-                    <div className="grid grid-cols-2 gap-3">
-                        {modes.map(({ id, icon: Icon, label, desc }) => (
-                            <Button
-                                key={id}
-                                type="button"
-                                size="lg"
-                                variant={tempMode === id ? "default" : "outline"}
-                                onClick={() => setTempMode(id)}
-                                className="gap-2 h-auto py-4 flex-col"
-                            >
-                                <Icon className="h-5 w-5" />
-                                <span className="font-medium">{label}</span>
-                                <span className="text-xs opacity-80 font-normal">
-                                    {desc}
-                                </span>
-                            </Button>
-                        ))}
+            <div className="min-h-0 flex-1 space-y-6 overflow-y-auto overscroll-contain px-6 pb-6">
+                <SettingsSection title="Exercise type">
+                    <div className="grid grid-cols-2 gap-2">
+                        {modes.map(({ id, icon: Icon, label, desc }) => {
+                            const selected = tempMode === id;
+                            return (
+                                <button
+                                    key={id}
+                                    type="button"
+                                    aria-pressed={selected}
+                                    onClick={() => setTempMode(id)}
+                                    className={cn(
+                                        "flex min-h-[4.5rem] items-start gap-2.5 rounded-2xl border-2 p-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                                        selected
+                                            ? "border-primary bg-primary/10 dark:bg-primary/15"
+                                            : "border-border/70 hover:border-primary/40 hover:bg-muted/50",
+                                    )}
+                                >
+                                    <span
+                                        className={cn(
+                                            "flex h-8 w-8 shrink-0 items-center justify-center rounded-xl",
+                                            selected ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground",
+                                        )}
+                                    >
+                                        <Icon className="h-4 w-4" aria-hidden />
+                                    </span>
+                                    <span className="min-w-0">
+                                        <span className={cn("block text-sm font-bold leading-tight", selected && "text-primary")}>
+                                            {label}
+                                        </span>
+                                        <span className="mt-0.5 block text-xs leading-snug text-muted-foreground">{desc}</span>
+                                    </span>
+                                </button>
+                            );
+                        })}
                     </div>
                     {isMixed && (
-                        <div className="mt-4">
-                            <p className="text-xs text-muted-foreground mb-3">
+                        <div className="mt-4 rounded-2xl bg-muted/50 p-3">
+                            <p className="mb-2.5 text-xs text-muted-foreground">
                                 Choose which methods to mix. Speaking uses your microphone, so it stays off until you turn it on.
                             </p>
-                            <div className="flex flex-wrap gap-2">
+                            <div className="flex flex-wrap gap-1.5">
                                 {SELECTABLE_MIXED_PRACTICE_MODES.map((method) => {
                                     const meta = getPracticeModeMeta(method);
                                     const MethodIcon = meta.icon;
@@ -185,13 +204,13 @@ function PracticeSettingsForm({
                                             aria-pressed={selected}
                                             onClick={() => toggleMixedMode(method)}
                                             className={cn(
-                                                "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
+                                                "inline-flex h-9 items-center gap-1.5 rounded-full border px-3 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                                                 selected
                                                     ? "border-primary bg-primary text-primary-foreground"
-                                                    : "border-border bg-transparent text-muted-foreground hover:bg-muted",
+                                                    : "border-border bg-background text-muted-foreground hover:bg-muted",
                                             )}
                                         >
-                                            <MethodIcon className="h-3.5 w-3.5" />
+                                            <MethodIcon className="h-3.5 w-3.5" aria-hidden />
                                             {meta.shortLabel}
                                         </button>
                                     );
@@ -199,65 +218,98 @@ function PracticeSettingsForm({
                             </div>
                         </div>
                     )}
-                </div>
+                </SettingsSection>
 
-                <div className="space-y-3 pt-4 border-t border-border">
-                    <div className="flex items-start justify-between gap-4">
-                        <div className="flex-1">
-                            <Label htmlFor="auto-check-dialog" className="text-sm font-medium">
-                                Auto-check answers
-                            </Label>
-                            <p className="text-xs text-muted-foreground mt-1">
-                                {supportsAutoCheck
+                <SettingsSection title="While you practice">
+                    <SettingsList>
+                        <SettingRow
+                            htmlFor="auto-check-dialog"
+                            icon={CheckCheck}
+                            label="Auto-check answers"
+                            detail={
+                                supportsAutoCheck
                                     ? "Submit when your typed answer is correct, or immediately when you pick a quiz option"
-                                    : "Not used in flashcard mode — reveal and rate yourself"}
-                            </p>
-                        </div>
-                        <Switch
-                            id="auto-check-dialog"
-                            checked={tempAutoCheck}
-                            onCheckedChange={setTempAutoCheck}
-                            disabled={!supportsAutoCheck}
-                            className="data-[state=checked]:bg-green-500"
-                        />
-                    </div>
-                </div>
-
-                <div className="space-y-3 pt-4 border-t border-border">
-                    <p className="text-xs text-muted-foreground">
-                        Stuck on a word? Tap <span className="font-medium">Show meaning &amp; example</span> during
+                                    : "Not used in flashcard mode — reveal and rate yourself"
+                            }
+                        >
+                            <Switch
+                                id="auto-check-dialog"
+                                checked={tempAutoCheck}
+                                onCheckedChange={setTempAutoCheck}
+                                disabled={!supportsAutoCheck}
+                            />
+                        </SettingRow>
+                        <SettingRow
+                            htmlFor="sound-enabled"
+                            icon={Bell}
+                            label="Practice sounds"
+                            detail="Short chimes on correct and incorrect answers"
+                        >
+                            <Switch
+                                id="sound-enabled"
+                                checked={tempSoundEnabled}
+                                onCheckedChange={setTempSoundEnabled}
+                            />
+                        </SettingRow>
+                    </SettingsList>
+                    <p className="mt-2.5 px-1 text-xs text-muted-foreground">
+                        Stuck on a word? Tap <span className="font-semibold">Show meaning &amp; example</span> during
                         any exercise to reveal its meaning, example sentence, and image.
                     </p>
-                    <div className="flex items-start justify-between gap-4">
-                        <div className="flex-1">
-                            <Label htmlFor="sound-enabled" className="text-sm font-medium flex items-center gap-2">
-                                <Bell className="h-4 w-4 text-muted-foreground" />
-                                Practice sounds
-                            </Label>
-                            <p className="text-xs text-muted-foreground mt-1">
-                                Short chimes on correct and incorrect answers
-                            </p>
-                        </div>
-                        <Switch
-                            id="sound-enabled"
-                            checked={tempSoundEnabled}
-                            onCheckedChange={setTempSoundEnabled}
-                        />
-                    </div>
-                </div>
+                </SettingsSection>
 
                 {includeSessionPrefs && <SessionPrefsFields ref={sessionPrefsRef} />}
             </div>
 
-            <DialogFooter className="gap-2">
-                <Button type="button" variant="outline" onClick={onClose}>
+            <DialogFooter className="shrink-0 flex-row gap-2 border-t border-border/70 px-6 pb-[max(1rem,env(safe-area-inset-bottom))] pt-4 sm:pb-4">
+                <Button type="button" variant="outline" onClick={onClose} className="flex-1 sm:flex-none">
                     Cancel
                 </Button>
-                <Button type="button" onClick={handleSave}>
-                    Save Settings
+                <Button type="button" onClick={handleSave} className="flex-1 sm:flex-none">
+                    Save
                 </Button>
             </DialogFooter>
         </>
+    );
+}
+
+function SettingsSection({ title, children }: Readonly<{ title: string; children: ReactNode }>) {
+    return (
+        <section>
+            <h3 className="mb-2.5 px-1 text-xs font-bold uppercase tracking-wide text-muted-foreground">{title}</h3>
+            {children}
+        </section>
+    );
+}
+
+/** A rounded group of setting rows, split by hairlines. */
+function SettingsList({ children }: Readonly<{ children: ReactNode }>) {
+    return (
+        <div className="divide-y divide-border/70 overflow-hidden rounded-2xl border border-border/70">{children}</div>
+    );
+}
+
+/** One setting: icon, label and a line of help on the left, its control on the right. */
+function SettingRow({
+    htmlFor,
+    icon: Icon,
+    label,
+    detail,
+    children,
+}: Readonly<{ htmlFor: string; icon: LucideIcon; label: string; detail: string; children: ReactNode }>) {
+    return (
+        <div className="flex min-h-14 items-center gap-3 px-3 py-3">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-muted text-muted-foreground">
+                <Icon className="h-4 w-4" aria-hidden />
+            </span>
+            <div className="min-w-0 flex-1">
+                <Label htmlFor={htmlFor} className="text-sm font-semibold">
+                    {label}
+                </Label>
+                <p className="mt-0.5 text-xs text-muted-foreground">{detail}</p>
+            </div>
+            <div className="shrink-0">{children}</div>
+        </div>
     );
 }
 
@@ -320,148 +372,120 @@ const SessionPrefsFields = forwardRef<SessionPrefsHandle>(function SessionPrefsF
     }));
 
     const selectClassName =
-        "h-10 rounded-lg border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring";
+        "h-10 rounded-xl border border-input bg-background px-3 text-sm font-semibold tabular-nums focus:outline-none focus:ring-2 focus:ring-ring";
 
     return (
         <>
-            <div className="space-y-4 pt-4 border-t border-border">
-                <div>
-                    <Label className="text-sm font-medium">Words per session</Label>
-                    <p className="text-xs text-muted-foreground mt-1">
-                        The first number is the whole session. The second is how
-                        many of those words may be new ones — due reviews come
-                        first, and new words fill whatever room is left.
-                    </p>
-                </div>
-                <div className="flex items-center justify-between gap-4">
-                    <div className="flex-1">
-                        <Label htmlFor="words-per-session" className="text-sm font-medium flex items-center gap-2">
-                            <ListOrdered className="h-4 w-4 text-muted-foreground" />
-                            Words / session
-                        </Label>
-                        <p className="text-xs text-muted-foreground mt-1">
-                            Total words in one practice session
-                        </p>
-                    </div>
-                    <select
-                        id="words-per-session"
-                        value={tempLimit}
-                        onChange={(e) => setTempLimit(Number(e.target.value))}
-                        className={selectClassName}
+            <SettingsSection title="Words per session">
+                <SettingsList>
+                    <SettingRow
+                        htmlFor="words-per-session"
+                        icon={ListOrdered}
+                        label="Words / session"
+                        detail="Total words in one practice session"
                     >
-                        {DUE_WORDS_LIMIT_OPTIONS.map((n) => (
-                            <option key={n} value={n}>
-                                {n}
-                            </option>
-                        ))}
-                    </select>
-                </div>
-                <div className="flex items-center justify-between gap-4">
-                    <div className="flex-1">
-                        <Label htmlFor="new-words-per-session" className="text-sm font-medium flex items-center gap-2">
-                            <Sparkles className="h-4 w-4 text-muted-foreground" />
-                            New words / session
-                        </Label>
-                        <p className="text-xs text-muted-foreground mt-1">
-                            At most this many of them are new words
-                        </p>
-                    </div>
-                    <select
-                        id="new-words-per-session"
-                        value={tempNewLimit}
-                        onChange={(e) => setTempNewLimit(Number(e.target.value))}
-                        className={selectClassName}
+                        <select
+                            id="words-per-session"
+                            value={tempLimit}
+                            onChange={(e) => setTempLimit(Number(e.target.value))}
+                            className={selectClassName}
+                        >
+                            {DUE_WORDS_LIMIT_OPTIONS.map((n) => (
+                                <option key={n} value={n}>
+                                    {n}
+                                </option>
+                            ))}
+                        </select>
+                    </SettingRow>
+                    <SettingRow
+                        htmlFor="new-words-per-session"
+                        icon={Sparkles}
+                        label="New words / session"
+                        detail="At most this many of them are new words"
                     >
-                        {NEW_WORDS_LIMIT_OPTIONS.map((n) => (
-                            <option key={n} value={n}>
-                                {n}
-                            </option>
-                        ))}
-                    </select>
-                </div>
-            </div>
+                        <select
+                            id="new-words-per-session"
+                            value={tempNewLimit}
+                            onChange={(e) => setTempNewLimit(Number(e.target.value))}
+                            className={selectClassName}
+                        >
+                            {NEW_WORDS_LIMIT_OPTIONS.map((n) => (
+                                <option key={n} value={n}>
+                                    {n}
+                                </option>
+                            ))}
+                        </select>
+                    </SettingRow>
+                </SettingsList>
+                <p className="mt-2.5 px-1 text-xs text-muted-foreground">
+                    Due reviews come first, and new words fill whatever room is left.
+                </p>
+            </SettingsSection>
 
-            <div className="space-y-3 pt-4 border-t border-border">
-                <div className="flex items-center justify-between gap-4">
-                    <div className="flex-1">
-                        <Label htmlFor="daily-goal" className="text-sm font-medium flex items-center gap-2">
-                            <Target className="h-4 w-4 text-muted-foreground" />
-                            Daily goal
-                        </Label>
-                        <p className="text-xs text-muted-foreground mt-1">
-                            Words to practice each day to keep your streak
-                        </p>
-                    </div>
-                    <select
-                        id="daily-goal"
-                        value={selectedGoal}
-                        onChange={(e) => setTempGoal(Number(e.target.value))}
-                        className={selectClassName}
+            <SettingsSection title="Every day">
+                <SettingsList>
+                    <SettingRow
+                        htmlFor="daily-goal"
+                        icon={Target}
+                        label="Daily goal"
+                        detail="Words to practice each day to keep your streak"
                     >
-                        {DAILY_GOAL_OPTIONS.map((n) => (
-                            <option key={n} value={n}>
-                                {n}
-                            </option>
-                        ))}
-                    </select>
-                </div>
-            </div>
-
-            <div className="space-y-4 pt-4 border-t border-border">
-                <div>
-                    <Label className="text-sm font-medium">Daily limits</Label>
-                    <p className="text-xs text-muted-foreground mt-1">
-                        Cap how much new material and review each day so practice
-                        stays steady.
-                    </p>
-                </div>
-                <div className="flex items-center justify-between gap-4">
-                    <div className="flex-1">
-                        <Label htmlFor="daily-new-word-limit" className="text-sm font-medium flex items-center gap-2">
-                            <Sunrise className="h-4 w-4 text-muted-foreground" />
-                            New words / day
-                        </Label>
-                        <p className="text-xs text-muted-foreground mt-1">
-                            Most new words we&apos;ll introduce in a day
-                        </p>
-                    </div>
-                    <select
-                        id="daily-new-word-limit"
-                        value={selectedNewWordLimit}
-                        onChange={(e) => setTempNewWordLimit(Number(e.target.value))}
-                        className={selectClassName}
+                        <select
+                            id="daily-goal"
+                            value={selectedGoal}
+                            onChange={(e) => setTempGoal(Number(e.target.value))}
+                            className={selectClassName}
+                        >
+                            {DAILY_GOAL_OPTIONS.map((n) => (
+                                <option key={n} value={n}>
+                                    {n}
+                                </option>
+                            ))}
+                        </select>
+                    </SettingRow>
+                    <SettingRow
+                        htmlFor="daily-new-word-limit"
+                        icon={Sunrise}
+                        label="New words / day"
+                        detail="Most new words we'll introduce in a day"
                     >
-                        {DAILY_NEW_WORD_LIMIT_OPTIONS.map((n) => (
-                            <option key={n} value={n}>
-                                {n}
-                            </option>
-                        ))}
-                    </select>
-                </div>
-                <div className="flex items-center justify-between gap-4">
-                    <div className="flex-1">
-                        <Label htmlFor="daily-review-limit" className="text-sm font-medium flex items-center gap-2">
-                            <RefreshCw className="h-4 w-4 text-muted-foreground" />
-                            Reviews / day
-                        </Label>
-                        <p className="text-xs text-muted-foreground mt-1">
-                            Most due reviews we&apos;ll surface in a day
-                        </p>
-                    </div>
-                    <select
-                        id="daily-review-limit"
-                        value={selectedReviewLimit}
-                        onChange={(e) => setTempReviewLimit(Number(e.target.value))}
-                        className={selectClassName}
+                        <select
+                            id="daily-new-word-limit"
+                            value={selectedNewWordLimit}
+                            onChange={(e) => setTempNewWordLimit(Number(e.target.value))}
+                            className={selectClassName}
+                        >
+                            {DAILY_NEW_WORD_LIMIT_OPTIONS.map((n) => (
+                                <option key={n} value={n}>
+                                    {n}
+                                </option>
+                            ))}
+                        </select>
+                    </SettingRow>
+                    <SettingRow
+                        htmlFor="daily-review-limit"
+                        icon={RefreshCw}
+                        label="Reviews / day"
+                        detail="Most due reviews we'll surface in a day"
                     >
-                        {DAILY_REVIEW_LIMIT_OPTIONS.map((n) => (
-                            <option key={n} value={n}>
-                                {n}
-                            </option>
-                        ))}
-                    </select>
-                </div>
-            </div>
+                        <select
+                            id="daily-review-limit"
+                            value={selectedReviewLimit}
+                            onChange={(e) => setTempReviewLimit(Number(e.target.value))}
+                            className={selectClassName}
+                        >
+                            {DAILY_REVIEW_LIMIT_OPTIONS.map((n) => (
+                                <option key={n} value={n}>
+                                    {n}
+                                </option>
+                            ))}
+                        </select>
+                    </SettingRow>
+                </SettingsList>
+                <p className="mt-2.5 px-1 text-xs text-muted-foreground">
+                    Daily limits keep new material and reviews steady.
+                </p>
+            </SettingsSection>
         </>
     );
 });
@@ -477,7 +501,7 @@ export default function PracticeSettingsDialog({
 
     return (
         <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
-            <DialogContent className="max-w-md max-h-[90dvh] overflow-y-auto">
+            <DialogContent className="flex flex-col gap-0 overflow-hidden p-0 sm:max-w-md">
                 {isOpen && (
                     <PracticeSettingsForm
                         key={settingsKey}

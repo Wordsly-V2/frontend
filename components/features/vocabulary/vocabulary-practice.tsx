@@ -1193,6 +1193,7 @@ export default function VocabularyPractice({
                             wordId={currentWord.id}
                             source={itemSource}
                             iconOnly
+                            className="h-9 w-9 [&_svg]:h-5 [&_svg]:w-5"
                         />
                         <PracticeToolbar
                             showSettings={showSettings}

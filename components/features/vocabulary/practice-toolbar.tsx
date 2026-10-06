@@ -33,24 +33,24 @@ export function PracticeToolbar({
 
     return (
         <>
-            <div className="flex justify-end gap-1.5 mb-3">
+            <div className="flex items-center gap-0.5">
                 <Button
                     variant="ghost"
                     size="icon"
                     onClick={onOpenWordsList}
-                    className="h-8 w-8 rounded-lg text-muted-foreground"
+                    className="h-9 w-9 rounded-xl text-muted-foreground"
                     aria-label="View word list"
                 >
-                    <List className="h-4 w-4" />
+                    <List className="h-5 w-5" />
                 </Button>
                 <Button
                     variant="ghost"
                     size="icon"
                     onClick={onOpenSettings}
-                    className="h-8 w-8 rounded-lg text-muted-foreground"
+                    className="h-9 w-9 rounded-xl text-muted-foreground"
                     aria-label="Practice settings"
                 >
-                    <Settings2 className="h-4 w-4" />
+                    <Settings2 className="h-5 w-5" />
                 </Button>
             </div>
 
