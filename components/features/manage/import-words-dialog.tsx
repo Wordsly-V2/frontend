@@ -315,7 +315,7 @@ export default function ImportWordsDialog({
 
     return (
         <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
-            <DialogContent className="max-w-2xl w-[calc(100vw-1.5rem)] sm:w-full max-h-[88dvh] overflow-hidden flex flex-col mx-auto">
+            <DialogContent className="sm:max-w-2xl max-h-[88dvh] overflow-hidden flex flex-col">
                 <DialogHeader>
                     <DialogTitle className="text-lg sm:text-xl flex items-center gap-2">
                         <FileUp className="h-5 w-5 text-primary" />

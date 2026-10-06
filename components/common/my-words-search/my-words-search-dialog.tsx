@@ -40,7 +40,7 @@ export function MyWordsSearchDialog({
     return (
         <>
             <Dialog open={open} onOpenChange={onOpenChange}>
-                <DialogContent className="top-[8%] translate-y-0 gap-3 p-4 sm:max-w-lg">
+                <DialogContent layout="floating" className="top-[8%] translate-y-0 gap-3 p-4 sm:top-[8%] sm:translate-y-0 sm:max-w-lg">
                     <DialogHeader className="text-left">
                         <DialogTitle className="text-base">Search words</DialogTitle>
                         <DialogDescription className="text-xs">

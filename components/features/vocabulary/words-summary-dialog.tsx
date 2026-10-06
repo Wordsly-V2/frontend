@@ -1,10 +1,11 @@
 "use client";
 
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { useEffect, useRef } from "react";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { playAudioUrl } from "@/lib/practice-audio";
+import { cn } from "@/lib/utils";
 import { IWord } from "@/types/courses/courses.type";
-import { Volume2, BookOpen } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Check, Volume2 } from "lucide-react";
 import { WordPill } from "@/components/common/word-pill";
 
 interface WordsSummaryDialogProps {
@@ -14,106 +15,87 @@ interface WordsSummaryDialogProps {
     currentIndex: number;
 }
 
+/**
+ * The session's queue as a list: done words ticked, the current one marked,
+ * each with its meaning and audio. Opens scrolled to the current word.
+ */
 export default function WordsSummaryDialog({
     isOpen,
     onClose,
     words,
     currentIndex,
 }: Readonly<WordsSummaryDialogProps>) {
-    const handlePlayAudio = (audioUrl: string | undefined, e: React.MouseEvent) => {
-        e.stopPropagation();
-        playAudioUrl(audioUrl);
-    };
+    const currentRef = useRef<HTMLLIElement>(null);
+
+    useEffect(() => {
+        if (!isOpen) return;
+        // After the open animation has laid the list out.
+        const id = requestAnimationFrame(() => currentRef.current?.scrollIntoView({ block: "center" }));
+        return () => cancelAnimationFrame(id);
+    }, [isOpen]);
+
+    const done = Math.min(currentIndex, words.length);
 
     return (
-        <Dialog open={isOpen} onOpenChange={onClose}>
-            <DialogContent className="max-w-2xl max-h-[85dvh] flex flex-col">
-                <DialogHeader>
-                    <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                            <BookOpen className="h-5 w-5 text-primary" />
-                        </div>
-                        <div>
-                            <DialogTitle>Words Summary</DialogTitle>
-                            <p className="text-sm text-muted-foreground mt-1">
-                                {words.length} words • Currently at word {currentIndex + 1}
-                            </p>
-                        </div>
-                    </div>
+        <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
+            <DialogContent className="flex flex-col gap-0 overflow-hidden p-0 sm:max-w-xl">
+                <DialogHeader className="shrink-0 border-b border-border/70 px-6 pb-4 pt-6">
+                    <DialogTitle>Words in this session</DialogTitle>
+                    <DialogDescription>
+                        {done} of {words.length} done
+                    </DialogDescription>
                 </DialogHeader>
 
-                <div className="flex-1 overflow-y-auto pr-2 -mr-2">
-                    <div className="space-y-3 py-4">
-                        {words.map((word, index) => (
-                            <div
-                                key={word.id}
-                                className={`flex items-start gap-3 p-4 rounded-lg border-2 transition-all ${
-                                    index === currentIndex
-                                        ? "border-primary bg-primary/5"
-                                        : "border-border bg-background hover:border-primary/50"
-                                }`}
+                <ol className="min-h-0 flex-1 space-y-1 overflow-y-auto overscroll-contain px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 sm:pb-3">
+                    {words.map((word, index) => {
+                        const isCurrent = index === currentIndex;
+                        const isDone = index < currentIndex;
+                        return (
+                            <li
+                                key={`${word.id}-${index}`}
+                                ref={isCurrent ? currentRef : undefined}
+                                aria-current={isCurrent ? "step" : undefined}
+                                className={cn(
+                                    "flex items-center gap-3 rounded-2xl px-3 py-2.5",
+                                    isCurrent && "bg-primary/10 dark:bg-primary/15",
+                                )}
                             >
-                                {/* Number Badge */}
-                                <div
-                                    className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold ${
-                                        index === currentIndex
-                                            ? "bg-primary text-primary-foreground"
-                                            : index < currentIndex
-                                            ? "bg-muted text-muted-foreground"
-                                            : "bg-muted/50 text-muted-foreground/70"
-                                    }`}
+                                <span
+                                    className={cn(
+                                        "flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold tabular-nums",
+                                        isCurrent && "bg-primary text-primary-foreground",
+                                        isDone && "bg-[var(--brand-success)]/15 text-green-600 dark:text-green-400",
+                                        !isCurrent && !isDone && "bg-muted text-muted-foreground",
+                                    )}
                                 >
-                                    {index + 1}
-                                </div>
+                                    {isDone ? <Check className="h-4 w-4" aria-label="Done" /> : index + 1}
+                                </span>
 
-                                {/* Word Content */}
-                                <div className="flex-1 min-w-0">
-                                    <div className="flex items-center gap-2 flex-wrap mb-1">
-                                        <span className="font-semibold text-lg">{word.word}</span>
-                                        {word.partOfSpeech && (
-                                            <WordPill className="font-medium">{word.partOfSpeech}</WordPill>
-                                        )}
-                                        {index === currentIndex && (
-                                            <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/10 text-green-600 font-medium">
-                                                Current
-                                            </span>
-                                        )}
-                                        {index < currentIndex && (
-                                            <span className="text-xs px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-600 font-medium">
-                                                Completed
-                                            </span>
+                                <div className={cn("min-w-0 flex-1", isDone && "opacity-70")}>
+                                    <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                                        <span className={cn("font-bold", isCurrent && "text-primary")}>{word.word}</span>
+                                        {word.partOfSpeech && <WordPill>{word.partOfSpeech}</WordPill>}
+                                        {isCurrent && (
+                                            <span className="text-xs font-bold uppercase tracking-wide text-primary">Now</span>
                                         )}
                                     </div>
-                                    <p className="text-sm text-foreground mb-1">{word.meaning}</p>
-                                    {word.pronunciation && (
-                                        <p className="text-xs text-muted-foreground">
-                                            {word.pronunciation}
-                                        </p>
-                                    )}
+                                    <p className="truncate text-sm text-muted-foreground">{word.meaning}</p>
                                 </div>
 
-                                {/* Audio Button */}
                                 {word.audioUrl && (
-                                    <Button
-                                        size="sm"
-                                        variant="ghost"
-                                        onClick={(e) => handlePlayAudio(word.audioUrl, e)}
-                                        className="flex-shrink-0 text-primary hover:text-primary"
+                                    <button
+                                        type="button"
+                                        onClick={() => playAudioUrl(word.audioUrl)}
+                                        aria-label={`Play ${word.word}`}
+                                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-primary transition-colors hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                                     >
-                                        <Volume2 className="h-4 w-4" />
-                                    </Button>
+                                        <Volume2 className="h-4 w-4" aria-hidden />
+                                    </button>
                                 )}
-                            </div>
-                        ))}
-                    </div>
-                </div>
-
-                <div className="flex items-center justify-between pt-4 border-t flex-shrink-0">
-                    <p className="text-sm text-muted-foreground">
-                        Scroll to see all words
-                    </p>
-                    <Button onClick={onClose}>Close</Button>
-                </div>
+                            </li>
+                        );
+                    })}
+                </ol>
             </DialogContent>
         </Dialog>
     );

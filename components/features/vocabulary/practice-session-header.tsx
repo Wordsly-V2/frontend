@@ -33,6 +33,12 @@ interface PracticeSessionHeaderProps {
  * a thick progress bar and the count on the first line; where you are, the
  * exercise type, streak, XP and tools on the second. Sticks to the top while
  * a long card scrolls.
+ *
+ * Its background reaches the screen edges whatever gutter the host page uses:
+ * a box-shadow in the background colour, with a hairline under it, clipped to
+ * the header's own height, paints the gutters without widening the page (a
+ * wider element would make mobile browsers grow the layout viewport). On
+ * phones the context line gives way to the mode chip and the tools.
  */
 export function PracticeSessionHeader({
     currentIndex,
@@ -55,7 +61,12 @@ export function PracticeSessionHeader({
     const context = [courseName, subtitle].filter(Boolean).join(" · ");
 
     return (
-        <header className={cn("sticky top-0 z-30 bg-background/85 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))] backdrop-blur-xl", className)}>
+        <header
+            className={cn(
+                "sticky top-0 z-30 bg-background pb-2 pt-[max(0.75rem,env(safe-area-inset-top))] shadow-[0_-100vmax_0_100vmax_var(--background),0_calc(1px-100vmax)_0_100vmax_var(--border)] [clip-path:inset(0_-100vmax_-1px)] sm:pb-3",
+                className,
+            )}
+        >
             <div className="flex items-center gap-3">
                 {onExit && (
                     <button
@@ -94,8 +105,11 @@ export function PracticeSessionHeader({
                 </span>
             </div>
 
-            <div className="mt-2 flex min-h-8 items-center gap-2">
-                <p className="min-w-0 flex-1 truncate text-xs font-semibold text-muted-foreground" title={context || undefined}>
+            <div className="mt-2 flex min-h-9 items-center gap-1.5 sm:gap-2">
+                <p
+                    className="hidden min-w-0 flex-1 truncate text-xs font-semibold text-muted-foreground sm:block"
+                    title={context || undefined}
+                >
                     {context}
                 </p>
 
@@ -124,7 +138,10 @@ export function PracticeSessionHeader({
                     </span>
                 )}
 
-                {actions && <div className="-mr-1.5 flex shrink-0 items-center [&>div]:mb-0">{actions}</div>}
+                {/* Pushes the tools right on phones, where the context line is hidden. */}
+                <span aria-hidden className="flex-1 sm:hidden" />
+
+                {actions && <div className="-mr-1.5 flex shrink-0 items-center gap-0.5">{actions}</div>}
             </div>
         </header>
     );
