@@ -1,5 +1,6 @@
 "use client";
 
+import { SpeechDebugLog } from "@/components/common/speech-debug-log";
 import { SpeakButton } from "@/components/features/path/path-speech";
 import { Button } from "@/components/ui/button";
 import {
@@ -17,7 +18,7 @@ import { useEffect, useState } from "react";
 const MAX_REQUIRED_ATTEMPTS = 2;
 
 /** Errors that won't go away by trying again: fall back to self-grading. */
-const BLOCKING_ERRORS = new Set<SpeechRecognitionErrorCode>(["not-allowed", "service-not-allowed", "audio-capture", "network"]);
+const BLOCKING_ERRORS = new Set<SpeechRecognitionErrorCode>(["not-allowed", "service-not-allowed", "audio-capture", "network", "stuck"]);
 
 function fallbackReason(error: SpeechRecognitionErrorCode | null): string | undefined {
     const cause = speechFallbackCause(error, typeof navigator === "undefined" || navigator.onLine);
@@ -101,6 +102,8 @@ export function SpeakAttempt({
                     onDone={() => setSettled(true)}
                 />
             )}
+
+            {recognition.debugLog && <SpeechDebugLog lines={recognition.debugLog} />}
 
             {!settled && canRecognise && (
                 <Button type="button" variant="link" size="sm" onClick={() => setSettled(true)}>

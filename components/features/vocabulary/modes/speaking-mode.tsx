@@ -1,6 +1,7 @@
 "use client";
 
 import { AdaptiveText } from "@/components/common/adaptive-text";
+import { SpeechDebugLog } from "@/components/common/speech-debug-log";
 import { WordPill } from "@/components/common/word-pill";
 import { Button } from "@/components/ui/button";
 import {
@@ -20,7 +21,7 @@ import { useEffect, useRef, useState } from "react";
 export const SPEAKING_MAX_ATTEMPTS = 2;
 
 /** Errors that trying again won't fix: the learner checks themselves instead. */
-const BLOCKING_ERRORS = new Set<SpeechRecognitionErrorCode>(["not-allowed", "service-not-allowed", "audio-capture", "network"]);
+const BLOCKING_ERRORS = new Set<SpeechRecognitionErrorCode>(["not-allowed", "service-not-allowed", "audio-capture", "network", "stuck"]);
 
 export interface SpeakingModeProps {
     word: IWord;
@@ -129,6 +130,7 @@ export function SpeakingMode({ word, onResult, onSelfCheck }: Readonly<SpeakingM
                     onSelfCheck={onSelfCheck}
                 />
             )}
+            {recognition.debugLog && <SpeechDebugLog lines={recognition.debugLog} />}
         </div>
     );
 }

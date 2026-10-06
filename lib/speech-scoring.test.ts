@@ -30,6 +30,20 @@ describe("normalizeSpeech", () => {
         expect(normalizeSpeech("I'm 25")).toEqual(["i", "am", "twenty", "five"]);
     });
 
+    it("drops Vietnamese diacritics without splitting the word", () => {
+        expect(normalizeSpeech("Nguyễn Văn Đạt")).toEqual(["nguyen", "van", "dat"]);
+    });
+
+    it("reads ordinals, money, percentages, decimals and am/pm", () => {
+        expect(normalizeSpeech("the 21st")).toEqual(["the", "twenty", "first"]);
+        expect(normalizeSpeech("$1")).toEqual(["one", "dollar"]);
+        expect(normalizeSpeech("£20")).toEqual(["twenty", "pounds"]);
+        expect(normalizeSpeech("10%")).toEqual(["ten", "percent"]);
+        expect(normalizeSpeech("2.5")).toEqual(["two", "point", "five"]);
+        expect(normalizeSpeech("3pm")).toEqual(normalizeSpeech("3 p.m."));
+        expect(normalizeSpeech("7:00 pm")).toEqual(["seven", "pm"]);
+    });
+
     it("splits hyphenated words", () => {
         expect(normalizeSpeech("a T-shirt")).toEqual(["a", "t", "shirt"]);
         expect(normalizeSpeech("twenty-first")).toEqual(["twenty", "first"]);
@@ -46,8 +60,76 @@ describe("numberToWords", () => {
         [250, "two hundred fifty"],
         [2026, "two thousand twenty six"],
         [500000, "five hundred thousand"],
+        [2500000, "two million five hundred thousand"],
     ])("%i → %s", (n, words) => {
         expect(numberToWords(n)).toBe(words);
+    });
+
+    it("gives the British reading with and", () => {
+        expect(numberToWords(105, true)).toBe("one hundred and five");
+        expect(numberToWords(2026, true)).toBe("two thousand and twenty six");
+    });
+});
+
+describe("scoreSpeech: numbers", () => {
+    it.each([
+        ["I have 1 sister.", "I have one sister"],
+        ["I have one sister.", "I have 1 sister"],
+        ["He was 1st.", "he was first"],
+        ["It costs $5.", "it costs five dollars"],
+        ["It costs $5.50.", "it costs five fifty"],
+        ["See you at 3pm.", "see you at 3 p.m."],
+        ["We met at 7:00 pm.", "we met at 7 PM"],
+        ["I was born in 1998.", "I was born in nineteen ninety eight"],
+        ["It is 105 km.", "it is one hundred and five km"],
+        ["I want 100 apples.", "I want a hundred apples"],
+        ["It weighs 2.5 kilos.", "it weighs two point five kilos"],
+        ["On May 5.", "on May fifth"],
+        ["Call me at 0901 234 567.", "call me at 0901234567"],
+    ])("%s ← %s", (expected, heard) => {
+        expect(scoreSpeech(expected, [heard])?.accuracy).toBe(1);
+    });
+});
+
+describe("scoreSpeech: homophones", () => {
+    it("accepts the recogniser's spelling of a word that sounds the same", () => {
+        expect(scoreSpeech("one", ["won"])?.accuracy).toBe(1);
+        expect(scoreSpeech("I have two cats.", ["I have to cats"])?.accuracy).toBe(1);
+        expect(scoreSpeech("Write it down.", ["right it down"])?.accuracy).toBe(1);
+        expect(scoreSpeech("My favourite colour is grey.", ["my favorite color is gray"])?.accuracy).toBe(1);
+    });
+
+    it("still counts a word that sounds different", () => {
+        expect(scoreSpeech("I have two cats.", ["I have three cats"])?.accuracy).toBeCloseTo(3 / 4);
+    });
+});
+
+describe("scoreSpeech: Vietnamese names", () => {
+    it("accepts whatever the recogniser made of a name", () => {
+        expect(scoreSpeech("My name is Lan.", ["my name is lang"])?.accuracy).toBe(1);
+        expect(scoreSpeech("Hello, Minh!", ["hello mean"])?.accuracy).toBe(1);
+        expect(scoreSpeech("Minh is my friend.", ["mean is my friend"])?.accuracy).toBe(1);
+        expect(scoreSpeech("This is Nguyễn Thị Hương.", ["this is when the who wrong"])?.accuracy).toBe(1);
+        expect(scoreSpeech("I live in Hà Nội.", ["I live in hanoi"])?.accuracy).toBe(1);
+    });
+
+    it("marks the name matched in the written sentence", () => {
+        const score = scoreSpeech("My name is Nguyễn An.", ["my name is when an"]);
+        expect(score?.words.every((w) => w.matched)).toBe(true);
+    });
+
+    it("costs half a word when the name wasn't heard at all", () => {
+        expect(scoreSpeech("I am Lan.", ["I am"])?.accuracy).toBeCloseTo(1 - 0.5 / 3);
+    });
+
+    it("doesn't take an English word at the start of a sentence for a name", () => {
+        expect(scoreSpeech("Do you like it?", ["you like it"])?.accuracy).toBeCloseTo(3 / 4);
+        expect(scoreSpeech("Long time no see.", ["time no see"])?.accuracy).toBeCloseTo(3 / 4);
+    });
+
+    it("treats a name that is also an English word as a name mid-sentence", () => {
+        expect(scoreSpeech("Ask Long.", ["ask lung"])?.accuracy).toBe(1);
+        expect(scoreSpeech("This is Mr. Long.", ["this is mister lung"])?.accuracy).toBe(1);
     });
 });
 
