@@ -1,6 +1,8 @@
 "use client";
 
 import ConfirmDialog from "@/components/common/confirm-dialog/confirm-dialog";
+import { SelectedWordsBar } from "@/components/features/admin-dictionary-sync/selected-words-bar";
+import { SyncWithLangeekButton } from "@/components/features/admin-dictionary-sync/start-sync-dialog";
 import { EmptyState, ErrorState, Skeleton } from "@/components/common/states";
 import { FilterToggle } from "@/components/features/admin/filter-toggle";
 import { DetailSection, Fact, Facts } from "@/components/features/admin-users/detail-parts";
@@ -11,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { courseWordCount, officialStatus, publishBlocker, STATUS_LABELS } from "@/lib/admin/official-courses";
 import { formatDate } from "@/lib/admin/users";
+import { toggleId } from "@/lib/admin/dictionary-sync";
 import { countOf, wordGaps } from "@/lib/admin/vocabulary";
 import { adminErrorMessages } from "@/lib/admin-path/errors";
 import { ApiError } from "@/lib/api-error";
@@ -63,6 +66,7 @@ export function OfficialCourseEditor({ courseId }: Readonly<{ courseId: string }
     const { data: course, isFetching, error, refetch } = useAdminOfficialCourseQuery(courseId);
     const [editing, setEditing] = useState<Editing>(null);
     const [filter, setFilter] = useState<WordFilter>("all");
+    const [selected, setSelected] = useState<ReadonlySet<string>>(new Set());
     const updateCourse = useUpdateOfficialCourseMutation();
     const deleteCourse = useDeleteOfficialCourseMutation();
     const setPublished = useSetOfficialCoursePublishedMutation();
@@ -140,6 +144,9 @@ export function OfficialCourseEditor({ courseId }: Readonly<{ courseId: string }
                         <Pencil className="h-4 w-4" />
                         Rename
                     </Button>
+                    {words > 0 ? (
+                        <SyncWithLangeekButton preset={{ scope: "course", targetId: courseId, label: course.name }} />
+                    ) : null}
                     <Button variant="destructive" onClick={() => setEditing({ kind: "deleteCourse" })}>
                         <Trash2 className="h-4 w-4" />
                         Delete course
@@ -170,6 +177,8 @@ export function OfficialCourseEditor({ courseId }: Readonly<{ courseId: string }
                 </span>
             </div>
 
+            <SelectedWordsBar wordIds={[...selected]} onClear={() => setSelected(new Set())} />
+
             {lessons.length === 0 ? (
                 <EmptyState
                     icon={BookOpen}
@@ -193,6 +202,8 @@ export function OfficialCourseEditor({ courseId }: Readonly<{ courseId: string }
                         onDelete={() => setEditing({ kind: "deleteLesson", lesson })}
                         onEditWord={(word) => setEditing({ kind: "word", lesson, word })}
                         onDeleteWord={(word) => setEditing({ kind: "deleteWord", word })}
+                        selected={selected}
+                        onToggleWord={(word) => setSelected((ids) => toggleId(ids, word.id))}
                     />
                 ))
             )}

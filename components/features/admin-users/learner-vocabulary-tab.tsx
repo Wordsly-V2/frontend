@@ -1,6 +1,8 @@
 "use client";
 
 import ConfirmDialog from "@/components/common/confirm-dialog/confirm-dialog";
+import { SelectedWordsBar } from "@/components/features/admin-dictionary-sync/selected-words-bar";
+import { SyncWithLangeekButton } from "@/components/features/admin-dictionary-sync/start-sync-dialog";
 import { EmptyState, ErrorState, Skeleton } from "@/components/common/states";
 import { FilterToggle } from "@/components/features/admin/filter-toggle";
 import CourseFormDialog from "@/components/features/manage/course-form-dialog";
@@ -9,6 +11,7 @@ import WordFormDialog from "@/components/features/manage/word-form-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useDebounce } from "@/hooks/useDebounce.hook";
+import { toggleId } from "@/lib/admin/dictionary-sync";
 import { countOf, wordGaps } from "@/lib/admin/vocabulary";
 import { adminErrorMessages } from "@/lib/admin-path/errors";
 import { adminUserSearchParams } from "@/lib/search-params/admin-user";
@@ -71,6 +74,15 @@ function CourseList({
                     <Fact label="Lessons">{stats.totalLessons}</Fact>
                     <Fact label="Words">{stats.totalWords}</Fact>
                 </Facts>
+                {stats.totalWords > 0 ? (
+                    <div className="mt-5">
+                        <SyncWithLangeekButton
+                            preset={{ scope: "user", targetId: userLoginId, label: `Every course of ${name}` }}
+                        >
+                            Sync all with Langeek
+                        </SyncWithLangeekButton>
+                    </div>
+                ) : null}
             </DetailSection>
 
             <DetailSection title="Courses" description="Newest first. Open one to read or fix its lessons and words.">
@@ -156,6 +168,7 @@ function CourseView({
     const { data: course, isFetching, error, refetch } = useAdminUserCourseQuery(userLoginId, courseId);
     const [editing, setEditing] = useState<Editing>(null);
     const [filter, setFilter] = useState<WordFilter>("all");
+    const [selected, setSelected] = useState<ReadonlySet<string>>(new Set());
     const updateCourse = useUpdateAdminUserCourseMutation();
     const deleteCourse = useDeleteAdminUserCourseMutation();
     const updateLesson = useUpdateAdminUserLessonMutation();
@@ -206,7 +219,10 @@ function CourseView({
                             ? "Every word has IPA, audio, a meaning and an example."
                             : `${incomplete} of ${countOf(words.length, "word")} ${incomplete === 1 ? "is" : "are"} missing IPA, audio, a meaning or an example.`}
                     </p>
-                    <span className="flex gap-2">
+                    <span className="flex flex-wrap gap-2">
+                        {words.length > 0 ? (
+                            <SyncWithLangeekButton preset={{ scope: "course", targetId: courseId, label: course.name }} />
+                        ) : null}
                         <Button variant="outline" onClick={() => setEditing({ kind: "course" })}>
                             <Pencil className="h-4 w-4" />
                             Rename
@@ -232,6 +248,8 @@ function CourseView({
                 </div>
             ) : null}
 
+            <SelectedWordsBar wordIds={[...selected]} onClear={() => setSelected(new Set())} />
+
             {lessons.length === 0 ? (
                 <EmptyState icon={BookOpen} title="No lessons yet" description="This course is empty." />
             ) : (
@@ -244,6 +262,8 @@ function CourseView({
                         onDelete={() => setEditing({ kind: "deleteLesson", lesson })}
                         onEditWord={(word) => setEditing({ kind: "word", lesson, word })}
                         onDeleteWord={(word) => setEditing({ kind: "deleteWord", word })}
+                        selected={selected}
+                        onToggleWord={(word) => setSelected((ids) => toggleId(ids, word.id))}
                     />
                 ))
             )}

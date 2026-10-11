@@ -86,6 +86,7 @@ const ADMIN_ROUTES: PaletteRoute[] = [
     { href: "/admin/users", label: "Admin: Users", icon: ShieldCheck, keywords: ["accounts", "suspend", "role", "people"] },
     { href: "/admin/path", label: "Admin: Wordsly Path", icon: ShieldCheck, keywords: ["content", "publish", "release", "edit"] },
     { href: "/admin/vocabulary", label: "Admin: Official courses", icon: ShieldCheck, keywords: ["vocabulary", "course", "publish", "content"] },
+    { href: "/admin/vocabulary/sync", label: "Admin: Langeek sync", icon: ShieldCheck, keywords: ["dictionary", "image", "pronunciation", "enrich", "content"] },
 ];
 
 const ACCOUNT_ROUTES: PaletteRoute[] = [

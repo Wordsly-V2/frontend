@@ -2,6 +2,7 @@
 
 import { StatTiles } from "@/components/common/stats-cards";
 import { AdminBarChart, AdminPercentLineChart } from "@/components/features/admin/charts";
+import { SyncWithLangeekButton } from "@/components/features/admin-dictionary-sync/start-sync-dialog";
 import { ChartCard } from "@/components/features/progress/chart-card";
 import { Badge } from "@/components/ui/badge";
 import { dailyAccuracy, formatPercent, ratio, retentionShade, shortDay } from "@/lib/admin/stats";
@@ -299,6 +300,16 @@ function VocabularyHealth() {
                     <ChartCard
                         title="Vocabulary health"
                         subtitle={`${countOf(data.totals.words, "word")} in ${countOf(data.totals.courses, "course")} by ${countOf(data.totals.owners, "learner")}; ${shareOf(data.incompleteWords, data.totals.words)} miss IPA, audio, a meaning or an example`}
+                        action={
+                            data.incompleteWords > 0 || data.missing.image > 0 ? (
+                                <SyncWithLangeekButton
+                                    size="sm"
+                                    preset={{ scope: "health", label: "Every word with a gap (image included)" }}
+                                >
+                                    Fix with Langeek
+                                </SyncWithLangeekButton>
+                            ) : null
+                        }
                     >
                         <MiniTable
                             head={[{ label: "Missing" }, { label: "Words", numeric: true }]}

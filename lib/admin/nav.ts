@@ -24,6 +24,7 @@ export const ADMIN_NAV: AdminNavGroup[] = [
         links: [
             { href: "/admin/path", label: "Wordsly Path" },
             { href: "/admin/vocabulary", label: "Official courses" },
+            { href: "/admin/vocabulary/sync", label: "Langeek sync" },
         ],
     },
 ];

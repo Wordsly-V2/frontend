@@ -11,6 +11,7 @@ describe("activeAdminHref", () => {
         expect(activeAdminHref("/admin/users/01a0dc51")).toBe("/admin/users");
         expect(activeAdminHref("/admin/path/item/greetings")).toBe("/admin/path");
         expect(activeAdminHref("/admin/vocabulary/courses/01a10a40")).toBe("/admin/vocabulary");
+        expect(activeAdminHref("/admin/vocabulary/sync/01a10a40")).toBe("/admin/vocabulary/sync");
     });
 
     it("does not treat a shared prefix as a parent", () => {

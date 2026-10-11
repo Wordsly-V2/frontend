@@ -176,6 +176,16 @@ export const apiPaths = {
         deleteWords: (courseId: string) => `/admin/vocabulary/courses/${courseId}/words/delete`,
     },
 
+    /** Langeek sync runs (admins only; vocabulary-service). */
+    adminDictionarySync: {
+        preview: () => '/admin/vocabulary/sync/preview',
+        jobs: () => '/admin/vocabulary/sync/jobs',
+        job: (jobId: string) => `/admin/vocabulary/sync/jobs/${jobId}`,
+        items: (jobId: string) => `/admin/vocabulary/sync/jobs/${jobId}/items`,
+        cancel: (jobId: string) => `/admin/vocabulary/sync/jobs/${jobId}/cancel`,
+        retry: (jobId: string) => `/admin/vocabulary/sync/jobs/${jobId}/retry`,
+    },
+
     /** Wordsly Path authoring (admins only; curriculum-service). */
     adminPath: {
         stats: () => '/admin/path/stats',

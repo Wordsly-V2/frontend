@@ -82,6 +82,10 @@ export interface IWord {
   usIpa?: string;
   /** Smaller image for compact layouts. */
   imageThumbnailUrl?: string;
+  /** CEFR level (A1–C2) from Langeek. */
+  cefrLevel?: string | null;
+  /** When a Langeek sync last checked this word. */
+  langeekSyncedAt?: string | null;
 }
 
 export interface ICourseTotalStats {
