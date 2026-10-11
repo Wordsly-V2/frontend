@@ -185,6 +185,14 @@ export const queryKeys = {
         list: (query: object) => ["admin-official-courses", "list", query] as const,
         course: (courseId: string) => ["admin-official-courses", "course", courseId] as const,
     },
+    /** Langeek sync runs and their words. Never persisted. */
+    adminDictionarySync: {
+        all: ["admin-dictionary-sync"] as const,
+        jobs: (query: object) => ["admin-dictionary-sync", "jobs", query] as const,
+        job: (jobId: string) => ["admin-dictionary-sync", "job", jobId] as const,
+        items: (jobId: string, query: object) => ["admin-dictionary-sync", "job", jobId, "items", query] as const,
+        preview: (input: object) => ["admin-dictionary-sync", "preview", input] as const,
+    },
     /** Dashboard and report numbers. Never persisted (admin data stays off the device). */
     adminStats: {
         all: ["admin-stats"] as const,

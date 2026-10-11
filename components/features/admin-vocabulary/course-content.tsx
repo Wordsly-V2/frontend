@@ -1,7 +1,10 @@
 "use client";
 
+import { SyncWithLangeekButton } from "@/components/features/admin-dictionary-sync/start-sync-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { formatDate } from "@/lib/admin/users";
 import { countOf, GAP_BADGES, wordGaps, wordIpa } from "@/lib/admin/vocabulary";
 import type { ILesson, IWord } from "@/types/courses/courses.type";
 import { Pencil, Plus, Trash2 } from "lucide-react";
@@ -25,6 +28,8 @@ export function LessonSection({
     onEditWord,
     onDeleteWord,
     onAddWord,
+    selected,
+    onToggleWord,
 }: Readonly<{
     lesson: ILesson;
     onlyIncomplete: boolean;
@@ -34,6 +39,9 @@ export function LessonSection({
     onDeleteWord: (word: IWord) => void;
     /** Shown as "Add word" when given (official courses; a learner's own aren't added to). */
     onAddWord?: () => void;
+    /** Words ticked for a Langeek sync; rows get a checkbox when `onToggleWord` is given. */
+    selected?: ReadonlySet<string>;
+    onToggleWord?: (word: IWord) => void;
 }>) {
     const full = lesson.maxWords != null && (lesson.words?.length ?? 0) >= lesson.maxWords;
     const all = lesson.words ?? [];
@@ -50,6 +58,15 @@ export function LessonSection({
                     </p>
                 </div>
                 <span className="flex flex-wrap gap-1">
+                    {all.length > 0 ? (
+                        <SyncWithLangeekButton
+                            variant="ghost"
+                            size="sm"
+                            preset={{ scope: "lesson", targetId: lesson.id, label: `Lesson "${lesson.name}"` }}
+                        >
+                            Sync
+                        </SyncWithLangeekButton>
+                    ) : null}
                     {onAddWord ? (
                         <Button
                             variant="outline"
@@ -86,7 +103,14 @@ export function LessonSection({
             ) : (
                 <ul className="mt-3 divide-y divide-border/50">
                     {shown.map((word) => (
-                        <WordRow key={word.id} word={word} onEdit={() => onEditWord(word)} onDelete={() => onDeleteWord(word)} />
+                        <WordRow
+                            key={word.id}
+                            word={word}
+                            onEdit={() => onEditWord(word)}
+                            onDelete={() => onDeleteWord(word)}
+                            selected={selected?.has(word.id)}
+                            onToggle={onToggleWord ? () => onToggleWord(word) : undefined}
+                        />
                     ))}
                 </ul>
             )}
@@ -94,27 +118,42 @@ export function LessonSection({
     );
 }
 
-export function WordRow({ word, onEdit, onDelete }: Readonly<{ word: IWord; onEdit: () => void; onDelete: () => void }>) {
+export function WordRow({
+    word,
+    onEdit,
+    onDelete,
+    selected = false,
+    onToggle,
+}: Readonly<{ word: IWord; onEdit: () => void; onDelete: () => void; selected?: boolean; onToggle?: () => void }>) {
     const gaps = wordGaps(word);
     const ipa = wordIpa(word);
     return (
         <li className="flex flex-col gap-2 py-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="min-w-0 space-y-1">
-                <p className="flex flex-wrap items-baseline gap-x-2">
-                    <span className="font-medium">{word.word}</span>
-                    {word.partOfSpeech ? <span className="text-xs text-muted-foreground">{word.partOfSpeech}</span> : null}
-                    {ipa ? <span className="font-mono text-xs text-muted-foreground">{ipa}</span> : null}
-                </p>
-                <p className="text-sm text-muted-foreground">{word.meaning || "No meaning"}</p>
-                {gaps.length > 0 ? (
-                    <span className="flex flex-wrap gap-1">
-                        {gaps.map((gap) => (
-                            <Badge key={gap} variant="warning">
-                                {GAP_BADGES[gap]}
-                            </Badge>
-                        ))}
-                    </span>
+            <div className="flex min-w-0 items-start gap-3">
+                {onToggle ? (
+                    <Checkbox checked={selected} onCheckedChange={onToggle} aria-label={`Select ${word.word}`} className="mt-0.5" />
                 ) : null}
+                <div className="min-w-0 space-y-1">
+                    <p className="flex flex-wrap items-baseline gap-x-2">
+                        <span className="font-medium">{word.word}</span>
+                        {word.partOfSpeech ? <span className="text-xs text-muted-foreground">{word.partOfSpeech}</span> : null}
+                        {word.cefrLevel ? <Badge variant="secondary">{word.cefrLevel}</Badge> : null}
+                        {ipa ? <span className="font-mono text-xs text-muted-foreground">{ipa}</span> : null}
+                    </p>
+                    <p className="text-sm text-muted-foreground">{word.meaning || "No meaning"}</p>
+                    {gaps.length > 0 ? (
+                        <span className="flex flex-wrap gap-1">
+                            {gaps.map((gap) => (
+                                <Badge key={gap} variant="warning">
+                                    {GAP_BADGES[gap]}
+                                </Badge>
+                            ))}
+                        </span>
+                    ) : null}
+                    {word.langeekSyncedAt ? (
+                        <p className="text-xs text-muted-foreground">Synced with Langeek {formatDate(word.langeekSyncedAt)}</p>
+                    ) : null}
+                </div>
             </div>
             <span className="flex shrink-0 gap-1">
                 <Button variant="ghost" size="sm" onClick={onEdit} aria-label={`Edit ${word.word}`}>
