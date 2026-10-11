@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { adminErrorMessages } from "@/lib/admin-path/errors";
-import { leavesPageInApp } from "@/lib/admin-path/leave-guard";
 import {
     useAdminPathOverviewQuery,
     useAdminRecordQuery,
@@ -17,7 +16,7 @@ import {
 import type { AdminKind, AdminRecord, AdminTree, AdminValidation, ContentStatus, RowOrigin } from "@/types/admin-path/admin-path.type";
 import { ArrowLeft, Plus, Trash2 } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import type { UseFormRegisterReturn } from "react-hook-form";
 import { toast } from "sonner";
 
@@ -318,34 +317,5 @@ export function useEditorLoad(kind: AdminKind, slug: string, what: string = kind
     };
 }
 
-const LEAVE_WARNING = "You have unsaved changes. Leave this page and lose them?";
-
-/**
- * Warns before leaving the page with unsaved edits: a reload or another site
- * through `beforeunload`, and a link inside the app by catching its click
- * before Next's `<Link>` sees it (the App Router has no navigation event to
- * cancel). Back and forward are not caught.
- */
-export function useUnsavedWarning(dirty: boolean): void {
-    useEffect(() => {
-        if (!dirty) return;
-        const warn = (e: BeforeUnloadEvent) => e.preventDefault();
-        const onClick = (e: MouseEvent) => {
-            if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
-            const link = e.target instanceof Element ? e.target.closest("a[href]") : null;
-            if (!(link instanceof HTMLAnchorElement) || link.hasAttribute("download")) return;
-            if (link.target && link.target !== "_self") return;
-            if (!leavesPageInApp(link.href, globalThis.location.href)) return;
-            if (globalThis.confirm(LEAVE_WARNING)) return;
-            // Capture on document runs before React's root listener: the Link never hears of it.
-            e.preventDefault();
-            e.stopPropagation();
-        };
-        globalThis.addEventListener("beforeunload", warn);
-        document.addEventListener("click", onClick, true);
-        return () => {
-            globalThis.removeEventListener("beforeunload", warn);
-            document.removeEventListener("click", onClick, true);
-        };
-    }, [dirty]);
-}
+/** Moved to `hooks/useUnsavedWarning.hook.ts`; re-exported for the Path editors. */
+export { useUnsavedWarning } from "@/hooks/useUnsavedWarning.hook";

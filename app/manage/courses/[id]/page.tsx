@@ -17,14 +17,6 @@ import { PageShell } from "@/components/common/page";
 import { LearningProgressSection, WordProgressBadge, WordProgressStatsInline } from "@/components/common/word-progress-stats";
 import CourseFormDialog from "@/components/features/manage/course-form-dialog";
 import ExportWordsDialog from "@/components/features/manage/export-words-dialog";
-import dynamic from "next/dynamic";
-
-// Heavy, rarely-opened wizard (parsing + enrichment). Keep it out of the manage
-// bundle and load on demand when the user opens it.
-const ImportWordsDialog = dynamic(
-    () => import("@/components/features/manage/import-words-dialog"),
-    { ssr: false },
-);
 import LessonFormDialog from "@/components/features/manage/lesson-form-dialog";
 import MoveWordDialog from "@/components/features/manage/move-word-dialog";
 import WordFormDialog from "@/components/features/manage/word-form-dialog";
@@ -50,14 +42,12 @@ import {
     useBulkDeleteMyWordsMutation,
     useBulkMoveMyWordsFromCourseMutation,
     useCreateMyWordMutation,
-    useCreateMyWordsBulkMutation,
     useDeleteMyWordMutation,
     useUpdateMyWordMutation,
 } from "@/queries/words.query";
 import type { IWordProgressResponse, IWordProgressStats } from "@/types/word-progress/word-progress.type";
 import { useQueries, useQueryClient } from "@tanstack/react-query";
 import { CreateMyLesson, CreateMyWord, ICourse, ILesson, IWord } from "@/types/courses/courses.type";
-import { ImportWordRow, rowToCreateMyWord } from "@/lib/word-import";
 import {
     closestCenter,
     DndContext,
@@ -380,7 +370,6 @@ export default function ManageCourseDetailPage({ params }: { params: Promise<{ i
     const [deleteConfirm, setDeleteConfirm] = useState<{ type: 'lesson' | 'word' | 'bulk-words'; item: ILesson | IWord | null; lessonId?: string } | null>(null);
     const [moveWordDialog, setMoveWordDialog] = useState<{ words: IWord[]; sourceLesson?: ILesson } | null>(null);
     const [exportWordsDialogOpen, setExportWordsDialogOpen] = useState(false);
-    const [importWordsDialogOpen, setImportWordsDialogOpen] = useState(false);
     const [viewingWord, setViewingWord] = useState<IWord | null>(null);
     const [bulkActionsOpen, setBulkActionsOpen] = useState(false);
 
@@ -469,7 +458,6 @@ export default function ManageCourseDetailPage({ params }: { params: Promise<{ i
     const mutationDeleteMyCourseLesson = useDeleteMyCourseLessonMutation();
     const mutationReorderMyCourseLessons = useReorderMyCourseLessonsMutation();
     const mutationCreateMyWord = useCreateMyWordMutation();
-    const mutationCreateMyWordsBulk = useCreateMyWordsBulkMutation();
     const mutationUpdateMyWord = useUpdateMyWordMutation();
     const mutationDeleteMyWord = useDeleteMyWordMutation();
     const mutationBulkDeleteMyWords = useBulkDeleteMyWordsMutation();
@@ -615,22 +603,6 @@ export default function ManageCourseDetailPage({ params }: { params: Promise<{ i
                 },
             });
         }
-    }
-
-    const handleImportWords = (lessonId: string, rows: ImportWordRow[]) => {
-        const words = rows.map(rowToCreateMyWord);
-        mutationCreateMyWordsBulk.mutate({ courseId: id, lessonId, words }, {
-            onSuccess: (res) => {
-                loadCourseDetail();
-                setImportWordsDialogOpen(false);
-                setExpandedLessons((prev) => new Set(prev).add(lessonId));
-                const count = res?.count ?? words.length;
-                toast.success(`Imported ${count} word${count === 1 ? "" : "s"}`);
-            },
-            onError: (err) => {
-                toast.error('Failed to import words: ' + err.message);
-            },
-        });
     }
 
     const handleUpdateMyWord = (wordData: CreateMyWord) => {
@@ -901,12 +873,11 @@ export default function ManageCourseDetailPage({ params }: { params: Promise<{ i
                                         </Button>
                                     </DropdownMenuTrigger>
                                     <DropdownMenuContent align="end" className="w-48">
-                                        <DropdownMenuItem
-                                            onClick={() => setImportWordsDialogOpen(true)}
-                                            disabled={!course?.lessons?.length}
-                                        >
-                                            <FileUp className="h-4 w-4" />
-                                            Import words
+                                        <DropdownMenuItem asChild disabled={!course?.lessons?.length}>
+                                            <Link href={`/manage/courses/${id}/import`}>
+                                                <FileUp className="h-4 w-4" />
+                                                Import words
+                                            </Link>
                                         </DropdownMenuItem>
                                         <DropdownMenuItem
                                             onClick={() => setExportWordsDialogOpen(true)}
@@ -1192,13 +1163,6 @@ export default function ManageCourseDetailPage({ params }: { params: Promise<{ i
                 courseName={course?.name ?? ""}
             />
 
-            <ImportWordsDialog
-                isOpen={importWordsDialogOpen}
-                onClose={() => setImportWordsDialogOpen(false)}
-                lessons={course?.lessons || []}
-                isImporting={mutationCreateMyWordsBulk.isPending}
-                onImport={handleImportWords}
-            />
             {viewingWord && (
                 <WordDetailDialog word={viewingWord} isOpen={!!viewingWord} onClose={() => setViewingWord(null)} />
             )}
