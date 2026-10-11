@@ -1,4 +1,5 @@
 import { getLangeekWordDetails, LangeekExample, searchWords } from "@/apis/dictionary.api";
+import { ApiError } from "@/lib/api-error";
 import { CreateMyWord, IWordExample } from "@/types/courses/courses.type";
 import { normalizeAnswer, serializeExamples } from "@/lib/practice-utils";
 
@@ -24,11 +25,21 @@ export interface ImportWordRow {
     audioUrl: string;
     imageUrl: string;
     examples: IWordExample[];
-    /** Set after a dictionary auto-enrich pass. */
-    enriched?: boolean;
+    /** What the last dictionary lookup found; unset until one ran. */
+    lookup?: LookupState;
     /** Alternative dictionary senses (different parts of speech), found during enrich. */
     senses?: WordSense[];
+    /** Left out of the import by the learner. */
+    skipped?: boolean;
+    /** Import it even though it repeats a word (in the list or the lesson). */
+    keepDuplicate?: boolean;
 }
+
+/**
+ * `found`: the dictionary knew the word; `not-found`: it answered with nothing;
+ * `failed`: it couldn't be asked (offline, rate limit that never cleared).
+ */
+export type LookupState = "found" | "not-found" | "failed";
 
 let rowIdCounter = 0;
 function nextRowId(): string {
@@ -324,6 +335,35 @@ export function parseWordsJson(text: string): ImportWordRow[] {
         .filter((row) => row.word);
 }
 
+export type ImportFormat = "json" | "csv" | "tsv" | "lines";
+
+/**
+ * Parse pasted text or a file's contents, whatever the shape: a JSON array, a
+ * CSV or tab-separated table (with or without a header row), or one word per
+ * line. Throws with a readable message when JSON is malformed.
+ */
+export function parseImportText(text: string, fileName = ""): { rows: ImportWordRow[]; format: ImportFormat } {
+    const trimmed = text.trim();
+    if (!trimmed) return { rows: [], format: "lines" };
+    if (fileName.toLowerCase().endsWith(".json") || trimmed.startsWith("[")) {
+        return { rows: parseWordsJson(trimmed), format: "json" };
+    }
+    const firstLine = trimmed.split(/\r?\n/, 1)[0];
+    const format: ImportFormat = firstLine.includes("\t") && !firstLine.includes(",")
+        ? "tsv"
+        : firstLine.includes(",")
+          ? "csv"
+          : "lines";
+    return { rows: parseWordsDelimited(trimmed), format };
+}
+
+/** A CSV with every column the importer reads, and two sample rows. */
+export const IMPORT_TEMPLATE_CSV = [
+    "word,meaning,pronunciation,partOfSpeech,example,exampleTranslation",
+    'resilient,kiên cường,/rɪˈzɪliənt/,adjective,"Children are often very resilient.","Trẻ em thường rất kiên cường."',
+    "anxiety,lo âu,/æŋˈzaɪəti/,noun,,",
+].join("\n");
+
 /** Serialize a staged row into the bulk-create payload shape. */
 export function rowToCreateMyWord(row: ImportWordRow): CreateMyWord {
     return {
@@ -376,10 +416,10 @@ export async function applySenseToRow(
         meaning: sense.meaning || row.meaning,
         partOfSpeech: sense.partOfSpeech,
         imageUrl: sense.imageUrl || row.imageUrl,
-        enriched: true,
+        lookup: "found",
     };
     try {
-        const details = await getLangeekWordDetails(row.word.trim(), sense.partOfSpeech);
+        const details = await withRateLimitRetry(() => getLangeekWordDetails(row.word.trim(), sense.partOfSpeech));
         if (details) {
             next.pronunciation = details.pronunciation || "";
             next.audioUrl = details.audioUrl || "";
@@ -400,10 +440,33 @@ export interface EnrichOptions {
     overwrite?: boolean;
 }
 
+const wait = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
+
+/**
+ * Retry a dictionary call the server turned away for going too fast (429:
+ * lookups are limited per minute), waiting longer each time. Any other error
+ * is thrown at once.
+ */
+export async function withRateLimitRetry<T>(
+    call: () => Promise<T>,
+    { attempts = 5, baseMs = 2000, sleep = wait }: { attempts?: number; baseMs?: number; sleep?: (ms: number) => Promise<void> } = {},
+): Promise<T> {
+    for (let attempt = 1; ; attempt += 1) {
+        try {
+            return await call();
+        } catch (err) {
+            const limited = err instanceof ApiError && err.status === 429;
+            if (!limited || attempt >= attempts) throw err;
+            await sleep(baseMs * 2 ** (attempt - 1));
+        }
+    }
+}
+
 /**
  * Pull dictionary data into a row. By default only fills missing fields (safe for
  * bulk enrich); with `overwrite`, refreshes all dictionary-derived fields for the
- * current word (used by the per-row re-enrich after editing). Returns a new row.
+ * current word (used by the per-row re-enrich after editing). Returns a new row
+ * whose `lookup` says what happened.
  */
 export async function enrichWordRow(
     row: ImportWordRow,
@@ -414,16 +477,16 @@ export async function enrichWordRow(
 
     let results;
     try {
-        results = await searchWords(query);
+        results = await withRateLimitRetry(() => searchWords(query));
     } catch {
-        return { ...row, enriched: true };
+        return { ...row, lookup: "failed" };
     }
     const exactMatches = results.filter(
         (r) => normalizeAnswer(r.word) === normalizeAnswer(query),
     );
     const relevant = exactMatches.length > 0 ? exactMatches : results;
     const match = relevant[0];
-    if (!match) return { ...row, enriched: true, senses: [] };
+    if (!match) return { ...row, lookup: "not-found", senses: [] };
 
     // Collect distinct senses (a word can have noun/verb/adj… meanings).
     const senses = dedupeSenses(
@@ -437,7 +500,7 @@ export async function enrichWordRow(
             })),
     );
 
-    const next: ImportWordRow = { ...row, enriched: true, senses };
+    const next: ImportWordRow = { ...row, lookup: "found", senses };
     const shouldSet = (current: string) => overwrite || !current;
     if (shouldSet(next.meaning) && match.meaning) next.meaning = match.meaning;
     if (shouldSet(next.partOfSpeech) && match.partOfSpeech) next.partOfSpeech = match.partOfSpeech;
@@ -446,7 +509,7 @@ export async function enrichWordRow(
     const pos = match.partOfSpeech?.trim();
     if (match.langeekWordId != null && pos) {
         try {
-            const details = await getLangeekWordDetails(match.word, pos);
+            const details = await withRateLimitRetry(() => getLangeekWordDetails(match.word, pos));
             if (details) {
                 if (shouldSet(next.pronunciation) && details.pronunciation) next.pronunciation = details.pronunciation;
                 if (shouldSet(next.audioUrl) && details.audioUrl) next.audioUrl = details.audioUrl;
@@ -467,19 +530,45 @@ export async function enrichWordRow(
     return next;
 }
 
+/**
+ * Put a finished lookup onto the row as it is now. The learner may have typed
+ * while the lookup ran, so only fields still blank take the dictionary's
+ * value, and examples merge; a row whose word changed meanwhile keeps nothing
+ * but is marked for another lookup.
+ */
+export function applyLookup(current: ImportWordRow, looked: ImportWordRow): ImportWordRow {
+    if (normalizeAnswer(current.word) !== normalizeAnswer(looked.word)) {
+        return { ...current, lookup: undefined };
+    }
+    const fill = (now: string, found: string) => (now.trim() ? now : found);
+    return {
+        ...current,
+        meaning: fill(current.meaning, looked.meaning),
+        pronunciation: fill(current.pronunciation, looked.pronunciation),
+        partOfSpeech: fill(current.partOfSpeech, looked.partOfSpeech),
+        audioUrl: fill(current.audioUrl, looked.audioUrl),
+        imageUrl: fill(current.imageUrl, looked.imageUrl),
+        examples: mergeExamples(current.examples, looked.examples),
+        lookup: looked.lookup,
+        senses: looked.senses,
+    };
+}
+
 /** Run an async mapper over items with bounded concurrency, reporting progress. */
 export async function mapWithConcurrency<T, R>(
     items: T[],
     limit: number,
     mapper: (item: T, index: number) => Promise<R>,
     onProgress?: (done: number) => void,
+    /** Checked before each item; once true, no new item starts (results stay unset). */
+    shouldStop?: () => boolean,
 ): Promise<R[]> {
     const results = new Array<R>(items.length);
     let cursor = 0;
     let done = 0;
 
     async function worker() {
-        while (cursor < items.length) {
+        while (cursor < items.length && !shouldStop?.()) {
             const index = cursor;
             cursor += 1;
             results[index] = await mapper(items[index], index);
